@@ -3,6 +3,7 @@
 // Supports both 2014 and 2024 editions with 'year' field to distinguish
 
 import srdSpellsMerged from '../data/srd/5e-SRD-Spells-Merged.json';
+import srdSpells2014 from '../data/srd/2014/5e-SRD-Spells.json';
 import srdRaces2014 from '../data/srd/2014/5e-SRD-Races.json';
 import srdClasses2014 from '../data/srd/2014/5e-SRD-Classes.json';
 import srdClasses2024 from '../data/srd/2024/5e-SRD-Classes.json';
@@ -23,7 +24,11 @@ import speciesData from '../data/species.json';
 import { quickStartEquipmentPresets } from '../data/quickStartEquipment';
 import startingWealthData from '../data/startingWealth.json';
 import newPlayerShopData from '../data/newPlayerShop.json';
-import { ClassWealthRule, ShopItem, QuickStartPresets } from '../types/equipment';
+import {
+  ClassWealthRule,
+  ShopItem,
+  QuickStartPresets,
+} from '../types/equipment';
 import fightingStylesData from '../data/fightingStyles.json';
 import speciesCategoriesData from '../data/speciesCategories.json';
 import classCategoriesData from '../data/classCategories.json';
@@ -37,7 +42,27 @@ import backgroundDefaultsData from '../data/backgroundDefaults.json';
 import combatActionsData from '../data/combatActions.json';
 import { generateName } from '../utils/nameGenerator';
 import { log } from '../utils/logger';
-import { AbilityName, Species, Class, Equipment, Feature, Subclass, Feat, SpeciesCategory, ClassCategory, EquipmentPackage, EquipmentChoice, EquipmentItem, EquippedItem, SpellcastingType, SkillName, Monster, MonsterType, Edition, Background } from '../types/dnd';
+import {
+  AbilityName,
+  Species,
+  Class,
+  Equipment,
+  Feature,
+  Subclass,
+  Feat,
+  SpeciesCategory,
+  ClassCategory,
+  EquipmentPackage,
+  EquipmentChoice,
+  EquipmentItem,
+  EquippedItem,
+  SpellcastingType,
+  SkillName,
+  Monster,
+  MonsterType,
+  Edition,
+  Background,
+} from '../types/dnd';
 import { Level1Feature } from '../types/widgets';
 import { getSelectableLanguages } from '../data/languages';
 
@@ -59,12 +84,26 @@ export interface CombatAction {
   name: string;
   summary: string;
   description: string;
-  actionEconomy: 'action' | 'bonus_action' | 'reaction' | 'free' | 'movement' | 'special' | 'varies';
+  actionEconomy:
+    | 'action'
+    | 'bonus_action'
+    | 'reaction'
+    | 'free'
+    | 'movement'
+    | 'special'
+    | 'varies';
   rollType: 'skill' | 'attack' | 'healing' | 'damage' | 'none' | 'conditional';
   ability?: 'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA';
   skill?: string;
   contest?: string;
-  category: 'special-attack' | 'tactical' | 'class-feature' | 'combat' | 'spellcasting' | 'utility' | 'movement';
+  category:
+    | 'special-attack'
+    | 'tactical'
+    | 'class-feature'
+    | 'combat'
+    | 'spellcasting'
+    | 'utility'
+    | 'movement';
   class?: string;
   subclass?: string;
   minLevel?: number;
@@ -88,9 +127,6 @@ interface CombatActionsData {
   movement: CombatAction[];
   classFeatureActions: CombatAction[];
 }
-
-
-
 
 interface FightingStyle {
   slug: string;
@@ -140,7 +176,7 @@ interface SRDRace {
   index: string;
   name: string;
   speed: number;
-  ability_bonuses: Array<{ 
+  ability_bonuses: Array<{
     ability_score: { index: string; name: string };
     bonus: number;
   }>;
@@ -196,7 +232,6 @@ interface SRDClass {
 
 // Equipment SRD Type Definitions
 
-
 interface SRDEquipment {
   index: string;
   name: string;
@@ -237,10 +272,16 @@ interface SRDEquipment {
   quantity?: number;
 }
 
-
-
 // --- App Type Definitions (matching App.tsx) ---
-type SchoolName = 'Abjuration' | 'Conjuration' | 'Divination' | 'Enchantment' | 'Evocation' | 'Illusion' | 'Necromancy' | 'Transmutation';
+type SchoolName =
+  | 'Abjuration'
+  | 'Conjuration'
+  | 'Divination'
+  | 'Enchantment'
+  | 'Evocation'
+  | 'Illusion'
+  | 'Necromancy'
+  | 'Transmutation';
 
 export interface AppSpell {
   slug: string;
@@ -275,32 +316,46 @@ function capitalizeSchool(school: string): SchoolName {
 
 function mapAbilityScore(srdAbility: string): AbilityName {
   const mapping: Record<string, AbilityName> = {
-    'str': 'STR',
-    'dex': 'DEX',
-    'con': 'CON',
-    'int': 'INT',
-    'wis': 'WIS',
-    'cha': 'CHA'
+    str: 'STR',
+    dex: 'DEX',
+    con: 'CON',
+    int: 'INT',
+    wis: 'WIS',
+    cha: 'CHA',
   };
   return mapping[srdAbility.toLowerCase()] || 'STR';
 }
 
 export function transformSpell(srdSpell: SRDSpell): AppSpell {
   // Handle different school formats (2014 nested vs 2024 flat)
-  const schoolName = typeof srdSpell.school === 'string'
-    ? srdSpell.school
-    : srdSpell.school.name;
+  const schoolName =
+    typeof srdSpell.school === 'string'
+      ? srdSpell.school
+      : srdSpell.school.name;
 
   // Handle different casting time formats
-  const castingTime = srdSpell.casting_time || srdSpell.actionType || '1 action';
+  const castingTime =
+    srdSpell.casting_time ||
+    (srdSpell.actionType === 'bonusAction'
+      ? '1 bonus action'
+      : srdSpell.actionType === 'reaction'
+        ? '1 reaction'
+        : srdSpell.actionType === 'action'
+          ? '1 action'
+          : srdSpell.actionType) ||
+    '1 action';
 
   // Handle different higher level formats
-  const atHigherLevels = srdSpell.higher_level?.join('\n\n') || srdSpell.higherLevelSlot;
+  const atHigherLevels =
+    srdSpell.higher_level?.join('\n\n') || srdSpell.higherLevelSlot;
 
   // Handle different class formats
-  const classes = Array.isArray(srdSpell.classes) && typeof srdSpell.classes[0] === 'object' && srdSpell.classes[0]?.index
-    ? (srdSpell.classes as Array<{ index: string }>).map(c => c.index) // 2014 nested format
-    : srdSpell.classes as string[]; // 2024 flat format
+  const classes =
+    Array.isArray(srdSpell.classes) &&
+    typeof srdSpell.classes[0] === 'object' &&
+    srdSpell.classes[0]?.index
+      ? (srdSpell.classes as Array<{ index: string }>).map((c) => c.index) // 2014 nested format
+      : (srdSpell.classes as string[]); // 2024 flat format
 
   return {
     slug: srdSpell.index || srdSpell.name.toLowerCase().replace(/\s+/g, '-'),
@@ -312,76 +367,86 @@ export function transformSpell(srdSpell: SRDSpell): AppSpell {
     components: {
       verbal: srdSpell.components.some((c: string) => c.toLowerCase() === 'v'),
       somatic: srdSpell.components.some((c: string) => c.toLowerCase() === 's'),
-      material: srdSpell.components.some((c: string) => c.toLowerCase() === 'm'),
+      material: srdSpell.components.some(
+        (c: string) => c.toLowerCase() === 'm',
+      ),
       materialDescription: srdSpell.material,
     },
     duration: srdSpell.duration,
     concentration: srdSpell.concentration,
     ritual: srdSpell.ritual,
-    description: srdSpell.description || (srdSpell.desc ? srdSpell.desc.join('\n\n') : ''),
+    description:
+      srdSpell.description || (srdSpell.desc ? srdSpell.desc.join('\n\n') : ''),
     atHigherLevels,
     damageType: srdSpell.damage?.damage_type?.name,
-    saveType: srdSpell.dc ? mapAbilityScore(srdSpell.dc.dc_type.index) : undefined,
+    saveType: srdSpell.dc
+      ? mapAbilityScore(srdSpell.dc.dc_type.index)
+      : undefined,
     classes,
     source: srdSpell.source,
     year: srdSpell.source === '2024' ? 2024 : 2014,
   };
 }
 
-export function transformSpecies(srdSpecies: SRDRace, year: number = 2014): Species {
+export function transformSpecies(
+  srdSpecies: SRDRace,
+  year: number = 2014,
+): Species {
   const edition: Edition = year === 2024 ? '2024' : '2014';
   const abilityBonuses: Partial<Record<AbilityName, number>> = {};
-  srdSpecies.ability_bonuses.forEach(bonus => {
+  srdSpecies.ability_bonuses.forEach((bonus) => {
     const ability = mapAbilityScore(bonus.ability_score.index);
     abilityBonuses[ability] = bonus.bonus;
   });
 
-   // Handle human variants specially
-   let variants = undefined;
-   let defaultVariant = undefined;
-   let finalAbilityBonuses = abilityBonuses;
-   let finalSpeciesTraits = srdSpecies.traits.map(t => t.name);
+  // Handle human variants specially
+  let variants = undefined;
+  let defaultVariant = undefined;
+  let finalAbilityBonuses = abilityBonuses;
+  let finalSpeciesTraits = srdSpecies.traits.map((t) => t.name);
 
-   if (srdSpecies.index === 'human') {
-     // Define human variants
-     variants = [
-       {
-         slug: 'standard',
-         name: 'Standard Human',
-         description: 'The classic human from the Basic Rules - +1 to all ability scores for broad versatility.',
-         ability_bonuses: { STR: 1, DEX: 1, CON: 1, INT: 1, WIS: 1, CHA: 1 },
-         species_traits: [],
-         features: []
-       },
-       {
-         slug: 'variant',
-         name: 'Variant Human',
-         description: 'The specialist human - +1 to two abilities, one skill proficiency, and one feat for focused power.',
-         ability_bonuses: {},
-         species_traits: ['Variant Skills', 'Variant Feat'],
-         features: []
-       }
-     ];
-     defaultVariant = 'variant';
+  if (srdSpecies.index === 'human') {
+    // Define human variants
+    variants = [
+      {
+        slug: 'standard',
+        name: 'Standard Human',
+        description:
+          'The classic human from the Basic Rules - +1 to all ability scores for broad versatility.',
+        ability_bonuses: { STR: 1, DEX: 1, CON: 1, INT: 1, WIS: 1, CHA: 1 },
+        species_traits: [],
+        features: [],
+      },
+      {
+        slug: 'variant',
+        name: 'Variant Human',
+        description:
+          'The specialist human - +1 to two abilities, one skill proficiency, and one feat for focused power.',
+        ability_bonuses: {},
+        species_traits: ['Variant Skills', 'Variant Feat'],
+        features: [],
+      },
+    ];
+    defaultVariant = 'variant';
 
-     // Clear base ability bonuses and traits for human (handled by variants)
-     finalAbilityBonuses = {};
-     finalSpeciesTraits = [];
-   }
+    // Clear base ability bonuses and traits for human (handled by variants)
+    finalAbilityBonuses = {};
+    finalSpeciesTraits = [];
+  }
 
-   return {
-     slug: srdSpecies.index,
-     name: srdSpecies.name,
-     edition,
-     source: `SRD ${year}`,
-     speed: srdSpecies.speed,
-     ability_bonuses: finalAbilityBonuses,
-     species_traits: finalSpeciesTraits,
-     description: `${srdSpecies.name} from the System Reference Document.`,
-     typicalRoles: [], // SRD doesn't include this, would need to be added manually
-     variants,
-     defaultVariant
-   };
+  return {
+    slug: srdSpecies.index,
+    name: srdSpecies.name,
+    edition,
+    source: `SRD ${year}`,
+    speed: srdSpecies.speed,
+    ability_bonuses: finalAbilityBonuses,
+    species_traits: finalSpeciesTraits,
+    description: `${srdSpecies.name} from the System Reference Document.`,
+    typicalRoles: [], // SRD doesn't include this, would need to be added manually
+    variants,
+    defaultVariant,
+  };
 }
 
 export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
@@ -389,40 +454,50 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
   const edition: Edition = year === 2024 ? '2024' : '2014';
 
   // Separate skill and musical instrument proficiencies from proficiency_choices
-  const skillChoices = (srdClass.proficiency_choices || [])
-    .filter(choice => choice && choice.type === 'proficiencies' && !choice.desc?.toLowerCase().includes('musical instrument'));
+  const skillChoices = (srdClass.proficiency_choices || []).filter(
+    (choice) =>
+      choice &&
+      choice.type === 'proficiencies' &&
+      !choice.desc?.toLowerCase().includes('musical instrument'),
+  );
 
-  const instrumentChoices = (srdClass.proficiency_choices || [])
-    .filter(choice => choice && choice.type === 'proficiencies' && choice.desc?.toLowerCase().includes('musical instrument'));
+  const instrumentChoices = (srdClass.proficiency_choices || []).filter(
+    (choice) =>
+      choice &&
+      choice.type === 'proficiencies' &&
+      choice.desc?.toLowerCase().includes('musical instrument'),
+  );
 
   // Extract skill proficiencies
-  const skillProficiencies = skillChoices
-    .flatMap(choice =>
-      (choice.from?.options || [])
-        .filter(opt => opt && opt.item && opt.item.name)
-        .map(opt => opt.item.name.replace(/^Skill:\s*/, ''))
-    );
+  const skillProficiencies = skillChoices.flatMap((choice) =>
+    (choice.from?.options || [])
+      .filter((opt) => opt && opt.item && opt.item.name)
+      .map((opt) => opt.item.name.replace(/^Skill:\s*/, '')),
+  );
 
-  const numSkillChoices = skillChoices
-    .reduce((sum, choice) => sum + (choice.choose || 0), 0);
+  const numSkillChoices = skillChoices.reduce(
+    (sum, choice) => sum + (choice.choose || 0),
+    0,
+  );
 
   // Extract musical instrument proficiencies
-  const musicalInstrumentProficiencies = instrumentChoices
-    .flatMap(choice =>
-      (choice.from?.options || [])
-        .filter(opt => opt && opt.item && opt.item.name)
-        .map(opt => opt.item.name)
-    );
+  const musicalInstrumentProficiencies = instrumentChoices.flatMap((choice) =>
+    (choice.from?.options || [])
+      .filter((opt) => opt && opt.item && opt.item.name)
+      .map((opt) => opt.item.name),
+  );
 
-  const numInstrumentChoices = instrumentChoices
-    .reduce((sum, choice) => sum + (choice.choose || 0), 0);
+  const numInstrumentChoices = instrumentChoices.reduce(
+    (sum, choice) => sum + (choice.choose || 0),
+    0,
+  );
 
   // Extract core proficiencies (armor, weapons, tools)
   const armorProficiencies: string[] = [];
   const weaponProficiencies: string[] = [];
   const toolProficiencies: string[] = [];
 
-  (srdClass.proficiencies || []).forEach(prof => {
+  (srdClass.proficiencies || []).forEach((prof) => {
     const name = prof.name;
     const lower = name.toLowerCase();
 
@@ -451,7 +526,9 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
   // Transform spellcasting data if present
   let spellcasting: Class['spellcasting'] = undefined;
   if (srdClass.spellcasting) {
-    const ability = mapAbilityScore(srdClass.spellcasting.spellcasting_ability.index) as 'INT' | 'WIS' | 'CHA';
+    const ability = mapAbilityScore(
+      srdClass.spellcasting.spellcasting_ability.index,
+    ) as 'INT' | 'WIS' | 'CHA';
 
     // Default spell slots for full casters (will need to be adjusted for half-casters)
     const defaultSpellSlots = [0, 2, 3, 4, 4, 4, 4, 4, 4, 4]; // Level 1-9 slots at char level 1
@@ -529,33 +606,49 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
       // Convert SRD options to EquipmentItem format
       let options: EquipmentItem[][] = [];
       if (option.from.options) {
-        options = option.from.options.map(opt => {
-          if (opt.equipment) {
-            // Simple equipment reference
-            return [{
-              name: opt.equipment.name,
-              type: 'gear' as const, // Default type, could be enhanced
-              quantity: 1
-            }];
-          } else if (opt.equipment_category) {
-            // Equipment category - for now, return a placeholder
-            // This would need expansion to actual items in the category
-            return [{
-              name: `${opt.equipment_category.name} (choose one)`,
-              type: 'gear' as const,
-              quantity: 1
-            }];
-          }
-          return [];
-        }).filter(arr => arr.length > 0);
-      } else if (option.from && typeof option.from === 'object' && 'equipment_category' in option.from) {
-        const fromObj = option.from as { equipment_category?: { name?: string } };
+        options = option.from.options
+          .map((opt) => {
+            if (opt.equipment) {
+              // Simple equipment reference
+              return [
+                {
+                  name: opt.equipment.name,
+                  type: 'gear' as const, // Default type, could be enhanced
+                  quantity: 1,
+                },
+              ];
+            } else if (opt.equipment_category) {
+              // Equipment category - for now, return a placeholder
+              // This would need expansion to actual items in the category
+              return [
+                {
+                  name: `${opt.equipment_category.name} (choose one)`,
+                  type: 'gear' as const,
+                  quantity: 1,
+                },
+              ];
+            }
+            return [];
+          })
+          .filter((arr) => arr.length > 0);
+      } else if (
+        option.from &&
+        typeof option.from === 'object' &&
+        'equipment_category' in option.from
+      ) {
+        const fromObj = option.from as {
+          equipment_category?: { name?: string };
+        };
         if (fromObj.equipment_category?.name) {
-          options = [[{
-            name: `Any ${fromObj.equipment_category.name}`,
-            type: 'gear' as const,
-            quantity: 1
-          }]];
+          options = [
+            [
+              {
+                name: `Any ${fromObj.equipment_category.name}`,
+                type: 'gear' as const,
+                quantity: 1,
+              },
+            ],
+          ];
         }
       }
 
@@ -564,7 +657,7 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
           choiceId,
           description: option.desc,
           options,
-          selected: null
+          selected: null,
         });
       }
     });
@@ -577,7 +670,7 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
     edition, // Add edition field
     hit_die: srdClass.hit_die,
     primary_stat: 'Varies', // SRD doesn't specify, would need manual mapping
-    save_throws: srdClass.saving_throws.map(st => st.name),
+    save_throws: srdClass.saving_throws.map((st) => st.name),
     skill_proficiencies: skillProficiencies,
     num_skill_choices: numSkillChoices,
     musical_instrument_proficiencies: musicalInstrumentProficiencies,
@@ -590,7 +683,7 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
     // Enhanced fields with defaults (will be overridden by ENHANCED_CLASS_DATA)
     category: 'Martial' as const,
     detailedDescription: `${srdClass.name} is a versatile class with unique abilities.`,
-    roleplayingTips: ['Play to your character\'s strengths and background'],
+    roleplayingTips: ["Play to your character's strengths and background"],
     keyFeatures: [],
     icon: '⚔️',
     themeColor: '#666666',
@@ -601,23 +694,23 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
     },
 
     // Preserve level_1_features for 2024 widget system
-    ...(srdClass.level_1_features && { level_1_features: srdClass.level_1_features as Array<Level1Feature> })
+    ...(srdClass.level_1_features && {
+      level_1_features: srdClass.level_1_features as Array<Level1Feature>,
+    }),
   };
 }
-
-
 
 export function transformEquipment(srdEquip: SRDEquipment): Equipment {
   // For 2024, determine category from equipment_categories array
   let primaryCategory = 'Adventuring Gear';
-  const hasWeaponCategory = srdEquip.equipment_categories.some(cat =>
-    cat.name.toLowerCase().includes('weapon')
+  const hasWeaponCategory = srdEquip.equipment_categories.some((cat) =>
+    cat.name.toLowerCase().includes('weapon'),
   );
-  const hasArmorCategory = srdEquip.equipment_categories.some(cat =>
-    cat.name.toLowerCase().includes('armor')
+  const hasArmorCategory = srdEquip.equipment_categories.some((cat) =>
+    cat.name.toLowerCase().includes('armor'),
   );
-  const isFocusCategory = srdEquip.equipment_categories.some(cat =>
-    cat.name.toLowerCase().includes('focus')
+  const isFocusCategory = srdEquip.equipment_categories.some((cat) =>
+    cat.name.toLowerCase().includes('focus'),
   );
 
   if (hasWeaponCategory) {
@@ -625,35 +718,37 @@ export function transformEquipment(srdEquip: SRDEquipment): Equipment {
   } else if (hasArmorCategory) {
     primaryCategory = 'Armor';
   } else {
-    primaryCategory = srdEquip.equipment_categories[0]?.name || 'Adventuring Gear';
+    primaryCategory =
+      srdEquip.equipment_categories[0]?.name || 'Adventuring Gear';
   }
 
   // Determine if item is equipable (weapons, armor, clothing)
   const isWeapon = primaryCategory === 'Weapon';
   const isArmor = primaryCategory === 'Armor';
-  const isClothing = srdEquip.name.toLowerCase().includes('cloth') ||
-                    srdEquip.name.toLowerCase().includes('robe') ||
-                    (srdEquip.name.toLowerCase().includes('armor') && srdEquip.equipment_categories.some(cat => cat.name.toLowerCase().includes('armor')));
+  const isClothing =
+    srdEquip.name.toLowerCase().includes('cloth') ||
+    srdEquip.name.toLowerCase().includes('robe') ||
+    (srdEquip.name.toLowerCase().includes('armor') &&
+      srdEquip.equipment_categories.some((cat) =>
+        cat.name.toLowerCase().includes('armor'),
+      ));
   const equipable = isWeapon || isArmor || isClothing || isFocusCategory;
 
   // Determine weapon category from equipment_categories
   let weaponCategory: 'Simple' | 'Martial' | undefined;
   let weaponRange: 'Melee' | 'Ranged' | undefined;
 
-  srdEquip.equipment_categories.forEach(cat => {
+  srdEquip.equipment_categories.forEach((cat) => {
     if (cat.name.includes('Simple')) weaponCategory = 'Simple';
     if (cat.name.includes('Martial')) weaponCategory = 'Martial';
     if (cat.name.includes('Melee')) weaponRange = 'Melee';
     if (cat.name.includes('Ranged')) weaponRange = 'Ranged';
   });
 
-  let armorCategory: 'Light' | 'Medium' | 'Heavy' | 'Shield' | undefined = srdEquip.armor_category as
-    | 'Light'
-    | 'Medium'
-    | 'Heavy'
-    | 'Shield'
-    | undefined;
-  srdEquip.equipment_categories.forEach(cat => {
+  let armorCategory: 'Light' | 'Medium' | 'Heavy' | 'Shield' | undefined =
+    srdEquip.armor_category as
+      'Light' | 'Medium' | 'Heavy' | 'Shield' | undefined;
+  srdEquip.equipment_categories.forEach((cat) => {
     const name = cat.name.toLowerCase();
     if (name.includes('light armor')) armorCategory = 'Light';
     if (name.includes('medium armor')) armorCategory = 'Medium';
@@ -678,16 +773,20 @@ export function transformEquipment(srdEquip: SRDEquipment): Equipment {
     // Weapon fields
     weapon_category: weaponCategory,
     weapon_range: weaponRange,
-    damage: srdEquip.damage ? {
-      damage_dice: srdEquip.damage.damage_dice,
-      damage_type: srdEquip.damage.damage_type.name,
-    } : undefined,
+    damage: srdEquip.damage
+      ? {
+          damage_dice: srdEquip.damage.damage_dice,
+          damage_type: srdEquip.damage.damage_type.name,
+        }
+      : undefined,
     range: srdEquip.range,
     properties: srdEquip.properties, // Keep as object array, not just names
-    two_handed_damage: srdEquip.two_handed_damage ? {
-      damage_dice: srdEquip.two_handed_damage.damage_dice,
-      damage_type: srdEquip.two_handed_damage.damage_type.name,
-    } : undefined,
+    two_handed_damage: srdEquip.two_handed_damage
+      ? {
+          damage_dice: srdEquip.two_handed_damage.damage_dice,
+          damage_type: srdEquip.two_handed_damage.damage_type.name,
+        }
+      : undefined,
     mastery: srdEquip.mastery, // Keep as object, not just name
 
     // Armor fields
@@ -702,8 +801,8 @@ export function transformEquipment(srdEquip: SRDEquipment): Equipment {
     tool_category: srdEquip.tool_category,
     gear_category: srdEquip.gear_category,
     contents: srdEquip.contents
-      ?.filter(c => c && c.item && c.item.index && c.item.name)
-      .map(c => ({
+      ?.filter((c) => c && c.item && c.item.index && c.item.name)
+      .map((c) => ({
         item_index: c.item.index,
         item_name: c.item.name,
         quantity: c.quantity,
@@ -713,59 +812,84 @@ export function transformEquipment(srdEquip: SRDEquipment): Equipment {
 
 // --- Data Loading Functions ---
 
-export function loadSpells(): AppSpell[] {
-  return (srdSpellsMerged as SRDSpell[]).map(spell => transformSpell(spell));
+export function loadSpells(edition?: '2014' | '2024'): AppSpell[] {
+  if (edition === '2014')
+    return srdSpells2014.map((spell) =>
+      transformSpell({ ...spell, source: '2014' } as unknown as SRDSpell),
+    );
+  return (srdSpellsMerged as SRDSpell[])
+    .filter((spell) => !edition || spell.source === edition)
+    .map((spell) => transformSpell(spell));
 }
 
 export const SPELL_DATABASE = loadSpells();
 
-export const getSpellsForClass = (classSlug: string): AppSpell[] => {
+export const getSpellsForClass = (
+  classSlug: string,
+  edition?: '2014' | '2024',
+): AppSpell[] => {
   // Extract base class name from slug (e.g., 'wizard-evocation' -> 'wizard')
   const baseClass = classSlug.split('-')[0];
-  return SPELL_DATABASE.filter(spell => spell.classes.includes(baseClass));
+  return (edition ? loadSpells(edition) : SPELL_DATABASE).filter((spell) =>
+    spell.classes.includes(baseClass),
+  );
 };
 
-export const getCantripsByClass = (classSlug: string): AppSpell[] => {
-  return getSpellsForClass(classSlug).filter(spell => spell.level === 0);
+export const getCantripsByClass = (
+  classSlug: string,
+  edition?: '2014' | '2024',
+): AppSpell[] => {
+  return getSpellsForClass(classSlug, edition).filter(
+    (spell) => spell.level === 0,
+  );
 };
 
-export const getLeveledSpellsByClass = (classSlug: string, level: number = 1): AppSpell[] => {
-  return getSpellsForClass(classSlug).filter(spell => spell.level === level);
+export const getLeveledSpellsByClass = (
+  classSlug: string,
+  level: number = 1,
+  edition?: '2014' | '2024',
+): AppSpell[] => {
+  return getSpellsForClass(classSlug, edition).filter(
+    (spell) => spell.level === level,
+  );
 };
 
 export function loadSpecies(): Species[] {
   // Return comprehensive species database from JSON
-  const baseSpecies = (speciesData as { species: Species[] }).species.map(r => ({
-    ...r,
-    edition: r.edition || '2014', // Ensure edition is always set, default to 2014
-    slug: r.slug || r.name.toLowerCase().replace(/\s+/g, '-') // Ensure slug exists
-  })) as Species[];
+  const baseSpecies = (speciesData as { species: Species[] }).species.map(
+    (r) => ({
+      ...r,
+      edition: r.edition || '2014', // Ensure edition is always set, default to 2014
+      slug: r.slug || r.name.toLowerCase().replace(/\s+/g, '-'), // Ensure slug exists
+    }),
+  ) as Species[];
 
   // Merge enhanced species data
-  return baseSpecies.map(species => {
+  return baseSpecies.map((species) => {
     const baseSlug = species.slug.replace(/-2024$/, '').replace(/-2014$/, '');
     const enhanced =
-      getEnhancedSpeciesData(species.slug) ||
-      getEnhancedSpeciesData(baseSlug);
+      getEnhancedSpeciesData(species.slug) || getEnhancedSpeciesData(baseSlug);
     return enhanced ? { ...species, ...enhanced } : species;
   });
 }
 
 // Legacy function for backward compatibility - returns SRD species only
 export function loadSRDSpecies(): Species[] {
-  const species2014 = (srdRaces2014 as SRDRace[]).map(species => transformSpecies(species, 2014));
+  const species2014 = (srdRaces2014 as SRDRace[]).map((species) =>
+    transformSpecies(species, 2014),
+  );
   return species2014;
 }
 
 // Get all species from categories (flattened)
 export function getAllSpecies(edition?: Edition): Species[] {
-  let allSpecies = SPECIES_CATEGORIES.flatMap(category => category.species);
+  let allSpecies = SPECIES_CATEGORIES.flatMap((category) => category.species);
 
   // Include 2014 SRD species for 2014 queries
   if (edition === '2014' || !edition) {
     const srdSpecies = loadSRDSpecies();
-    const existingSlugs = new Set(allSpecies.map(s => s.slug));
-    srdSpecies.forEach(s => {
+    const existingSlugs = new Set(allSpecies.map((s) => s.slug));
+    srdSpecies.forEach((s) => {
       if (!existingSlugs.has(s.slug)) {
         allSpecies.push(s);
       }
@@ -774,15 +898,17 @@ export function getAllSpecies(edition?: Edition): Species[] {
 
   // Filter by edition if specified
   if (edition) {
-    allSpecies = allSpecies.filter(species =>
-      species.edition === edition ||
-      (edition === '2014' && (species.edition === '2014' || species.legacy || !species.edition))
+    allSpecies = allSpecies.filter(
+      (species) =>
+        species.edition === edition ||
+        (edition === '2014' &&
+          (species.edition === '2014' || species.legacy || !species.edition)),
     );
 
     // For 2024 edition, filter out "Half-Elf" and "Half-Orc"
     if (edition === '2024') {
-      allSpecies = allSpecies.filter(species =>
-        species.slug !== 'half-elf' && species.slug !== 'half-orc'
+      allSpecies = allSpecies.filter(
+        (species) => species.slug !== 'half-elf' && species.slug !== 'half-orc',
       );
     }
   }
@@ -799,27 +925,31 @@ export const loadSRDRaces = loadSRDSpecies;
 export const getAllRaces = getAllSpecies;
 
 export function loadClasses(edition?: Edition): Class[] {
-  const classes2014 = (srdClasses2014 as SRDClass[]).map(cls => transformClass(cls, 2014));
-  const classes2024 = (srdClasses2024 as SRDClass[]).map(cls => transformClass(cls, 2024));
+  const classes2014 = (srdClasses2014 as SRDClass[]).map((cls) =>
+    transformClass(cls, 2014),
+  );
+  const classes2024 = (srdClasses2024 as SRDClass[]).map((cls) =>
+    transformClass(cls, 2024),
+  );
 
   const allClasses = [...classes2014, ...classes2024];
 
   // Merge enhanced class data
-  const classesWithEnhancedData = allClasses.map(cls => {
+  const classesWithEnhancedData = allClasses.map((cls) => {
     const enhanced = getEnhancedClassData(cls.slug);
     return enhanced ? { ...cls, ...enhanced } : cls;
   });
 
   // Filter by edition if specified
   if (edition) {
-    return classesWithEnhancedData.filter(cls => cls.edition === edition);
+    return classesWithEnhancedData.filter((cls) => cls.edition === edition);
   }
 
   return classesWithEnhancedData;
 }
 
 export function loadEquipment(): Equipment[] {
-  return (srdEquipment as SRDEquipment[]).map(eq => transformEquipment(eq));
+  return (srdEquipment as SRDEquipment[]).map((eq) => transformEquipment(eq));
 }
 
 // Feature interfaces
@@ -880,20 +1010,33 @@ export function transformSubclass(srdSubclass: SRDSubclass): Subclass {
 
 // Load all features from SRD
 export function loadFeatures(): Feature[] {
-  return (srdFeatures2014 as SRDFeature[]).map(f => transformFeature(f));
+  return (srdFeatures2014 as SRDFeature[]).map((f) => transformFeature(f));
 }
 
 // Load all subclasses from SRD
 export function loadSubclasses(): Subclass[] {
-  const subclasses2014 = (srdSubclasses2014 as SRDSubclass[]).map(sc => transformSubclass(sc));
-  const subclasses2018 = (srdSubclasses2018 as SRDSubclass[]).map(sc => transformSubclass(sc));
-  const subclasses2020 = (srdSubclasses2020 as SRDSubclass[]).map(sc => transformSubclass(sc));
-  const subclasses2020egtw = (srdSubclasses2020egtw as SRDSubclass[]).map(sc => transformSubclass(sc));
+  const subclasses2014 = (srdSubclasses2014 as SRDSubclass[]).map((sc) =>
+    transformSubclass(sc),
+  );
+  const subclasses2018 = (srdSubclasses2018 as SRDSubclass[]).map((sc) =>
+    transformSubclass(sc),
+  );
+  const subclasses2020 = (srdSubclasses2020 as SRDSubclass[]).map((sc) =>
+    transformSubclass(sc),
+  );
+  const subclasses2020egtw = (srdSubclasses2020egtw as SRDSubclass[]).map(
+    (sc) => transformSubclass(sc),
+  );
 
-  const allSubclasses = [...subclasses2014, ...subclasses2018, ...subclasses2020, ...subclasses2020egtw];
+  const allSubclasses = [
+    ...subclasses2014,
+    ...subclasses2018,
+    ...subclasses2020,
+    ...subclasses2020egtw,
+  ];
 
   // Merge enhanced subclass data
-  const subclassesWithEnhancedData = allSubclasses.map(subclass => {
+  const subclassesWithEnhancedData = allSubclasses.map((subclass) => {
     // Create the lookup key in the format "class-subclass"
     const lookupKey = `${subclass.class}-${subclass.slug}`;
     const enhanced = getEnhancedSubclassData(lookupKey);
@@ -909,7 +1052,13 @@ export function loadFeats(): Feat[] {
   const customFeats = featsData as Feat[];
 
   // Load SRD Grappler feat
-  const srdGrappler = srdFeats2014 as Array<{ index: string; name: string; prerequisites?: unknown[]; desc: string[]; url: string }>;
+  const srdGrappler = srdFeats2014 as Array<{
+    index: string;
+    name: string;
+    prerequisites?: unknown[];
+    desc: string[];
+    url: string;
+  }>;
   const grapplerFeat: Feat = {
     slug: 'grappler',
     name: 'Grappler',
@@ -918,37 +1067,43 @@ export function loadFeats(): Feat[] {
     category: 'general',
     prerequisite: 'Strength 13 or higher',
     benefits: [
-      'Advantage on attack rolls against creatures you\'re grappling',
-      'Can restrain a creature grappled by you'
+      "Advantage on attack rolls against creatures you're grappling",
+      'Can restrain a creature grappled by you',
     ],
-    description: srdGrappler[0]?.desc?.join('\n\n') || 'You\'ve developed the skills necessary to hold your own in close-quarters grappling.'
+    description:
+      srdGrappler[0]?.desc?.join('\n\n') ||
+      "You've developed the skills necessary to hold your own in close-quarters grappling.",
   };
 
   // Check if Grappler already exists in custom feats
-  const hasGrappler = customFeats.some(f => f.slug === 'grappler');
+  const hasGrappler = customFeats.some((f) => f.slug === 'grappler');
 
   return hasGrappler ? customFeats : [...customFeats, grapplerFeat];
 }
 
 // Helper functions to filter features
-export function getFeaturesByClass(classSlug: string, level: number): Feature[] {
-  return FEATURE_DATABASE.filter(f =>
-    f.class === classSlug &&
-    f.level <= level &&
-    !f.subclass  // Only base class features
+export function getFeaturesByClass(
+  classSlug: string,
+  level: number,
+): Feature[] {
+  return FEATURE_DATABASE.filter(
+    (f) => f.class === classSlug && f.level <= level && !f.subclass, // Only base class features
   );
 }
 
-export function getFeaturesBySubclass(classSlug: string, subclassSlug: string, level: number): Feature[] {
-  return FEATURE_DATABASE.filter(f =>
-    f.class === classSlug &&
-    f.subclass === subclassSlug &&
-    f.level <= level
+export function getFeaturesBySubclass(
+  classSlug: string,
+  subclassSlug: string,
+  level: number,
+): Feature[] {
+  return FEATURE_DATABASE.filter(
+    (f) =>
+      f.class === classSlug && f.subclass === subclassSlug && f.level <= level,
   );
 }
 
 export function getSubclassesByClass(classSlug: string): Subclass[] {
-  return SUBCLASS_DATABASE.filter(sc => sc.class === classSlug);
+  return SUBCLASS_DATABASE.filter((sc) => sc.class === classSlug);
 }
 
 // Export databases
@@ -963,8 +1118,14 @@ export function loadCombatActions(): CombatActionsData {
 export const COMBAT_ACTIONS = loadCombatActions();
 
 // Export raw data for reference
-export { srdSpellsMerged, srdRaces2014, srdClasses2014, srdEquipment, srdFeatures2014, srdSubclasses2014 };
-
+export {
+  srdSpellsMerged,
+  srdRaces2014,
+  srdClasses2014,
+  srdEquipment,
+  srdFeatures2014,
+  srdSubclasses2014,
+};
 
 import { SPELL_SLOTS_BY_CLASS } from '../data/spellSlots';
 import cantripsData from '../data/cantrips.json';
@@ -979,9 +1140,12 @@ export function getModifier(abilityScore: number): number {
   return Math.floor((abilityScore - 10) / 2);
 }
 
-export const SKILL_TO_ABILITY: Record<SkillName, AbilityName> = gameConstantsData.SKILL_TO_ABILITY as Record<SkillName, AbilityName>;
+export const SKILL_TO_ABILITY: Record<SkillName, AbilityName> =
+  gameConstantsData.SKILL_TO_ABILITY as Record<SkillName, AbilityName>;
 
-export const ALL_SKILLS: SkillName[] = Object.keys(SKILL_TO_ABILITY) as SkillName[];
+export const ALL_SKILLS: SkillName[] = Object.keys(
+  SKILL_TO_ABILITY,
+) as SkillName[];
 
 export function loadAlignments(): Alignment[] {
   return alignmentsData as Alignment[];
@@ -989,12 +1153,15 @@ export function loadAlignments(): Alignment[] {
 
 export const ALIGNMENTS_DATA: Alignment[] = loadAlignments();
 
-export const ALIGNMENTS = ALIGNMENTS_DATA.map(a => a.name);
+export const ALIGNMENTS = ALIGNMENTS_DATA.map((a) => a.name);
 
-export const ALIGNMENT_INFO: Record<string, string> = ALIGNMENTS_DATA.reduce((acc, alignment) => {
-  acc[alignment.name] = alignment.short_desc;
-  return acc;
-}, {} as Record<string, string>);
+export const ALIGNMENT_INFO: Record<string, string> = ALIGNMENTS_DATA.reduce(
+  (acc, alignment) => {
+    acc[alignment.name] = alignment.short_desc;
+    return acc;
+  },
+  {} as Record<string, string>,
+);
 
 export const BACKGROUNDS: Background[] = backgroundsData as Background[];
 
@@ -1006,17 +1173,22 @@ const COMPREHENSIVE_SPECIES: Species[] = loadSpecies();
  * Build an alias map from legacy slugs to canonical species slugs.
  * Includes self-maps so resolveSpeciesSlug always returns a valid slug.
  */
-const buildSpeciesAliasMap = (speciesList: Species[]): Record<string, string> => {
-  return speciesList.reduce((map, species) => {
-    map[species.slug] = species.slug;
-    (species.legacySlugs || []).forEach(oldSlug => {
-      map[oldSlug] = species.slug;
-    });
-    (species.slugAliases || []).forEach(alias => {
-      map[alias] = species.slug;
-    });
-    return map;
-  }, {} as Record<string, string>);
+const buildSpeciesAliasMap = (
+  speciesList: Species[],
+): Record<string, string> => {
+  return speciesList.reduce(
+    (map, species) => {
+      map[species.slug] = species.slug;
+      (species.legacySlugs || []).forEach((oldSlug) => {
+        map[oldSlug] = species.slug;
+      });
+      (species.slugAliases || []).forEach((alias) => {
+        map[alias] = species.slug;
+      });
+      return map;
+    },
+    {} as Record<string, string>,
+  );
 };
 
 /** Maps legacy/alias slugs to canonical species slugs. */
@@ -1028,7 +1200,9 @@ export const SPECIES_ALIAS_MAP = buildSpeciesAliasMap(COMPREHENSIVE_SPECIES);
  */
 export const resolveSpeciesSlug = (slug: string): string => {
   if (!slug) return slug;
-  return SPECIES_ALIAS_MAP[slug] || SPECIES_ALIAS_MAP[slug.toLowerCase()] || slug;
+  return (
+    SPECIES_ALIAS_MAP[slug] || SPECIES_ALIAS_MAP[slug.toLowerCase()] || slug
+  );
 };
 
 interface SpeciesCategoryData {
@@ -1042,28 +1216,37 @@ interface SpeciesCategoryData {
   };
 }
 
-export const SPECIES_CATEGORIES: SpeciesCategory[] = speciesCategoriesData.map((category: SpeciesCategoryData) => {
-  const { core, expanded, tags } = category.filterCriteria;
+export const SPECIES_CATEGORIES: SpeciesCategory[] = speciesCategoriesData.map(
+  (category: SpeciesCategoryData) => {
+    const { core, expanded, tags } = category.filterCriteria;
 
-  const filteredSpecies = COMPREHENSIVE_SPECIES.filter(species => {
-    const matchesCore = core !== undefined ? species.core === core : true;
-    const matchesExpanded = expanded !== undefined ? species.expanded === expanded : true;
-    const matchesTags = tags && tags.length ? (species.tags || []).some(tag => tags.includes(tag)) : true;
-    return matchesCore && matchesExpanded && matchesTags;
-  });
+    const filteredSpecies = COMPREHENSIVE_SPECIES.filter((species) => {
+      const matchesCore = core !== undefined ? species.core === core : true;
+      const matchesExpanded =
+        expanded !== undefined ? species.expanded === expanded : true;
+      const matchesTags =
+        tags && tags.length
+          ? (species.tags || []).some((tag) => tags.includes(tag))
+          : true;
+      return matchesCore && matchesExpanded && matchesTags;
+    });
 
-  // Debug logging for category construction
-  if (filteredSpecies.length === 0) {
-    log.warn('Species category empty after filtering', { category: category.name, filterCriteria: category.filterCriteria });
-  }
+    // Debug logging for category construction
+    if (filteredSpecies.length === 0) {
+      log.warn('Species category empty after filtering', {
+        category: category.name,
+        filterCriteria: category.filterCriteria,
+      });
+    }
 
-  return {
-    name: category.name,
-    icon: category.icon,
-    description: category.description,
-    species: filteredSpecies
-  };
-});
+    return {
+      name: category.name,
+      icon: category.icon,
+      description: category.description,
+      species: filteredSpecies,
+    };
+  },
+);
 
 // Backwards compatibility (deprecated)
 /** @deprecated Use SPECIES_CATEGORIES instead */
@@ -1082,18 +1265,26 @@ interface ClassCategoryData {
 }
 
 // Helper function to get enhanced class data
-export function getEnhancedClassData(classSlug: string): Partial<Class> | undefined {
+export function getEnhancedClassData(
+  classSlug: string,
+): Partial<Class> | undefined {
   return (enhancedClassData as EnhancedClassData)[classSlug];
 }
 
-export function getEnhancedSubclassData(subclassSlug: string): Partial<Subclass> | undefined {
+export function getEnhancedSubclassData(
+  subclassSlug: string,
+): Partial<Subclass> | undefined {
   // Enhanced data uses format like "rogue-phantom" for subclass slugs
   return (enhancedClassData as EnhancedClassData)[subclassSlug];
 }
 
 // Helper function to get enhanced species data
-export function getEnhancedSpeciesData(speciesSlug: string): Partial<Species> | undefined {
-  return (enhancedSpeciesData as unknown as Record<string, Partial<Species>>)[speciesSlug];
+export function getEnhancedSpeciesData(
+  speciesSlug: string,
+): Partial<Species> | undefined {
+  return (enhancedSpeciesData as unknown as Record<string, Partial<Species>>)[
+    speciesSlug
+  ];
 }
 
 // Enhanced class categories with rich data - filtered by edition
@@ -1102,12 +1293,12 @@ export function getClassCategories(edition?: Edition): ClassCategory[] {
     name: category.name,
     icon: category.icon,
     description: category.description,
-    classes: loadClasses(edition).filter(cls =>
-      category.classSlugs.includes(cls.slug)
-    ).map(cls => {
-      const enhanced = (enhancedClassData as EnhancedClassData)[cls.slug];
-      return enhanced ? { ...cls, ...enhanced } : cls;
-    })
+    classes: loadClasses(edition)
+      .filter((cls) => category.classSlugs.includes(cls.slug))
+      .map((cls) => {
+        const enhanced = (enhancedClassData as EnhancedClassData)[cls.slug];
+        return enhanced ? { ...cls, ...enhanced } : cls;
+      }),
   }));
 }
 
@@ -1116,16 +1307,24 @@ export const CLASS_CATEGORIES: ClassCategory[] = getClassCategories();
 
 export const EQUIPMENT_PACKAGES: EquipmentPackage[] = equipmentPackagesData;
 
-export const FIGHTING_STYLES: FightingStyle[] = fightingStylesData.map(style => ({
-  ...style,
-  slug: style.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-} as FightingStyle));
+export const FIGHTING_STYLES: FightingStyle[] = fightingStylesData.map(
+  (style) =>
+    ({
+      ...style,
+      slug: style.name
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, ''),
+    }) as FightingStyle,
+);
 
 export { SPELL_SLOTS_BY_CLASS, cantripsData as CANTRIPS_KNOWN_BY_CLASS };
 
 // New JSON data exports
-export const SPELLCASTING_TYPE_MAP = spellcastingTypesData.SPELLCASTING_TYPE_MAP;
-export const SPECIES_LANGUAGE_MAP = speciesLanguagesData.SPECIES_LANGUAGE_MAP as Record<string, string[]>;
+export const SPELLCASTING_TYPE_MAP =
+  spellcastingTypesData.SPELLCASTING_TYPE_MAP;
+export const SPECIES_LANGUAGE_MAP =
+  speciesLanguagesData.SPECIES_LANGUAGE_MAP as Record<string, string[]>;
 /** @deprecated Use SPECIES_LANGUAGE_MAP instead. */
 export const RACIAL_LANGUAGE_MAP = SPECIES_LANGUAGE_MAP;
 export const BACKGROUND_DEFAULTS = backgroundDefaultsData.BACKGROUND_DEFAULTS;
@@ -1144,23 +1343,34 @@ const getRandomElement = <T>(array: T[]): T => {
  */
 export const randomizeLevel = (): number => {
   const milestoneLevels = levelConstantsData.milestoneLevels;
-  const regularLevels = Array.from({ length: 20 }, (_, i) => i + 1).filter(l => !milestoneLevels.includes(l));
+  const regularLevels = Array.from({ length: 20 }, (_, i) => i + 1).filter(
+    (l) => !milestoneLevels.includes(l),
+  );
 
   // 70% chance for milestone levels, 30% for regular levels
-  return Math.random() < 0.7 ? getRandomElement(milestoneLevels) : getRandomElement(regularLevels);
+  return Math.random() < 0.7
+    ? getRandomElement(milestoneLevels)
+    : getRandomElement(regularLevels);
 };
 
 /**
  * Randomize character identity (alignment, background).
  * Name generation is handled in the final step where class/species context exists.
  */
-export const randomizeIdentity = (species?: string): { name?: string; alignment: string; background: string; backgroundSlug?: string } => {
+export const randomizeIdentity = (
+  species?: string,
+): {
+  name?: string;
+  alignment: string;
+  background: string;
+  backgroundSlug?: string;
+} => {
   const background = getRandomElement(BACKGROUNDS);
   return {
     name: species ? generateSpeciesSpecificName(species) : undefined,
     alignment: getRandomElement(ALIGNMENTS),
     background: background.name,
-    backgroundSlug: background.slug
+    backgroundSlug: background.slug,
   };
 };
 
@@ -1169,28 +1379,35 @@ export const randomizeIdentity = (species?: string): { name?: string; alignment:
  */
 export const randomizeBackgroundAbilityChoices = (
   backgroundSlug: string,
-  edition: Edition
-): { method: '2/1' | '1/1/1'; bonuses: Partial<Record<AbilityName, number>> } | undefined => {
+  edition: Edition,
+):
+  | { method: '2/1' | '1/1/1'; bonuses: Partial<Record<AbilityName, number>> }
+  | undefined => {
   if (edition !== '2024') return undefined;
-  const background = BACKGROUNDS.find(bg => bg.slug === backgroundSlug || bg.name === backgroundSlug);
+  const background = BACKGROUNDS.find(
+    (bg) => bg.slug === backgroundSlug || bg.name === backgroundSlug,
+  );
   const abilityScores = background?.abilityScores;
   if (!abilityScores?.from?.length) return undefined;
 
   const availableOptions = [...abilityScores.from] as AbilityName[];
   const canUseTriple = availableOptions.length >= 3;
-  const method: '2/1' | '1/1/1' = canUseTriple && Math.random() > 0.5 ? '1/1/1' : '2/1';
+  const method: '2/1' | '1/1/1' =
+    canUseTriple && Math.random() > 0.5 ? '1/1/1' : '2/1';
   const bonuses: Partial<Record<AbilityName, number>> = {};
   const shuffled = [...availableOptions].sort(() => Math.random() - 0.5);
 
   if (method === '2/1') {
     const plusTwo = shuffled[0];
-    const plusOne = shuffled.find(ability => ability !== plusTwo);
+    const plusOne = shuffled.find((ability) => ability !== plusTwo);
     if (plusTwo) bonuses[plusTwo] = 2;
     if (plusOne) bonuses[plusOne] = 1;
   } else {
-    shuffled.slice(0, Math.min(3, availableOptions.length)).forEach(ability => {
-      bonuses[ability] = 1;
-    });
+    shuffled
+      .slice(0, Math.min(3, availableOptions.length))
+      .forEach((ability) => {
+        bonuses[ability] = 1;
+      });
   }
 
   return { method, bonuses };
@@ -1199,7 +1416,10 @@ export const randomizeBackgroundAbilityChoices = (
 /**
  * Generate a species-specific name
  */
-export const generateSpeciesSpecificName = (species: string, gender?: 'male' | 'female'): string => {
+export const generateSpeciesSpecificName = (
+  species: string,
+  gender?: 'male' | 'female',
+): string => {
   return generateName({ race: species, gender }).name;
 };
 
@@ -1221,10 +1441,14 @@ export const randomizeRace = randomizeSpecies;
 /**
  * Randomize class and required skills
  */
-export const randomizeClassAndSkills = (): { classSlug: string; selectedSkills: SkillName[]; subclassSlug?: string } => {
+export const randomizeClassAndSkills = (): {
+  classSlug: string;
+  selectedSkills: SkillName[];
+  subclassSlug?: string;
+} => {
   const category = getRandomElement(CLASS_CATEGORIES);
   const _class = getRandomElement(category.classes);
-  const classData = loadClasses().find(c => c.slug === _class.slug);
+  const classData = loadClasses().find((c) => c.slug === _class.slug);
 
   if (!classData) {
     throw new Error(`Class data not found for ${category.name}`);
@@ -1242,31 +1466,35 @@ export const randomizeClassAndSkills = (): { classSlug: string; selectedSkills: 
 
   // Random subclass if available
   const subclasses = getSubclassesByClass(_class.slug);
-  const subclassSlug = subclasses.length > 0 ? getRandomElement(subclasses).slug : undefined;
+  const subclassSlug =
+    subclasses.length > 0 ? getRandomElement(subclasses).slug : undefined;
 
   return {
     classSlug: _class.slug,
     selectedSkills: selectedSkills as SkillName[],
-    subclassSlug
+    subclassSlug,
   };
 };
 
 /**
  * Randomize fighting style for applicable classes
  */
-export const randomizeFightingStyle = (classSlug: string): string | undefined => {
+export const randomizeFightingStyle = (
+  classSlug: string,
+): string | undefined => {
   const applicableClasses = ['fighter', 'paladin', 'ranger'];
   if (!applicableClasses.includes(classSlug)) {
     return undefined;
   }
 
   // Get styles that include this class in their prerequisite
-  const availableStyles = FIGHTING_STYLES.filter(style =>
-    style.prerequisite.toLowerCase().includes(classSlug)
+  const availableStyles = FIGHTING_STYLES.filter((style) =>
+    style.prerequisite.toLowerCase().includes(classSlug),
   );
 
   // If no specific styles for this class, allow any style
-  const stylePool = availableStyles.length > 0 ? availableStyles : FIGHTING_STYLES;
+  const stylePool =
+    availableStyles.length > 0 ? availableStyles : FIGHTING_STYLES;
   return getRandomElement(stylePool).name;
 };
 
@@ -1279,8 +1507,11 @@ interface CantripsData {
 /**
  * Randomize spell selection for spellcasters
  */
-export const randomizeSpells = (classSlug: string, level: number = 1): { selectedCantrips: string[]; selectedSpells: string[] } => {
-  const classData = loadClasses().find(c => c.slug === classSlug);
+export const randomizeSpells = (
+  classSlug: string,
+  level: number = 1,
+): { selectedCantrips: string[]; selectedSpells: string[] } => {
+  const classData = loadClasses().find((c) => c.slug === classSlug);
   if (!classData?.spellcasting) {
     return { selectedCantrips: [], selectedSpells: [] };
   }
@@ -1292,13 +1523,21 @@ export const randomizeSpells = (classSlug: string, level: number = 1): { selecte
   const cantripLimit = (cantripsData as CantripsData)[classSlug]?.[level] || 0;
   const spellLimit = SPELL_SLOTS_BY_CLASS[classSlug]?.[level]?.[0] || 0; // Level 1 spells
 
-  const selectedCantrips = cantrips.length > 0 && cantripLimit > 0
-    ? [...cantrips].sort(() => Math.random() - 0.5).slice(0, cantripLimit).map(s => s.slug)
-    : [];
+  const selectedCantrips =
+    cantrips.length > 0 && cantripLimit > 0
+      ? [...cantrips]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, cantripLimit)
+          .map((s) => s.slug)
+      : [];
 
-  const selectedSpells = spells.length > 0 && spellLimit > 0
-    ? [...spells].sort(() => Math.random() - 0.5).slice(0, spellLimit).map(s => s.slug)
-    : [];
+  const selectedSpells =
+    spells.length > 0 && spellLimit > 0
+      ? [...spells]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, spellLimit)
+          .map((s) => s.slug)
+      : [];
 
   return { selectedCantrips, selectedSpells };
 };
@@ -1306,8 +1545,15 @@ export const randomizeSpells = (classSlug: string, level: number = 1): { selecte
 /**
  * Randomize ability scores
  */
-export const randomizeAbilities = (): { abilities: Record<string, number>; abilityScoreMethod: 'standard-array' | 'point-buy' | 'standard-roll' } => {
-  const methods: ('standard-array' | 'point-buy' | 'standard-roll')[] = ['standard-array', 'point-buy', 'standard-roll'];
+export const randomizeAbilities = (): {
+  abilities: Record<string, number>;
+  abilityScoreMethod: 'standard-array' | 'point-buy' | 'standard-roll';
+} => {
+  const methods: ('standard-array' | 'point-buy' | 'standard-roll')[] = [
+    'standard-array',
+    'point-buy',
+    'standard-roll',
+  ];
   const method = getRandomElement(methods);
 
   let abilities: Record<string, number>;
@@ -1328,7 +1574,14 @@ export const randomizeAbilities = (): { abilities: Record<string, number>; abili
     let points = 27;
 
     while (points > 0) {
-      const ability = getRandomElement(['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']);
+      const ability = getRandomElement([
+        'STR',
+        'DEX',
+        'CON',
+        'INT',
+        'WIS',
+        'CHA',
+      ]);
       const current = abilities[ability];
       const cost = current >= 13 ? 2 : 1; // 14+ costs 2 points
 
@@ -1340,8 +1593,11 @@ export const randomizeAbilities = (): { abilities: Record<string, number>; abili
   } else {
     // Standard roll: 4d6 drop lowest for each ability
     abilities = {};
-    ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].forEach(ability => {
-      const rolls = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
+    ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].forEach((ability) => {
+      const rolls = Array.from(
+        { length: 4 },
+        () => Math.floor(Math.random() * 6) + 1,
+      );
       rolls.sort((a, b) => b - a); // Sort descending
       abilities[ability] = rolls[0] + rolls[1] + rolls[2]; // Drop lowest
     });
@@ -1362,16 +1618,18 @@ export const randomizeFeats = (): string[] => {
 /**
  * Randomize equipment choices
  */
-export const randomizeEquipmentChoices = (classSlug: string): EquipmentChoice[] => {
-  const classData = loadClasses().find(c => c.slug === classSlug);
+export const randomizeEquipmentChoices = (
+  classSlug: string,
+): EquipmentChoice[] => {
+  const classData = loadClasses().find((c) => c.slug === classSlug);
   if (!classData?.equipment_choices) {
     return [];
   }
 
   // For each equipment choice, randomly select one option
-  return classData.equipment_choices.map(choice => ({
+  return classData.equipment_choices.map((choice) => ({
     ...choice,
-    selected: Math.floor(Math.random() * choice.options.length)
+    selected: Math.floor(Math.random() * choice.options.length),
   }));
 };
 
@@ -1381,7 +1639,7 @@ export const randomizeEquipmentChoices = (classSlug: string): EquipmentChoice[] 
 export const randomizeStartingEquipment = (
   classSlug: string,
   backgroundSlug: string,
-  edition: Edition
+  edition: Edition,
 ): {
   equipmentChoices: EquipmentChoice[];
   startingInventory: EquippedItem[];
@@ -1389,17 +1647,22 @@ export const randomizeStartingEquipment = (
   equipmentGold?: number;
 } => {
   const equipmentChoices = randomizeEquipmentChoices(classSlug);
-  const background = BACKGROUNDS.find(bg => bg.slug === backgroundSlug || bg.name === backgroundSlug);
+  const background = BACKGROUNDS.find(
+    (bg) => bg.slug === backgroundSlug || bg.name === backgroundSlug,
+  );
   const backgroundName = background?.name || backgroundSlug;
   const equipmentData = loadEquipment();
 
   const findEquipmentSlug = (itemName: string): string => {
     const normalized = itemName.trim().toLowerCase();
-    const equipmentMatch = equipmentData.find(eq => eq.name.toLowerCase() === normalized);
+    const equipmentMatch = equipmentData.find(
+      (eq) => eq.name.toLowerCase() === normalized,
+    );
     if (equipmentMatch) return equipmentMatch.slug;
 
-    const packageMatch = EQUIPMENT_PACKAGES.flatMap(pkg => pkg.items)
-      .find(item => item.name.toLowerCase() === normalized);
+    const packageMatch = EQUIPMENT_PACKAGES.flatMap((pkg) => pkg.items).find(
+      (item) => item.name.toLowerCase() === normalized,
+    );
     if (packageMatch?.slug) return packageMatch.slug;
 
     return `custom-${normalized.replace(/[^a-z0-9]+/g, '-')}`;
@@ -1407,24 +1670,35 @@ export const randomizeStartingEquipment = (
 
   const quickStartPresets = loadQuickStartEquipment();
   const baseClassSlug = classSlug.split('-')[0];
-  const classPreset = quickStartPresets.classes[baseClassSlug] || quickStartPresets.classes[classSlug];
-  const normalizedBgName = backgroundName.toLowerCase().replace(/\s+/g, '_').replace(/['"]/g, '');
+  const classPreset =
+    quickStartPresets.classes[baseClassSlug] ||
+    quickStartPresets.classes[classSlug];
+  const normalizedBgName = backgroundName
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/['"]/g, '');
   const backgroundPreset = quickStartPresets.backgrounds[normalizedBgName];
 
   const mergedQuickStartItems = [
     ...(classPreset?.items || []),
-    ...(backgroundPreset?.items || [])
+    ...(backgroundPreset?.items || []),
   ];
 
-  const mergedInventory: EquippedItem[] = mergedQuickStartItems.reduce<EquippedItem[]>((acc, item) => {
-    const existing = acc.find(i => i.equipmentSlug === item.equipmentSlug && !!i.equipped === !!item.equipped);
+  const mergedInventory: EquippedItem[] = mergedQuickStartItems.reduce<
+    EquippedItem[]
+  >((acc, item) => {
+    const existing = acc.find(
+      (i) =>
+        i.equipmentSlug === item.equipmentSlug &&
+        !!i.equipped === !!item.equipped,
+    );
     if (existing) {
       existing.quantity += item.quantity;
     } else {
       acc.push({
         equipmentSlug: item.equipmentSlug,
         quantity: item.quantity,
-        equipped: item.equipped || false
+        equipped: item.equipped || false,
       });
     }
     return acc;
@@ -1436,16 +1710,21 @@ export const randomizeStartingEquipment = (
 
   if (edition === '2024' && background?.equipment?.length) {
     equipmentChoice = 'background';
-    startingInventory = background.equipment.map(itemName => ({
+    startingInventory = background.equipment.map((itemName) => ({
       equipmentSlug: findEquipmentSlug(itemName),
       quantity: 1,
-      equipped: false
+      equipped: false,
     }));
   } else if (edition === '2024') {
     equipmentChoice = 'background';
   }
 
-  return { equipmentChoices, startingInventory, equipmentChoice, equipmentGold };
+  return {
+    equipmentChoices,
+    startingInventory,
+    equipmentChoice,
+    equipmentGold,
+  };
 };
 
 /**
@@ -1455,20 +1734,25 @@ export const randomizeLanguages = (
   speciesSlug: string,
   backgroundSlug: string,
   edition: Edition = '2014',
-  abilities?: Record<AbilityName, number>
+  abilities?: Record<AbilityName, number>,
 ): string[] => {
   const selected: string[] = [];
   const autoLanguages = new Set<string>();
   autoLanguages.add('Common');
 
-  const speciesLanguages = SPECIES_LANGUAGE_MAP[speciesSlug] || SPECIES_LANGUAGE_MAP[`${speciesSlug}-${edition}`] || [];
-  speciesLanguages.forEach(lang => autoLanguages.add(lang));
+  const speciesLanguages =
+    SPECIES_LANGUAGE_MAP[speciesSlug] ||
+    SPECIES_LANGUAGE_MAP[`${speciesSlug}-${edition}`] ||
+    [];
+  speciesLanguages.forEach((lang) => autoLanguages.add(lang));
 
-  const background = BACKGROUNDS.find(bg => bg.slug === backgroundSlug || bg.name === backgroundSlug);
+  const background = BACKGROUNDS.find(
+    (bg) => bg.slug === backgroundSlug || bg.name === backgroundSlug,
+  );
   let optionalChoices = 0;
 
   if (background?.languages?.length) {
-    background.languages.forEach(lang => {
+    background.languages.forEach((lang) => {
       const normalized = lang.toLowerCase();
       if (normalized.includes('two') && normalized.includes('choice')) {
         optionalChoices += 2;
@@ -1481,15 +1765,21 @@ export const randomizeLanguages = (
   }
 
   const intelligenceScore = abilities?.INT;
-  const maxLanguages = intelligenceScore !== undefined ? 1 + Math.max(0, getModifier(intelligenceScore)) : 1;
-  const selectionSlots = maxLanguages + (edition === '2024' ? 0 : optionalChoices);
+  const maxLanguages =
+    intelligenceScore !== undefined
+      ? 1 + Math.max(0, getModifier(intelligenceScore))
+      : 1;
+  const selectionSlots =
+    maxLanguages + (edition === '2024' ? 0 : optionalChoices);
 
   const pool = getSelectableLanguages(edition, ['standard', 'rare'])
-    .map(lang => lang.name)
-    .filter(name => !autoLanguages.has(name));
+    .map((lang) => lang.name)
+    .filter((name) => !autoLanguages.has(name));
 
   const shuffledPool = pool.sort(() => Math.random() - 0.5);
-  selected.push(...shuffledPool.slice(0, Math.min(selectionSlots, shuffledPool.length)));
+  selected.push(
+    ...shuffledPool.slice(0, Math.min(selectionSlots, shuffledPool.length)),
+  );
 
   return selected;
 };
@@ -1497,148 +1787,183 @@ export const randomizeLanguages = (
 /**
  * Randomize personality traits
  */
-export const randomizePersonality = (): { personality: string; ideals: string; bonds: string; flaws: string } => {
+export const randomizePersonality = (): {
+  personality: string;
+  ideals: string;
+  bonds: string;
+  flaws: string;
+} => {
   const personalities = [
     "I'm always polite and respectful.",
-    "I have a joke for every occasion.",
-    "I never pass up a chance to learn something new.",
-    "I have a strong sense of fair play.",
-    "I am suspicious of strangers and expect the worst of them.",
-    "I like to know as much as I can about everything.",
+    'I have a joke for every occasion.',
+    'I never pass up a chance to learn something new.',
+    'I have a strong sense of fair play.',
+    'I am suspicious of strangers and expect the worst of them.',
+    'I like to know as much as I can about everything.',
     "I am slow to trust members of other races, townsfolk, or anyone else I don't know.",
-    "I am always calm, no matter what the situation.",
-    "I idolize a particular hero of my faith.",
-    "I see omens in death.",
-    "I am always picking things up, absently fiddling with them, and sometimes accidentally breaking them.",
-    "I am horribly, horribly awkward in social situations.",
-    "I am suspicious of new ideas and new ways of doing things.",
-    "I am a sucker for a pretty face.",
-    "I am deathly afraid of enclosed spaces.",
-    "I am well known for my work, and I want to make certain everyone appreciates it.",
-    "I am not used to wearing nice clothes.",
-    "I connect everything that happens to me to a grand, cosmic plan.",
-    "I am always working on some project or other.",
-    "I am terribly jealous of anyone who can outshine my handiwork."
+    'I am always calm, no matter what the situation.',
+    'I idolize a particular hero of my faith.',
+    'I see omens in death.',
+    'I am always picking things up, absently fiddling with them, and sometimes accidentally breaking them.',
+    'I am horribly, horribly awkward in social situations.',
+    'I am suspicious of new ideas and new ways of doing things.',
+    'I am a sucker for a pretty face.',
+    'I am deathly afraid of enclosed spaces.',
+    'I am well known for my work, and I want to make certain everyone appreciates it.',
+    'I am not used to wearing nice clothes.',
+    'I connect everything that happens to me to a grand, cosmic plan.',
+    'I am always working on some project or other.',
+    'I am terribly jealous of anyone who can outshine my handiwork.',
   ];
 
   const ideals = [
-    "Change. We must help bring change about. (Chaotic)",
-    "Tradition. The ancient ways of our people must be preserved. (Lawful)",
-    "Honor. I will uphold my honor no matter the cost. (Lawful)",
-    "Power. I want power, and I will do anything to get it. (Evil)",
-    "Family. Blood runs thicker than water. (Any)",
-    "Fairness. No one should get preferential treatment. (Lawful)",
-    "Freedom. Everyone should be free to pursue his or her livelihood. (Chaotic)",
-    "Responsibility. I do what I must and obey just authority. (Lawful)",
-    "Independence. I am a free spirit - no one tells me what to do. (Chaotic)",
-    "Might. The strongest are meant to rule. (Evil)",
-    "Live and Let Live. Meddling in the affairs of others only causes trouble. (Neutral)",
-    "Noble Obligation. It is my duty to protect and care for the people beneath me. (Good)",
-    "Change. Life is like the seasons, in constant change, and we must change with it. (Chaotic)",
-    "Greater Good. My gifts are meant to be shared with all, not used for my own benefit. (Good)",
-    "Logic. Emotions must not cloud our logical thinking. (Lawful)",
-    "Free Thinking. Inquiry and curiosity are the pillars of progress. (Chaotic)",
-    "Power. Knowledge is the path to power and domination. (Evil)",
-    "Self-Improvement. The goal of a life of study is the betterment of oneself. (Any)",
-    "Respect. Respect is due to me because of my position, but all people regardless of station deserve to be treated with dignity. (Good)",
-    "Community. It is the duty of all civilized people to strengthen the bonds of community and the security of civilization. (Lawful)"
+    'Change. We must help bring change about. (Chaotic)',
+    'Tradition. The ancient ways of our people must be preserved. (Lawful)',
+    'Honor. I will uphold my honor no matter the cost. (Lawful)',
+    'Power. I want power, and I will do anything to get it. (Evil)',
+    'Family. Blood runs thicker than water. (Any)',
+    'Fairness. No one should get preferential treatment. (Lawful)',
+    'Freedom. Everyone should be free to pursue his or her livelihood. (Chaotic)',
+    'Responsibility. I do what I must and obey just authority. (Lawful)',
+    'Independence. I am a free spirit - no one tells me what to do. (Chaotic)',
+    'Might. The strongest are meant to rule. (Evil)',
+    'Live and Let Live. Meddling in the affairs of others only causes trouble. (Neutral)',
+    'Noble Obligation. It is my duty to protect and care for the people beneath me. (Good)',
+    'Change. Life is like the seasons, in constant change, and we must change with it. (Chaotic)',
+    'Greater Good. My gifts are meant to be shared with all, not used for my own benefit. (Good)',
+    'Logic. Emotions must not cloud our logical thinking. (Lawful)',
+    'Free Thinking. Inquiry and curiosity are the pillars of progress. (Chaotic)',
+    'Power. Knowledge is the path to power and domination. (Evil)',
+    'Self-Improvement. The goal of a life of study is the betterment of oneself. (Any)',
+    'Respect. Respect is due to me because of my position, but all people regardless of station deserve to be treated with dignity. (Good)',
+    'Community. It is the duty of all civilized people to strengthen the bonds of community and the security of civilization. (Lawful)',
   ];
 
   const bonds = [
-    "I owe my guild a great debt for forging me into the person I am today.",
-    "I will face any challenge to win the approval of my family.",
-    "My honor is my life.",
+    'I owe my guild a great debt for forging me into the person I am today.',
+    'I will face any challenge to win the approval of my family.',
+    'My honor is my life.',
     "I owe everything to my mentor - a horrible person who's probably rotting in jail somewhere.",
-    "I protect those who cannot protect themselves.",
-    "I work to preserve a library, university, scriptorium, or monastery.",
+    'I protect those who cannot protect themselves.',
+    'I work to preserve a library, university, scriptorium, or monastery.',
     "My town or city is my home, and I'll fight to defend it.",
     "I idolize a hero of the old tales and measure my deeds against that person's.",
-    "I am the last of my tribe, and it is up to me to ensure their names enter legend.",
-    "I suffer awful visions of a coming disaster and will do anything to prevent it.",
-    "It is my duty to provide children to sustain my tribe.",
-    "I worked the land, I love the land, and I will protect the land.",
-    "A proud noble once gave me a horrible beating, and I will take my revenge on any bully I encounter.",
-    "My tools are symbols of my past life, and I carry them so that I will never forget my roots.",
-    "I protect those who cannot protect themselves.",
-    "I wish my childhood sweetheart had come with me to pursue my destiny.",
-    "The workshop where I learned my trade is the most important place in the world to me.",
+    'I am the last of my tribe, and it is up to me to ensure their names enter legend.',
+    'I suffer awful visions of a coming disaster and will do anything to prevent it.',
+    'It is my duty to provide children to sustain my tribe.',
+    'I worked the land, I love the land, and I will protect the land.',
+    'A proud noble once gave me a horrible beating, and I will take my revenge on any bully I encounter.',
+    'My tools are symbols of my past life, and I carry them so that I will never forget my roots.',
+    'I protect those who cannot protect themselves.',
+    'I wish my childhood sweetheart had come with me to pursue my destiny.',
+    'The workshop where I learned my trade is the most important place in the world to me.',
     "I created an extraordinary work for someone, and then found them unworthy to receive it. I'm still looking for someone worthy.",
-    "I owe my survival to another urchin who taught me to live on the streets.",
-    "I would still lay down my life for the people I served with."
+    'I owe my survival to another urchin who taught me to live on the streets.',
+    'I would still lay down my life for the people I served with.',
   ];
 
   const flaws = [
-    "I am suspicious of strangers and expect the worst of them.",
-    "Once someone questions my courage, I never back down no matter how dangerous the situation.",
+    'I am suspicious of strangers and expect the worst of them.',
+    'Once someone questions my courage, I never back down no matter how dangerous the situation.',
     "Once I start drinking, it's hard for me to stop.",
     "I can't help but pocket loose coins and other trinkets I come across.",
-    "I always have a plan for what to do when things go wrong.",
-    "I am always calm, no matter what the situation. I never raise my voice or let my emotions control me.",
-    "I am incredibly slow to trust. Those who seem the fairest often have the most to hide.",
-    "I am suspicious of strangers and expect the worst of them.",
+    'I always have a plan for what to do when things go wrong.',
+    'I am always calm, no matter what the situation. I never raise my voice or let my emotions control me.',
+    'I am incredibly slow to trust. Those who seem the fairest often have the most to hide.',
+    'I am suspicious of strangers and expect the worst of them.',
     "I like keeping secrets and won't share them with anyone.",
-    "I secretly believe that everyone is beneath me.",
-    "I hide a truly scandalous secret that could ruin my family forever.",
+    'I secretly believe that everyone is beneath me.',
+    'I hide a truly scandalous secret that could ruin my family forever.',
     "I too often hear veiled insults and threats in every word addressed to me, and I'm quick to anger at them.",
-    "I turn tail and run when things look bad.",
+    'I turn tail and run when things look bad.',
     "When I see something valuable, I can't think about anything but how to steal it.",
-    "When faced with a choice between money and my friends, I usually choose the money.",
-    "In fact, the worst insult I can receive is to be ignored.",
-    "I have no respect for anyone who is not a proven warrior.",
-    "I made a terrible mistake in battle that cost many lives - and I would do anything to keep that mistake secret.",
-    "My hatred of my enemies is blind and unreasoning.",
-    "I obey the law, even if the law causes misery."
+    'When faced with a choice between money and my friends, I usually choose the money.',
+    'In fact, the worst insult I can receive is to be ignored.',
+    'I have no respect for anyone who is not a proven warrior.',
+    'I made a terrible mistake in battle that cost many lives - and I would do anything to keep that mistake secret.',
+    'My hatred of my enemies is blind and unreasoning.',
+    'I obey the law, even if the law causes misery.',
   ];
 
   return {
     personality: getRandomElement(personalities),
     ideals: getRandomElement(ideals),
     bonds: getRandomElement(bonds),
-    flaws: getRandomElement(flaws)
+    flaws: getRandomElement(flaws),
   };
 };
 
 /**
  * Extract proficiencies from species data
  */
-export const getSpeciesProficiencies = (speciesSlug: string): { armor?: string[]; weapons?: string[]; tools?: string[] } => {
+export const getSpeciesProficiencies = (
+  speciesSlug: string,
+): { armor?: string[]; weapons?: string[]; tools?: string[] } => {
   const canonicalSlug = resolveSpeciesSlug(speciesSlug);
-  const species = loadSpecies().find(s => s.slug === canonicalSlug);
+  const species = loadSpecies().find((s) => s.slug === canonicalSlug);
   if (!species) return { armor: [], weapons: [], tools: [] };
 
-  const proficiencies: { armor?: string[]; weapons?: string[]; tools?: string[] } = {
+  const proficiencies: {
+    armor?: string[];
+    weapons?: string[];
+    tools?: string[];
+  } = {
     armor: [],
     weapons: [],
-    tools: []
+    tools: [],
   };
 
   // Check species traits for proficiency information
-  species.species_traits.forEach(trait => {
+  species.species_traits.forEach((trait) => {
     const traitLower = trait.toLowerCase();
 
     // Armor proficiencies
-    if (traitLower.includes('light armor') || traitLower.includes('medium armor') || traitLower.includes('heavy armor') || traitLower.includes('shields')) {
+    if (
+      traitLower.includes('light armor') ||
+      traitLower.includes('medium armor') ||
+      traitLower.includes('heavy armor') ||
+      traitLower.includes('shields')
+    ) {
       if (!proficiencies.armor) proficiencies.armor = [];
       if (traitLower.includes('light')) proficiencies.armor.push('Light armor');
-      if (traitLower.includes('medium')) proficiencies.armor.push('Medium armor');
+      if (traitLower.includes('medium'))
+        proficiencies.armor.push('Medium armor');
       if (traitLower.includes('heavy')) proficiencies.armor.push('Heavy armor');
       if (traitLower.includes('shields')) proficiencies.armor.push('Shields');
     }
 
     // Weapon proficiencies
-    if (traitLower.includes('weapon training') || traitLower.includes('combat training')) {
+    if (
+      traitLower.includes('weapon training') ||
+      traitLower.includes('combat training')
+    ) {
       if (!proficiencies.weapons) proficiencies.weapons = [];
       // This is a simplified extraction - in a real implementation, you'd parse the trait descriptions
-      if (traitLower.includes('battleaxe') || traitLower.includes('handaxe') || traitLower.includes('warhammer')) {
-        proficiencies.weapons.push('Battleaxe', 'Handaxe', 'Light hammer', 'Warhammer');
+      if (
+        traitLower.includes('battleaxe') ||
+        traitLower.includes('handaxe') ||
+        traitLower.includes('warhammer')
+      ) {
+        proficiencies.weapons.push(
+          'Battleaxe',
+          'Handaxe',
+          'Light hammer',
+          'Warhammer',
+        );
       }
     }
 
     // Tool proficiencies
-    if (traitLower.includes('tool proficiency') || traitLower.includes('smith') || traitLower.includes('brewer')) {
+    if (
+      traitLower.includes('tool proficiency') ||
+      traitLower.includes('smith') ||
+      traitLower.includes('brewer')
+    ) {
       if (!proficiencies.tools) proficiencies.tools = [];
-      if (traitLower.includes('smith')) proficiencies.tools.push('Smith\'s tools');
-      if (traitLower.includes('brewer')) proficiencies.tools.push('Brewer\'s supplies');
+      if (traitLower.includes('smith'))
+        proficiencies.tools.push("Smith's tools");
+      if (traitLower.includes('brewer'))
+        proficiencies.tools.push("Brewer's supplies");
     }
   });
 
@@ -1652,14 +1977,20 @@ export const getRaceProficiencies = getSpeciesProficiencies;
 /**
  * Extract proficiencies from class data
  */
-export const getClassProficiencies = (classSlug: string): { armor?: string[]; weapons?: string[]; tools?: string[] } => {
+export const getClassProficiencies = (
+  classSlug: string,
+): { armor?: string[]; weapons?: string[]; tools?: string[] } => {
   // Hard-coded proficiencies based on D&D 5e rules
   // This ensures accuracy rather than relying on text parsing
 
-  const proficiencies: { armor?: string[]; weapons?: string[]; tools?: string[] } = {
+  const proficiencies: {
+    armor?: string[];
+    weapons?: string[];
+    tools?: string[];
+  } = {
     armor: [],
     weapons: [],
-    tools: []
+    tools: [],
   };
 
   switch (classSlug) {
@@ -1670,7 +2001,13 @@ export const getClassProficiencies = (classSlug: string): { armor?: string[]; we
 
     case 'bard':
       proficiencies.armor = ['Light armor'];
-      proficiencies.weapons = ['Simple weapons', 'Hand crossbows', 'Longswords', 'Rapiers', 'Shortswords'];
+      proficiencies.weapons = [
+        'Simple weapons',
+        'Hand crossbows',
+        'Longswords',
+        'Rapiers',
+        'Shortswords',
+      ];
       proficiencies.tools = ['Three musical instruments of your choice'];
       break;
 
@@ -1681,22 +2018,45 @@ export const getClassProficiencies = (classSlug: string): { armor?: string[]; we
 
     case 'druid':
       proficiencies.armor = ['Light armor', 'Medium armor', 'Shields'];
-      proficiencies.weapons = ['Clubs', 'Daggers', 'Darts', 'Javelins', 'Maces', 'Quarterstaffs', 'Scimitars', 'Sickles', 'Slings', 'Spears'];
+      proficiencies.weapons = [
+        'Clubs',
+        'Daggers',
+        'Darts',
+        'Javelins',
+        'Maces',
+        'Quarterstaffs',
+        'Scimitars',
+        'Sickles',
+        'Slings',
+        'Spears',
+      ];
       proficiencies.tools = ['Herbalism kit'];
       break;
 
     case 'fighter':
-      proficiencies.armor = ['Light armor', 'Medium armor', 'Heavy armor', 'Shields'];
+      proficiencies.armor = [
+        'Light armor',
+        'Medium armor',
+        'Heavy armor',
+        'Shields',
+      ];
       proficiencies.weapons = ['Simple weapons', 'Martial weapons'];
       break;
 
     case 'monk':
       proficiencies.weapons = ['Simple weapons', 'Shortswords'];
-      proficiencies.tools = ['One type of artisan\'s tools or musical instrument'];
+      proficiencies.tools = [
+        "One type of artisan's tools or musical instrument",
+      ];
       break;
 
     case 'paladin':
-      proficiencies.armor = ['Light armor', 'Medium armor', 'Heavy armor', 'Shields'];
+      proficiencies.armor = [
+        'Light armor',
+        'Medium armor',
+        'Heavy armor',
+        'Shields',
+      ];
       proficiencies.weapons = ['Simple weapons', 'Martial weapons'];
       break;
 
@@ -1707,12 +2067,24 @@ export const getClassProficiencies = (classSlug: string): { armor?: string[]; we
 
     case 'rogue':
       proficiencies.armor = ['Light armor'];
-      proficiencies.weapons = ['Simple weapons', 'Hand crossbows', 'Longswords', 'Rapiers', 'Shortswords'];
-      proficiencies.tools = ['Thieves\' tools'];
+      proficiencies.weapons = [
+        'Simple weapons',
+        'Hand crossbows',
+        'Longswords',
+        'Rapiers',
+        'Shortswords',
+      ];
+      proficiencies.tools = ["Thieves' tools"];
       break;
 
     case 'sorcerer':
-      proficiencies.weapons = ['Daggers', 'Darts', 'Slings', 'Quarterstaffs', 'Light crossbows'];
+      proficiencies.weapons = [
+        'Daggers',
+        'Darts',
+        'Slings',
+        'Quarterstaffs',
+        'Light crossbows',
+      ];
       break;
 
     case 'warlock':
@@ -1721,13 +2093,19 @@ export const getClassProficiencies = (classSlug: string): { armor?: string[]; we
       break;
 
     case 'wizard':
-      proficiencies.weapons = ['Daggers', 'Darts', 'Slings', 'Quarterstaffs', 'Light crossbows'];
+      proficiencies.weapons = [
+        'Daggers',
+        'Darts',
+        'Slings',
+        'Quarterstaffs',
+        'Light crossbows',
+      ];
       break;
 
     case 'artificer':
       proficiencies.armor = ['Light armor', 'Medium armor', 'Shields'];
       proficiencies.weapons = ['Simple weapons'];
-      proficiencies.tools = ['Thieves\' tools', 'One type of artisan\'s tools'];
+      proficiencies.tools = ["Thieves' tools", "One type of artisan's tools"];
       break;
 
     default:
@@ -1741,21 +2119,27 @@ export const getClassProficiencies = (classSlug: string): { armor?: string[]; we
 /**
  * Extract proficiencies from background data
  */
-export const getBackgroundProficiencies = (background: string): { armor?: string[]; weapons?: string[]; tools?: string[] } => {
+export const getBackgroundProficiencies = (
+  background: string,
+): { armor?: string[]; weapons?: string[]; tools?: string[] } => {
   // Simplified background proficiency extraction
-  const proficiencies: { armor?: string[]; weapons?: string[]; tools?: string[] } = {};
+  const proficiencies: {
+    armor?: string[];
+    weapons?: string[];
+    tools?: string[];
+  } = {};
 
   const bgLower = background.toLowerCase();
 
   // Tool proficiencies based on background
   if (bgLower.includes('criminal') || bgLower.includes('spy')) {
-    proficiencies.tools = ['Thieves\' tools'];
+    proficiencies.tools = ["Thieves' tools"];
   }
   if (bgLower.includes('entertainer')) {
     proficiencies.tools = ['Disguise kit', 'One musical instrument'];
   }
   if (bgLower.includes('guild artisan')) {
-    proficiencies.tools = ['One type of artisan\'s tools'];
+    proficiencies.tools = ["One type of artisan's tools"];
   }
 
   return proficiencies;
@@ -1764,7 +2148,11 @@ export const getBackgroundProficiencies = (background: string): { armor?: string
 /**
  * Aggregate proficiencies from species, class, and background
  */
-export const aggregateProficiencies = (speciesSlug: string, classSlug: string, background: string): { armor?: string[]; weapons?: string[]; tools?: string[] } => {
+export const aggregateProficiencies = (
+  speciesSlug: string,
+  classSlug: string,
+  background: string,
+): { armor?: string[]; weapons?: string[]; tools?: string[] } => {
   const speciesProf = getSpeciesProficiencies(speciesSlug);
   const classProf = getClassProficiencies(classSlug);
   const backgroundProf = getBackgroundProficiencies(background);
@@ -1772,19 +2160,31 @@ export const aggregateProficiencies = (speciesSlug: string, classSlug: string, b
   const aggregated: { armor: string[]; weapons: string[]; tools: string[] } = {
     armor: [],
     weapons: [],
-    tools: []
+    tools: [],
   };
 
   // Merge armor proficiencies
-  const armorSet = new Set([...(speciesProf.armor || []), ...(classProf.armor || []), ...(backgroundProf.armor || [])]);
+  const armorSet = new Set([
+    ...(speciesProf.armor || []),
+    ...(classProf.armor || []),
+    ...(backgroundProf.armor || []),
+  ]);
   aggregated.armor = Array.from(armorSet);
 
   // Merge weapon proficiencies
-  const weaponSet = new Set([...(speciesProf.weapons || []), ...(classProf.weapons || []), ...(backgroundProf.weapons || [])]);
+  const weaponSet = new Set([
+    ...(speciesProf.weapons || []),
+    ...(classProf.weapons || []),
+    ...(backgroundProf.weapons || []),
+  ]);
   aggregated.weapons = Array.from(weaponSet);
 
   // Merge tool proficiencies
-  const toolSet = new Set([...(speciesProf.tools || []), ...(classProf.tools || []), ...(backgroundProf.tools || [])]);
+  const toolSet = new Set([
+    ...(speciesProf.tools || []),
+    ...(classProf.tools || []),
+    ...(backgroundProf.tools || []),
+  ]);
   aggregated.tools = Array.from(toolSet);
 
   return aggregated;
@@ -1798,18 +2198,18 @@ export const getHitDieForClass = (classSlug: string): number => {
   const baseClass = classSlug.split('-')[0];
 
   const hitDice: Record<string, number> = {
-    'barbarian': 12,
-    'fighter': 10,
-    'paladin': 10,
-    'ranger': 10,
-    'bard': 8,
-    'cleric': 8,
-    'druid': 8,
-    'monk': 8,
-    'rogue': 8,
-    'sorcerer': 6,
-    'warlock': 8,
-    'wizard': 6,
+    barbarian: 12,
+    fighter: 10,
+    paladin: 10,
+    ranger: 10,
+    bard: 8,
+    cleric: 8,
+    druid: 8,
+    monk: 8,
+    rogue: 8,
+    sorcerer: 6,
+    warlock: 8,
+    wizard: 6,
   };
 
   return hitDice[baseClass] || 8; // Default to d8 if class not found
@@ -1825,20 +2225,80 @@ export interface MonsterTypeCategory {
 }
 
 export const MONSTER_TYPE_CATEGORIES: MonsterTypeCategory[] = [
-  { type: 'aberration', name: 'Aberrations', icon: '👁️', description: 'Utterly alien beings' },
+  {
+    type: 'aberration',
+    name: 'Aberrations',
+    icon: '👁️',
+    description: 'Utterly alien beings',
+  },
   { type: 'beast', name: 'Beasts', icon: '🐻', description: 'Natural animals' },
-  { type: 'celestial', name: 'Celestials', icon: '✨', description: 'Divine beings from the Upper Planes' },
-  { type: 'construct', name: 'Constructs', icon: '🗿', description: 'Animated objects and golems' },
-  { type: 'dragon', name: 'Dragons', icon: '🐉', description: 'Ancient reptilian creatures' },
-  { type: 'elemental', name: 'Elementals', icon: '🔥', description: 'Beings of pure elemental energy' },
-  { type: 'fey', name: 'Fey', icon: '🧚', description: 'Magical creatures from the Feywild' },
-  { type: 'fiend', name: 'Fiends', icon: '😈', description: 'Evil beings from the Lower Planes' },
-  { type: 'giant', name: 'Giants', icon: '⛰️', description: 'Towering humanoid creatures' },
-  { type: 'humanoid', name: 'Humanoids', icon: '🧑', description: 'People and human-like creatures' },
-  { type: 'monstrosity', name: 'Monstrosities', icon: '🦎', description: 'Unnatural creatures and hybrids' },
+  {
+    type: 'celestial',
+    name: 'Celestials',
+    icon: '✨',
+    description: 'Divine beings from the Upper Planes',
+  },
+  {
+    type: 'construct',
+    name: 'Constructs',
+    icon: '🗿',
+    description: 'Animated objects and golems',
+  },
+  {
+    type: 'dragon',
+    name: 'Dragons',
+    icon: '🐉',
+    description: 'Ancient reptilian creatures',
+  },
+  {
+    type: 'elemental',
+    name: 'Elementals',
+    icon: '🔥',
+    description: 'Beings of pure elemental energy',
+  },
+  {
+    type: 'fey',
+    name: 'Fey',
+    icon: '🧚',
+    description: 'Magical creatures from the Feywild',
+  },
+  {
+    type: 'fiend',
+    name: 'Fiends',
+    icon: '😈',
+    description: 'Evil beings from the Lower Planes',
+  },
+  {
+    type: 'giant',
+    name: 'Giants',
+    icon: '⛰️',
+    description: 'Towering humanoid creatures',
+  },
+  {
+    type: 'humanoid',
+    name: 'Humanoids',
+    icon: '🧑',
+    description: 'People and human-like creatures',
+  },
+  {
+    type: 'monstrosity',
+    name: 'Monstrosities',
+    icon: '🦎',
+    description: 'Unnatural creatures and hybrids',
+  },
   { type: 'ooze', name: 'Oozes', icon: '💧', description: 'Amorphous blobs' },
-  { type: 'plant', name: 'Plants', icon: '🌿', description: 'Vegetation creatures' },
-  { type: 'undead', name: 'Undead', icon: '💀', description: 'Once-living creatures' },
+  {
+    type: 'plant',
+    name: 'Plants',
+    icon: '🌿',
+    description: 'Vegetation creatures',
+  },
+  {
+    type: 'undead',
+    name: 'Undead',
+    icon: '💀',
+    description: 'Once-living creatures',
+  },
 ];
 
 /**
@@ -1846,11 +2306,13 @@ export const MONSTER_TYPE_CATEGORIES: MonsterTypeCategory[] = [
  * No transformation needed - use SRD format directly
  */
 export const loadMonsters = (): Monster[] => {
-  return srdMonsters2014.map(monster => ({
+  return srdMonsters2014.map((monster) => ({
     ...monster,
     senses: Object.fromEntries(
-      Object.entries(monster.senses || {}).filter(([_, value]) => value !== undefined)
-    ) as Record<string, string | number>
+      Object.entries(monster.senses || {}).filter(
+        ([_, value]) => value !== undefined,
+      ),
+    ) as Record<string, string | number>,
   })) as Monster[];
 };
 
@@ -1860,7 +2322,8 @@ export function loadQuickStartEquipment(): QuickStartPresets {
 }
 
 export function loadStartingWealthRules(): ClassWealthRule[] {
-  return (startingWealthData as { starting_wealth: ClassWealthRule[] }).starting_wealth;
+  return (startingWealthData as { starting_wealth: ClassWealthRule[] })
+    .starting_wealth;
 }
 
 export function loadNewPlayerShop(): ShopItem[] {

@@ -223,44 +223,16 @@ describe('SimplePlayerShell', () => {
     await waitFor(() =>
       expect(setActiveCharacter).toHaveBeenCalledWith('new-1'),
     );
-    expect(sessionRef.current.submitCharacter).toHaveBeenCalled();
+    // SharedCharacterCreator has already completed the durable host handshake.
+    expect(sessionRef.current.submitCharacter).not.toHaveBeenCalled();
     expect(screen.queryByTestId('character-creator')).not.toBeInTheDocument();
   });
 
-  it('does not adopt a created character the DM rejected, and can cancel', async () => {
+  it('can cancel creation without adopting or submitting a character', async () => {
     sessionRef.current = session({
       myCharacter: undefined,
-      submitCharacter: vi
-        .fn()
-        .mockResolvedValue({
-          intentId: 'i',
-          status: 'rejected',
-          reason: 'host-offline',
-        }),
     });
     render(<SimplePlayerShell mode={mode()} />);
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Create New Character' }),
-    );
-    await screen.findByTestId('character-creator');
-    creator.complete?.('new-1', { ...aria, id: 'new-1' } as Character);
-    await waitFor(() =>
-      expect(sessionRef.current.submitCharacter).toHaveBeenCalled(),
-    );
-    expect(setActiveCharacter).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Switch Character' }));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Create New Character' }),
-    );
-    await screen.findByTestId('character-creator');
-    creator.complete?.('new-2');
-    await waitFor(() =>
-      expect(screen.queryByTestId('character-creator')).not.toBeInTheDocument(),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Switch Character' }));
     fireEvent.click(
       screen.getByRole('button', { name: 'Create New Character' }),
     );
@@ -269,6 +241,8 @@ describe('SimplePlayerShell', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('character-creator')).not.toBeInTheDocument(),
     );
+    expect(setActiveCharacter).not.toHaveBeenCalled();
+    expect(sessionRef.current.submitCharacter).not.toHaveBeenCalled();
   });
 
   it('gives spectators no hero tab, character prompt or HP controls', () => {

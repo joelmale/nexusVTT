@@ -81,6 +81,7 @@ describe('runStartupMigrations', () => {
       '2026-10-02-add-homebrew-monster-kind.sql',
       '2026-10-07-add-item-kind.sql',
       '2026-10-22-add-campaign-studio-extensions.sql',
+      '2026-10-24-add-character-creation-attempts.sql',
     ]);
     expect(sqlLoader.mock.calls.map(([fileName]) => fileName)).toEqual(applied);
     expect(query.mock.calls.at(0)?.[0]).toBe('BEGIN');
@@ -162,17 +163,13 @@ describe('runStartupMigrations', () => {
   it('accounts for all SQL migration files in either startup or non-startup registries', async () => {
     const fs = await import('fs');
     const path = await import('path');
-    const migrationsDir = path.resolve(
-      __dirname,
-      '../../../server/migrations',
-    );
+    const migrationsDir = path.resolve(__dirname, '../../../server/migrations');
     const diskFiles = fs
       .readdirSync(migrationsDir)
       .filter((file) => file.endsWith('.sql'));
 
-    const { STARTUP_MIGRATIONS, KNOWN_NON_STARTUP_MIGRATIONS } = await import(
-      '../../../server/startupMigrations'
-    );
+    const { STARTUP_MIGRATIONS, KNOWN_NON_STARTUP_MIGRATIONS } =
+      await import('../../../server/startupMigrations');
 
     const startupFileNames = STARTUP_MIGRATIONS.map((m) => m.fileName);
     const nonStartupFileNames = KNOWN_NON_STARTUP_MIGRATIONS.map(

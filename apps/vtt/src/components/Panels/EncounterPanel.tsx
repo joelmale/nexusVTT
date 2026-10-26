@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  loadEncounterRun,
+  type EncounterRunView,
+} from '@/services/encounterRunClient';
 import type { PanelComponentProps } from '@/services/panelRegistry';
 import { commandClient } from '@/services/commandClient';
 import styles from './EncounterPanel.module.css';
@@ -10,43 +14,91 @@ interface ParticipantDisplay {
 }
 
 export const EncounterPanel: React.FC<PanelComponentProps> = ({ link }) => {
-  const campaignId = link.campaignId || 'default-campaign';
+  const campaignId = link.campaignId;
   const encounterRunId = link.id;
-
-  const [stage, setStage] = useState<'staged' | 'deployed' | 'active' | 'completed'>('deployed');
-  const [currentRound, setCurrentRound] = useState<number>(1);
-  const [currentTurnIndex, setCurrentTurnIndex] = useState<number>(0);
-  const [participants] = useState<ParticipantDisplay[]>([
-    { actorId: 'p-1', name: 'Astarion', initiativeRoll: 18 },
-    { actorId: 'p-2', name: 'Goblin #1', initiativeRoll: 14 },
-    { actorId: 'p-3', name: 'Shadowheart', initiativeRoll: 11 },
-    { actorId: 'p-4', name: 'Goblin #2', initiativeRoll: 8 },
-  ]);
-
-  const handleStartCombat = async () => {
-    setStage('active');
-    setCurrentRound(1);
-    setCurrentTurnIndex(0);
-
-    await commandClient.startEncounter(campaignId, encounterRunId);
-  };
-
-  const handleNextTurn = async () => {
-    let nextIndex = currentTurnIndex + 1;
-    let nextRound = currentRound;
-
-    if (nextIndex >= participants.length) {
-      nextIndex = 0;
-      nextRound += 1;
+  const [view, setView] = useState<EncounterRunView>();
+  const [status, setStatus] = useState<string>();
+  const [pending, setPending] = useState(false);
+  const generation = useRef(0);
+  const inFlight = useRef(false);
+  const refresh = useCallback(async () => {
+    if (!campaignId) {
+      return;
     }
-
-    setCurrentTurnIndex(nextIndex);
-    setCurrentRound(nextRound);
-
-    await commandClient.advanceCombatTurn(campaignId, encounterRunId);
+    const observed = ++generation.current;
+    try {
+      const loaded = await loadEncounterRun(campaignId, encounterRunId);
+      if (observed !== generation.current) return;
+      setView(loaded);
+      setStatus(undefined);
+    } catch (error) {
+      if (observed !== generation.current) return;
+      setView(undefined);
+      setStatus(
+        error instanceof Error ? error.message : 'Could not load encounter.',
+      );
+    }
+  }, [campaignId, encounterRunId]);
+  const cancelPendingRefresh = useCallback(() => {
+    generation.current += 1;
+  }, []);
+  useEffect(() => {
+    // Load external committed state; setters run after the asynchronous request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
+    const reload = () => {
+      if (!document.hidden) void refresh();
+    };
+    window.addEventListener('online', reload);
+    window.addEventListener('nexus-domain-command-executed', reload);
+    window.addEventListener('nexus-campaign-actors-changed', reload);
+    return () => {
+      cancelPendingRefresh();
+      window.removeEventListener('online', reload);
+      window.removeEventListener('nexus-domain-command-executed', reload);
+      window.removeEventListener('nexus-campaign-actors-changed', reload);
+    };
+  }, [refresh, cancelPendingRefresh]);
+  const act = async (kind: 'start' | 'advance') => {
+    if (!campaignId || inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
+    try {
+      const result =
+        kind === 'start'
+          ? await commandClient.startEncounter(campaignId, encounterRunId)
+          : await commandClient.advanceCombatTurn(campaignId, encounterRunId);
+      await refresh();
+      if (!result.success)
+        setStatus(
+          result.error ||
+            'The action was not confirmed. Refresh before retrying.',
+        );
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : 'The action was not confirmed.',
+      );
+    } finally {
+      inFlight.current = false;
+      setPending(false);
+    }
   };
-
+  const stage = view?.run.stage;
+  const currentRound = view?.run.currentRound;
+  const currentTurnIndex = view?.run.currentTurnIndex ?? 0;
+  const participants: ParticipantDisplay[] = (view?.run.participants ?? []).map(
+    (participant) => ({
+      ...participant,
+      name:
+        view?.actors.find((actor) => actor.id === participant.actorId)?.name ||
+        'Unavailable actor',
+    }),
+  );
   const activeParticipant = participants[currentTurnIndex];
+  const handleStartCombat = () => void act('start');
+  const handleNextTurn = () => void act('advance');
 
   return (
     <div className={styles.container} data-testid="encounter-panel">
@@ -57,6 +109,16 @@ export const EncounterPanel: React.FC<PanelComponentProps> = ({ link }) => {
         </span>
       </div>
 
+      {!campaignId && (
+        <p role="status">Open this encounter from its campaign.</p>
+      )}
+      {status && <p role="status">{status}</p>}
+      {campaignId && !view && !status && (
+        <p role="status">Loading committed encounter…</p>
+      )}
+      <button type="button" disabled={pending} onClick={() => void refresh()}>
+        Refresh encounter
+      </button>
       <div className={styles.roundTracker}>
         <div className={styles.roundStat}>
           <span className={styles.roundLabel}>Round</span>
@@ -83,8 +145,9 @@ export const EncounterPanel: React.FC<PanelComponentProps> = ({ link }) => {
       </div>
 
       <div className={styles.controls}>
-        {stage !== 'active' ? (
+        {stage === 'deployed' || stage === 'staged' ? (
           <button
+            disabled={pending || !view || Boolean(status)}
             onClick={handleStartCombat}
             className={styles.primaryBtn}
             data-testid="start-combat-btn"
@@ -93,6 +156,7 @@ export const EncounterPanel: React.FC<PanelComponentProps> = ({ link }) => {
           </button>
         ) : (
           <button
+            disabled={pending || stage !== 'active' || Boolean(status)}
             onClick={handleNextTurn}
             className={styles.primaryBtn}
             data-testid="next-turn-btn"

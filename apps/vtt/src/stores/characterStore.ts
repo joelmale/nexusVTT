@@ -49,7 +49,10 @@ interface CharacterStore extends CharacterState {
    * Account persistence runs first so a failed save leaves no ghost character
    * in the store; the creator surfaces the thrown error and stays open.
    */
-  saveCreatedCharacter: (character: Character) => Promise<string>;
+  saveCreatedCharacter: (
+    character: Character,
+    operation?: { creationAttemptId?: string; draftRevision?: number },
+  ) => Promise<string>;
   createQuickCharacter: (
     data: {
       name: string;
@@ -242,9 +245,9 @@ export const useCharacterStore = create<CharacterStore>()(
       return character.id!;
     },
 
-    saveCreatedCharacter: async (character) => {
+    saveCreatedCharacter: async (character, operation) => {
       const { userId, isAuthenticated } = getGameStoreContext();
-      const owned: Character = {
+      let owned: Character = {
         ...character,
         playerId: character.playerId || userId,
       };
@@ -256,7 +259,7 @@ export const useCharacterStore = create<CharacterStore>()(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ name: owned.name, data: owned }),
+          body: JSON.stringify({ name: owned.name, data: owned, ...operation }),
         });
 
         if (!response.ok) {
@@ -266,10 +269,33 @@ export const useCharacterStore = create<CharacterStore>()(
               `Failed to save ${owned.name} to your account (HTTP ${response.status}).`,
           );
         }
+        const record: unknown = await response.json();
+        if (
+          !record ||
+          typeof record !== 'object' ||
+          !('id' in record) ||
+          typeof record.id !== 'string' ||
+          !('data' in record) ||
+          !record.data ||
+          typeof record.data !== 'object'
+        ) {
+          throw new Error(
+            'The server did not return the saved character. Retry the same creation after restoring the connection.',
+          );
+        }
+        owned = {
+          ...owned,
+          ...(record.data as Partial<Character>),
+          id: record.id,
+          playerId: owned.playerId,
+        };
       }
 
       // 2. Commit to the in-memory store.
       set((state) => {
+        state.characters = state.characters.filter(
+          (c) => c.id !== character.id || c.id === owned.id,
+        );
         const existing = state.characters.findIndex((c) => c.id === owned.id);
         if (existing >= 0) {
           state.characters[existing] = owned;
@@ -918,17 +944,12 @@ export const useCharacterStore = create<CharacterStore>()(
       // Process successful imports
       for (const result of batchResult.results) {
         if (result.success && result.character) {
-          const character = {
+          let character = {
             ...(result.character as Character),
             playerId: options?.unassigned
               ? undefined
               : (result.character as Character).playerId || userId,
           };
-
-          // Add to store
-          set((state) => {
-            state.characters.push(character);
-          });
 
           if (isAuthenticated) {
             try {
@@ -946,6 +967,18 @@ export const useCharacterStore = create<CharacterStore>()(
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || 'Failed to save character');
               }
+              const saved: unknown = await response.json();
+              if (
+                !saved ||
+                typeof saved !== 'object' ||
+                !('id' in saved) ||
+                typeof saved.id !== 'string'
+              ) {
+                throw new Error(
+                  'The server did not return the saved character identity.',
+                );
+              }
+              character = { ...character, id: saved.id };
             } catch (error) {
               errors.push(
                 `Failed to save ${character.name} to your account: ${
@@ -954,6 +987,14 @@ export const useCharacterStore = create<CharacterStore>()(
               );
             }
           }
+          // Publish the account's canonical identity to the room and local cache.
+          set((state) => {
+            const existing = state.characters.findIndex(
+              (entry) => entry.id === character.id,
+            );
+            if (existing >= 0) state.characters[existing] = character;
+            else state.characters.push(character);
+          });
         } else if (result.error) {
           errors.push(result.error);
         }

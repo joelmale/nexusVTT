@@ -14,13 +14,14 @@ import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Swords from 'lucide-react/dist/esm/icons/swords';
 
 import type {
-  SceneTemplate,
   SessionPlan,
   SessionPlanActivation,
   SessionPlanStep,
 } from '@nexus/game-contracts';
 
 import { commandClient } from '@/services/commandClient';
+import { loadPreparedScene } from '@/services/preparedScene';
+import { placeEncounterTokens } from '@/services/encounterRunClient';
 import {
   panelRegistry,
   type PanelComponentProps,
@@ -284,16 +285,15 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     if (step.type !== 'activate-scene') return;
     setActionInProgress((prev) => ({ ...prev, [step.id]: true }));
     try {
-      const stepTitleLower = step.title.toLowerCase();
-      // 1. Check if a scene with this name or ID already exists in the room
+      const sourceTemplateRef = {
+        id: step.sceneTemplateRef.id,
+        revision: step.sceneTemplateRef.revision,
+      };
       const existingMatchingScene = sceneState?.scenes?.find(
-        (s) =>
-          s.id === step.sceneTemplateRef.id ||
-          s.name.toLowerCase() === stepTitleLower ||
-          (stepTitleLower.includes('glass harbor') &&
-            s.name.toLowerCase().includes('glass harbor')),
+        (scene) =>
+          scene.sourceTemplateRef?.id === sourceTemplateRef.id &&
+          scene.sourceTemplateRef.revision === sourceTemplateRef.revision,
       );
-
       if (existingMatchingScene) {
         setActiveScene(existingMatchingScene.id);
         updateCamera?.({ x: 0, y: 0, zoom: 0.54 });
@@ -304,41 +304,16 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         return;
       }
 
-      // 2. Fetch the scene template prep object from the backend
-      let template: SceneTemplate | null = null;
-      try {
-        const res = await fetch(
-          `/api/campaigns/${encodeURIComponent(campaignId)}/prep/objects/${encodeURIComponent(step.sceneTemplateRef.id)}`,
-          { credentials: 'include' },
-        );
-        if (res.ok) {
-          const body = (await res.json()) as {
-            revision?: { data?: SceneTemplate };
-          };
-          if (body?.revision?.data) {
-            template = body.revision.data;
-          }
-        }
-      } catch (err) {
-        console.warn('Could not fetch scene template from prep API:', err);
-      }
-
-      const isGlassHarbor =
-        template?.backgroundAssetRef?.assetId?.includes('glass-harbor') ||
-        stepTitleLower.includes('glass harbor');
-
-      const bgUrl = isGlassHarbor
-        ? '/demo/ashes-of-veyra/glass-harbor-map.png'
-        : template?.backgroundAssetRef?.assetId?.startsWith('http') ||
-            template?.backgroundAssetRef?.assetId?.startsWith('/')
-          ? template.backgroundAssetRef.assetId
-          : '/demo/ashes-of-veyra/glass-harbor-map.png';
-
-      const bgWidth = isGlassHarbor ? 1586 : 1920;
-      const bgHeight = isGlassHarbor ? 992 : 1080;
-
+      const { template, image } = await loadPreparedScene(
+        campaignId,
+        sourceTemplateRef.id,
+        sourceTemplateRef.revision,
+        user.id,
+      );
+      const bgWidth = image.width;
+      const bgHeight = image.height;
       const backgroundImage = {
-        url: bgUrl,
+        url: image.url,
         width: bgWidth,
         height: bgHeight,
         offsetX: -bgWidth / 2,
@@ -346,7 +321,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         scale: 1.0,
       };
 
-      const sceneName = template?.name || step.title || 'Glass Harbor Docks';
+      const sceneName = template.name || step.title;
 
       const gridSettings = {
         enabled: template?.grid?.enabled ?? true,
@@ -380,6 +355,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         updateScene(scenes[0].id, {
           name: sceneName,
           description: 'Prepared scene from Campaign Studio',
+          sourceTemplateRef,
           backgroundImage,
           gridSettings: {
             ...scenes[0].gridSettings,
@@ -396,6 +372,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
       } else {
         const newScene = createScene({
           name: sceneName,
+          sourceTemplateRef,
           description: 'Prepared scene from Campaign Studio',
           visibility: 'public',
           isEditable: true,
@@ -440,6 +417,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         { sceneId: activeSceneId },
       );
       setActivation(result.activation);
+      await placeEncounterTokens(campaignId, result.encounterRunId);
       setDeployedEncounters((prev) => ({
         ...prev,
         [step.id]: result.encounterRunId,
@@ -474,7 +452,11 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     }
     setActionInProgress((prev) => ({ ...prev, [step.id]: true }));
     try {
-      await commandClient.startEncounter(campaignId, runId);
+      const started = await commandClient.startEncounter(campaignId, runId);
+      if (!started.success)
+        throw new Error(
+          started.error || 'Combat could not be started. Refresh and retry.',
+        );
       panelRegistry.open({
         kind: 'encounter',
         id: runId,

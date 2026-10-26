@@ -15,6 +15,8 @@ import { requireAuthenticatedNonGuest } from '../middleware/assetWriteGuard.js';
 import { setupGeneratedMapsRoute } from './generatedMaps.js';
 import { registerCampaignActorRoutes } from './campaignActors.js';
 import type { SocketManager } from '../socket/SocketManager.js';
+import { readCampaignMetadata } from '../validation/campaignMetadata.js';
+import { CharacterCreationConflictError } from '../utils/characterCreationIdentity.js';
 
 interface ApiSession extends Session {
   guestUser?: { id: string; name: string; provider: string };
@@ -238,8 +240,13 @@ export function registerApiRoutes(
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const { allowSpectators, shareCharacterSheets, logSessions, hpSync, ...rest } =
-        req.body || {};
+      const {
+        allowSpectators,
+        shareCharacterSheets,
+        logSessions,
+        hpSync,
+        ...rest
+      } = req.body || {};
 
       const invalid =
         (allowSpectators !== undefined &&
@@ -618,7 +625,20 @@ export function registerApiRoutes(
         return res.status(401).json({ error: 'Authentication required' });
       }
 
+      const metadataResult = readCampaignMetadata(req.body);
+      if ('error' in metadataResult) {
+        return res.status(400).json({ error: metadataResult.error });
+      }
       const { name, description } = req.body;
+      if (
+        description !== undefined &&
+        description !== null &&
+        typeof description !== 'string'
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'Campaign description must be text or null.' });
+      }
 
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
         return res.status(400).json({ error: 'Campaign name is required' });
@@ -631,11 +651,20 @@ export function registerApiRoutes(
       }
 
       const user = req.user as { id: string };
-      const campaign = await db.createCampaign(
-        user.id,
-        name.trim(),
-        description?.trim() || undefined,
-      );
+      const { metadata } = metadataResult;
+      const campaign =
+        Object.keys(metadata).length === 0
+          ? await db.createCampaign(
+              user.id,
+              name.trim(),
+              description?.trim() || undefined,
+            )
+          : await db.createCampaign(
+              user.id,
+              name.trim(),
+              description?.trim() || undefined,
+              metadata,
+            );
 
       res.status(201).json(campaign);
     } catch (error) {
@@ -650,14 +679,24 @@ export function registerApiRoutes(
    * Requires authentication and ownership
    * Body: { name?: string, description?: string, scenes?: unknown }
    */
-  app.put('/api/campaigns/:id', async (req, res) => {
+  const updateCampaignHandler = async (
+    req: express.Request,
+    res: express.Response,
+  ) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
       const campaignId = req.params.id;
-      const updates = req.body;
+      if (typeof campaignId !== 'string') {
+        return res.status(400).json({ error: 'Campaign ID is required.' });
+      }
+      const metadataResult = readCampaignMetadata(req.body);
+      if ('error' in metadataResult) {
+        return res.status(400).json({ error: metadataResult.error });
+      }
+      const updates = { ...req.body, ...metadataResult.metadata };
 
       const user = req.user as { id: string };
       const campaign = await db.getCampaignById(campaignId);
@@ -702,7 +741,9 @@ export function registerApiRoutes(
       console.error('Failed to update campaign:', error);
       res.status(500).json({ error: 'Failed to update campaign' });
     }
-  });
+  };
+  app.put('/api/campaigns/:id', updateCampaignHandler);
+  app.patch('/api/campaigns/:id', updateCampaignHandler);
 
   /**
    * DELETE /api/campaigns/:id
@@ -821,6 +862,28 @@ export function registerApiRoutes(
       }
 
       const user = req.user as { id: string };
+      const { creationAttemptId, draftRevision } = req.body;
+      if (creationAttemptId !== undefined || draftRevision !== undefined) {
+        if (
+          typeof creationAttemptId !== 'string' ||
+          !/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/.test(creationAttemptId) ||
+          !Number.isSafeInteger(draftRevision) ||
+          draftRevision < 1
+        ) {
+          return res.status(400).json({
+            error:
+              'A valid creationAttemptId and positive integer draftRevision are required together.',
+          });
+        }
+        const character = await db.createCharacterOnce(
+          user.id,
+          name.trim(),
+          data || {},
+          creationAttemptId,
+          draftRevision,
+        );
+        return res.status(200).json(character);
+      }
       const existingCharacters = await db.getCharactersByUser(user.id);
       const incomingKey = buildCharacterKey(name.trim(), data || {});
       const match = existingCharacters
@@ -847,6 +910,9 @@ export function registerApiRoutes(
 
       res.status(201).json(character);
     } catch (error) {
+      if (error instanceof CharacterCreationConflictError) {
+        return res.status(409).json({ error: error.message });
+      }
       console.error('Failed to create character:', error);
       res.status(500).json({ error: 'Failed to create character' });
     }
@@ -973,56 +1039,56 @@ export function registerApiRoutes(
       try {
         const { tokenId, imageData, name } = req.body;
 
-      if (!tokenId || !imageData || !name) {
-        return res.status(400).json({ error: 'Missing required fields' });
+        if (!tokenId || !imageData || !name) {
+          return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Validate that imageData is a base64 PNG
+        if (!imageData.startsWith('data:image/png;base64,')) {
+          return res.status(400).json({ error: 'Invalid image format' });
+        }
+
+        // Extract base64 data
+        const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Create custom tokens directory if it doesn't exist
+        // Save to ASSETS_PATH/assets/tokens/custom to match the static serve path
+        const customTokensDir = path.join(
+          assetsPath,
+          'assets',
+          'tokens',
+          'custom',
+        );
+        if (!fs.existsSync(customTokensDir)) {
+          fs.mkdirSync(customTokensDir, { recursive: true });
+        }
+
+        // Generate filename from tokenId
+        const sanitizedName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const sanitizedId = String(tokenId).replace(/[^a-z0-9]/gi, '_');
+        const filename = `${sanitizedName}_${sanitizedId}.png`;
+        const filepath = path.join(customTokensDir, filename);
+
+        // Reject if resolved path escapes the tokens directory
+        if (!filepath.startsWith(path.resolve(customTokensDir) + path.sep)) {
+          return res.status(400).json({ error: 'Invalid token path' });
+        }
+
+        // Write the file
+        fs.writeFileSync(filepath, buffer);
+
+        // Return the server path
+        const serverPath = `/assets/tokens/custom/${filename}`;
+
+        console.log(`💾 Saved custom token: ${sanitizeLog(serverPath)}`);
+        res.json({ success: true, path: serverPath });
+      } catch (error) {
+        console.error('Failed to save token:', error);
+        res.status(500).json({ error: 'Failed to save token' });
       }
-
-      // Validate that imageData is a base64 PNG
-      if (!imageData.startsWith('data:image/png;base64,')) {
-        return res.status(400).json({ error: 'Invalid image format' });
-      }
-
-      // Extract base64 data
-      const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
-
-      // Create custom tokens directory if it doesn't exist
-      // Save to ASSETS_PATH/assets/tokens/custom to match the static serve path
-      const customTokensDir = path.join(
-        assetsPath,
-        'assets',
-        'tokens',
-        'custom',
-      );
-      if (!fs.existsSync(customTokensDir)) {
-        fs.mkdirSync(customTokensDir, { recursive: true });
-      }
-
-      // Generate filename from tokenId
-      const sanitizedName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-      const sanitizedId = String(tokenId).replace(/[^a-z0-9]/gi, '_');
-      const filename = `${sanitizedName}_${sanitizedId}.png`;
-      const filepath = path.join(customTokensDir, filename);
-
-      // Reject if resolved path escapes the tokens directory
-      if (!filepath.startsWith(path.resolve(customTokensDir) + path.sep)) {
-        return res.status(400).json({ error: 'Invalid token path' });
-      }
-
-      // Write the file
-      fs.writeFileSync(filepath, buffer);
-
-      // Return the server path
-      const serverPath = `/assets/tokens/custom/${filename}`;
-
-      console.log(`💾 Saved custom token: ${sanitizeLog(serverPath)}`);
-      res.json({ success: true, path: serverPath });
-    } catch (error) {
-      console.error('Failed to save token:', error);
-      res.status(500).json({ error: 'Failed to save token' });
-    }
-  },
-);
+    },
+  );
 
   setupGeneratedMapsRoute(app, requireAuthenticatedNonGuest);
   registerCampaignActorRoutes(app, db, getSocketManager);

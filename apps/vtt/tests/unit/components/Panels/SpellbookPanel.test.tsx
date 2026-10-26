@@ -1,208 +1,161 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { SpellbookPanel } from '../../../../src/components/Panels/SpellbookPanel';
-import { commandClient } from '../../../../src/services/commandClient';
-import type { ObjectLink } from '../../../../src/services/panelRegistry';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { Character } from '@nexus/character-contracts';
+import type { SpellDefinition } from '@nexus/game-contracts';
+import { useCharacterStore } from '@/stores/characterStore';
+import { useGameStore } from '@/stores/gameStore';
+import {
+  loadActorSpellbook,
+  type SpellbookActor,
+} from '@/services/actorSpellbook';
+import { commandClient } from '@/services/commandClient';
+import { SpellbookPanel } from '@/components/Panels/SpellbookPanel';
 
-vi.mock('../../../../src/services/commandClient', () => ({
+vi.mock('@/services/actorSpellbook', () => ({ loadActorSpellbook: vi.fn() }));
+vi.mock('@/services/commandClient', () => ({
   commandClient: {
-    applyPreparationPlan: vi.fn().mockResolvedValue({ success: true }),
-    castSpell: vi.fn().mockResolvedValue({ success: true }),
-    endConcentration: vi.fn().mockResolvedValue({ success: true }),
-    restActor: vi.fn().mockResolvedValue({ success: true }),
+    castSpell: vi.fn(),
+    applyPreparationPlan: vi.fn(),
+    endConcentration: vi.fn(),
+    restActor: vi.fn(),
   },
 }));
-
-describe('SpellbookPanel', () => {
-  const mockLink: ObjectLink = {
-    kind: 'spellbook',
-    id: 'actor-wizard-1',
-    campaignId: 'camp-1',
-    title: 'Gale of Waterdeep',
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    (commandClient.applyPreparationPlan as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
-    (commandClient.castSpell as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
-    (commandClient.endConcentration as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
-    (commandClient.restActor as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
+const spell = {
+  id: '11111111-1111-4111-8111-111111111111',
+  revision: 4,
+  slug: 'healing-word',
+  name: 'Healing Word',
+  level: 1,
+  castingTime: 'Bonus action',
+  range: '60 feet',
+  duration: 'Instantaneous',
+  description: 'Healing description',
+} as SpellDefinition;
+const actor: SpellbookActor = {
+  id: 'canonical-actor',
+  stateVersion: 7,
+  pools: {
+    cleric: {
+      id: 'cleric',
+      name: 'Cleric slots',
+      poolType: 'slots',
+      slots: { '1': { current: 2, total: 2 } },
+      resetOn: 'long-rest',
+    },
+  },
+  profiles: [
+    {
+      profileId: 'cleric-source',
+      name: 'Cleric',
+      sourceType: 'class',
+      sourceSlug: 'cleric',
+      spellcastingAbility: 'WIS',
+      spellSaveDC: 13,
+      spellAttackBonus: 5,
+      isRitualCaster: true,
+      preparationMode: 'prepared',
+      resourcePoolId: 'cleric',
+      boundCollectionIds: [],
+      knownSpellSlugs: ['healing-word'],
+      preparedSpellSlugs: ['healing-word'],
+    },
+  ],
+};
+const renderPanel = () =>
+  render(
+    <SpellbookPanel
+      link={{ kind: 'spellbook', id: 'character', campaignId: 'campaign' }}
+      onClose={vi.fn()}
+      isPopout={false}
+    />,
+  );
+beforeEach(() => {
+  vi.clearAllMocks();
+  useGameStore.setState({
+    user: { ...useGameStore.getState().user, id: 'player', type: 'player' },
   });
-
-  it('renders spellbook title, profile attributes, and slot grid', () => {
-    render(
-      <SpellbookPanel
-        link={mockLink}
-        onClose={vi.fn()}
-        isPopout={false}
-      />,
-    );
-
-    expect(screen.getByTestId('spellbook-panel')).toBeInTheDocument();
-    expect(screen.getByText('Gale of Waterdeep')).toBeInTheDocument();
-    expect(screen.getByText('INT')).toBeInTheDocument();
-    expect(screen.getByText('15')).toBeInTheDocument(); // Save DC
-    expect(screen.getByText('+7')).toBeInTheDocument(); // Attack bonus
-    expect(screen.getByTestId('slots-grid')).toBeInTheDocument();
-    expect(screen.getByTestId('slot-card-1')).toHaveTextContent('4 / 4');
+  useCharacterStore.setState({
+    characters: [
+      { id: 'character', playerId: 'player', name: 'Real Cleric' } as Character,
+    ],
   });
+  vi.mocked(loadActorSpellbook).mockResolvedValue({ actor, spells: [spell] });
+  vi.mocked(commandClient.castSpell).mockResolvedValue({ success: true });
+});
 
-  it('toggles preparation and dispatches applyPreparationPlan', async () => {
-    render(
-      <SpellbookPanel
-        link={mockLink}
-        onClose={vi.fn()}
-        isPopout={false}
-      />,
-    );
-
-    // Toggle Detect Magic (initially unprepared)
-    const detectMagicCheckbox = screen.getByTestId('prepare-checkbox-detect-magic');
-    expect(detectMagicCheckbox).not.toBeChecked();
-
-    fireEvent.click(detectMagicCheckbox);
-    expect(detectMagicCheckbox).toBeChecked();
-
-    // Click Apply Plan
-    const applyBtn = screen.getByTestId('apply-plan-btn');
-    fireEvent.click(applyBtn);
-
-    await waitFor(() => {
-      expect(commandClient.applyPreparationPlan).toHaveBeenCalledWith(
-        'camp-1',
-        'actor-wizard-1',
-        'primary-profile',
-        expect.arrayContaining(['detect-magic']),
-      );
-      expect(screen.getByTestId('spellbook-status')).toHaveTextContent(
-        'Preparation plan applied successfully.',
-      );
-    });
-  });
-
-  it('casts a cantrip without deducting spell slots', async () => {
-    render(
-      <SpellbookPanel
-        link={mockLink}
-        onClose={vi.fn()}
-        isPopout={false}
-      />,
-    );
-
-    const castFireBoltBtn = screen.getByTestId('cast-btn-fire-bolt');
-    fireEvent.click(castFireBoltBtn);
-
-    await waitFor(() => {
+describe('canonical character spellbook', () => {
+  it('uses actual profile and definition references and refreshes committed slots', async () => {
+    vi.mocked(loadActorSpellbook)
+      .mockResolvedValueOnce({ actor, spells: [spell] })
+      .mockResolvedValue({
+        actor: {
+          ...actor,
+          stateVersion: 8,
+          pools: {
+            cleric: {
+              ...actor.pools.cleric,
+              slots: { '1': { current: 1, total: 2 } },
+            },
+          },
+        },
+        spells: [spell],
+      });
+    renderPanel();
+    expect(
+      await screen.findByText('WIS · Save DC 13 · Attack +5'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cast Healing Word' }));
+    await waitFor(() =>
       expect(commandClient.castSpell).toHaveBeenCalledWith(
-        'camp-1',
-        'actor-wizard-1',
-        expect.objectContaining({ kind: 'spell' }),
-        'primary-profile',
-        0,
-      );
-      expect(screen.getByTestId('slot-card-1')).toHaveTextContent('4 / 4');
-      expect(screen.getByTestId('spellbook-status')).toHaveTextContent('Cast Fire Bolt!');
-    });
-  });
-
-  it('casts a leveled spell, decrements slots, and shows status', async () => {
-    render(
-      <SpellbookPanel
-        link={mockLink}
-        onClose={vi.fn()}
-        isPopout={false}
-      />,
-    );
-
-    const castMagicMissileBtn = screen.getByTestId('cast-btn-magic-missile');
-    fireEvent.click(castMagicMissileBtn);
-
-    await waitFor(() => {
-      expect(commandClient.castSpell).toHaveBeenCalledWith(
-        'camp-1',
-        'actor-wizard-1',
-        expect.objectContaining({ kind: 'spell' }),
-        'primary-profile',
+        'campaign',
+        actor.id,
+        { kind: 'spell', id: spell.id, revision: 4 },
+        'cleric-source',
         1,
-      );
-      expect(screen.getByTestId('slot-card-1')).toHaveTextContent('3 / 4');
-      expect(screen.getByTestId('spellbook-status')).toHaveTextContent('Cast Magic Missile at level 1!');
-    });
-  });
-
-  it('shows concentration banner and allows ending concentration', async () => {
-    render(
-      <SpellbookPanel
-        link={mockLink}
-        onClose={vi.fn()}
-        isPopout={false}
-      />,
+        expect.objectContaining({
+          expectedVersion: 7,
+          commandId: expect.any(String),
+        }),
+      ),
     );
-
-    expect(screen.queryByTestId('concentration-banner')).not.toBeInTheDocument();
-
-    // Cast Hold Person (concentration)
-    const castHoldPersonBtn = screen.getByTestId('cast-btn-hold-person');
-    fireEvent.click(castHoldPersonBtn);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('concentration-banner')).toBeInTheDocument();
-      expect(screen.getByText(/Concentrating on/)).toHaveTextContent('hold-person');
-    });
-
-    // End Concentration
-    const endBtn = screen.getByTestId('end-concentration-btn');
-    fireEvent.click(endBtn);
-
-    await waitFor(() => {
-      expect(commandClient.endConcentration).toHaveBeenCalledWith(
-        'camp-1',
-        'actor-wizard-1',
-        expect.any(String),
-      );
-      expect(screen.queryByTestId('concentration-banner')).not.toBeInTheDocument();
-      expect(screen.getByTestId('spellbook-status')).toHaveTextContent('Concentration ended.');
-    });
+    expect(await screen.findByText('Level 1: 1 / 2')).toBeInTheDocument();
   });
-
-  it('triggers short and long rests', async () => {
-    render(
-      <SpellbookPanel
-        link={mockLink}
-        onClose={vi.fn()}
-        isPopout={false}
-      />,
+  it('keeps resources unchanged on rejection and retries uncertain outcomes with the same operation id', async () => {
+    vi.mocked(commandClient.castSpell)
+      .mockResolvedValueOnce({ success: false, uncertain: true })
+      .mockResolvedValueOnce({ success: false, error: 'Version conflict' });
+    renderPanel();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Cast Healing Word' }),
     );
-
-    // Spend a slot first
-    fireEvent.click(screen.getByTestId('cast-btn-magic-missile'));
-    await waitFor(() => {
-      expect(screen.getByTestId('slot-card-1')).toHaveTextContent('3 / 4');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Retry confirmation' }),
+    );
+    expect(await screen.findByText('Version conflict')).toBeInTheDocument();
+    expect(commandClient.castSpell).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(commandClient.castSpell).mock.calls[0][5]?.commandId).toBe(
+      vi.mocked(commandClient.castSpell).mock.calls[1][5]?.commandId,
+    );
+    expect(screen.getByText('Level 1: 2 / 2')).toBeInTheDocument();
+  });
+  it('disables an exhausted or unprepared spell and explains missing campaign access', async () => {
+    vi.mocked(loadActorSpellbook).mockResolvedValue({
+      actor: {
+        ...actor,
+        pools: {
+          cleric: {
+            ...actor.pools.cleric,
+            slots: { '1': { current: 0, total: 2 } },
+          },
+        },
+      },
+      spells: [spell],
     });
-
-    // Short rest
-    fireEvent.click(screen.getByTestId('short-rest-btn'));
-    await waitFor(() => {
-      expect(commandClient.restActor).toHaveBeenCalledWith(
-        'camp-1',
-        'actor-wizard-1',
-        'short',
-      );
-      expect(screen.getByTestId('spellbook-status')).toHaveTextContent('Short rest completed.');
-    });
-
-    // Long rest (restores all slots)
-    fireEvent.click(screen.getByTestId('long-rest-btn'));
-    await waitFor(() => {
-      expect(commandClient.restActor).toHaveBeenCalledWith(
-        'camp-1',
-        'actor-wizard-1',
-        'long',
-      );
-      expect(screen.getByTestId('slot-card-1')).toHaveTextContent('4 / 4');
-      expect(screen.getByTestId('spellbook-status')).toHaveTextContent('Long rest completed.');
-    });
+    renderPanel();
+    expect(
+      await screen.findByRole('button', { name: 'Cast Healing Word' }),
+    ).toBeDisabled();
+    expect(commandClient.castSpell).not.toHaveBeenCalled();
   });
 });

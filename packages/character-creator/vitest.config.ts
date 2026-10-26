@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '@nexus/rules-5e': path.resolve(__dirname, '../rules-5e/src/index.ts'),
       '@nexus/character-contracts': path.resolve(
         __dirname,
         '../character-contracts/src/index.ts',

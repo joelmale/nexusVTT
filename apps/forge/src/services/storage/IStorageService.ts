@@ -17,6 +17,12 @@ export interface SpellbookEntry {
 }
 
 export interface IStorageService {
+  getCreatorDraft?(id: string): Promise<StoredCreatorDraft | undefined>;
+  saveCreatorDraft?(
+    draft: StoredCreatorDraft,
+    expectedRevision: number,
+  ): Promise<void>;
+  deleteCreatorDraft?(id: string, expectedRevision: number): Promise<void>;
   // Characters
   getAllCharacters(): Promise<Character[]>;
   addCharacter(character: Character): Promise<string>;
@@ -52,4 +58,11 @@ export interface IStorageService {
   addSpellbook(spellbook: SpellbookEntry): Promise<string>;
   updateSpellbook(spellbook: SpellbookEntry): Promise<void>;
   deleteSpellbook(id: string): Promise<void>;
+}
+
+export interface StoredCreatorDraft {
+  id: string;
+  value: string;
+  revision: number;
+  clientTabId: string;
 }

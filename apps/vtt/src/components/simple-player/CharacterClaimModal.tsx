@@ -40,15 +40,20 @@ export const CharacterClaimModal: React.FC<CharacterClaimModalProps> = ({
   const claim = async (characterId: string) => {
     setPendingId(characterId);
     setError('');
-    const result = await onClaim(characterId);
-    setPendingId(null);
-    if (result.status === 'applied') {
-      onClose();
-    } else {
+    try {
+      const result = await onClaim(characterId);
+      if (result.status === 'applied') onClose();
+      else
+        setError(
+          REJECT_MESSAGES[result.reason ?? ''] ??
+            'That character is not available.',
+        );
+    } catch {
       setError(
-        REJECT_MESSAGES[result.reason ?? ''] ??
-          'That character is not available.',
+        'The claim could not be confirmed. Check the connection and try again.',
       );
+    } finally {
+      setPendingId(null);
     }
   };
 

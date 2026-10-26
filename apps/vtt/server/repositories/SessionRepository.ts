@@ -197,6 +197,17 @@ export class SessionRepository extends BaseRepository {
     }
   }
 
+  async getSessionById(
+    sessionId: string,
+    client?: PoolClient,
+  ): Promise<SessionRecord | null> {
+    const result = await (client ?? this.pool).query<RawSessionRecord>(
+      'SELECT * FROM sessions WHERE id::text = $1 OR "joinCode" = $1',
+      [sessionId],
+    );
+    return result.rows[0] ? normalizeSession(result.rows[0]) : null;
+  }
+
   async getSessionByJoinCode(joinCode: string): Promise<SessionRecord | null> {
     const result = await this.pool.query<RawSessionRecord>(
       'SELECT * FROM sessions WHERE "joinCode" = $1',
@@ -333,9 +344,7 @@ export class SessionRepository extends BaseRepository {
     );
     const currentRow = current.rows[0];
     if (!currentRow) {
-      throw new Error(
-        `Cannot commit game state for unknown room ${joinCode}`,
-      );
+      throw new Error(`Cannot commit game state for unknown room ${joinCode}`);
     }
     return {
       status: 'conflict',

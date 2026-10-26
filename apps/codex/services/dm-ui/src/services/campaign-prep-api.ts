@@ -49,6 +49,10 @@ export interface PublishResponse {
 }
 
 export interface PublishSessionPlanInput {
+  planId?: string;
+  sessionId?: string;
+  authoring?: import('@/demo/ashes-of-veyra/types').SessionPlan;
+  activationRequestId?: string;
   campaignId: string;
   campaignDescription?: string;
   campaignTitle: string;
@@ -186,7 +190,10 @@ export const MAP_IMAGE_TYPES: readonly string[] = [
 export const MAP_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 /** Why a file cannot be uploaded as a map image, or undefined when it can. */
-export function mapImageProblem(file: { type: string; size: number }): string | undefined {
+export function mapImageProblem(file: {
+  type: string;
+  size: number;
+}): string | undefined {
   if (!MAP_IMAGE_TYPES.includes(file.type)) {
     return 'Use a PNG, JPEG or WebP image.';
   }
@@ -225,13 +232,15 @@ async function ensureTextAsset(
   assets: UserAsset[],
   name: string,
   text: string,
+  identity = name,
 ): Promise<UserAsset> {
-  const existing = assets.find((asset) => asset.name === name);
+  const assetName = `${name} [${await sourceDigest(`${identity}:${text}`)}]`;
+  const existing = assets.find((asset) => asset.name === assetName);
   if (existing) return existing;
   const cleanText = mentionsToPlainText(text);
   const asset = await uploadAsset(
     userId,
-    name,
+    assetName,
     new Blob([cleanText || name], { type: 'text/plain' }),
     `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.txt`,
     'documents',
@@ -245,21 +254,43 @@ async function ensureMapAsset(
   assets: UserAsset[],
   sceneMapPath: string,
 ): Promise<UserAsset> {
-  const existing = assets.find(
-    (asset) => asset.name === DEFAULT_MAP_ASSET_NAME,
-  );
-  if (existing) return existing;
   const response = await fetch(sceneMapPath);
   if (!response.ok) throw new Error('The session scene map is unavailable.');
+  const content = await response.blob();
+  const bytes = await crypto.subtle.digest(
+    'SHA-256',
+    await content.arrayBuffer(),
+  );
+  const contentKey = Array.from(new Uint8Array(bytes), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+  const assetName = `${DEFAULT_MAP_ASSET_NAME} [${await sourceDigest(`${sceneMapPath}:${contentKey}`)}]`;
+  const existing = assets.find((asset) => asset.name === assetName);
+  if (existing) return existing;
   const asset = await uploadAsset(
     userId,
-    DEFAULT_MAP_ASSET_NAME,
-    await response.blob(),
+    assetName,
+    content,
     'session-scene-map.png',
     'maps',
   );
   assets.push(asset);
   return asset;
+}
+
+async function sourceDigest(value: string): Promise<string> {
+  const bytes = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(bytes), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+}
+
+async function sourceUuid(value: string): Promise<string> {
+  const hex = await sourceDigest(value);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 function lexicalContent(text: string): CampaignEntry['content'] {
@@ -336,11 +367,22 @@ async function ensureEntry(
   step: SessionStepViewModel,
   now: string,
 ): Promise<PrepObjectRecord> {
+  if (step.objectId) {
+    const linked = existingObjects.find(
+      (object) => object.id === step.objectId,
+    );
+    if (!linked)
+      throw new Error(
+        `Link the missing campaign object for "${step.title}" before publishing.`,
+      );
+    return linked;
+  }
+  const objectId = await sourceUuid(`entry:${campaignId}:${step.id}`);
   const existing = existingObjects.find(
-    (object) => object.kind === 'note' && object.title === step.title,
+    (object) => object.kind === 'note' && object.id === objectId,
   );
   const data: CampaignEntry = {
-    id: existing?.id ?? crypto.randomUUID(),
+    id: existing?.id ?? objectId,
     campaignId,
     schemaVersion: 1,
     revision: existing ? existing.currentRevision + 1 : 1,
@@ -366,13 +408,29 @@ async function ensureScene(
   mapAsset: UserAsset,
   title: string,
   now: string,
+  sourceKey = title,
+  sceneIdOverride?: string,
 ): Promise<PrepObjectRecord> {
+  const sceneId =
+    sceneIdOverride || (await sourceUuid(`scene:${campaignId}:${sourceKey}`));
   const existing = existingObjects.find(
-    (object) => object.kind === 'scene-template' && object.title === title,
+    (object) => object.kind === 'scene-template' && object.id === sceneId,
   );
-  if (existing) return existing;
+  if (existing) {
+    const detail = await request<{ revision: { data: SceneTemplate } }>(
+      `/api/campaigns/${campaignId}/prep/objects/${existing.id}`,
+    );
+    if (detail.revision.data.backgroundAssetRef.assetId === mapAsset.id)
+      return existing;
+    return revisePrepObject(campaignId, existing, {
+      ...detail.revision.data,
+      revision: existing.currentRevision + 1,
+      backgroundAssetRef: { target: 'asset', assetId: mapAsset.id },
+      updatedAt: now,
+    });
+  }
   const data: SceneTemplate = {
-    id: crypto.randomUUID(),
+    id: sceneId,
     campaignId,
     schemaVersion: 1,
     revision: 1,
@@ -508,9 +566,16 @@ async function buildContractSteps(
     if (step.command === 'Activate scene') {
       const existingScene = existingObjects.find(
         (object) =>
-          object.kind === 'scene-template' && object.title === step.title,
+          object.kind === 'scene-template' &&
+          object.id === step.sceneTemplateId,
       );
-      if (existingScene) {
+      if (
+        existingScene &&
+        !step.mapAssetId &&
+        !step.mapImagePath &&
+        !input.mapAssetId &&
+        !input.sceneMapPath
+      ) {
         result.push({
           ...base,
           type: 'activate-scene',
@@ -519,11 +584,16 @@ async function buildContractSteps(
         continue;
       }
 
-      const mapAsset = input.mapAssetId
-        ? { id: input.mapAssetId, name: step.title }
-        : input.sceneMapPath
-          ? await ensureMapAsset(userId, assets, input.sceneMapPath)
-          : undefined;
+      const assetId = step.mapAssetId || input.mapAssetId;
+      const mapPath = step.mapImagePath || input.sceneMapPath;
+      const mapAsset =
+        assetId &&
+        !assetId.startsWith('default-map-') &&
+        !assetId.startsWith('demo-')
+          ? { id: assetId, name: step.title }
+          : mapPath
+            ? await ensureMapAsset(userId, assets, mapPath)
+            : undefined;
 
       if (mapAsset) {
         const scene = await ensureScene(
@@ -532,6 +602,8 @@ async function buildContractSteps(
           mapAsset,
           step.title,
           now,
+          step.objectId || step.id,
+          step.sceneTemplateId,
         );
         result.push({
           ...base,
@@ -540,9 +612,16 @@ async function buildContractSteps(
         });
         continue;
       }
+      throw new Error(
+        `Select a map or linked scene for "${step.title}" before publishing.`,
+      );
     }
 
-    if (step.command === 'Deploy encounter' && step.encounterId) {
+    if (step.command === 'Deploy encounter') {
+      if (!step.encounterId)
+        throw new Error(
+          `Select the encounter for "${step.title}" before publishing.`,
+        );
       const { encounterRef } = await materializeEncounter(
         campaignId,
         step.encounterId,
@@ -557,7 +636,8 @@ async function buildContractSteps(
         userId,
         assets,
         step.title,
-        mentionsToPlainText(step.body || step.title),
+        mentionsToPlainText(step.handoutBody ?? step.body ?? step.title),
+        `${campaignId}:${step.objectId || step.id}`,
       );
       result.push({
         ...base,
@@ -635,10 +715,12 @@ export async function publishSessionPlan(
     objectResponse.objects,
     now,
   );
-  let plan = objectResponse.objects.find(
-    (object) =>
-      object.kind === 'session-plan' && object.title === input.planTitle,
-  );
+  let plan = await resolvePlanObject(input, objectResponse.objects);
+  if (plan && input.planId && plan.currentRevision !== input.revision) {
+    throw new Error(
+      'This plan changed elsewhere. Reload the current revision before publishing.',
+    );
+  }
 
   const planId = plan?.id ?? crypto.randomUUID();
   const revision = plan ? plan.currentRevision + 1 : 1;
@@ -651,6 +733,16 @@ export async function publishSessionPlan(
     status: 'draft',
     steps,
     dependencies: getSessionPlanDependencies(steps),
+    ...(input.sessionId ? { sessionId: input.sessionId } : {}),
+    ...(input.authoring
+      ? {
+          authoring: {
+            ...input.authoring,
+            version: 1,
+            defaultVisibility: input.authoring.defaultVisibility ?? 'dm-only',
+          },
+        }
+      : {}),
     createdAt: now,
     updatedAt: now,
   };
@@ -684,15 +776,15 @@ export interface SessionPlanStatus {
 
 export async function fetchSessionPlanStatus(input: {
   campaignId: string;
-  planTitle: string;
+  planTitle?: string;
+  sessionId?: string;
+  planId?: string;
 }): Promise<SessionPlanStatus> {
   await ensureSession();
   const objectResponse = await request<{ objects: PrepObjectRecord[] }>(
     `/api/campaigns/${input.campaignId}/prep/objects?kind=session-plan`,
   );
-  const plan = objectResponse.objects.find(
-    (obj) => obj.kind === 'session-plan' && obj.title === input.planTitle,
-  );
+  const plan = await resolvePlanObject(input, objectResponse.objects);
   if (!plan) {
     return {
       campaignId: input.campaignId,
@@ -747,9 +839,15 @@ export async function activateSessionPlan(
   const objectResponse = await request<{ objects: PrepObjectRecord[] }>(
     `/api/campaigns/${input.campaignId}/prep/objects?kind=session-plan`,
   );
-  const existingPlan = objectResponse.objects.find(
-    (obj) => obj.kind === 'session-plan' && obj.title === input.planTitle,
-  );
+  const existingPlan = await resolvePlanObject(input, objectResponse.objects);
+  if (
+    (input.planId || input.sessionId) &&
+    (!existingPlan ||
+      existingPlan.status !== 'ready' ||
+      existingPlan.currentRevision !== input.revision)
+  ) {
+    throw new Error('Publish the current draft before playing it in VTT.');
+  }
 
   // If the plan is already published (ready), activate without creating a new revision
   if (existingPlan && existingPlan.status === 'ready') {
@@ -759,7 +857,7 @@ export async function activateSessionPlan(
         method: 'POST',
         body: JSON.stringify({
           planRevision: existingPlan.currentRevision,
-          requestId: crypto.randomUUID(),
+          requestId: input.activationRequestId ?? crypto.randomUUID(),
         }),
       },
     );
@@ -773,8 +871,52 @@ export async function activateSessionPlan(
       method: 'POST',
       body: JSON.stringify({
         planRevision: published.plan.revision,
-        requestId: crypto.randomUUID(),
+        requestId: input.activationRequestId ?? crypto.randomUUID(),
       }),
     },
   );
+}
+
+/** Modern callers resolve a linked identity; title recovery is legacy-only and
+ * refuses ambiguous labels instead of attaching another session's plan. */
+async function resolvePlanObject(
+  input: {
+    campaignId: string;
+    planId?: string;
+    sessionId?: string;
+    planTitle?: string;
+  },
+  objects: PrepObjectRecord[],
+): Promise<PrepObjectRecord | undefined> {
+  let planId = input.planId;
+  if (!planId && input.sessionId) {
+    const detail = await request<{ revision: { data: unknown } }>(
+      `/api/campaigns/${input.campaignId}/prep/objects/${input.sessionId}`,
+    );
+    const data = detail.revision.data;
+    if (
+      isRecord(data) &&
+      isRecord(data.content) &&
+      isRecord(data.content.value) &&
+      isRecord(data.content.value.nexusStudio) &&
+      isRecord(data.content.value.nexusStudio.fields)
+    ) {
+      const candidate = data.content.value.nexusStudio.fields.planId;
+      if (typeof candidate === 'string') planId = candidate;
+    }
+    if (!planId) return undefined;
+  }
+  if (planId)
+    return objects.find(
+      (object) => object.kind === 'session-plan' && object.id === planId,
+    );
+  const matches = objects.filter(
+    (object) =>
+      object.kind === 'session-plan' && object.title === input.planTitle,
+  );
+  if (matches.length > 1)
+    throw new Error(
+      'Several session plans share this title. Select the linked session plan before continuing.',
+    );
+  return matches[0];
 }

@@ -1,3 +1,7 @@
+import { useCreationSession } from '../../hooks/useCreationSession';
+import { evaluateDraft } from '../../services/draftEvaluator';
+import { generateFirstTurnGuidance } from '../../services/guidanceService';
+import { draftToCreationData } from '../../adapters/draftAdapter';
 import React, { useState, useMemo } from 'react';
 import {
   Shield,
@@ -10,7 +14,6 @@ import {
   Dices,
   Check,
   Edit2,
-  HelpCircle,
 } from 'lucide-react';
 import type { CharacterCreationData, Edition } from '../../types/dnd';
 import {
@@ -24,7 +27,8 @@ import { generateRandomName } from '../../utils/randomCharacterGenerator';
 import AbilityScoreEditModal from './AbilityScoreEditModal';
 import SkillEditModal from './SkillEditModal';
 import SpellEditModal from './SpellEditModal';
-import type { CreationDraft } from '../../types/draft';
+import { CastingGrantChoices } from '../CastingGrantChoices';
+import type { CreationDraft, CreatorPresentation } from '../../types/draft';
 import { studyRecorder } from '../../services/studyRecorder';
 
 export interface FourScreenNewcomerFlowProps {
@@ -35,6 +39,8 @@ export interface FourScreenNewcomerFlowProps {
   onSwitchToFullWizard?: () => void;
   onSwitchToQuiz?: () => void;
   initialDraft?: CreationDraft;
+  initialPresentation?: CreatorPresentation;
+  onPresentationChange?: (presentation: CreatorPresentation) => void;
   onDraftChange?: (draft: CreationDraft) => void;
   onDraftDiscard?: () => void;
   backLabel?: string;
@@ -49,7 +55,8 @@ const INTENT_OPTIONS: Array<{
   {
     id: 'close_combat',
     title: 'Close Combat',
-    description: 'Armored warrior charging to the frontline with sword and shield.',
+    description:
+      'Armored warrior charging to the frontline with sword and shield.',
     icon: <Shield className="w-6 h-6 text-accent-red-light" />,
   },
   {
@@ -61,13 +68,15 @@ const INTENT_OPTIONS: Array<{
   {
     id: 'sneak',
     title: 'Sneak & Skills',
-    description: 'Infiltrate shadows, pick locks, and strike with Sneak Attack.',
+    description:
+      'Infiltrate shadows, pick locks, and strike with Sneak Attack.',
     icon: <Eye className="w-6 h-6 text-accent-purple-light" />,
   },
   {
     id: 'cast',
     title: 'Arcane Magic',
-    description: 'Wield firebolts, protective shields, and versatile spell utility.',
+    description:
+      'Wield firebolts, protective shields, and versatile spell utility.',
     icon: <Wand2 className="w-6 h-6 text-accent-blue-light" />,
   },
   {
@@ -95,32 +104,41 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
   onSwitchToFullWizard,
   onSwitchToQuiz,
   initialDraft,
+  initialPresentation,
+  onPresentationChange,
   onDraftChange,
-  onDraftDiscard,
   backLabel = 'Back',
 }) => {
+  const session = useCreationSession({ initialDraft, edition, onDraftChange });
   // Screen index: 0 = Intent, 1 = Recommended Hero, 2 = Equipment & Spells, 3 = Finalization
-  const [screen, setScreen] = useState<number>(0);
+  const [screen, setScreen] = useState<number>(
+    initialPresentation?.guidedFlow === 'four-screen'
+      ? initialPresentation.step || 0
+      : 0,
+  );
 
   // Screen 1 choices
-  const [selectedIntent, setSelectedIntent] = useState<CombatIntent>('close_combat');
-  const [explicitClass, setExplicitClass] = useState<string | null>(initialDraft?.classSlug || null);
-  const [selectedSpecies, setSelectedSpecies] = useState<string>(initialDraft?.speciesSlug || '');
+  const [selectedIntent, setSelectedIntent] =
+    useState<CombatIntent>('close_combat');
+  const [explicitClass, setExplicitClass] = useState<string | null>(
+    initialDraft?.classSlug || null,
+  );
+  const [selectedSpecies, setSelectedSpecies] = useState<string>(
+    initialDraft?.speciesSlug || '',
+  );
 
   // Screen 4 choices
-  const [characterName, setCharacterName] = useState<string>(initialDraft?.name || '');
-  const [selectedAlignment, setSelectedAlignment] = useState<string>('Neutral Good');
+  const [characterName, setCharacterName] = useState<string>(
+    initialDraft?.name || '',
+  );
+  const [selectedAlignment, setSelectedAlignment] = useState<string>(
+    session.data.alignment || 'Neutral Good',
+  );
 
   // Customization modals (CC-403 continuity)
   const [showAbilityModal, setShowAbilityModal] = useState(false);
   const [showSkillModal, setShowSkillModal] = useState(false);
   const [showSpellModal, setShowSpellModal] = useState(false);
-  const [customAbilities, setCustomAbilities] = useState<Record<string, number> | null>(
-    initialDraft?.rawAbilityScores ? { ...initialDraft.rawAbilityScores } : null
-  );
-  const [customSkills, setCustomSkills] = useState<string[] | null>(
-    initialDraft?.skills ? [...initialDraft.skills] : null
-  );
 
   React.useEffect(() => {
     studyRecorder.recordEvent('flow_enter', 0);
@@ -131,37 +149,41 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
     return getAllSpecies().filter((s) => s.edition === edition);
   }, [edition]);
 
-  // Compute recommendation
-  const recommendation: RecommendationResult = useMemo(() => {
-    return getRecommendation({
-      intent: explicitClass ? undefined : selectedIntent,
-      classSlug: explicitClass || undefined,
-      speciesSlug: selectedSpecies || undefined,
-      edition,
-      name: characterName || 'Hero',
+  const generated = useMemo(
+    () =>
+      getRecommendation({
+        intent: explicitClass ? undefined : selectedIntent,
+        classSlug: explicitClass || undefined,
+        speciesSlug: selectedSpecies || undefined,
+        edition,
+      }),
+    [selectedIntent, explicitClass, selectedSpecies, edition],
+  );
+  const firstRecommendation = React.useRef(true);
+  React.useEffect(() => {
+    if (firstRecommendation.current && session.draft.classSlug) {
+      firstRecommendation.current = false;
+      return;
+    }
+    firstRecommendation.current = false;
+    session.replaceRecommended(generated.draft);
+  }, [generated]);
+  React.useEffect(() => {
+    onPresentationChange?.({
+      mode: 'guided',
+      guidedFlow: 'four-screen',
+      step: screen,
     });
-  }, [selectedIntent, explicitClass, selectedSpecies, edition, characterName]);
-
-  // Notify parent of draft updates (CC-501)
-  React.useEffect(() => {
-    if (onDraftChange) {
-      onDraftChange(recommendation.draft);
-    }
-  }, [recommendation.draft, onDraftChange]);
-
-  // Sync default name on first recommendation
-  React.useEffect(() => {
-    if (!characterName) {
-      const generated = generateRandomName(
-        recommendation.draft.speciesSlug || 'Human',
-        edition
-      );
-      setCharacterName(generated);
-    }
-  }, [recommendation.draft.speciesSlug, edition, characterName]);
-
-  const activeAbilities = customAbilities || recommendation.draft.rawAbilityScores;
-  const activeSkills = customSkills || recommendation.draft.skills;
+  }, [screen, onPresentationChange]);
+  const activeDraft = session.draft.classSlug ? session.draft : generated.draft;
+  const recommendation: RecommendationResult = {
+    ...generated,
+    draft: activeDraft,
+    evaluation: evaluateDraft(activeDraft),
+    firstTurnGuidance: generateFirstTurnGuidance(activeDraft),
+  };
+  const activeAbilities = activeDraft.rawAbilityScores;
+  const activeSkills = activeDraft.skills;
 
   // Practical strengths derived from class and stats
   const practicalStrengths = useMemo(() => {
@@ -232,49 +254,12 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
 
   const handleCreate = () => {
     const finalName = characterName.trim() || 'Hero';
-    const draft = recommendation.draft;
 
-    const creationData: CharacterCreationData = {
+    const creationData = {
+      ...draftToCreationData(activeDraft),
       name: finalName,
-      edition,
-      level: 1,
-      speciesSlug: draft.speciesSlug || 'human-2024',
-      selectedLineage: draft.lineageSlug,
-      classSlug: draft.classSlug || 'fighter',
-      background: draft.backgroundSlug || 'soldier-2024',
       alignment: selectedAlignment,
-      abilities: { ...activeAbilities },
-      abilityScoreMethod: 'standard-array',
-      backgroundAbilityChoices: draft.abilityBonuses
-        ? {
-            method: draft.abilityBonuses.method || '2/1',
-            bonuses: draft.abilityBonuses.bonuses,
-          }
-        : undefined,
-      selectedSkills: activeSkills as any,
-      expertiseSkills: draft.expertise,
-      selectedFightingStyle: draft.fightingStyle,
-      weaponMastery: draft.weaponMastery,
-      equipmentChoices: [],
-      hpCalculationMethod: 'max',
-      spellSelection: {
-        selectedCantrips: draft.spells?.cantrips || [],
-        knownSpells: draft.spells?.knownOrBook || [],
-        preparedSpells: draft.spells?.prepared || [],
-        spellbook: draft.spells?.knownOrBook,
-      },
-      startingInventory: draft.loadout.items.map((i) => ({
-        equipmentSlug: i.slug,
-        quantity: i.quantity,
-        equipped: i.equipped,
-      })),
-      currency: draft.loadout.currency,
-      personality: 'Reliable and courageous companion.',
-      ideals: 'Protection: I stand up for those in need.',
-      bonds: 'My allies can always depend on my word.',
-      flaws: 'I sometimes take unnecessary risks to prove myself.',
-    } as unknown as CharacterCreationData;
-
+    };
     onComplete(creationData);
   };
 
@@ -282,12 +267,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
 
   return (
     <div className="fixed inset-0 bg-theme-primary bg-opacity-90 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Character Creator — Newcomer Flow"
-        className="bg-theme-secondary border border-theme-quaternary rounded-xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden"
-      >
+      <div className="bg-theme-secondary border border-theme-quaternary rounded-xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden">
         {/* Navigation / Header */}
         <div className="p-4 md:px-6 border-b border-theme-quaternary flex items-center justify-between bg-theme-tertiary">
           <button
@@ -307,8 +287,8 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                   screen === stepIdx
                     ? 'bg-accent-purple ring-2 ring-accent-purple-light'
                     : screen > stepIdx
-                    ? 'bg-accent-purple-dark'
-                    : 'bg-theme-quaternary'
+                      ? 'bg-accent-purple-dark'
+                      : 'bg-theme-quaternary'
                 }`}
               />
             ))}
@@ -469,7 +449,8 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                     </span>
                   </h2>
                   <p className="text-sm text-theme-muted mt-1">
-                    Background: {recommendation.draft.backgroundSlug?.replace(/-2024$/, '')}
+                    Background:{' '}
+                    {recommendation.draft.backgroundSlug?.replace(/-2024$/, '')}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -556,12 +537,16 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
           {/* ==================== SCREEN 3: EQUIPMENT & SPELLS ==================== */}
           {screen === 2 && (
             <div className="space-y-6">
+              <CastingGrantChoices
+                data={session.data}
+                onChange={session.updateData}
+              />
               <div>
                 <h2 className="text-2xl font-bold text-white mb-1">
                   Equipment & Spell Package
                 </h2>
                 <p className="text-sm text-theme-muted">
-                  Everything you need to step onto the battlemap immediately.
+                  Review your equipment and spells before saving.
                 </p>
               </div>
 
@@ -582,7 +567,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                       className="flex items-center justify-between p-2 bg-theme-primary border border-theme-quaternary rounded-lg text-xs"
                     >
                       <span className="text-white font-medium capitalize">
-                        {item.name}
+                        {item.quantity} � {item.name}
                       </span>
                       {item.equipped && (
                         <span className="text-[10px] bg-accent-purple/20 text-accent-purple-light px-1.5 py-0.5 rounded font-bold">
@@ -656,7 +641,8 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                   Name & Finalize
                 </h2>
                 <p className="text-sm text-theme-muted">
-                  Give your hero an identity and review your first turn in combat.
+                  Give your hero an identity and review your first turn in
+                  combat.
                 </p>
               </div>
 
@@ -674,7 +660,10 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                       id="char-name"
                       type="text"
                       value={characterName}
-                      onChange={(e) => setCharacterName(e.target.value)}
+                      onChange={(e) => {
+                        setCharacterName(e.target.value);
+                        session.updateData({ name: e.target.value });
+                      }}
                       placeholder="Enter a name..."
                       className="flex-1 bg-theme-tertiary border border-theme-quaternary rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-accent-purple min-h-[44px]"
                     />
@@ -683,8 +672,8 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                         setCharacterName(
                           generateRandomName(
                             recommendation.draft.speciesSlug || 'Human',
-                            edition
-                          )
+                            edition,
+                          ),
                         )
                       }
                       title="Randomize Name"
@@ -705,7 +694,10 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                   <select
                     id="alignment-select"
                     value={selectedAlignment}
-                    onChange={(e) => setSelectedAlignment(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedAlignment(e.target.value);
+                      session.updateData({ alignment: e.target.value });
+                    }}
                     className="w-full bg-theme-tertiary border border-theme-quaternary rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-accent-purple min-h-[44px]"
                   >
                     {ALIGNMENTS.map((al) => (
@@ -745,7 +737,9 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                   )}
                   {recommendation.firstTurnGuidance.reaction && (
                     <div>
-                      <span className="font-bold text-white block">Reaction:</span>
+                      <span className="font-bold text-white block">
+                        Reaction:
+                      </span>
                       <span className="text-theme-muted">
                         {recommendation.firstTurnGuidance.reaction}
                       </span>
@@ -800,7 +794,9 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
           onClose={() => setShowAbilityModal(false)}
           currentScores={activeAbilities}
           onSave={(scores) => {
-            setCustomAbilities(scores);
+            session.updateData({
+              abilities: scores as CharacterCreationData['abilities'],
+            });
             setShowAbilityModal(false);
           }}
         />
@@ -812,7 +808,9 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
           onClose={() => setShowSkillModal(false)}
           currentSkills={activeSkills}
           onSave={(skills) => {
-            setCustomSkills(skills);
+            session.updateData({
+              selectedSkills: skills as CharacterCreationData['selectedSkills'],
+            });
             setShowSkillModal(false);
           }}
           classSlug={recommendation.draft.classSlug || 'fighter'}
@@ -825,18 +823,30 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
           isOpen={showSpellModal}
           onClose={() => setShowSpellModal(false)}
           classSlug={recommendation.draft.classSlug || 'wizard'}
-          level={1}
-          abilities={activeAbilities}
+          edition={recommendation.draft.edition}
+          level={recommendation.draft.level}
+          abilities={Object.fromEntries(
+            Object.entries(
+              recommendation.evaluation.calculatedCharacter?.abilities ?? {},
+            ).map(([key, value]) => [key, value.score]),
+          )}
           currentSelection={{
             selectedCantrips: recommendation.draft.spells?.cantrips || [],
             knownSpells: recommendation.draft.spells?.knownOrBook || [],
+            spellbook:
+              recommendation.draft.classSlug === 'wizard'
+                ? recommendation.draft.spells.knownOrBook
+                : undefined,
             preparedSpells: recommendation.draft.spells?.prepared || [],
           }}
           onSave={(sel) => {
-            if (recommendation.draft.spells) {
-              recommendation.draft.spells.cantrips = sel.selectedCantrips || [];
-              recommendation.draft.spells.prepared = sel.preparedSpells || [];
-            }
+            session.updateData({
+              spellSelection: {
+                ...session.data.spellSelection,
+                ...sel,
+                dailyPrepared: sel.dailyPrepared || sel.preparedSpells,
+              },
+            });
             setShowSpellModal(false);
           }}
         />

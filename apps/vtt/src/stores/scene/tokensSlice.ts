@@ -115,6 +115,7 @@ export const useTokenIdsSlice = (sceneId: string): string[] =>
  * can drop the `placedToken` object prop entirely and self-subscribe.
  */
 export interface TokenRenderData {
+  baseToken?: PlacedToken['baseToken'];
   x: number;
   y: number;
   rotation: number;
@@ -145,6 +146,7 @@ export const useTokenRenderData = (
         rotation: token.rotation,
         scale: token.scale,
         tokenId: token.tokenId,
+        baseToken: token.baseToken,
         isDead: token.isDead,
         dmNotesOnly: token.dmNotesOnly,
         visibleToPlayers: token.visibleToPlayers,

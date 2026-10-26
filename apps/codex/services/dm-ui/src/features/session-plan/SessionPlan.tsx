@@ -32,6 +32,11 @@ import type {
 import styles from './SessionPlan.module.css';
 
 interface SessionPlanProps {
+  onAuthoringChange?: (
+    patch: Partial<import('@/demo/ashes-of-veyra/types').SessionPlan>,
+  ) => void;
+  onSaveDraft?: () => void;
+  isSaving?: boolean;
   model: SessionPlanViewModel;
   onCapability: (capabilityId: CapabilityId) => void;
   onPublish?: (steps: SessionStepViewModel[]) => void;
@@ -58,6 +63,9 @@ const TYPE_ICONS: Record<LibraryObjectType, typeof FileText> = {
 };
 
 export function SessionPlan({
+  onAuthoringChange,
+  onSaveDraft,
+  isSaving = false,
   model,
   onCapability,
   onPublish,
@@ -88,9 +96,13 @@ export function SessionPlan({
   );
   const [steps, setSteps] = useState(model.steps);
   const [reorderMode, setReorderMode] = useState(false);
-  const [dependencies, setDependencies] = useState(model.dependencies);
+  const dependencies = model.dependencies;
   const [checklist, setChecklist] = useState(model.checklist);
-  const [visibility, setVisibility] = useState<'dm-only' | 'shared'>('dm-only');
+  const [visibility, setVisibility] = useState<'dm-only' | 'shared'>(
+    model.authoring?.defaultVisibility ?? 'dm-only',
+  );
+  const [notes, setNotes] = useState(model.notes);
+  const [playerFacing, setPlayerFacing] = useState(model.playerFacing);
 
   const libraryObjects =
     libraryTab === 'campaign' ? model.recentObjects : model.compendiumObjects;
@@ -146,7 +158,7 @@ export function SessionPlan({
       id: `temporary-step-${steps.length + 1}`,
       title: 'Check in with the party before the final scene',
       track: 'main',
-      visibility: 'dm-only',
+      visibility,
     };
     const next = [...steps, reminder];
     setSteps(next);
@@ -158,6 +170,15 @@ export function SessionPlan({
   function setStepTrack(stepId: string, track: SessionStepViewModel['track']) {
     const next = steps.map((step) =>
       step.id === stepId ? { ...step, track } : step,
+    );
+    setSteps(next);
+    onStepsChange?.(next);
+    onDirty?.();
+  }
+
+  function editStep(stepId: string, patch: Partial<SessionStepViewModel>) {
+    const next = steps.map((step) =>
+      step.id === stepId ? { ...step, ...patch } : step,
     );
     setSteps(next);
     onStepsChange?.(next);
@@ -327,7 +348,18 @@ export function SessionPlan({
             ))}
           </div>
         </header>
-
+        <div className={styles.commandBar}>
+          {onSaveDraft && (
+            <button
+              className={styles.secondaryButton}
+              disabled={isSaving || !isDirty}
+              onClick={onSaveDraft}
+              type="button"
+            >
+              {isSaving ? 'Saving draft…' : 'Save draft'}
+            </button>
+          )}
+        </div>
         {workspaceTab === 'run-sheet' ? (
           <div className={styles.runSheet}>
             <div className={styles.commandBar}>
@@ -381,6 +413,7 @@ export function SessionPlan({
                       reorderMode={reorderMode}
                       step={step}
                       onTrackChange={(track) => setStepTrack(step.id, track)}
+                      onEdit={(patch) => editStep(step.id, patch)}
                       totalMainSteps={
                         steps.filter((s) => s.track === 'main').length
                       }
@@ -415,6 +448,7 @@ export function SessionPlan({
                           onTrackChange={(track) =>
                             setStepTrack(step.id, track)
                           }
+                          onEdit={(patch) => editStep(step.id, patch)}
                           totalMainSteps={
                             steps.filter((s) => s.track === 'parallel').length
                           }
@@ -427,12 +461,27 @@ export function SessionPlan({
           </div>
         ) : (
           <WorkspacePlaceholder
+            onChange={
+              workspaceTab === 'notes'
+                ? (value) => {
+                    setNotes(value);
+                    onAuthoringChange?.({ notes: value.split('\n') });
+                    onDirty?.();
+                  }
+                : workspaceTab === 'player-facing'
+                  ? (value) => {
+                      setPlayerFacing(value);
+                      onAuthoringChange?.({ playerFacingSummary: value });
+                      onDirty?.();
+                    }
+                  : undefined
+            }
             attachments={model.attachments}
             body={
               workspaceTab === 'notes'
-                ? model.notes
+                ? notes
                 : workspaceTab === 'player-facing'
-                  ? model.playerFacing
+                  ? playerFacing
                   : undefined
             }
             tab={workspaceTab}
@@ -481,7 +530,12 @@ export function SessionPlan({
               persistedRevision !== undefined) && (
               <button
                 className={styles.mobileActivateButton}
-                disabled={activateState === 'activating'}
+                disabled={
+                  activateState === 'activating' ||
+                  isDirty ||
+                  isSaving ||
+                  publishState !== 'published'
+                }
                 onClick={() =>
                   onActivate
                     ? onActivate(steps)
@@ -546,20 +600,7 @@ export function SessionPlan({
 
           <InspectorSection title="Dependencies">
             {dependencies.map((dependency) => (
-              <button
-                className={styles.checkRow}
-                key={dependency.id}
-                onClick={() =>
-                  setDependencies((current) =>
-                    current.map((item) =>
-                      item.id === dependency.id
-                        ? { ...item, ready: !item.ready }
-                        : item,
-                    ),
-                  )
-                }
-                type="button"
-              >
+              <div className={styles.checkRow} key={dependency.id}>
                 <span
                   className={
                     dependency.ready ? styles.checkOn : styles.checkOff
@@ -571,7 +612,7 @@ export function SessionPlan({
                   <strong>{dependency.label}</strong>
                   <small>{dependency.kind}</small>
                 </span>
-              </button>
+              </div>
             ))}
           </InspectorSection>
 
@@ -589,15 +630,16 @@ export function SessionPlan({
               <label className={styles.checklistRow} key={item.id}>
                 <input
                   checked={item.complete}
-                  onChange={() =>
-                    setChecklist((current) =>
-                      current.map((check) =>
-                        check.id === item.id
-                          ? { ...check, complete: !check.complete }
-                          : check,
-                      ),
-                    )
-                  }
+                  onChange={() => {
+                    const next = checklist.map((check) =>
+                      check.id === item.id
+                        ? { ...check, complete: !check.complete }
+                        : check,
+                    );
+                    setChecklist(next);
+                    onAuthoringChange?.({ readiness: next });
+                    onDirty?.();
+                  }}
                   type="checkbox"
                 />
                 {item.label}
@@ -605,11 +647,15 @@ export function SessionPlan({
             ))}
           </InspectorSection>
 
-          <InspectorSection title="Plan visibility">
+          <InspectorSection title="Default visibility for new steps">
             <label className={styles.radioRow}>
               <input
                 checked={visibility === 'dm-only'}
-                onChange={() => setVisibility('dm-only')}
+                onChange={() => {
+                  setVisibility('dm-only');
+                  onAuthoringChange?.({ defaultVisibility: 'dm-only' });
+                  onDirty?.();
+                }}
                 type="radio"
               />
               <span>
@@ -620,7 +666,11 @@ export function SessionPlan({
             <label className={styles.radioRow}>
               <input
                 checked={visibility === 'shared'}
-                onChange={() => setVisibility('shared')}
+                onChange={() => {
+                  setVisibility('shared');
+                  onAuthoringChange?.({ defaultVisibility: 'shared' });
+                  onDirty?.();
+                }}
                 type="radio"
               />
               <span>
@@ -666,7 +716,12 @@ export function SessionPlan({
             persistedRevision !== undefined) && (
             <button
               className={styles.activateButton}
-              disabled={activateState === 'activating'}
+              disabled={
+                activateState === 'activating' ||
+                isDirty ||
+                isSaving ||
+                publishState !== 'published'
+              }
               onClick={() =>
                 onActivate
                   ? onActivate(steps)
@@ -732,12 +787,14 @@ function InspectorSection({ children, title }: InspectorSectionProps) {
 }
 
 interface WorkspacePlaceholderProps {
+  onChange?: (value: string) => void;
   attachments: LibraryObject[];
   body?: string;
   tab: Exclude<WorkspaceTab, 'run-sheet'>;
 }
 
 function WorkspacePlaceholder({
+  onChange,
   attachments,
   body,
   tab,
@@ -758,7 +815,18 @@ function WorkspacePlaceholder({
         )}
       </div>
       <h2>{title}</h2>
-      {body && <p>{body}</p>}
+      {onChange ? (
+        <label>
+          {title}
+          <textarea
+            aria-label={title}
+            value={body ?? ''}
+            onChange={(event) => onChange(event.target.value)}
+          />
+        </label>
+      ) : (
+        body && <p>{body}</p>
+      )}
       {tab === 'attachments' &&
         attachments.map((item) => (
           <div className={styles.attachment} key={item.id}>
@@ -774,6 +842,7 @@ function WorkspacePlaceholder({
 }
 
 interface StepRowProps {
+  onEdit?: (patch: Partial<SessionStepViewModel>) => void;
   index: number;
   isSelected: boolean;
   isParallel?: boolean;
@@ -787,6 +856,7 @@ interface StepRowProps {
 }
 
 function StepRow({
+  onEdit,
   index,
   isSelected,
   isParallel = false,
@@ -861,31 +931,59 @@ function StepRow({
               </button>
             </div>
           </div>
-          {step.body && (
+          {onEdit && (
+            <label>
+              Step visibility
+              <select
+                aria-label={`Visibility for ${step.title}`}
+                value={step.visibility}
+                onChange={(event) =>
+                  onEdit({
+                    visibility: event.target
+                      .value as SessionStepViewModel['visibility'],
+                  })
+                }
+              >
+                <option value="dm-only">DM only</option>
+                <option value="shared">Shared with players</option>
+              </select>
+            </label>
+          )}
+          {(step.body || onEdit) && (
             <>
               <div className={styles.editorToolbar}>
-                <button aria-label="Bold" title="Bold" type="button">
+                <button
+                  disabled
+                  aria-label="Bold (planned)"
+                  title="Formatting is planned"
+                  type="button"
+                >
                   <strong>B</strong>
                 </button>
-                <button aria-label="Italic" title="Italic" type="button">
+                <button
+                  disabled
+                  aria-label="Italic (planned)"
+                  title="Formatting is planned"
+                  type="button"
+                >
                   <em>I</em>
                 </button>
                 <span />
-                <button type="button">@ Reference</button>
+                <button
+                  disabled
+                  title="Reference editing is planned"
+                  type="button"
+                >
+                  @ Reference
+                </button>
               </div>
-              <div
+              <textarea
                 aria-label="Session step notes"
                 className={styles.editorBody}
-                contentEditable
-                suppressContentEditableWarning
-              >
-                {step.body}{' '}
-                {step.referenceLabel && (
-                  <span className={styles.reference}>
-                    @{step.referenceLabel}
-                  </span>
-                )}
-              </div>
+                value={step.body ?? ''}
+                onChange={(event) => onEdit?.({ body: event.target.value })}
+                readOnly={!onEdit}
+              />
             </>
           )}
         </div>

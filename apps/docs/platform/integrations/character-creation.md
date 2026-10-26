@@ -15,9 +15,9 @@ test results and unresolved defects, and the
 acceptance gates.
 
 This is the maintained engineering explanation. Player instructions live in
-[Forge character creation](../../forge/character-creation.md) and
-[VTT getting started](../../vtt/getting-started.md). The accepted
-[shared-creator ADR](../../vtt/adr/0002-shared-character-creator.md) records why the
+[Forge character creation](/forge/character-creation) and
+[VTT getting started](/vtt/getting-started). The accepted
+[shared-creator ADR](/vtt/adr/shared-character-creator) records why the
 package is imported at build time.
 
 ## Ownership and data flow

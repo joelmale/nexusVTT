@@ -79,7 +79,7 @@ describe('EncounterRunRepository', () => {
 
       expect(result).toEqual(mockRun);
       expect(mockPool.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO encounter_runs ($1,'),
+        expect.stringContaining('INSERT INTO encounter_runs (id,'),
         expect.arrayContaining(['run-custom-1', 'camp-1']),
       );
     });
@@ -87,7 +87,12 @@ describe('EncounterRunRepository', () => {
 
   describe('updateRun', () => {
     it('updates specified fields on encounter run', async () => {
-      const updated = { ...mockRun, stage: 'active' as const, currentRound: 2, currentTurnIndex: 1 };
+      const updated = {
+        ...mockRun,
+        stage: 'active' as const,
+        currentRound: 2,
+        currentTurnIndex: 1,
+      };
       mockPool.query.mockResolvedValueOnce({ rows: [updated] });
 
       const result = await repository.updateRun('run-101', {
@@ -109,7 +114,9 @@ describe('EncounterRunRepository', () => {
     it('returns null if run does not exist to update', async () => {
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
-      const result = await repository.updateRun('nonexistent', { stage: 'completed' });
+      const result = await repository.updateRun('nonexistent', {
+        stage: 'completed',
+      });
       expect(result).toBeNull();
     });
   });

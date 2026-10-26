@@ -4,12 +4,25 @@ import { creationDataToDraft } from '../adapters/draftAdapter';
 import { REFERENCE_BUILDS } from '../tests/fixtures/referenceBuilds';
 
 describe('catalogResolver (CC-202)', () => {
+  it('enforces an explicit strict source policy and blocks excluded species', () => {
+    const draft = creationDataToDraft(REFERENCE_BUILDS.F24.creationData);
+    expect(
+      resolveCatalogEntitlements(draft, { strictEntitlements: true }).map(
+        (issue) => issue.id,
+      ),
+    ).toContain('MISSING_SOURCE_POLICY');
+    expect(
+      resolveCatalogEntitlements(draft, { allowedSources: ['SRD 2024'] }).map(
+        (issue) => issue.id,
+      ),
+    ).toContain('DISALLOWED_SPECIES_SOURCE');
+  });
   it('certifies valid reference build F24 with zero error issues', () => {
     const f24 = REFERENCE_BUILDS.F24.creationData;
     const draft = creationDataToDraft(f24);
     const issues = resolveCatalogEntitlements(draft);
 
-    const errors = issues.filter(i => i.severity === 'error');
+    const errors = issues.filter((i) => i.severity === 'error');
     expect(errors).toEqual([]);
   });
 
@@ -22,9 +35,9 @@ describe('catalogResolver (CC-202)', () => {
     });
     const issues = resolveCatalogEntitlements(emptyDraft);
 
-    expect(issues.some(i => i.id === 'MISSING_SPECIES')).toBe(true);
-    expect(issues.some(i => i.id === 'MISSING_CLASS')).toBe(true);
-    expect(issues.some(i => i.id === 'MISSING_BACKGROUND')).toBe(true);
+    expect(issues.some((i) => i.id === 'MISSING_SPECIES')).toBe(true);
+    expect(issues.some((i) => i.id === 'MISSING_CLASS')).toBe(true);
+    expect(issues.some((i) => i.id === 'MISSING_BACKGROUND')).toBe(true);
   });
 
   it('detects invalid 2024 ability bonus allocation', () => {
@@ -37,7 +50,9 @@ describe('catalogResolver (CC-202)', () => {
     });
     const issues = resolveCatalogEntitlements(draft);
 
-    expect(issues.some(i => i.id === 'INVALID_2_1_BONUS_ALLOCATION')).toBe(true);
+    expect(issues.some((i) => i.id === 'INVALID_2_1_BONUS_ALLOCATION')).toBe(
+      true,
+    );
   });
 
   it('detects missing Fighter fighting style', () => {
@@ -48,7 +63,7 @@ describe('catalogResolver (CC-202)', () => {
     });
     const issues = resolveCatalogEntitlements(draft);
 
-    expect(issues.some(i => i.id === 'MISSING_FIGHTING_STYLE')).toBe(true);
+    expect(issues.some((i) => i.id === 'MISSING_FIGHTING_STYLE')).toBe(true);
   });
 
   it('detects under-entitled skills for Rogue', () => {
@@ -58,6 +73,6 @@ describe('catalogResolver (CC-202)', () => {
     });
     const issues = resolveCatalogEntitlements(draft);
 
-    expect(issues.some(i => i.id === 'UNDER_ENTITLED_SKILLS')).toBe(true);
+    expect(issues.some((i) => i.id === 'UNDER_ENTITLED_SKILLS')).toBe(true);
   });
 });

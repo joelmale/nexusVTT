@@ -1,4 +1,8 @@
-import { BaseRepository, CampaignRecord } from './base.js';
+import {
+  BaseRepository,
+  type CampaignMetadata,
+  type CampaignRecord,
+} from './base.js';
 import { sanitizeLog } from '../sanitizeLog.js';
 
 export class CampaignRepository extends BaseRepository {
@@ -6,13 +10,29 @@ export class CampaignRepository extends BaseRepository {
     dmId: string,
     name: string,
     description?: string,
+    metadata?: CampaignMetadata,
   ): Promise<CampaignRecord> {
-    const result = await this.pool.query<CampaignRecord>(
-      `INSERT INTO campaigns (name, description, "dmId", scenes)
+    const result =
+      metadata === undefined
+        ? await this.pool.query<CampaignRecord>(
+            `INSERT INTO campaigns (name, description, "dmId", scenes)
        VALUES ($1, $2, $3, '[]'::jsonb)
        RETURNING *`,
-      [name, description || null, dmId],
-    );
+            [name, description || null, dmId],
+          )
+        : await this.pool.query<CampaignRecord>(
+            `INSERT INTO campaigns (name, description, "dmId", scenes, edition, mode, mood)
+       VALUES ($1, $2, $3, '[]'::jsonb, $4, $5, $6)
+       RETURNING *`,
+            [
+              name,
+              description || null,
+              dmId,
+              metadata.edition ?? '2024',
+              metadata.mode ?? 'campaign',
+              metadata.mood ?? null,
+            ],
+          );
 
     console.log(`🗄️ Campaign created: ${result.rows[0].id} by DM ${dmId}`);
     return result.rows[0];
@@ -75,6 +95,9 @@ export class CampaignRepository extends BaseRepository {
       'scenes',
       'lastRoomCode',
       'lastRoomCodeUpdatedAt',
+      'edition',
+      'mode',
+      'mood',
     ];
     const updateFields: string[] = [];
     const values: unknown[] = [];

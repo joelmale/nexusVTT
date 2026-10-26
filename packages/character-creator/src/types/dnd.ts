@@ -3,8 +3,10 @@ import type { Level1Feature } from './widgets';
 import type { ResourceTracker, LevelUpRecord } from '../data/classProgression';
 import type { InitiativeEntry, PlayerEntry } from './encounterCombat';
 
-export const ABILITY_SCORES = gameConstantsData.ABILITY_SCORES as readonly ('STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA')[];
-export type Ability = typeof ABILITY_SCORES[number];
+export const ABILITY_SCORES = gameConstantsData.ABILITY_SCORES as readonly (
+  'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA'
+)[];
+export type Ability = (typeof ABILITY_SCORES)[number];
 
 export interface Alignment {
   name: string;
@@ -12,6 +14,7 @@ export interface Alignment {
 }
 
 export interface Background {
+  source?: string;
   slug: string; // Unique identifier
   name: string;
   edition: Edition; // '2014' | '2024'
@@ -22,11 +25,11 @@ export interface Background {
   languages?: string[];
   equipment: string[];
   equipmentOptions?: EquipmentOption[];
-  
+
   // 2014 Legacy Fields
   feature?: string;
   feature_description?: string;
-  
+
   // 2024 Fields
   abilityScores?: {
     choose: number;
@@ -48,7 +51,6 @@ export interface EquipmentOption {
   items?: string[];
   gold?: number;
 }
-
 
 export interface EquipmentPackage {
   name: string;
@@ -76,7 +78,10 @@ export type SpellSlotsByClass = Record<string, number[][]>;
 export type CantripsKnownByClass = Record<string, number[]>;
 
 // --- D&D 5e Character Interface (Must be adhered to) ---
-export interface AbilityScore { score: number; modifier: number; }
+export interface AbilityScore {
+  score: number;
+  modifier: number;
+}
 export interface Skill {
   value: number;
   proficient: boolean;
@@ -86,6 +91,7 @@ export interface Skill {
 export type Edition = '2014' | '2024';
 
 export interface Character {
+  castingSources?: import('@nexus/character-contracts').CharacterCastingSource[];
   id: string;
   name: string;
   species: string;
@@ -127,28 +133,49 @@ export interface Character {
   speed: number;
   initiative: number;
   abilities: {
-    STR: AbilityScore; DEX: AbilityScore; CON: AbilityScore;
-    INT: AbilityScore; WIS: AbilityScore; CHA: AbilityScore;
+    STR: AbilityScore;
+    DEX: AbilityScore;
+    CON: AbilityScore;
+    INT: AbilityScore;
+    WIS: AbilityScore;
+    CHA: AbilityScore;
   };
   skills: {
-    Acrobatics: Skill; AnimalHandling: Skill; Arcana: Skill; Athletics: Skill; Deception: Skill; History: Skill; Insight: Skill; Intimidation: Skill; Investigation: Skill; Medicine: Skill; Nature: Skill; Perception: Skill; Performance: Skill; Persuasion: Skill; Religion: Skill; SleightOfHand: Skill; Stealth: Skill; Survival: Skill;
+    Acrobatics: Skill;
+    AnimalHandling: Skill;
+    Arcana: Skill;
+    Athletics: Skill;
+    Deception: Skill;
+    History: Skill;
+    Insight: Skill;
+    Intimidation: Skill;
+    Investigation: Skill;
+    Medicine: Skill;
+    Nature: Skill;
+    Perception: Skill;
+    Performance: Skill;
+    Persuasion: Skill;
+    Religion: Skill;
+    SleightOfHand: Skill;
+    Stealth: Skill;
+    Survival: Skill;
   };
-   languages?: string[]; // Known languages
-   proficiencies?: {
-     armor?: string[];
-     weapons?: string[];
-     tools?: string[];
-   };
-    featuresAndTraits: {
-     personality: string;
-     ideals: string;
-     bonds: string;
-     flaws: string;
-      classFeatures: string[];
-      speciesTraits: string[];
-      backgroundFeatures: Array<{name: string, description: string}>; // Background features and descriptions
-      musicalInstrumentProficiencies: string[]; // Musical instruments proficient in (for bards)
-   };
+  languages?: string[]; // Known languages
+  proficiencies?: {
+    armor?: string[];
+    weapons?: string[];
+    tools?: string[];
+  };
+  featuresAndTraits: {
+    personality: string;
+    ideals: string;
+    bonds: string;
+    flaws: string;
+    classFeatures: string[];
+    speciesTraits: string[];
+    backgroundFeatures: Array<{ name: string; description: string }>; // Background features and descriptions
+    musicalInstrumentProficiencies: string[]; // Musical instruments proficient in (for bards)
+  };
 
   // Sprint 2: Spellcasting data (enhanced for differentiated types)
   spellcasting?: {
@@ -160,13 +187,13 @@ export interface Character {
     cantripsKnown: string[];
 
     // Spell knowledge based on casting type
-    spellsKnown?: string[];        // Known casters: fixed list (Bard, Sorcerer, etc.)
-    spellbook?: string[];          // Wizards: permanent spellbook
-    preparedSpells?: string[];     // Prepared casters: daily selection (Cleric, Druid, etc.)
+    spellsKnown?: string[]; // Known casters: fixed list (Bard, Sorcerer, etc.)
+    spellbook?: string[]; // Wizards: permanent spellbook
+    preparedSpells?: string[]; // Prepared casters: daily selection (Cleric, Druid, etc.)
 
     // Spell slots and usage
-    spellSlots: number[];          // Maximum slots by level [cantrips, 1st, 2nd, ...]
-    usedSpellSlots: number[];      // Currently used slots by level
+    spellSlots: number[]; // Maximum slots by level [cantrips, 1st, 2nd, ...]
+    usedSpellSlots: number[]; // Currently used slots by level
 
     // Feat-granted spells (special casting rules)
     featGrantedSpells?: Array<{
@@ -191,9 +218,18 @@ export interface Character {
 
   // Sprint 5: Features, Subclasses, and Feats
   srdFeatures?: {
-    classFeatures: Array<{ name: string; slug: string; level: number; source: 'class' }>;
-    subclassFeatures: Array<{ name: string; slug: string; level: number; source: 'subclass' }>;
-
+    classFeatures: Array<{
+      name: string;
+      slug: string;
+      level: number;
+      source: 'class';
+    }>;
+    subclassFeatures: Array<{
+      name: string;
+      slug: string;
+      level: number;
+      source: 'subclass';
+    }>;
   };
   selectedFeats?: string[]; // Feat slugs selected during character creation
   featChoices?: Record<string, FeatChoiceMap>; // Additional choices for feats (e.g., Elemental Adept damage type)
@@ -336,14 +372,14 @@ export interface Equipment {
   slug: string;
   name: string;
   year: number; // 2014 or 2024
-   equipment_category: string; // 'Weapon', 'Armor', 'Adventuring Gear', 'Tools', etc.
-   equipable?: boolean; // Can this item be equipped? (weapons, armor, clothing)
-   cost: {
-     quantity: number;
-     unit: 'cp' | 'sp' | 'gp' | 'pp';
-   };
-   weight: number;
-   description?: string;
+  equipment_category: string; // 'Weapon', 'Armor', 'Adventuring Gear', 'Tools', etc.
+  equipable?: boolean; // Can this item be equipped? (weapons, armor, clothing)
+  cost: {
+    quantity: number;
+    unit: 'cp' | 'sp' | 'gp' | 'pp';
+  };
+  weight: number;
+  description?: string;
 
   // Weapon-specific fields
   weapon_category?: 'Simple' | 'Martial';
@@ -367,7 +403,7 @@ export interface Equipment {
   };
   mastery?: {
     index: string; // e.g., 'graze', 'cleave', 'topple'
-    name: string;  // e.g., 'Graze', 'Cleave', 'Topple'
+    name: string; // e.g., 'Graze', 'Cleave', 'Topple'
     url?: string;
   };
 
@@ -411,7 +447,13 @@ export interface Feature {
     subfeatureOptions?: {
       choose: number;
       type: string;
-      from: { options: Array<{ option_type?: string; item?: { index: string; name: string; url: string }; ability_score?: { index: string; name: string; url: string } }> };
+      from: {
+        options: Array<{
+          option_type?: string;
+          item?: { index: string; name: string; url: string };
+          ability_score?: { index: string; name: string; url: string };
+        }>;
+      };
     };
   };
 }
@@ -441,7 +483,8 @@ export interface Feat {
   year: number; // 2014 or 2024
   category: 'origin' | 'fighting_style' | 'general' | 'epic_boon'; // 2024 feat categories
   prerequisite: string | null;
-  prerequisites?: { // Enhanced prerequisite structure for 2024
+  prerequisites?: {
+    // Enhanced prerequisite structure for 2024
     level?: number;
     stats?: Record<AbilityName, number>;
     features?: string[];
@@ -472,6 +515,11 @@ export interface StepValidation {
 }
 
 export interface CharacterCreationData {
+  /** startingInventory/currency already include all selected grants. */
+  loadoutResolved?: boolean;
+  speciesSkillProficiency?: SkillName;
+  additionalCastingSources?: import('@nexus/character-contracts').CharacterCastingSource[];
+  guidedAnswers?: Record<string, string | null>;
   name: string;
   level: number;
   edition: Edition; // D&D edition (2014 or 2024 rules)
@@ -487,7 +535,13 @@ export interface CharacterCreationData {
 
   classSlug: string;
   abilities: Record<AbilityName, number>; // Raw scores only during creation
-  abilityScoreMethod: 'standard-array' | 'standard-roll' | 'classic-roll' | '5d6-drop-2' | 'point-buy' | 'custom';
+  abilityScoreMethod:
+    | 'standard-array'
+    | 'standard-roll'
+    | 'classic-roll'
+    | '5d6-drop-2'
+    | 'point-buy'
+    | 'custom';
   background: string;
   alignment: string;
 
@@ -508,10 +562,10 @@ export interface CharacterCreationData {
   selectedSkills: SkillName[]; // Skills chosen from class options (Step 2)
   selectedMusicalInstruments: string[]; // Musical instruments chosen from class options (Step 2)
   overflowSkills?: string[]; // Skills chosen via "Any Skill" duplicate rule (Step 2)
-   equipmentChoices: EquipmentChoice[]; // Equipment selection choices
-   equipmentChoice?: 'background' | 'gold' | null; // 2024: Choose background equipment or gold
-   equipmentGold?: number; // Gold amount for gold choice
-   hpCalculationMethod: 'max' | 'rolled';
+  equipmentChoices: EquipmentChoice[]; // Equipment selection choices
+  equipmentChoice?: 'background' | 'gold' | null; // 2024: Choose background equipment or gold
+  equipmentGold?: number; // Gold amount for gold choice
+  hpCalculationMethod: 'max' | 'rolled';
   rolledHP?: number; // If rolled, store the result
 
   // 2024 Level 1 Feature Choices (Step 3 - Variable by Class)
@@ -520,11 +574,11 @@ export interface CharacterCreationData {
   pactBoon?: 'blade' | 'chain' | 'tome'; // 2024 Warlock
   expertiseSkills?: string[]; // Rogue, Ranger, Bard: 2 skills/tools
   weaponMastery?: string[]; // Rogue, Fighter, Barbarian, Paladin: 2-3 weapons
-   fightingStyle?: string; // Fighter, Paladin, Ranger
-   eldritchInvocations?: string[]; // Warlock: Eldritch Invocation slugs
-   secondWindUses?: number; // 2024 Fighter: Second Wind uses remaining
+  fightingStyle?: string; // Fighter, Paladin, Ranger
+  eldritchInvocations?: string[]; // Warlock: Eldritch Invocation slugs
+  secondWindUses?: number; // 2024 Fighter: Second Wind uses remaining
 
-   // Sprint 2: Spell selection
+  // Sprint 2: Spell selection
   spellSelection: SpellSelectionData;
 
   // Sprint 4: Custom equipment additions
@@ -587,10 +641,10 @@ export interface Species {
   sources?: string[];
   speed: number;
   ability_bonuses?: Partial<Record<AbilityName, number>>; // Optional in 2024 (moved to Background)
-   species_traits: string[];
-   description: string;
-   detailedDescription?: string;
-   typicalRoles: string[];
+  species_traits: string[];
+  description: string;
+  detailedDescription?: string;
+  typicalRoles: string[];
   variants?: SpeciesVariant[];
   defaultVariant?: string;
   /** Flag species as 2024 PHB core entry */
@@ -732,7 +786,10 @@ export interface TrinketData {
   dm_hook: string;
 }
 
-export type ClassWithDefaults = Omit<Class, 'num_skill_choices' | 'equipment_choices'> & {
+export type ClassWithDefaults = Omit<
+  Class,
+  'num_skill_choices' | 'equipment_choices'
+> & {
   num_skill_choices: number;
   equipment_choices: EquipmentChoice[];
 };
@@ -741,8 +798,8 @@ export interface AlignmentData {
   index: string;
   name: string;
   abbreviation: string;
-  short_desc: string;  // SRD creature examples
-  long_desc: string;   // Our detailed character descriptions
+  short_desc: string; // SRD creature examples
+  long_desc: string; // Our detailed character descriptions
   category: string;
   examples: string[];
 }
@@ -750,13 +807,13 @@ export interface AlignmentData {
 // Spell Learning Rules
 export interface SpellLearningRules {
   type: 'prepared' | 'known' | 'spellbook' | 'none';
-  spellsKnown?: number[];          // Spells known by level (known casters)
-  spellsPrepared?: number[];        // Spells prepared by level (prepared casters)
-  spellbookCapacity?: number[];     // Spellbook capacity by level (wizards)
-  domainSpells?: string[];          // Cleric domain spells
-  circleSpells?: string[];          // Druid circle spells
-  magicalSecrets?: number[];        // Bard magical secrets by level
-  invocationsKnown?: number[];      // Warlock invocations by level
+  spellsKnown?: number[]; // Spells known by level (known casters)
+  spellsPrepared?: number[]; // Spells prepared by level (prepared casters)
+  spellbookCapacity?: number[]; // Spellbook capacity by level (wizards)
+  domainSpells?: string[]; // Cleric domain spells
+  circleSpells?: string[]; // Druid circle spells
+  magicalSecrets?: number[]; // Bard magical secrets by level
+  invocationsKnown?: number[]; // Warlock invocations by level
 }
 
 export type FeatChoiceValue = string | number | boolean | string[];
@@ -764,7 +821,8 @@ export type FeatChoiceMap = Record<string, FeatChoiceValue>;
 
 // ==================== Monster System ====================
 
-export type MonsterSize = 'Tiny' | 'Small' | 'Medium' | 'Large' | 'Huge' | 'Gargantuan';
+export type MonsterSize =
+  'Tiny' | 'Small' | 'Medium' | 'Large' | 'Huge' | 'Gargantuan';
 
 export type MonsterType =
   | 'aberration'

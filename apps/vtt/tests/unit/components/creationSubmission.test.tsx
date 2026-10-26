@@ -71,7 +71,10 @@ describe('useCreationSubmission', () => {
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     const result = onComplete.mock.calls[0][0] as CharacterCreationResult;
-    expect(result.character).toBe(builtCharacter);
+    expect(result.character).toMatchObject({ name: builtCharacter.name });
+    expect(result.character.id).toBeTruthy();
+    expect(result.character.id).not.toBe(builtCharacter.id);
+    expect(result.creationAttemptId).toBeTruthy();
     expect(result.creationData).toBe(creationData);
     expect(result.edition).toBe('2014');
     expect(result.createdAt).toBeTruthy();

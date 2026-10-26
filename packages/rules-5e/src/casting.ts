@@ -46,28 +46,42 @@ export function evaluateCastEligibility(
     };
   }
 
-  // 2. Validate spell knowledge / preparation
-  if (spell.level > 0) {
-    const isPrepared = profile.preparedSpellSlugs.some(
-      (s: string) => s.toLowerCase() === spell.slug.toLowerCase(),
-    );
-    const isKnown = profile.knownSpellSlugs.some(
-      (s: string) => s.toLowerCase() === spell.slug.toLowerCase(),
+  // Every casting source must actually grant the spell, including cantrips.
+  const slug = spell.slug.toLowerCase();
+  const known = profile.knownSpellSlugs.some(
+    (value) => value.toLowerCase() === slug,
+  );
+  const prepared = profile.preparedSpellSlugs.some(
+    (value) => value.toLowerCase() === slug,
+  );
+  if (spell.level === 0 && !known)
+    reasons.push(`Cantrip '${spell.name}' is not in known spells.`);
+  else if (
+    spell.level > 0 &&
+    profile.preparationMode === 'prepared' &&
+    !prepared
+  )
+    reasons.push(`Spell '${spell.name}' is not currently prepared.`);
+  else if (spell.level > 0 && profile.preparationMode === 'known' && !known)
+    reasons.push(`Spell '${spell.name}' is not in known spells.`);
+  else if (
+    spell.level > 0 &&
+    ['innate', 'always_prepared'].includes(profile.preparationMode) &&
+    !known &&
+    !prepared
+  )
+    reasons.push(
+      `Spell '${spell.name}' is not granted by this casting source.`,
     );
 
-    if (profile.preparationMode === 'prepared' && !isPrepared) {
-      reasons.push(`Spell '${spell.name}' is not currently prepared.`);
-    } else if (profile.preparationMode === 'known' && !isKnown) {
-      reasons.push(`Spell '${spell.name}' is not in known spells.`);
-    }
-  }
-
-  // 3. Upcast level validation
-  if (castAtLevel < spell.level) {
+  if (!Number.isInteger(castAtLevel) || castAtLevel < 0 || castAtLevel > 9)
+    reasons.push('Cast level must be an integer from 0 to 9.');
+  if (spell.level === 0 && castAtLevel !== 0)
+    reasons.push('Cantrips must be cast at level 0.');
+  if (castAtLevel < spell.level)
     reasons.push(
       `Cannot cast a level ${spell.level} spell at slot level ${castAtLevel}.`,
     );
-  }
 
   // 4. Resource pool and slot availability check
   let poolIdToCharge: string | undefined;
@@ -79,6 +93,11 @@ export function evaluateCastEligibility(
       reasons.push(
         `Associated resource pool '${profile.resourcePoolId}' not found on actor.`,
       );
+    } else if (pool.poolType === 'at-will') {
+      if (castAtLevel !== spell.level)
+        reasons.push('At-will grants cannot be upcast.');
+      if (profile.ritualOnly && !spell.ritual)
+        reasons.push('This source grants ritual casting only.');
     } else if (pool.poolType === 'slots') {
       const slotInfo = pool.slots?.[castAtLevel];
       if (!slotInfo || slotInfo.current <= 0) {
@@ -91,14 +110,36 @@ export function evaluateCastEligibility(
       if ((pool.current ?? 0) <= 0) {
         reasons.push(`No Pact Magic slots remaining.`);
       } else {
-        poolIdToCharge = pool.id;
+        const levels = Object.entries(pool.slots || {})
+          .filter(([, value]) => value.total > 0)
+          .map(([level]) => Number(level));
+        if (levels.length !== 1 || levels[0] !== castAtLevel)
+          reasons.push(
+            'Cast level must match the available Pact Magic slot level.',
+          );
+        else if ((pool.slots?.[castAtLevel]?.current ?? 0) <= 0)
+          reasons.push('No Pact Magic slots remaining.');
+        else {
+          poolIdToCharge = pool.id;
+          slotLevelToCharge = castAtLevel;
+        }
       }
+    } else if (
+      pool.poolType === 'uses' &&
+      ['innate', 'always_prepared'].includes(profile.preparationMode)
+    ) {
+      if (castAtLevel !== spell.level)
+        reasons.push('This granted casting cannot be upcast.');
+      if ((pool.current ?? 0) <= 0)
+        reasons.push('No granted spell uses remaining.');
+      else poolIdToCharge = pool.id;
+    } else {
+      reasons.push('This resource pool cannot pay for spellcasting.');
     }
   }
 
   // 5. Concentration transition check
-  const willBreakConcentration =
-    spell.concentration && !!actor.concentration;
+  const willBreakConcentration = spell.concentration && !!actor.concentration;
   const breaksConcentrationOn = willBreakConcentration
     ? actor.concentration?.spellName
     : undefined;

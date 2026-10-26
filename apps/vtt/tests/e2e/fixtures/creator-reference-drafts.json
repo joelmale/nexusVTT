@@ -1,0 +1,3755 @@
+{
+  "F14": {
+    "draft": {
+      "draftVersion": 1,
+      "revision": 0,
+      "attemptId": "F14",
+      "creationData": {
+        "name": "Human Fighter 2014",
+        "level": 1,
+        "edition": "2014",
+        "speciesSlug": "human",
+        "variantSlug": "standard",
+        "classSlug": "fighter",
+        "background": "soldier",
+        "abilities": {
+          "STR": 15,
+          "DEX": 13,
+          "CON": 14,
+          "INT": 8,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Acrobatics",
+          "Survival"
+        ],
+        "fightingStyle": "defense",
+        "alignment": "True Neutral",
+        "equipmentChoices": [
+          {
+            "choiceId": "armor",
+            "description": "Armor choice",
+            "options": [
+              [
+                {
+                  "name": "Chain Mail",
+                  "quantity": 1,
+                  "type": "armor"
+                }
+              ]
+            ],
+            "selected": 0
+          },
+          {
+            "choiceId": "weapons",
+            "description": "Weapons choice",
+            "options": [
+              [
+                {
+                  "name": "Longsword",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shield",
+                  "quantity": 1,
+                  "type": "armor"
+                }
+              ]
+            ],
+            "selected": 0
+          }
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [],
+          "knownSpells": []
+        },
+        "hpCalculationMethod": "max",
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious."
+      },
+      "draftId": "F14",
+      "characterId": "F14",
+      "edition": "2014",
+      "level": 1,
+      "name": "Human Fighter 2014",
+      "speciesSlug": "human",
+      "classSlug": "fighter",
+      "backgroundSlug": "soldier",
+      "rawAbilityScores": {
+        "STR": 15,
+        "DEX": 13,
+        "CON": 14,
+        "INT": 8,
+        "WIS": 12,
+        "CHA": 10
+      },
+      "abilityMethod": "standard",
+      "abilityBonuses": {
+        "bonuses": {}
+      },
+      "skills": [
+        "Acrobatics",
+        "Survival"
+      ],
+      "expertise": [],
+      "fightingStyle": "defense",
+      "languages": [],
+      "toolProficiencies": [],
+      "spells": {
+        "cantrips": [],
+        "knownOrBook": [],
+        "prepared": []
+      },
+      "loadout": {
+        "items": [
+          {
+            "id": "loadout-1",
+            "slug": "chain-mail",
+            "name": "Chain Mail",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "armor",
+            "armorType": "heavy",
+            "ac": 16,
+            "stealthDisadvantage": true,
+            "source": "class"
+          },
+          {
+            "id": "loadout-2",
+            "slug": "longsword",
+            "name": "Longsword",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "shield",
+            "name": "Shield",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "shield",
+            "armorType": "shield",
+            "ac": 2,
+            "stealthDisadvantage": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-4",
+            "slug": "insignia-of-rank",
+            "name": "Insignia of Rank",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "trophy-from-fallen-enemy",
+            "name": "Trophy from Fallen Enemy",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-6",
+            "slug": "bone-dice",
+            "name": "Bone Dice",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-7",
+            "slug": "common-clothes",
+            "name": "Common Clothes",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          }
+        ],
+        "currency": {
+          "cp": 0,
+          "sp": 0,
+          "ep": 0,
+          "gp": 10,
+          "pp": 0
+        },
+        "totalValueGp": 10
+      },
+      "alignment": "True Neutral",
+      "personality": "Calm and observant.",
+      "ideals": "Protect others.",
+      "bonds": "The party.",
+      "flaws": "Too curious.",
+      "provenance": {
+        "species": "player",
+        "class": "player",
+        "background": "player",
+        "abilities": "player",
+        "skills": "player",
+        "spells": "player",
+        "equipment": "player"
+      }
+    },
+    "oracle": {
+      "id": "F14",
+      "title": "Standard Human Fighter/Soldier (2014)",
+      "edition": "2014",
+      "creationData": {
+        "name": "Human Fighter 2014",
+        "level": 1,
+        "edition": "2014",
+        "speciesSlug": "human",
+        "variantSlug": "standard",
+        "classSlug": "fighter",
+        "background": "soldier",
+        "abilities": {
+          "STR": 15,
+          "DEX": 13,
+          "CON": 14,
+          "INT": 8,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Acrobatics",
+          "Survival"
+        ],
+        "fightingStyle": "defense",
+        "alignment": "True Neutral",
+        "equipmentChoices": [
+          {
+            "choiceId": "armor",
+            "description": "Armor choice",
+            "options": [
+              [
+                {
+                  "name": "Chain Mail",
+                  "quantity": 1,
+                  "type": "armor"
+                }
+              ]
+            ],
+            "selected": 0
+          },
+          {
+            "choiceId": "weapons",
+            "description": "Weapons choice",
+            "options": [
+              [
+                {
+                  "name": "Longsword",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shield",
+                  "quantity": 1,
+                  "type": "armor"
+                }
+              ]
+            ],
+            "selected": 0
+          }
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [],
+          "knownSpells": []
+        },
+        "hpCalculationMethod": "max",
+        "personality": "",
+        "ideals": "",
+        "bonds": "",
+        "flaws": ""
+      },
+      "expected": {
+        "abilities": {
+          "STR": 16,
+          "DEX": 14,
+          "CON": 15,
+          "INT": 9,
+          "WIS": 13,
+          "CHA": 11
+        },
+        "hp": 12,
+        "ac": 19,
+        "initiative": 2,
+        "speed": 30,
+        "saves": {
+          "proficient": [
+            "STR",
+            "CON"
+          ],
+          "bonuses": {
+            "STR": 5,
+            "CON": 4
+          }
+        },
+        "attacks": [
+          {
+            "name": "Longsword",
+            "attackBonus": 5,
+            "damage": "1d8+3"
+          }
+        ],
+        "skills": {
+          "athletics": {
+            "bonus": 5
+          },
+          "intimidation": {
+            "bonus": 2
+          },
+          "acrobatics": {
+            "bonus": 4
+          },
+          "survival": {
+            "bonus": 3
+          }
+        },
+        "features": [
+          "Fighting Style: Defense",
+          "Second Wind"
+        ],
+        "currency": {
+          "gp": 10
+        }
+      }
+    },
+    "character": {
+      "id": "",
+      "name": "Human Fighter 2014",
+      "species": "Human",
+      "race": "Human",
+      "class": "Fighter",
+      "classSlug": "fighter",
+      "subclass": null,
+      "background": "soldier",
+      "alignment": "True Neutral",
+      "edition": "2014",
+      "level": 1,
+      "proficiencyBonus": 2,
+      "armorClass": 19,
+      "hitPoints": 12,
+      "maxHitPoints": 12,
+      "temporaryHitPoints": 0,
+      "hitDice": {
+        "current": 1,
+        "max": 1,
+        "dieType": 10
+      },
+      "speed": 30,
+      "initiative": 2,
+      "inspiration": false,
+      "experiencePoints": 0,
+      "abilities": {
+        "STR": {
+          "score": 16,
+          "modifier": 3
+        },
+        "DEX": {
+          "score": 14,
+          "modifier": 2
+        },
+        "CON": {
+          "score": 15,
+          "modifier": 2
+        },
+        "INT": {
+          "score": 9,
+          "modifier": -1
+        },
+        "WIS": {
+          "score": 13,
+          "modifier": 1
+        },
+        "CHA": {
+          "score": 11,
+          "modifier": 0
+        }
+      },
+      "skills": {
+        "Acrobatics": {
+          "proficient": true,
+          "value": 4,
+          "expertise": false
+        },
+        "Animal Handling": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Arcana": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Athletics": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Deception": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "History": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Insight": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Intimidation": {
+          "proficient": true,
+          "value": 2,
+          "expertise": false
+        },
+        "Investigation": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Medicine": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Nature": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Perception": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Performance": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Persuasion": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Religion": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Sleight of Hand": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Stealth": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Survival": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        }
+      },
+      "languages": [],
+      "proficiencies": {
+        "armor": [
+          "All armor",
+          "Shields"
+        ],
+        "weapons": [
+          "Simple Weapons",
+          "Martial Weapons"
+        ],
+        "tools": [
+          "Gaming Set (one choice)",
+          "Vehicles (land)"
+        ]
+      },
+      "expertiseSkills": [],
+      "featuresAndTraits": {
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "classFeatures": [],
+        "racialTraits": [],
+        "speciesTraits": [],
+        "backgroundFeatures": [
+          {
+            "name": "Military Rank",
+            "description": "You have a military rank from your career as a soldier. Soldiers loyal to your former military organization still recognize your authority and influence."
+          }
+        ],
+        "musicalInstrumentProficiencies": []
+      },
+      "srdFeatures": {
+        "classFeatures": [],
+        "subclassFeatures": []
+      },
+      "selectedFeats": [],
+      "feats": [],
+      "fightingStyle": "defense",
+      "selectedFightingStyle": "defense",
+      "castingSources": [],
+      "inventory": [
+        {
+          "equipmentSlug": "chain-mail",
+          "quantity": 1,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "longsword",
+          "quantity": 1,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "shield",
+          "quantity": 1,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "insignia-of-rank",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "trophy-from-fallen-enemy",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "bone-dice",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "common-clothes",
+          "quantity": 1,
+          "equipped": false
+        }
+      ],
+      "equippedWeapons": [],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 10,
+        "pp": 0
+      },
+      "deathSaves": {
+        "successes": 0,
+        "failures": 0
+      },
+      "conditions": [],
+      "createdAt": "2026-10-25T16:17:22.123Z",
+      "updatedAt": "2026-10-25T16:17:22.123Z"
+    }
+  },
+  "F24": {
+    "draft": {
+      "draftVersion": 1,
+      "revision": 0,
+      "attemptId": "F24",
+      "creationData": {
+        "name": "Human Fighter 2024",
+        "level": 1,
+        "edition": "2024",
+        "speciesSlug": "human-2024",
+        "classSlug": "fighter",
+        "background": "soldier-2024",
+        "abilities": {
+          "STR": 15,
+          "DEX": 13,
+          "CON": 14,
+          "INT": 8,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "backgroundAbilityChoices": {
+          "method": "2/1",
+          "bonuses": {
+            "STR": 2,
+            "CON": 1
+          }
+        },
+        "originFeat": "savage-attacker",
+        "humanOriginFeat": "tough",
+        "weaponMastery": [
+          "Greatsword",
+          "Flail",
+          "Javelin"
+        ],
+        "speciesSkillProficiency": "Perception",
+        "fightingStyle": "defense",
+        "alignment": "True Neutral",
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Acrobatics",
+          "Survival"
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [],
+          "knownSpells": []
+        },
+        "hpCalculationMethod": "max",
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "equipmentChoices": [
+          {
+            "choiceId": "package_a",
+            "description": "Starting package",
+            "options": [
+              [
+                {
+                  "name": "Chain Mail",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Greatsword",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Flail",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Javelin",
+                  "quantity": 8,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Dungeoneer's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "4 gp",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ],
+            "selected": 0
+          }
+        ]
+      },
+      "draftId": "F24",
+      "characterId": "F24",
+      "edition": "2024",
+      "level": 1,
+      "name": "Human Fighter 2024",
+      "speciesSlug": "human-2024",
+      "classSlug": "fighter",
+      "backgroundSlug": "soldier-2024",
+      "rawAbilityScores": {
+        "STR": 15,
+        "DEX": 13,
+        "CON": 14,
+        "INT": 8,
+        "WIS": 12,
+        "CHA": 10
+      },
+      "abilityMethod": "standard",
+      "abilityBonuses": {
+        "method": "2/1",
+        "bonuses": {
+          "STR": 2,
+          "CON": 1
+        }
+      },
+      "skills": [
+        "Acrobatics",
+        "Survival"
+      ],
+      "expertise": [],
+      "fightingStyle": "defense",
+      "weaponMastery": [
+        "Greatsword",
+        "Flail",
+        "Javelin"
+      ],
+      "originFeat": "savage-attacker",
+      "speciesFeat": "tough",
+      "languages": [],
+      "toolProficiencies": [],
+      "spells": {
+        "cantrips": [],
+        "knownOrBook": [],
+        "prepared": []
+      },
+      "loadout": {
+        "items": [
+          {
+            "id": "loadout-1",
+            "slug": "chain-mail",
+            "name": "Chain Mail",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "armor",
+            "armorType": "heavy",
+            "ac": 16,
+            "stealthDisadvantage": true,
+            "source": "class"
+          },
+          {
+            "id": "loadout-2",
+            "slug": "greatsword",
+            "name": "Greatsword",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "two_handed",
+            "source": "class"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "flail",
+            "name": "Flail",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-4",
+            "slug": "javelin",
+            "name": "Javelin",
+            "quantity": 8,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "backpack",
+            "name": "Backpack",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-6",
+            "slug": "crowbar",
+            "name": "Crowbar",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-7",
+            "slug": "hammer",
+            "name": "Hammer",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-8",
+            "slug": "piton",
+            "name": "Piton",
+            "quantity": 10,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-9",
+            "slug": "torch",
+            "name": "Torch",
+            "quantity": 10,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-10",
+            "slug": "tinderbox",
+            "name": "Tinderbox",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-11",
+            "slug": "rations-1-day",
+            "name": "Rations (1 day)",
+            "quantity": 10,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-12",
+            "slug": "waterskin",
+            "name": "Waterskin",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-13",
+            "slug": "hempen-rope-50-feet",
+            "name": "Hempen Rope (50 feet)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-14",
+            "slug": "spear",
+            "name": "Spear",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "background"
+          },
+          {
+            "id": "loadout-15",
+            "slug": "shortbow",
+            "name": "Shortbow",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "two_handed",
+            "source": "background"
+          },
+          {
+            "id": "loadout-16",
+            "slug": "arrows-(20)",
+            "name": "Arrows (20)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-17",
+            "slug": "gaming-set-(matching-choice)",
+            "name": "Gaming Set (matching choice)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-18",
+            "slug": "healers-kit",
+            "name": "Healer's Kit",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-19",
+            "slug": "quiver",
+            "name": "Quiver",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-20",
+            "slug": "traveler's-clothes",
+            "name": "Traveler's Clothes",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          }
+        ],
+        "currency": {
+          "cp": 0,
+          "sp": 0,
+          "ep": 0,
+          "gp": 18,
+          "pp": 0
+        },
+        "totalValueGp": 18
+      },
+      "alignment": "True Neutral",
+      "personality": "Calm and observant.",
+      "ideals": "Protect others.",
+      "bonds": "The party.",
+      "flaws": "Too curious.",
+      "provenance": {
+        "species": "player",
+        "class": "player",
+        "background": "player",
+        "abilities": "player",
+        "skills": "player",
+        "spells": "player",
+        "equipment": "player"
+      }
+    },
+    "oracle": {
+      "id": "F24",
+      "title": "Human Fighter/Soldier (2024)",
+      "edition": "2024",
+      "creationData": {
+        "name": "Human Fighter 2024",
+        "level": 1,
+        "edition": "2024",
+        "speciesSlug": "human-2024",
+        "classSlug": "fighter",
+        "background": "soldier-2024",
+        "abilities": {
+          "STR": 15,
+          "DEX": 13,
+          "CON": 14,
+          "INT": 8,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "backgroundAbilityChoices": {
+          "method": "2/1",
+          "bonuses": {
+            "STR": 2,
+            "CON": 1
+          }
+        },
+        "originFeat": "savage-attacker",
+        "humanOriginFeat": "tough",
+        "weaponMastery": [
+          "Greatsword",
+          "Flail",
+          "Javelin"
+        ],
+        "speciesSkillProficiency": "Perception",
+        "fightingStyle": "defense",
+        "alignment": "True Neutral",
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Acrobatics",
+          "Survival"
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [],
+          "knownSpells": []
+        },
+        "hpCalculationMethod": "max",
+        "personality": "",
+        "ideals": "",
+        "bonds": "",
+        "flaws": "",
+        "equipmentChoices": [
+          {
+            "choiceId": "package_a",
+            "description": "Starting package",
+            "options": [
+              [
+                {
+                  "name": "Chain Mail",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Greatsword",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Flail",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Javelin",
+                  "quantity": 8,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Dungeoneer's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "4 gp",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ],
+            "selected": 0
+          }
+        ]
+      },
+      "expected": {
+        "abilities": {
+          "STR": 17,
+          "DEX": 13,
+          "CON": 15,
+          "INT": 8,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "hp": 14,
+        "ac": 17,
+        "initiative": 1,
+        "speed": 30,
+        "saves": {
+          "proficient": [
+            "STR",
+            "CON"
+          ],
+          "bonuses": {
+            "STR": 5,
+            "CON": 4
+          }
+        },
+        "attacks": [
+          {
+            "name": "Greatsword",
+            "attackBonus": 5,
+            "damage": "2d6+3"
+          }
+        ],
+        "skills": {
+          "athletics": {
+            "bonus": 5
+          },
+          "intimidation": {
+            "bonus": 2
+          }
+        },
+        "features": [
+          "Fighting Style: Defense",
+          "Second Wind",
+          "Weapon Mastery",
+          "Tough",
+          "Savage Attacker"
+        ],
+        "currency": {
+          "gp": 18
+        }
+      }
+    },
+    "character": {
+      "id": "",
+      "name": "Human Fighter 2024",
+      "species": "Human",
+      "race": "Human",
+      "class": "Fighter",
+      "classSlug": "fighter",
+      "subclass": null,
+      "background": "soldier-2024",
+      "alignment": "True Neutral",
+      "edition": "2024",
+      "level": 1,
+      "proficiencyBonus": 2,
+      "armorClass": 17,
+      "hitPoints": 14,
+      "maxHitPoints": 14,
+      "temporaryHitPoints": 0,
+      "hitDice": {
+        "current": 1,
+        "max": 1,
+        "dieType": 10
+      },
+      "speed": 30,
+      "initiative": 1,
+      "inspiration": false,
+      "experiencePoints": 0,
+      "abilities": {
+        "STR": {
+          "score": 17,
+          "modifier": 3
+        },
+        "DEX": {
+          "score": 13,
+          "modifier": 1
+        },
+        "CON": {
+          "score": 15,
+          "modifier": 2
+        },
+        "INT": {
+          "score": 8,
+          "modifier": -1
+        },
+        "WIS": {
+          "score": 12,
+          "modifier": 1
+        },
+        "CHA": {
+          "score": 10,
+          "modifier": 0
+        }
+      },
+      "skills": {
+        "Acrobatics": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        },
+        "Animal Handling": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Arcana": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Athletics": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Deception": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "History": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Insight": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Intimidation": {
+          "proficient": true,
+          "value": 2,
+          "expertise": false
+        },
+        "Investigation": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Medicine": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Nature": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Perception": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        },
+        "Performance": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Persuasion": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Religion": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Sleight of Hand": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Stealth": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Survival": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        }
+      },
+      "languages": [],
+      "proficiencies": {
+        "armor": [
+          "All Armor",
+          "Shields"
+        ],
+        "weapons": [
+          "Simple Weapons",
+          "Martial Weapons"
+        ],
+        "tools": [
+          "Gaming Set (choose one)"
+        ]
+      },
+      "expertiseSkills": [],
+      "weaponMastery": [
+        "Greatsword",
+        "Flail",
+        "Javelin"
+      ],
+      "featuresAndTraits": {
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "classFeatures": [],
+        "racialTraits": [
+          "Resourceful",
+          "Skillful",
+          "Versatile"
+        ],
+        "speciesTraits": [
+          "Resourceful",
+          "Skillful",
+          "Versatile"
+        ],
+        "backgroundFeatures": [
+          {
+            "name": "Background Feature",
+            "description": "A feature from your background."
+          }
+        ],
+        "musicalInstrumentProficiencies": []
+      },
+      "srdFeatures": {
+        "classFeatures": [],
+        "subclassFeatures": []
+      },
+      "selectedFeats": [
+        "savage-attacker",
+        "tough"
+      ],
+      "feats": [
+        "savage-attacker",
+        "tough"
+      ],
+      "originFeat": "savage-attacker",
+      "fightingStyle": "defense",
+      "selectedFightingStyle": "defense",
+      "castingSources": [],
+      "inventory": [
+        {
+          "equipmentSlug": "chain-mail",
+          "quantity": 1,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "greatsword",
+          "quantity": 1,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "flail",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "javelin",
+          "quantity": 8,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "backpack",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "crowbar",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "hammer",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "piton",
+          "quantity": 10,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "torch",
+          "quantity": 10,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "tinderbox",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "rations-1-day",
+          "quantity": 10,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "waterskin",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "hempen-rope-50-feet",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "spear",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "shortbow",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "arrows-(20)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "gaming-set-(matching-choice)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "healers-kit",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "quiver",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "traveler's-clothes",
+          "quantity": 1,
+          "equipped": false
+        }
+      ],
+      "equippedWeapons": [],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 18,
+        "pp": 0
+      },
+      "deathSaves": {
+        "successes": 0,
+        "failures": 0
+      },
+      "conditions": [],
+      "createdAt": "2026-10-25T16:17:22.141Z",
+      "updatedAt": "2026-10-25T16:17:22.141Z"
+    }
+  },
+  "R14": {
+    "draft": {
+      "draftVersion": 1,
+      "revision": 0,
+      "attemptId": "R14",
+      "creationData": {
+        "name": "Elf Rogue 2014",
+        "level": 1,
+        "edition": "2014",
+        "speciesSlug": "elf",
+        "selectedLineage": "wood-elf",
+        "classSlug": "rogue",
+        "background": "criminal",
+        "abilities": {
+          "STR": 8,
+          "DEX": 15,
+          "CON": 13,
+          "INT": 12,
+          "WIS": 14,
+          "CHA": 10
+        },
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Athletics",
+          "Investigation",
+          "SleightOfHand",
+          "Acrobatics"
+        ],
+        "expertiseSkills": [
+          "stealth",
+          "sleight_of_hand"
+        ],
+        "alignment": "True Neutral",
+        "equipmentChoices": [],
+        "startingInventory": [
+          {
+            "equipmentSlug": "leather-armor",
+            "quantity": 1,
+            "equipped": true
+          },
+          {
+            "equipmentSlug": "shortbow",
+            "quantity": 1,
+            "equipped": false
+          },
+          {
+            "equipmentSlug": "arrows-20",
+            "quantity": 1,
+            "equipped": false
+          },
+          {
+            "equipmentSlug": "dagger",
+            "quantity": 2,
+            "equipped": false
+          }
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [],
+          "knownSpells": []
+        },
+        "hpCalculationMethod": "max",
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious."
+      },
+      "draftId": "R14",
+      "characterId": "R14",
+      "edition": "2014",
+      "level": 1,
+      "name": "Elf Rogue 2014",
+      "speciesSlug": "elf",
+      "lineageSlug": "wood-elf",
+      "classSlug": "rogue",
+      "backgroundSlug": "criminal",
+      "rawAbilityScores": {
+        "STR": 8,
+        "DEX": 15,
+        "CON": 13,
+        "INT": 12,
+        "WIS": 14,
+        "CHA": 10
+      },
+      "abilityMethod": "standard",
+      "abilityBonuses": {
+        "bonuses": {}
+      },
+      "skills": [
+        "Athletics",
+        "Investigation",
+        "SleightOfHand",
+        "Acrobatics"
+      ],
+      "expertise": [
+        "stealth",
+        "sleight_of_hand"
+      ],
+      "languages": [],
+      "toolProficiencies": [],
+      "spells": {
+        "cantrips": [],
+        "knownOrBook": [],
+        "prepared": []
+      },
+      "loadout": {
+        "items": [
+          {
+            "id": "loadout-1",
+            "slug": "crowbar",
+            "name": "Crowbar",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-2",
+            "slug": "dark-common-clothes-with-hood",
+            "name": "Dark Common Clothes with Hood",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "leather-armor",
+            "name": "Leather Armor",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "armor",
+            "armorType": "light",
+            "ac": 11,
+            "stealthDisadvantage": false,
+            "source": "custom"
+          },
+          {
+            "id": "loadout-4",
+            "slug": "shortbow",
+            "name": "Shortbow",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "two_handed",
+            "source": "custom"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "arrows-20",
+            "name": "arrows-20",
+            "quantity": 1,
+            "equipped": false,
+            "source": "custom"
+          },
+          {
+            "id": "loadout-6",
+            "slug": "dagger",
+            "name": "Dagger",
+            "quantity": 2,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "custom"
+          }
+        ],
+        "currency": {
+          "cp": 0,
+          "sp": 0,
+          "ep": 0,
+          "gp": 15,
+          "pp": 0
+        },
+        "totalValueGp": 15
+      },
+      "alignment": "True Neutral",
+      "personality": "Calm and observant.",
+      "ideals": "Protect others.",
+      "bonds": "The party.",
+      "flaws": "Too curious.",
+      "provenance": {
+        "species": "player",
+        "class": "player",
+        "background": "player",
+        "abilities": "player",
+        "skills": "player",
+        "spells": "player",
+        "equipment": "player"
+      }
+    },
+    "oracle": {
+      "id": "R14",
+      "title": "Wood Elf Rogue/Criminal (2014)",
+      "edition": "2014",
+      "creationData": {
+        "name": "Elf Rogue 2014",
+        "level": 1,
+        "edition": "2014",
+        "speciesSlug": "elf",
+        "selectedLineage": "wood-elf",
+        "classSlug": "rogue",
+        "background": "criminal",
+        "abilities": {
+          "STR": 8,
+          "DEX": 15,
+          "CON": 13,
+          "INT": 12,
+          "WIS": 14,
+          "CHA": 10
+        },
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Athletics",
+          "Investigation",
+          "SleightOfHand",
+          "Acrobatics"
+        ],
+        "expertiseSkills": [
+          "stealth",
+          "sleight_of_hand"
+        ],
+        "alignment": "True Neutral",
+        "equipmentChoices": [],
+        "startingInventory": [
+          {
+            "equipmentSlug": "leather-armor",
+            "quantity": 1,
+            "equipped": true
+          },
+          {
+            "equipmentSlug": "shortbow",
+            "quantity": 1,
+            "equipped": false
+          },
+          {
+            "equipmentSlug": "arrows-20",
+            "quantity": 1,
+            "equipped": false
+          },
+          {
+            "equipmentSlug": "dagger",
+            "quantity": 2,
+            "equipped": false
+          }
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [],
+          "knownSpells": []
+        },
+        "hpCalculationMethod": "max",
+        "personality": "",
+        "ideals": "",
+        "bonds": "",
+        "flaws": ""
+      },
+      "expected": {
+        "abilities": {
+          "STR": 8,
+          "DEX": 17,
+          "CON": 13,
+          "INT": 12,
+          "WIS": 15,
+          "CHA": 10
+        },
+        "hp": 9,
+        "ac": 14,
+        "initiative": 3,
+        "speed": 35,
+        "saves": {
+          "proficient": [
+            "DEX",
+            "INT"
+          ],
+          "bonuses": {
+            "DEX": 5,
+            "INT": 3
+          }
+        },
+        "attacks": [
+          {
+            "name": "Shortbow",
+            "attackBonus": 5,
+            "damage": "1d6+3"
+          }
+        ],
+        "skills": {
+          "stealth": {
+            "bonus": 7,
+            "expertise": true
+          },
+          "sleight_of_hand": {
+            "bonus": 7,
+            "expertise": true
+          },
+          "perception": {
+            "bonus": 4
+          }
+        },
+        "features": [
+          "Sneak Attack (1d6)",
+          "Thieves' Cant",
+          "Expertise",
+          "Darkvision",
+          "Fey Ancestry",
+          "Mask of the Wild"
+        ],
+        "currency": {
+          "gp": 15
+        }
+      }
+    },
+    "character": {
+      "id": "",
+      "name": "Elf Rogue 2014",
+      "species": "Elf",
+      "race": "Elf",
+      "class": "Rogue",
+      "classSlug": "rogue",
+      "subclass": null,
+      "background": "criminal",
+      "alignment": "True Neutral",
+      "edition": "2014",
+      "level": 1,
+      "proficiencyBonus": 2,
+      "armorClass": 14,
+      "hitPoints": 9,
+      "maxHitPoints": 9,
+      "temporaryHitPoints": 0,
+      "hitDice": {
+        "current": 1,
+        "max": 1,
+        "dieType": 8
+      },
+      "speed": 35,
+      "initiative": 3,
+      "inspiration": false,
+      "experiencePoints": 0,
+      "abilities": {
+        "STR": {
+          "score": 8,
+          "modifier": -1
+        },
+        "DEX": {
+          "score": 17,
+          "modifier": 3
+        },
+        "CON": {
+          "score": 13,
+          "modifier": 1
+        },
+        "INT": {
+          "score": 12,
+          "modifier": 1
+        },
+        "WIS": {
+          "score": 15,
+          "modifier": 2
+        },
+        "CHA": {
+          "score": 10,
+          "modifier": 0
+        }
+      },
+      "skills": {
+        "Acrobatics": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Animal Handling": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Arcana": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Athletics": {
+          "proficient": true,
+          "value": 1,
+          "expertise": false
+        },
+        "Deception": {
+          "proficient": true,
+          "value": 2,
+          "expertise": false
+        },
+        "History": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Insight": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Intimidation": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Investigation": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        },
+        "Medicine": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Nature": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Perception": {
+          "proficient": true,
+          "value": 4,
+          "expertise": false
+        },
+        "Performance": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Persuasion": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Religion": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Sleight of Hand": {
+          "proficient": true,
+          "value": 7,
+          "expertise": true
+        },
+        "Stealth": {
+          "proficient": true,
+          "value": 7,
+          "expertise": true
+        },
+        "Survival": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        }
+      },
+      "languages": [],
+      "proficiencies": {
+        "armor": [
+          "Light Armor"
+        ],
+        "weapons": [
+          "Simple Weapons",
+          "Longswords",
+          "Rapiers",
+          "Shortswords",
+          "Hand crossbows"
+        ],
+        "tools": [
+          "Thieves' Tools",
+          "Gaming Set (one choice)"
+        ]
+      },
+      "expertiseSkills": [
+        "stealth",
+        "sleight_of_hand"
+      ],
+      "featuresAndTraits": {
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "classFeatures": [],
+        "racialTraits": [
+          "Darkvision",
+          "Fey Ancestry",
+          "Trance",
+          "Keen Senses"
+        ],
+        "speciesTraits": [
+          "Darkvision",
+          "Fey Ancestry",
+          "Trance",
+          "Keen Senses"
+        ],
+        "backgroundFeatures": [
+          {
+            "name": "Criminal Contact",
+            "description": "You have a reliable and trustworthy contact who acts as your liaison to a network of other criminals."
+          }
+        ],
+        "musicalInstrumentProficiencies": []
+      },
+      "srdFeatures": {
+        "classFeatures": [],
+        "subclassFeatures": []
+      },
+      "selectedFeats": [],
+      "feats": [],
+      "selectedFightingStyle": null,
+      "castingSources": [],
+      "inventory": [
+        {
+          "equipmentSlug": "crowbar",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "dark-common-clothes-with-hood",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "leather-armor",
+          "quantity": 1,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "shortbow",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "arrows-20",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "dagger",
+          "quantity": 2,
+          "equipped": false
+        }
+      ],
+      "equippedWeapons": [],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 15,
+        "pp": 0
+      },
+      "deathSaves": {
+        "successes": 0,
+        "failures": 0
+      },
+      "conditions": [],
+      "createdAt": "2026-10-25T16:17:22.156Z",
+      "updatedAt": "2026-10-25T16:17:22.156Z"
+    }
+  },
+  "R24": {
+    "draft": {
+      "draftVersion": 1,
+      "revision": 0,
+      "attemptId": "R24",
+      "creationData": {
+        "name": "Elf Rogue 2024",
+        "level": 1,
+        "edition": "2024",
+        "speciesSlug": "elf-2024",
+        "speciesSkillProficiency": "Insight",
+        "weaponMastery": [
+          "Shortbow",
+          "Dagger"
+        ],
+        "selectedLineage": "wood-elf",
+        "classSlug": "rogue",
+        "background": "criminal-2024",
+        "abilities": {
+          "STR": 8,
+          "DEX": 15,
+          "CON": 13,
+          "INT": 12,
+          "WIS": 14,
+          "CHA": 10
+        },
+        "backgroundAbilityChoices": {
+          "method": "2/1",
+          "bonuses": {
+            "DEX": 2,
+            "CON": 1
+          }
+        },
+        "originFeat": "alert",
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Acrobatics",
+          "Deception",
+          "Investigation",
+          "Perception"
+        ],
+        "expertiseSkills": [
+          "stealth",
+          "sleight_of_hand"
+        ],
+        "alignment": "True Neutral",
+        "equipmentChoices": [],
+        "startingInventory": [
+          {
+            "equipmentSlug": "leather-armor",
+            "quantity": 1,
+            "equipped": true
+          },
+          {
+            "equipmentSlug": "shortbow",
+            "quantity": 1,
+            "equipped": false
+          },
+          {
+            "equipmentSlug": "arrows-20",
+            "quantity": 1,
+            "equipped": false
+          },
+          {
+            "equipmentSlug": "dagger",
+            "quantity": 2,
+            "equipped": false
+          }
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [],
+          "knownSpells": []
+        },
+        "hpCalculationMethod": "max",
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious."
+      },
+      "draftId": "R24",
+      "characterId": "R24",
+      "edition": "2024",
+      "level": 1,
+      "name": "Elf Rogue 2024",
+      "speciesSlug": "elf-2024",
+      "lineageSlug": "wood-elf",
+      "classSlug": "rogue",
+      "backgroundSlug": "criminal-2024",
+      "rawAbilityScores": {
+        "STR": 8,
+        "DEX": 15,
+        "CON": 13,
+        "INT": 12,
+        "WIS": 14,
+        "CHA": 10
+      },
+      "abilityMethod": "standard",
+      "abilityBonuses": {
+        "method": "2/1",
+        "bonuses": {
+          "DEX": 2,
+          "CON": 1
+        }
+      },
+      "skills": [
+        "Acrobatics",
+        "Deception",
+        "Investigation",
+        "Perception"
+      ],
+      "expertise": [
+        "stealth",
+        "sleight_of_hand"
+      ],
+      "weaponMastery": [
+        "Shortbow",
+        "Dagger"
+      ],
+      "originFeat": "alert",
+      "languages": [],
+      "toolProficiencies": [],
+      "spells": {
+        "cantrips": [],
+        "knownOrBook": [],
+        "prepared": []
+      },
+      "loadout": {
+        "items": [
+          {
+            "id": "loadout-1",
+            "slug": "dagger",
+            "name": "Dagger",
+            "quantity": 4,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "background"
+          },
+          {
+            "id": "loadout-2",
+            "slug": "thieves-tools",
+            "name": "Thieves' Tools",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "crowbar",
+            "name": "Crowbar",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-4",
+            "slug": "pouch",
+            "name": "Pouch",
+            "quantity": 2,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "dark-common-clothes-with-hood",
+            "name": "Dark Common Clothes with Hood",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-6",
+            "slug": "leather-armor",
+            "name": "Leather Armor",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "armor",
+            "armorType": "light",
+            "ac": 11,
+            "stealthDisadvantage": false,
+            "source": "custom"
+          },
+          {
+            "id": "loadout-7",
+            "slug": "shortbow",
+            "name": "Shortbow",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "two_handed",
+            "source": "custom"
+          },
+          {
+            "id": "loadout-8",
+            "slug": "arrows-20",
+            "name": "arrows-20",
+            "quantity": 1,
+            "equipped": false,
+            "source": "custom"
+          }
+        ],
+        "currency": {
+          "cp": 0,
+          "sp": 0,
+          "ep": 0,
+          "gp": 15,
+          "pp": 0
+        },
+        "totalValueGp": 15
+      },
+      "alignment": "True Neutral",
+      "personality": "Calm and observant.",
+      "ideals": "Protect others.",
+      "bonds": "The party.",
+      "flaws": "Too curious.",
+      "provenance": {
+        "species": "player",
+        "class": "player",
+        "background": "player",
+        "abilities": "player",
+        "skills": "player",
+        "spells": "player",
+        "equipment": "player"
+      }
+    },
+    "oracle": {
+      "id": "R24",
+      "title": "Wood Elf Rogue/Criminal (2024)",
+      "edition": "2024",
+      "creationData": {
+        "name": "Elf Rogue 2024",
+        "level": 1,
+        "edition": "2024",
+        "speciesSlug": "elf-2024",
+        "speciesSkillProficiency": "Insight",
+        "weaponMastery": [
+          "Shortbow",
+          "Dagger"
+        ],
+        "selectedLineage": "wood-elf",
+        "classSlug": "rogue",
+        "background": "criminal-2024",
+        "abilities": {
+          "STR": 8,
+          "DEX": 15,
+          "CON": 13,
+          "INT": 12,
+          "WIS": 14,
+          "CHA": 10
+        },
+        "backgroundAbilityChoices": {
+          "method": "2/1",
+          "bonuses": {
+            "DEX": 2,
+            "CON": 1
+          }
+        },
+        "originFeat": "alert",
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Acrobatics",
+          "Deception",
+          "Investigation",
+          "Perception"
+        ],
+        "expertiseSkills": [
+          "stealth",
+          "sleight_of_hand"
+        ],
+        "alignment": "True Neutral",
+        "equipmentChoices": [],
+        "startingInventory": [
+          {
+            "equipmentSlug": "leather-armor",
+            "quantity": 1,
+            "equipped": true
+          },
+          {
+            "equipmentSlug": "shortbow",
+            "quantity": 1,
+            "equipped": false
+          },
+          {
+            "equipmentSlug": "arrows-20",
+            "quantity": 1,
+            "equipped": false
+          },
+          {
+            "equipmentSlug": "dagger",
+            "quantity": 2,
+            "equipped": false
+          }
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [],
+          "knownSpells": []
+        },
+        "hpCalculationMethod": "max",
+        "personality": "",
+        "ideals": "",
+        "bonds": "",
+        "flaws": ""
+      },
+      "expected": {
+        "abilities": {
+          "STR": 8,
+          "DEX": 17,
+          "CON": 14,
+          "INT": 12,
+          "WIS": 14,
+          "CHA": 10
+        },
+        "hp": 10,
+        "ac": 14,
+        "initiative": 5,
+        "speed": 35,
+        "saves": {
+          "proficient": [
+            "DEX",
+            "INT"
+          ],
+          "bonuses": {
+            "DEX": 5,
+            "INT": 3
+          }
+        },
+        "attacks": [
+          {
+            "name": "Shortbow",
+            "attackBonus": 5,
+            "damage": "1d6+3"
+          }
+        ],
+        "skills": {
+          "stealth": {
+            "bonus": 7,
+            "expertise": true
+          },
+          "sleight_of_hand": {
+            "bonus": 7,
+            "expertise": true
+          }
+        },
+        "features": [
+          "Sneak Attack (1d6)",
+          "Thieves' Cant",
+          "Weapon Mastery",
+          "Alert",
+          "Darkvision",
+          "Fey Ancestry"
+        ],
+        "currency": {
+          "gp": 16
+        }
+      }
+    },
+    "character": {
+      "id": "",
+      "name": "Elf Rogue 2024",
+      "species": "Elf",
+      "race": "Elf",
+      "class": "Rogue",
+      "classSlug": "rogue",
+      "subclass": null,
+      "background": "criminal-2024",
+      "alignment": "True Neutral",
+      "edition": "2024",
+      "level": 1,
+      "proficiencyBonus": 2,
+      "armorClass": 14,
+      "hitPoints": 10,
+      "maxHitPoints": 10,
+      "temporaryHitPoints": 0,
+      "hitDice": {
+        "current": 1,
+        "max": 1,
+        "dieType": 8
+      },
+      "speed": 35,
+      "initiative": 5,
+      "inspiration": false,
+      "experiencePoints": 0,
+      "abilities": {
+        "STR": {
+          "score": 8,
+          "modifier": -1
+        },
+        "DEX": {
+          "score": 17,
+          "modifier": 3
+        },
+        "CON": {
+          "score": 14,
+          "modifier": 2
+        },
+        "INT": {
+          "score": 12,
+          "modifier": 1
+        },
+        "WIS": {
+          "score": 14,
+          "modifier": 2
+        },
+        "CHA": {
+          "score": 10,
+          "modifier": 0
+        }
+      },
+      "skills": {
+        "Acrobatics": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Animal Handling": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Arcana": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Athletics": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Deception": {
+          "proficient": true,
+          "value": 2,
+          "expertise": false
+        },
+        "History": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Insight": {
+          "proficient": true,
+          "value": 4,
+          "expertise": false
+        },
+        "Intimidation": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Investigation": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        },
+        "Medicine": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Nature": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Perception": {
+          "proficient": true,
+          "value": 4,
+          "expertise": false
+        },
+        "Performance": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Persuasion": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Religion": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Sleight of Hand": {
+          "proficient": true,
+          "value": 7,
+          "expertise": true
+        },
+        "Stealth": {
+          "proficient": true,
+          "value": 7,
+          "expertise": true
+        },
+        "Survival": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        }
+      },
+      "languages": [],
+      "proficiencies": {
+        "armor": [
+          "Light Armor"
+        ],
+        "weapons": [
+          "Simple Weapons",
+          "Martial Weapons (Finesse or Light)"
+        ],
+        "tools": [
+          "Thieves' Tools"
+        ]
+      },
+      "expertiseSkills": [
+        "stealth",
+        "sleight_of_hand"
+      ],
+      "weaponMastery": [
+        "Shortbow",
+        "Dagger"
+      ],
+      "featuresAndTraits": {
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "classFeatures": [],
+        "racialTraits": [
+          "Darkvision",
+          "Elven Lineage",
+          "Fey Ancestry",
+          "Keen Senses",
+          "Trance",
+          "Speed (35 ft)"
+        ],
+        "speciesTraits": [
+          "Darkvision",
+          "Elven Lineage",
+          "Fey Ancestry",
+          "Keen Senses",
+          "Trance",
+          "Speed (35 ft)"
+        ],
+        "backgroundFeatures": [
+          {
+            "name": "Background Feature",
+            "description": "A feature from your background."
+          }
+        ],
+        "musicalInstrumentProficiencies": []
+      },
+      "srdFeatures": {
+        "classFeatures": [],
+        "subclassFeatures": []
+      },
+      "selectedFeats": [
+        "alert"
+      ],
+      "feats": [
+        "alert"
+      ],
+      "originFeat": "alert",
+      "selectedFightingStyle": null,
+      "castingSources": [
+        {
+          "id": "species:elf:wood-elf",
+          "sourceType": "species",
+          "sourceSlug": "wood-elf",
+          "ability": "WIS",
+          "cantrips": [
+            "druidcraft"
+          ],
+          "knownSpells": [],
+          "preparedSpells": [],
+          "freeUses": 1,
+          "allowClassSlots": true
+        }
+      ],
+      "inventory": [
+        {
+          "equipmentSlug": "dagger",
+          "quantity": 4,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "thieves-tools",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "crowbar",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "pouch",
+          "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "dark-common-clothes-with-hood",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "leather-armor",
+          "quantity": 1,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "shortbow",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "arrows-20",
+          "quantity": 1,
+          "equipped": false
+        }
+      ],
+      "equippedWeapons": [],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 15,
+        "pp": 0
+      },
+      "deathSaves": {
+        "successes": 0,
+        "failures": 0
+      },
+      "conditions": [],
+      "createdAt": "2026-10-25T16:17:22.168Z",
+      "updatedAt": "2026-10-25T16:17:22.168Z"
+    }
+  },
+  "W14": {
+    "draft": {
+      "draftVersion": 1,
+      "revision": 0,
+      "attemptId": "W14",
+      "creationData": {
+        "name": "Elf Wizard 2014",
+        "level": 1,
+        "edition": "2014",
+        "speciesSlug": "elf",
+        "selectedLineage": "high-elf",
+        "classSlug": "wizard",
+        "background": "sage",
+        "abilities": {
+          "STR": 8,
+          "DEX": 14,
+          "CON": 13,
+          "INT": 15,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "selectedSkills": [
+          "Insight",
+          "Investigation"
+        ],
+        "alignment": "True Neutral",
+        "abilityScoreMethod": "standard-array",
+        "equipmentChoices": [],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [
+            "fire-bolt",
+            "mage-hand",
+            "light",
+            "prestidigitation"
+          ],
+          "spellbook": [
+            "magic-missile",
+            "mage-armor",
+            "shield",
+            "sleep",
+            "detect-magic",
+            "feather-fall"
+          ],
+          "preparedSpells": [
+            "magic-missile",
+            "mage-armor",
+            "shield",
+            "sleep"
+          ]
+        },
+        "hpCalculationMethod": "max",
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious."
+      },
+      "draftId": "W14",
+      "characterId": "W14",
+      "edition": "2014",
+      "level": 1,
+      "name": "Elf Wizard 2014",
+      "speciesSlug": "elf",
+      "lineageSlug": "high-elf",
+      "classSlug": "wizard",
+      "backgroundSlug": "sage",
+      "rawAbilityScores": {
+        "STR": 8,
+        "DEX": 14,
+        "CON": 13,
+        "INT": 15,
+        "WIS": 12,
+        "CHA": 10
+      },
+      "abilityMethod": "standard",
+      "abilityBonuses": {
+        "bonuses": {}
+      },
+      "skills": [
+        "Insight",
+        "Investigation"
+      ],
+      "expertise": [],
+      "languages": [],
+      "toolProficiencies": [],
+      "spells": {
+        "cantrips": [
+          "fire-bolt",
+          "mage-hand",
+          "light",
+          "prestidigitation"
+        ],
+        "knownOrBook": [
+          "magic-missile",
+          "mage-armor",
+          "shield",
+          "sleep",
+          "detect-magic",
+          "feather-fall"
+        ],
+        "prepared": [
+          "magic-missile",
+          "mage-armor",
+          "shield",
+          "sleep"
+        ]
+      },
+      "loadout": {
+        "items": [
+          {
+            "id": "loadout-1",
+            "slug": "bottle-of-ink",
+            "name": "Bottle of Ink",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-2",
+            "slug": "quill",
+            "name": "Quill",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "small-knife",
+            "name": "Small Knife",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-4",
+            "slug": "letter-from-colleague",
+            "name": "Letter from Colleague",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "common-clothes",
+            "name": "Common Clothes",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          }
+        ],
+        "currency": {
+          "cp": 0,
+          "sp": 0,
+          "ep": 0,
+          "gp": 10,
+          "pp": 0
+        },
+        "totalValueGp": 10
+      },
+      "alignment": "True Neutral",
+      "personality": "Calm and observant.",
+      "ideals": "Protect others.",
+      "bonds": "The party.",
+      "flaws": "Too curious.",
+      "provenance": {
+        "species": "player",
+        "class": "player",
+        "background": "player",
+        "abilities": "player",
+        "skills": "player",
+        "spells": "player",
+        "equipment": "player"
+      }
+    },
+    "oracle": {
+      "id": "W14",
+      "title": "High Elf Wizard/Sage (2014)",
+      "edition": "2014",
+      "creationData": {
+        "name": "Elf Wizard 2014",
+        "level": 1,
+        "edition": "2014",
+        "speciesSlug": "elf",
+        "selectedLineage": "high-elf",
+        "classSlug": "wizard",
+        "background": "sage",
+        "abilities": {
+          "STR": 8,
+          "DEX": 14,
+          "CON": 13,
+          "INT": 15,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "selectedSkills": [
+          "Insight",
+          "Investigation"
+        ],
+        "alignment": "True Neutral",
+        "abilityScoreMethod": "standard-array",
+        "equipmentChoices": [],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [
+            "fire-bolt",
+            "mage-hand",
+            "light",
+            "prestidigitation"
+          ],
+          "spellbook": [
+            "magic-missile",
+            "mage-armor",
+            "shield",
+            "sleep",
+            "detect-magic",
+            "feather-fall"
+          ],
+          "preparedSpells": [
+            "magic-missile",
+            "mage-armor",
+            "shield",
+            "sleep"
+          ]
+        },
+        "hpCalculationMethod": "max",
+        "personality": "",
+        "ideals": "",
+        "bonds": "",
+        "flaws": ""
+      },
+      "expected": {
+        "abilities": {
+          "STR": 8,
+          "DEX": 16,
+          "CON": 13,
+          "INT": 16,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "hp": 7,
+        "ac": 13,
+        "initiative": 3,
+        "speed": 30,
+        "saves": {
+          "proficient": [
+            "INT",
+            "WIS"
+          ],
+          "bonuses": {
+            "INT": 5,
+            "WIS": 3
+          }
+        },
+        "attacks": [
+          {
+            "name": "Fire Bolt",
+            "attackBonus": 5,
+            "damage": "1d10"
+          }
+        ],
+        "spells": {
+          "cantripsCount": 4,
+          "knownOrBookCount": 6,
+          "preparedCount": 4,
+          "spellAttackBonus": 5,
+          "spellSaveDC": 13
+        },
+        "features": [
+          "Spellcasting",
+          "Arcane Recovery",
+          "Darkvision",
+          "Fey Ancestry",
+          "Trance"
+        ],
+        "currency": {
+          "gp": 10
+        }
+      }
+    },
+    "character": {
+      "id": "",
+      "name": "Elf Wizard 2014",
+      "species": "Elf",
+      "race": "Elf",
+      "class": "Wizard",
+      "classSlug": "wizard",
+      "subclass": null,
+      "background": "sage",
+      "alignment": "True Neutral",
+      "edition": "2014",
+      "level": 1,
+      "proficiencyBonus": 2,
+      "armorClass": 13,
+      "hitPoints": 7,
+      "maxHitPoints": 7,
+      "temporaryHitPoints": 0,
+      "hitDice": {
+        "current": 1,
+        "max": 1,
+        "dieType": 6
+      },
+      "speed": 30,
+      "initiative": 3,
+      "inspiration": false,
+      "experiencePoints": 0,
+      "abilities": {
+        "STR": {
+          "score": 8,
+          "modifier": -1
+        },
+        "DEX": {
+          "score": 16,
+          "modifier": 3
+        },
+        "CON": {
+          "score": 13,
+          "modifier": 1
+        },
+        "INT": {
+          "score": 16,
+          "modifier": 3
+        },
+        "WIS": {
+          "score": 12,
+          "modifier": 1
+        },
+        "CHA": {
+          "score": 10,
+          "modifier": 0
+        }
+      },
+      "skills": {
+        "Acrobatics": {
+          "proficient": false,
+          "value": 3,
+          "expertise": false
+        },
+        "Animal Handling": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Arcana": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Athletics": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Deception": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "History": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Insight": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        },
+        "Intimidation": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Investigation": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Medicine": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Nature": {
+          "proficient": false,
+          "value": 3,
+          "expertise": false
+        },
+        "Perception": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        },
+        "Performance": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Persuasion": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Religion": {
+          "proficient": false,
+          "value": 3,
+          "expertise": false
+        },
+        "Sleight of Hand": {
+          "proficient": false,
+          "value": 3,
+          "expertise": false
+        },
+        "Stealth": {
+          "proficient": false,
+          "value": 3,
+          "expertise": false
+        },
+        "Survival": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        }
+      },
+      "languages": [],
+      "proficiencies": {
+        "armor": [],
+        "weapons": [
+          "Daggers",
+          "Darts",
+          "Slings",
+          "Quarterstaffs",
+          "Crossbows, light"
+        ],
+        "tools": []
+      },
+      "expertiseSkills": [],
+      "featuresAndTraits": {
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "classFeatures": [],
+        "racialTraits": [
+          "Darkvision",
+          "Fey Ancestry",
+          "Trance",
+          "Keen Senses"
+        ],
+        "speciesTraits": [
+          "Darkvision",
+          "Fey Ancestry",
+          "Trance",
+          "Keen Senses"
+        ],
+        "backgroundFeatures": [
+          {
+            "name": "Researcher",
+            "description": "When you attempt to learn or recall a piece of lore, if you do not know that information, you often know where and from whom you can obtain it."
+          }
+        ],
+        "musicalInstrumentProficiencies": []
+      },
+      "srdFeatures": {
+        "classFeatures": [],
+        "subclassFeatures": []
+      },
+      "selectedFeats": [],
+      "feats": [],
+      "selectedFightingStyle": null,
+      "spellcasting": {
+        "ability": "INT",
+        "spellSaveDC": 13,
+        "spellAttackBonus": 5,
+        "cantripsKnown": [
+          "fire-bolt",
+          "mage-hand",
+          "light",
+          "prestidigitation"
+        ],
+        "spellSlots": [
+          4,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "usedSpellSlots": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "spellcastingType": "wizard",
+        "cantripChoicesByLevel": {
+          "1": "fire-bolt,mage-hand,light,prestidigitation"
+        },
+        "spellbook": [
+          "magic-missile",
+          "mage-armor",
+          "shield",
+          "sleep",
+          "detect-magic",
+          "feather-fall"
+        ],
+        "preparedSpells": [
+          "magic-missile",
+          "mage-armor",
+          "shield",
+          "sleep"
+        ]
+      },
+      "castingSources": [],
+      "inventory": [
+        {
+          "equipmentSlug": "bottle-of-ink",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "quill",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "small-knife",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "letter-from-colleague",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "common-clothes",
+          "quantity": 1,
+          "equipped": false
+        }
+      ],
+      "equippedWeapons": [],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 10,
+        "pp": 0
+      },
+      "deathSaves": {
+        "successes": 0,
+        "failures": 0
+      },
+      "conditions": [],
+      "createdAt": "2026-10-25T16:17:22.179Z",
+      "updatedAt": "2026-10-25T16:17:22.179Z"
+    }
+  },
+  "W24": {
+    "draft": {
+      "draftVersion": 1,
+      "revision": 0,
+      "attemptId": "W24",
+      "creationData": {
+        "name": "Elf Wizard 2024",
+        "level": 1,
+        "edition": "2024",
+        "speciesSlug": "elf-2024",
+        "speciesSkillProficiency": "Survival",
+        "selectedLineage": "high-elf",
+        "classSlug": "wizard",
+        "background": "sage-2024",
+        "abilities": {
+          "STR": 8,
+          "DEX": 14,
+          "CON": 13,
+          "INT": 15,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "backgroundAbilityChoices": {
+          "method": "2/1",
+          "bonuses": {
+            "INT": 2,
+            "CON": 1
+          }
+        },
+        "originFeat": "magic-initiate-wizard",
+        "selectedSkills": [
+          "Insight",
+          "Investigation"
+        ],
+        "alignment": "True Neutral",
+        "abilityScoreMethod": "standard-array",
+        "equipmentChoices": [],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [
+            "fire-bolt",
+            "mage-hand",
+            "ray-of-frost"
+          ],
+          "spellbook": [
+            "magic-missile",
+            "shield",
+            "sleep",
+            "detect-magic",
+            "find-familiar",
+            "thunderwave"
+          ],
+          "preparedSpells": [
+            "magic-missile",
+            "shield",
+            "sleep",
+            "detect-magic"
+          ]
+        },
+        "hpCalculationMethod": "max",
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious."
+      },
+      "draftId": "W24",
+      "characterId": "W24",
+      "edition": "2024",
+      "level": 1,
+      "name": "Elf Wizard 2024",
+      "speciesSlug": "elf-2024",
+      "lineageSlug": "high-elf",
+      "classSlug": "wizard",
+      "backgroundSlug": "sage-2024",
+      "rawAbilityScores": {
+        "STR": 8,
+        "DEX": 14,
+        "CON": 13,
+        "INT": 15,
+        "WIS": 12,
+        "CHA": 10
+      },
+      "abilityMethod": "standard",
+      "abilityBonuses": {
+        "method": "2/1",
+        "bonuses": {
+          "INT": 2,
+          "CON": 1
+        }
+      },
+      "skills": [
+        "Insight",
+        "Investigation"
+      ],
+      "expertise": [],
+      "originFeat": "magic-initiate-wizard",
+      "languages": [],
+      "toolProficiencies": [],
+      "spells": {
+        "cantrips": [
+          "fire-bolt",
+          "mage-hand",
+          "ray-of-frost"
+        ],
+        "knownOrBook": [
+          "magic-missile",
+          "shield",
+          "sleep",
+          "detect-magic",
+          "find-familiar",
+          "thunderwave"
+        ],
+        "prepared": [
+          "magic-missile",
+          "shield",
+          "sleep",
+          "detect-magic"
+        ]
+      },
+      "loadout": {
+        "items": [
+          {
+            "id": "loadout-1",
+            "slug": "quarterstaff",
+            "name": "Quarterstaff",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "background"
+          },
+          {
+            "id": "loadout-2",
+            "slug": "calligrapher-supplies",
+            "name": "Calligrapher's Supplies",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "book-(history)",
+            "name": "Book (history)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-4",
+            "slug": "parchment-(8-sheets)",
+            "name": "Parchment (8 sheets)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "robe",
+            "name": "Robe",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          }
+        ],
+        "currency": {
+          "cp": 0,
+          "sp": 0,
+          "ep": 0,
+          "gp": 8,
+          "pp": 0
+        },
+        "totalValueGp": 8
+      },
+      "alignment": "True Neutral",
+      "personality": "Calm and observant.",
+      "ideals": "Protect others.",
+      "bonds": "The party.",
+      "flaws": "Too curious.",
+      "provenance": {
+        "species": "player",
+        "class": "player",
+        "background": "player",
+        "abilities": "player",
+        "skills": "player",
+        "spells": "player",
+        "equipment": "player"
+      }
+    },
+    "oracle": {
+      "id": "W24",
+      "title": "High Elf Wizard/Sage (2024)",
+      "edition": "2024",
+      "creationData": {
+        "name": "Elf Wizard 2024",
+        "level": 1,
+        "edition": "2024",
+        "speciesSlug": "elf-2024",
+        "speciesSkillProficiency": "Survival",
+        "selectedLineage": "high-elf",
+        "classSlug": "wizard",
+        "background": "sage-2024",
+        "abilities": {
+          "STR": 8,
+          "DEX": 14,
+          "CON": 13,
+          "INT": 15,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "backgroundAbilityChoices": {
+          "method": "2/1",
+          "bonuses": {
+            "INT": 2,
+            "CON": 1
+          }
+        },
+        "originFeat": "magic-initiate-wizard",
+        "selectedSkills": [
+          "Insight",
+          "Investigation"
+        ],
+        "alignment": "True Neutral",
+        "abilityScoreMethod": "standard-array",
+        "equipmentChoices": [],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [
+            "fire-bolt",
+            "mage-hand",
+            "ray-of-frost"
+          ],
+          "spellbook": [
+            "magic-missile",
+            "shield",
+            "sleep",
+            "detect-magic",
+            "find-familiar",
+            "thunderwave"
+          ],
+          "preparedSpells": [
+            "magic-missile",
+            "shield",
+            "sleep",
+            "detect-magic"
+          ]
+        },
+        "hpCalculationMethod": "max",
+        "personality": "",
+        "ideals": "",
+        "bonds": "",
+        "flaws": ""
+      },
+      "expected": {
+        "abilities": {
+          "STR": 8,
+          "DEX": 14,
+          "CON": 14,
+          "INT": 17,
+          "WIS": 12,
+          "CHA": 10
+        },
+        "hp": 8,
+        "ac": 12,
+        "initiative": 2,
+        "speed": 30,
+        "saves": {
+          "proficient": [
+            "INT",
+            "WIS"
+          ],
+          "bonuses": {
+            "INT": 5,
+            "WIS": 3
+          }
+        },
+        "attacks": [
+          {
+            "name": "Fire Bolt",
+            "attackBonus": 5,
+            "damage": "1d10"
+          }
+        ],
+        "spells": {
+          "cantripsCount": 3,
+          "knownOrBookCount": 6,
+          "preparedCount": 4,
+          "spellAttackBonus": 5,
+          "spellSaveDC": 13
+        },
+        "features": [
+          "Spellcasting",
+          "Arcane Recovery",
+          "Ritual Casting",
+          "Magic Initiate",
+          "Darkvision",
+          "Fey Ancestry"
+        ],
+        "currency": {
+          "gp": 13
+        }
+      }
+    },
+    "character": {
+      "id": "",
+      "name": "Elf Wizard 2024",
+      "species": "Elf",
+      "race": "Elf",
+      "class": "Wizard",
+      "classSlug": "wizard",
+      "subclass": null,
+      "background": "sage-2024",
+      "alignment": "True Neutral",
+      "edition": "2024",
+      "level": 1,
+      "proficiencyBonus": 2,
+      "armorClass": 12,
+      "hitPoints": 8,
+      "maxHitPoints": 8,
+      "temporaryHitPoints": 0,
+      "hitDice": {
+        "current": 1,
+        "max": 1,
+        "dieType": 6
+      },
+      "speed": 30,
+      "initiative": 2,
+      "inspiration": false,
+      "experiencePoints": 0,
+      "abilities": {
+        "STR": {
+          "score": 8,
+          "modifier": -1
+        },
+        "DEX": {
+          "score": 14,
+          "modifier": 2
+        },
+        "CON": {
+          "score": 14,
+          "modifier": 2
+        },
+        "INT": {
+          "score": 17,
+          "modifier": 3
+        },
+        "WIS": {
+          "score": 12,
+          "modifier": 1
+        },
+        "CHA": {
+          "score": 10,
+          "modifier": 0
+        }
+      },
+      "skills": {
+        "Acrobatics": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Animal Handling": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Arcana": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Athletics": {
+          "proficient": false,
+          "value": -1,
+          "expertise": false
+        },
+        "Deception": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "History": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Insight": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        },
+        "Intimidation": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Investigation": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Medicine": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Nature": {
+          "proficient": false,
+          "value": 3,
+          "expertise": false
+        },
+        "Perception": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Performance": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Persuasion": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Religion": {
+          "proficient": false,
+          "value": 3,
+          "expertise": false
+        },
+        "Sleight of Hand": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Stealth": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Survival": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        }
+      },
+      "languages": [],
+      "proficiencies": {
+        "armor": [],
+        "weapons": [
+          "Daggers",
+          "Darts",
+          "Slings",
+          "Quarterstaffs",
+          "Crossbows, light"
+        ],
+        "tools": [
+          "Calligrapher's Supplies"
+        ]
+      },
+      "expertiseSkills": [],
+      "featuresAndTraits": {
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "classFeatures": [],
+        "racialTraits": [
+          "Darkvision",
+          "Elven Lineage",
+          "Fey Ancestry",
+          "Keen Senses",
+          "Trance",
+          "Prestidigitation cantrip (can swap daily)"
+        ],
+        "speciesTraits": [
+          "Darkvision",
+          "Elven Lineage",
+          "Fey Ancestry",
+          "Keen Senses",
+          "Trance",
+          "Prestidigitation cantrip (can swap daily)"
+        ],
+        "backgroundFeatures": [
+          {
+            "name": "Background Feature",
+            "description": "A feature from your background."
+          }
+        ],
+        "musicalInstrumentProficiencies": []
+      },
+      "srdFeatures": {
+        "classFeatures": [],
+        "subclassFeatures": []
+      },
+      "selectedFeats": [
+        "magic-initiate"
+      ],
+      "feats": [
+        "magic-initiate"
+      ],
+      "originFeat": "magic-initiate",
+      "selectedFightingStyle": null,
+      "spellcasting": {
+        "ability": "INT",
+        "spellSaveDC": 13,
+        "spellAttackBonus": 5,
+        "cantripsKnown": [
+          "fire-bolt",
+          "mage-hand",
+          "ray-of-frost"
+        ],
+        "spellSlots": [
+          3,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "usedSpellSlots": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "spellcastingType": "wizard",
+        "cantripChoicesByLevel": {
+          "1": "fire-bolt,mage-hand,ray-of-frost"
+        },
+        "spellbook": [
+          "magic-missile",
+          "shield",
+          "sleep",
+          "detect-magic",
+          "find-familiar",
+          "thunderwave"
+        ],
+        "preparedSpells": [
+          "magic-missile",
+          "shield",
+          "sleep",
+          "detect-magic"
+        ]
+      },
+      "castingSources": [
+        {
+          "id": "feat:magic-initiate:wizard",
+          "sourceType": "feat",
+          "sourceSlug": "magic-initiate-wizard",
+          "ability": "INT",
+          "cantrips": [
+            "acid-splash",
+            "chill-touch"
+          ],
+          "knownSpells": [],
+          "preparedSpells": [
+            "shield"
+          ],
+          "freeUses": 1,
+          "allowClassSlots": true
+        },
+        {
+          "id": "species:elf:high-elf",
+          "sourceType": "species",
+          "sourceSlug": "high-elf",
+          "ability": "INT",
+          "cantrips": [
+            "prestidigitation"
+          ],
+          "knownSpells": [],
+          "preparedSpells": [],
+          "freeUses": 1,
+          "allowClassSlots": true
+        }
+      ],
+      "inventory": [
+        {
+          "equipmentSlug": "quarterstaff",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "calligrapher-supplies",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "book-(history)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "parchment-(8-sheets)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "robe",
+          "quantity": 1,
+          "equipped": false
+        }
+      ],
+      "equippedWeapons": [],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 8,
+        "pp": 0
+      },
+      "deathSaves": {
+        "successes": 0,
+        "failures": 0
+      },
+      "conditions": [],
+      "createdAt": "2026-10-25T16:17:22.191Z",
+      "updatedAt": "2026-10-25T16:17:22.191Z"
+    }
+  }
+}

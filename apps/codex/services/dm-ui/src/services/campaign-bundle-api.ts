@@ -63,6 +63,14 @@
  *   references to it dangle; the failure is reported in `SeedResult.failed`.
  */
 import type { CampaignSummary } from './campaign-api';
+import {
+  sessionPlanSchema,
+  type SessionPlan as ContractSessionPlan,
+} from '@nexus/game-contracts';
+import {
+  contractToAuthoring,
+  draftContractPlan,
+} from '../features/session-plan/authoringAdapter';
 import { createCampaign } from './campaign-api';
 import {
   buildMonsterCatalog,
@@ -536,6 +544,11 @@ function normalize(
         questIds: strings(raw.questIds),
         handoutIds: strings(raw.handoutIds),
         ...(raw.imagePath ? { imagePath: str(raw.imagePath) } : {}),
+        ...(raw.mapId ? { mapId: str(raw.mapId) } : {}),
+        ...(raw.pinId ? { pinId: str(raw.pinId) } : {}),
+        ...(raw.sceneTemplateId
+          ? { sceneTemplateId: str(raw.sceneTemplateId) }
+          : {}),
         notes: str(raw.notes),
       } satisfies CampaignLocation;
     }
@@ -955,12 +968,17 @@ function persistedFields(
       ? UNSUPPORTED_KEYS.filter(
           (key) => key !== 'encounterIds' && key !== 'clueIds',
         )
-      : UNSUPPORTED_KEYS;
+      : kind === 'location'
+        ? UNSUPPORTED_KEYS.filter(
+            (key) => !['mapId', 'pinId', 'sceneTemplateId'].includes(key),
+          )
+        : UNSUPPORTED_KEYS;
   const skip = new Set([
     'id',
     'campaignId',
     titleKey(kind),
     'objectiveIds',
+    ...(kind === 'session' ? ['plan'] : []),
     ...unsupported,
   ]);
   const fields: Record<string, unknown> = {};
@@ -1243,7 +1261,12 @@ function lifecycleOf(summary: CampaignSummary): CampaignLifecycle {
 interface Extras {
   sceneTemplates: { id: string; title: string }[];
   maps: { id: string; title: string }[];
-  plans: { id: string; title: string; status: string }[];
+  plans: {
+    id: string;
+    title: string;
+    status: string;
+    data?: ContractSessionPlan;
+  }[];
 }
 
 function buildBundle(
@@ -1292,7 +1315,14 @@ function buildBundle(
   const acts = list<CampaignAct>('act').sort((a, b) => a.order - b.order);
   const authoredSessions = list<CampaignSession & { planId?: string }>(
     'session',
-  ).sort((a, b) => a.number - b.number);
+  )
+    .map((session) => {
+      const data = extras.plans.find(
+        (plan) => plan.id === session.planId,
+      )?.data;
+      return data ? { ...session, plan: contractToAuthoring(data) } : session;
+    })
+    .sort((a, b) => a.number - b.number);
   const encounters = list<CampaignEncounter>('encounter');
   const playerCharacters = list<PlayerCharacter>('party-member');
   const homebrewMonsters = list<HomebrewMonster>('homebrew-monster').sort(
@@ -1331,6 +1361,8 @@ function buildBundle(
       encounterIds: [],
       clueIds: [],
       handoutIds: [],
+      planId: plan.id,
+      ...(plan.data ? { plan: contractToAuthoring(plan.data) } : {}),
     }));
   const sessions: CampaignSession[] = [...authoredSessions, ...planSessions];
   const sessionIdsFor = (field: 'questIds' | 'npcIds' | 'encounterIds') => {
@@ -1363,6 +1395,15 @@ function buildBundle(
       ? map.pins.map((pin, index) => ({
           ...pin,
           mapId: map.id,
+          locationId:
+            pin.locationId ||
+            locations.find((location) =>
+              pin.linkedObjectRefs?.some(
+                (ref) =>
+                  ref.target === 'campaign-object' && ref.id === location.id,
+              ),
+            )?.id ||
+            '',
           order: pin.order ?? index + 1,
           selectedByDefault: false,
         }))
@@ -1377,7 +1418,10 @@ function buildBundle(
         typeof summary.edition === 'string' && summary.edition
           ? summary.edition
           : base.campaign.edition || '2024',
-      mode: summary.mode === 'one-shot' ? ('one-shot' as const) : ('campaign' as const),
+      mode:
+        summary.mode === 'one-shot'
+          ? ('one-shot' as const)
+          : ('campaign' as const),
       ...(typeof summary.mood === 'string' && summary.mood
         ? { mood: summary.mood }
         : {}),
@@ -1418,6 +1462,9 @@ function buildBundle(
     objectives,
     locations: locations.map((location) => ({
       ...location,
+      mapId:
+        location.mapId ||
+        pins.find((pin) => pin.locationId === location.id)?.mapId,
       encounterIds: encounters
         .filter((encounter) => encounter.locationIds.includes(location.id))
         .map((encounter) => encounter.id),
@@ -1563,6 +1610,20 @@ export function createServerBundleStore(
         })),
     };
 
+    await Promise.all(
+      extras.plans.map(async (plan) => {
+        const detail = await http(`${objectsPath(campaign.id)}/${plan.id}`);
+        if (
+          !detail.ok ||
+          !isRecord(detail.body) ||
+          !isRecord(detail.body.revision)
+        )
+          return;
+        const parsed = sessionPlanSchema.safeParse(detail.body.revision.data);
+        if (parsed.success) plan.data = parsed.data;
+      }),
+    );
+
     const editable = live.filter((item) => EDITABLE_KINDS.includes(item.kind));
     const loaded = await mapPool(editable, LOAD_CONCURRENCY, async (item) => {
       const detail = await http(`${objectsPath(campaign.id)}/${item.id}`);
@@ -1597,6 +1658,72 @@ export function createServerBundleStore(
 
   const trackedRevision = (id: string): number | undefined =>
     items.get(id)?.revision;
+
+  const pendingSessionWrites = new Map<
+    string,
+    { fingerprint: string; body: Record<string, unknown> }
+  >();
+  async function writeSessionPlan(
+    entity: Entity,
+    tracked?: Tracked,
+  ): Promise<SaveResult> {
+    const priorPending = pendingSessionWrites.get(entity.id);
+    const pendingPlan = priorPending?.body.plan;
+    const planId =
+      str(entity.planId) ||
+      (isRecord(pendingPlan) ? str(pendingPlan.id) : '') ||
+      newId();
+    const linked = extras.plans.find((plan) => plan.id === planId);
+    entity.planId = planId;
+    const fingerprint = JSON.stringify({ entity, expected: tracked?.revision });
+    let pending = pendingSessionWrites.get(entity.id);
+    if (!pending || pending.fingerprint !== fingerprint) {
+      const now = new Date().toISOString();
+      const data = buildData(
+        campaign.id,
+        'session',
+        entity,
+        (tracked?.revision ?? 0) + 1,
+        tracked?.createdAt ?? now,
+        now,
+        trackedRevision,
+      );
+      const plan = draftContractPlan({
+        plan: entity.plan,
+        id: planId,
+        sessionId: entity.id,
+        campaignId: campaign.id,
+        title: str(entity.title),
+        revision: (linked?.data?.revision ?? 0) + 1,
+        createdAt: linked?.data?.createdAt ?? now,
+        updatedAt: now,
+      });
+      pending = {
+        fingerprint,
+        body: {
+          session: data,
+          plan,
+          expectedSessionRevision: tracked?.revision,
+          expectedPlanRevision: linked?.data?.revision,
+          requestId: newId(),
+        },
+      };
+      pendingSessionWrites.set(entity.id, pending);
+    }
+    const response = await http(
+      `/api/campaigns/${encodeURIComponent(campaign.id)}/prep/sessions/${entity.id}/authoring`,
+      { method: 'PUT', body: JSON.stringify(pending.body) },
+    );
+    if (!response.ok)
+      return {
+        ok: false,
+        conflict: response.status === 409,
+        error: response.error ?? 'The session plan could not be saved.',
+      };
+    pendingSessionWrites.delete(entity.id);
+    await load();
+    return { ok: true };
+  }
 
   async function write(
     kind: EditableKind,
@@ -1667,6 +1794,10 @@ export function createServerBundleStore(
       return { ok: false, error: 'not-found' };
     }
     const merged = mergeEntity(kind, tracked.entity, patch);
+    if (kind === 'session' && patch.plan !== undefined) {
+      merged.plan = patch.plan;
+      return writeSessionPlan(merged, tracked);
+    }
     const result = await write(kind, merged, tracked);
     if (!result.ok) {
       return {
@@ -1794,7 +1925,12 @@ export function createServerBundleStore(
     kind: EditableKind,
     draft: Record<string, unknown>,
   ): Promise<AddResult> {
-    const id = newId();
+    const id =
+      kind === 'session' &&
+      typeof draft.id === 'string' &&
+      /^[0-9a-f-]{36}$/i.test(draft.id)
+        ? draft.id
+        : newId();
     const entity = mergeEntity(
       kind,
       normalize(kind, { id }, campaign.id),
@@ -1815,6 +1951,11 @@ export function createServerBundleStore(
         .filter((item) => item.kind === 'session')
         .map((item) => Number(item.entity.number) || 0);
       entity.number = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+    }
+    if (kind === 'session' && draft.plan !== undefined) {
+      entity.plan = draft.plan;
+      const result = await writeSessionPlan(entity);
+      return { ...result, ...(result.ok ? { id } : {}) };
     }
     const result = await write(kind, entity, undefined);
     if (!result.ok) {

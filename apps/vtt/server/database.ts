@@ -19,6 +19,7 @@ import type {
   DatabaseConfig,
   OAuthProfile,
   CampaignRecord,
+  CampaignMetadata,
   CharacterRecord,
 } from './repositories/base.js';
 export type {
@@ -85,7 +86,6 @@ export class DatabaseService {
 
     console.log('✅ Database connection pool and repositories created');
   }
-
 
   /**
    * Executes a callback within an isolated PostgreSQL transaction.
@@ -205,8 +205,13 @@ export class DatabaseService {
     return this.users.validateLocalLogin(email, pass);
   }
 
-  async createCampaign(dmId: string, name: string, desc?: string) {
-    return this.campaigns.createCampaign(dmId, name, desc);
+  async createCampaign(
+    dmId: string,
+    name: string,
+    desc?: string,
+    metadata?: CampaignMetadata,
+  ) {
+    return this.campaigns.createCampaign(dmId, name, desc, metadata);
   }
   async getCampaignsByUser(id: string) {
     return this.campaigns.getCampaignsByUser(id);
@@ -232,6 +237,21 @@ export class DatabaseService {
 
   async createCharacter(ownerId: string, name: string, data: unknown) {
     return this.characters.createCharacter(ownerId, name, data);
+  }
+  async createCharacterOnce(
+    ownerId: string,
+    name: string,
+    data: unknown,
+    attemptId: string,
+    draftRevision: number,
+  ) {
+    return this.characters.createCharacterOnce(
+      ownerId,
+      name,
+      data,
+      attemptId,
+      draftRevision,
+    );
   }
   async getCharactersByUser(id: string) {
     return this.characters.getCharactersByUser(id);

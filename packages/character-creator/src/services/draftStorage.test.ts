@@ -6,6 +6,8 @@ import {
   clearDraftFromStorage,
   migrateDraft,
   CURRENT_DRAFT_VERSION,
+  decodeDraftRecord,
+  encodeDraftRecord,
 } from './draftStorage';
 import { REFERENCE_BUILDS } from '../tests/fixtures/referenceBuilds';
 import { creationDataToDraft } from '../adapters/draftAdapter';
@@ -32,9 +34,51 @@ describe('draftStorage (CC-501)', () => {
     };
   });
 
-  it('generates consistent sanitized storage keys', () => {
+  it('generates stable keys without colliding punctuation or identity case', () => {
     const key = createDraftStorageKey('Nexus-VTT!', 'User_123$');
-    expect(key).toBe('nexus_draft_nexus-vtt_user_123');
+    expect(key).toBe(createDraftStorageKey('Nexus-VTT!', 'User_123$'));
+    expect(key).not.toBe(createDraftStorageKey('nexus-vtt', 'user_123'));
+    expect(createDraftStorageKey('a:b', 'c')).not.toBe(
+      createDraftStorageKey('a', 'b:c'),
+    );
+  });
+
+  it('retains unsupported future envelopes and bare drafts for recovery', () => {
+    const draft = creationDataToDraft(REFERENCE_BUILDS.F24.creationData);
+    const future = JSON.stringify({ version: 99, draft });
+    expect(decodeDraftRecord(future)).toEqual({
+      status: 'unsupported',
+      version: 99,
+      raw: future,
+    });
+    expect(
+      decodeDraftRecord(JSON.stringify({ ...draft, draftVersion: 2 })).status,
+    ).toBe('unsupported');
+  });
+
+  it('rejects corrupt nested inventory and presentation without replacing the original bytes', () => {
+    const draft = creationDataToDraft(REFERENCE_BUILDS.F24.creationData);
+    const corrupt = JSON.stringify({
+      version: 1,
+      draft: { ...draft, loadout: { ...draft.loadout, items: [null] } },
+    });
+    expect(decodeDraftRecord(corrupt)).toMatchObject({
+      status: 'invalid',
+      raw: corrupt,
+    });
+    const missingCoins = JSON.stringify({
+      version: 1,
+      draft: { ...draft, loadout: { ...draft.loadout, currency: {} } },
+    });
+    expect(decodeDraftRecord(missingCoins).status).toBe('invalid');
+    const encoded = encodeDraftRecord({
+      draft,
+      presentation: { mode: 'full', step: 3 },
+    });
+    expect(decodeDraftRecord(encoded).status).toBe('ok');
+    expect(
+      decodeDraftRecord(encoded.replace('"step":3', '"step":-1')).status,
+    ).toBe('invalid');
   });
 
   it('saves and loads a draft successfully', () => {

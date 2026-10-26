@@ -43,6 +43,7 @@ export type {
 
 // Rules surface reused by host applications (character sheets, level-up, etc.)
 export * from './types/dnd';
+export type { CharacterCastingSource as CreatorCastingSource } from '@nexus/character-contracts';
 export { calculateCharacterStats } from './utils/characterCreationUtils';
 
 // Model conversion for hosts that persist the shared `@nexus/character-contracts`
@@ -93,6 +94,7 @@ export {
   type ResolvedEquipmentItem,
   type ResolvedCurrency,
   type DraftProvenance,
+  type CreatorPresentation,
 } from './types/draft';
 
 export {
@@ -142,6 +144,10 @@ export {
   clearDraftFromStorage,
   migrateDraft,
   CURRENT_DRAFT_VERSION,
+  encodeDraftRecord,
+  decodeDraftRecord,
+  type DraftRecordInput,
+  type DecodedDraftRecord,
   type DurableDraftRecord,
   type LoadDraftResult,
 } from './services/draftStorage';
@@ -153,7 +159,4 @@ export {
   type StudySessionMetrics,
 } from './services/studyRecorder';
 
-export {
-  generateFirstTurnGuidance,
-} from './services/guidanceService';
-
+export { generateFirstTurnGuidance } from './services/guidanceService';

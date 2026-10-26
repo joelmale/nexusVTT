@@ -11,6 +11,7 @@ import { useGameStore } from '@/stores/gameStore';
 export interface CommandExecutionResult {
   success: boolean;
   duplicate?: boolean;
+  uncertain?: boolean;
   receipt?: DomainCommandReceipt;
   error?: string;
 }
@@ -222,11 +223,12 @@ export class DomainCommandClient {
     preparedSpellSlugs: string[],
     options: {
       expectedVersion?: number;
+      commandId?: string;
       issuerUserId?: string;
     } = {},
   ): Promise<CommandExecutionResult> {
     const { user } = useGameStore.getState();
-    const commandId = crypto.randomUUID();
+    const commandId = options.commandId ?? crypto.randomUUID();
     const issuerUserId = options.issuerUserId || user?.id || 'anonymous';
 
     const command: DomainCommand = {
@@ -262,11 +264,12 @@ export class DomainCommandClient {
     options: {
       targetActorIds?: string[];
       expectedVersion?: number;
+      commandId?: string;
       issuerUserId?: string;
     } = {},
   ): Promise<CommandExecutionResult> {
     const { user } = useGameStore.getState();
-    const commandId = crypto.randomUUID();
+    const commandId = options.commandId ?? crypto.randomUUID();
     const issuerUserId = options.issuerUserId || user?.id || 'anonymous';
 
     const command: DomainCommand = {
@@ -301,11 +304,12 @@ export class DomainCommandClient {
     castId: string,
     options: {
       expectedVersion?: number;
+      commandId?: string;
       issuerUserId?: string;
     } = {},
   ): Promise<CommandExecutionResult> {
     const { user } = useGameStore.getState();
-    const commandId = crypto.randomUUID();
+    const commandId = options.commandId ?? crypto.randomUUID();
     const issuerUserId = options.issuerUserId || user?.id || 'anonymous';
 
     const command: DomainCommand = {
@@ -338,11 +342,12 @@ export class DomainCommandClient {
     options: {
       hitDiceToSpend?: number;
       expectedVersion?: number;
+      commandId?: string;
       issuerUserId?: string;
     } = {},
   ): Promise<CommandExecutionResult> {
     const { user } = useGameStore.getState();
-    const commandId = crypto.randomUUID();
+    const commandId = options.commandId ?? crypto.randomUUID();
     const issuerUserId = options.issuerUserId || user?.id || 'anonymous';
 
     const command: DomainCommand = {
@@ -519,6 +524,7 @@ export class DomainCommandClient {
       if (!response.ok || !data.success) {
         return {
           success: false,
+          uncertain: response.status >= 500 && !data.receipt,
           error: data.error || 'Command execution rejected',
           receipt: data.receipt,
         };
@@ -545,6 +551,7 @@ export class DomainCommandClient {
       console.error('Failed to dispatch domain command:', error);
       return {
         success: false,
+        uncertain: true,
         error:
           error instanceof Error
             ? error.message

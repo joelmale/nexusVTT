@@ -1,3 +1,6 @@
+import { getStartingEquipmentChoices } from './startingLoadout';
+import { masteryCount, masteryOptions } from './classGrantChoices';
+import { recommendedFeatProficiencies } from './featProficiencies';
 /**
  * CC-302 & CC-303: Deterministic Recommendation Policies & Starter Packages
  *
@@ -9,17 +12,25 @@
 
 import type { CreationDraft } from '../types/draft';
 import type { DraftEvaluationResult } from '../types/draft';
-import type { Edition, AbilityName, SkillName, CharacterCreationData } from '../types/dnd';
+import type {
+  Edition,
+  AbilityName,
+  SkillName,
+  CharacterCreationData,
+} from '../types/dnd';
 import { evaluateDraft } from './draftEvaluator';
-import { loadClasses, BACKGROUNDS, getAllSpecies } from './dataService';
+import {
+  loadClasses,
+  loadSpells,
+  BACKGROUNDS,
+  getAllSpecies,
+  SPELLS_KNOWN_BY_CLASS,
+} from './dataService';
+import { calculatePreparationLimit } from '@nexus/rules-5e';
 import { creationDataToDraft } from '../adapters/draftAdapter';
 
 export type CombatIntent =
-  | 'close_combat'
-  | 'archery'
-  | 'sneak'
-  | 'cast'
-  | 'support';
+  'close_combat' | 'archery' | 'sneak' | 'cast' | 'support';
 
 export interface RecommendationRequest {
   intent?: CombatIntent;
@@ -30,7 +41,10 @@ export interface RecommendationRequest {
   name?: string;
 }
 
-import { FirstTurnGuidance, generateFirstTurnGuidance } from './guidanceService';
+import {
+  FirstTurnGuidance,
+  generateFirstTurnGuidance,
+} from './guidanceService';
 export type { FirstTurnGuidance };
 export { generateFirstTurnGuidance };
 
@@ -125,14 +139,24 @@ const STARTER_SPELL_PACKAGES: Record<string, StarterSpellPackage> = {
       'Premier ranged firepower with Eldritch Blast, augmented by Hex and temporary warding from Armor of Agathys.',
   },
   sorcerer: {
-    cantrips: ['fire-bolt', 'ray-of-frost', 'shocking-grasp', 'prestidigitation'],
+    cantrips: [
+      'fire-bolt',
+      'ray-of-frost',
+      'shocking-grasp',
+      'prestidigitation',
+    ],
     preparedSpells: ['magic-missile', 'shield'],
     explanation:
       'High-impact elemental magic with dual attack cantrips, melee escape, and impenetrable Shield.',
   },
   bard: {
     cantrips: ['vicious-mockery', 'minor-illusion'],
-    preparedSpells: ['healing-word', 'dissonant-whispers', 'faerie-fire', 'thunderwave'],
+    preparedSpells: [
+      'healing-word',
+      'dissonant-whispers',
+      'faerie-fire',
+      'thunderwave',
+    ],
     explanation:
       'Supportive battlefield control with Vicious Mockery disadvantage, bonus action Healing Word, and Faerie Fire advantage.',
   },
@@ -148,7 +172,7 @@ const STARTER_SPELL_PACKAGES: Record<string, StarterSpellPackage> = {
  * Primary deterministic recommendation builder.
  */
 export function getRecommendation(
-  req: RecommendationRequest
+  req: RecommendationRequest,
 ): RecommendationResult {
   const edition = req.edition;
   const intent = req.intent || 'close_combat';
@@ -160,11 +184,14 @@ export function getRecommendation(
     (c) =>
       c.slug === targetClass ||
       c.name.toLowerCase() === targetClass ||
-      c.slug === `${targetClass}-${edition}`
+      c.slug === `${targetClass}-${edition}`,
   );
 
-  const finalClassSlug = classData ? classData.slug : 'fighter';
-  const isArcher = intent === 'archery' || (finalClassSlug === 'rogue' && intent === 'sneak');
+  if (!classData)
+    throw new Error(`Class ${targetClass} is unavailable in ${edition}.`);
+  const finalClassSlug = classData.slug;
+  const isArcher =
+    intent === 'archery' || (finalClassSlug === 'rogue' && intent === 'sneak');
 
   // Species resolution
   let speciesSlug = req.speciesSlug;
@@ -181,10 +208,12 @@ export function getRecommendation(
   const editionSpecies = allSpecies.filter((s) => s.edition === edition);
   const matchedSpecies =
     editionSpecies.find((s) => s.slug === speciesSlug) ||
-    editionSpecies.find((s) => s.name.toLowerCase() === speciesSlug?.toLowerCase()) ||
-    allSpecies.find((s) => s.slug === speciesSlug) ||
-    editionSpecies[0] ||
-    allSpecies[0];
+    editionSpecies.find(
+      (s) => s.name.toLowerCase() === speciesSlug?.toLowerCase(),
+    ) ||
+    undefined;
+  if (!matchedSpecies)
+    throw new Error(`Species ${speciesSlug} is unavailable in ${edition}.`);
 
   const fallbackSlug = edition === '2024' ? 'human-2024' : 'human';
   const finalSpeciesSlug = matchedSpecies ? matchedSpecies.slug : fallbackSlug;
@@ -208,7 +237,7 @@ export function getRecommendation(
     (b) =>
       b.slug === backgroundSlug ||
       b.slug === `${backgroundSlug}-${edition}` ||
-      b.name.toLowerCase() === backgroundSlug.toLowerCase()
+      b.name.toLowerCase() === backgroundSlug.toLowerCase(),
   );
   const bgSkills = new Set(bg?.skill_proficiencies || []);
 
@@ -240,17 +269,37 @@ export function getRecommendation(
           ? { method: '2/1' as const, bonuses: { DEX: 2, CON: 1 } }
           : { method: '2/1' as const, bonuses: { STR: 2, CON: 1 } }
         : finalClassSlug === 'rogue'
-        ? { method: '2/1' as const, bonuses: { DEX: 2, CON: 1 } }
-        : finalClassSlug === 'wizard'
-        ? { method: '2/1' as const, bonuses: { INT: 2, CON: 1 } }
-        : finalClassSlug === 'cleric'
-        ? { method: '2/1' as const, bonuses: { WIS: 2, CON: 1 } }
-        : { method: '2/1' as const, bonuses: { STR: 2, CON: 1 } }
+          ? { method: '2/1' as const, bonuses: { DEX: 2, CON: 1 } }
+          : finalClassSlug === 'wizard'
+            ? { method: '2/1' as const, bonuses: { INT: 2, CON: 1 } }
+            : finalClassSlug === 'cleric'
+              ? { method: '2/1' as const, bonuses: { WIS: 2, CHA: 1 } }
+              : { method: '2/1' as const, bonuses: { STR: 2, CON: 1 } }
       : undefined;
 
   // Expertise (Rogue)
+  const proficientSkills = [
+    ...new Set([...selectedSkills, ...(bg?.skill_proficiencies || [])]),
+  ];
+  const normalizeSkill = (skill: string) =>
+    skill.toLowerCase().replace(/[^a-z]/g, '');
+  const preferredExpertise = ['Stealth', 'Sleight of Hand'].filter((skill) =>
+    proficientSkills.some(
+      (value) => normalizeSkill(value) === normalizeSkill(skill),
+    ),
+  );
   const expertiseSkills =
-    finalClassSlug === 'rogue' ? ['Stealth', 'Sleight of Hand'] : undefined;
+    finalClassSlug === 'rogue'
+      ? [
+          ...preferredExpertise,
+          ...proficientSkills.filter(
+            (skill) =>
+              !preferredExpertise.some(
+                (value) => normalizeSkill(value) === normalizeSkill(skill),
+              ),
+          ),
+        ].slice(0, 2)
+      : undefined;
 
   // Fighting Style (Fighter, Paladin, Ranger)
   const fightingStyle =
@@ -268,15 +317,57 @@ export function getRecommendation(
         ? ['Heavy Crossbow', 'Longbow', 'Shortsword']
         : ['Greatsword', 'Flail', 'Javelin'];
     } else if (finalClassSlug === 'rogue') {
-      weaponMastery = ['Shortbow', 'Dagger', 'Shortsword'];
+      weaponMastery = ['Shortbow', 'Dagger'];
     }
   }
 
   // Spells
   const spellPkg = STARTER_SPELL_PACKAGES[finalClassSlug];
-  const cantrips = spellPkg?.cantrips || [];
-  const preparedSpells = spellPkg?.preparedSpells || [];
-  const spellbook = spellPkg?.spellbook || [];
+  const classSpells = loadSpells(edition).filter((spell) =>
+    spell.classes.includes(finalClassSlug),
+  );
+  const completeSpellList = (
+    preferred: string[],
+    count: number,
+    spellLevel: number,
+  ) =>
+    [
+      ...new Set([
+        ...preferred.filter((slug) =>
+          classSpells.some(
+            (spell) => spell.slug === slug && spell.level === spellLevel,
+          ),
+        ),
+        ...classSpells
+          .filter((spell) => spell.level === spellLevel)
+          .map((spell) => spell.slug),
+      ]),
+    ].slice(0, count);
+  const cantrips = completeSpellList(
+    spellPkg?.cantrips || [],
+    classData?.spellcasting?.cantripsKnown ?? 0,
+    0,
+  );
+  const knownCount =
+    edition === '2024'
+      ? calculatePreparationLimit(finalClassSlug, req.level || 1, 0, edition)
+      : ((SPELLS_KNOWN_BY_CLASS as Record<string, Record<string, number>>)[
+          finalClassSlug
+        ]?.[req.level || 1] ??
+        classData?.spellcasting?.spellsKnownOrPrepared ??
+        0);
+  const preparedSpells = completeSpellList(
+    spellPkg?.preparedSpells || [],
+    spellPkg
+      ? Math.min(spellPkg.preparedSpells.length, knownCount)
+      : knownCount,
+    1,
+  );
+  const spellbook = completeSpellList(
+    spellPkg?.spellbook || [],
+    finalClassSlug === 'wizard' ? 6 : 0,
+    1,
+  );
 
   // Assemble CharacterCreationData to adapt cleanly into CreationDraft
   const creationData: CharacterCreationData = {
@@ -296,24 +387,72 @@ export function getRecommendation(
     abilityScoreMethod: 'standard-array',
     backgroundAbilityChoices,
     selectedSkills,
+    speciesSkillProficiency:
+      edition === '2024' &&
+      ['human-2024', 'elf-2024'].includes(finalSpeciesSlug)
+        ? (['Perception', 'Insight', 'Survival'].find(
+            (skill) =>
+              !proficientSkills.some(
+                (value) => normalizeSkill(value) === normalizeSkill(skill),
+              ),
+          ) as SkillName)
+        : undefined,
+    humanOriginFeat:
+      edition === '2024' && finalSpeciesSlug === 'human-2024'
+        ? 'tough'
+        : undefined,
     expertiseSkills,
     selectedFightingStyle: fightingStyle,
-    weaponMastery,
-    equipmentChoices: [],
+    weaponMastery:
+      weaponMastery ??
+      masteryOptions({ classSlug: finalClassSlug, edition })
+        .slice(0, masteryCount({ classSlug: finalClassSlug, edition }))
+        .map((weapon) => weapon.name),
+    equipmentChoices: getStartingEquipmentChoices(
+      { classSlug: finalClassSlug, edition },
+      isArcher,
+    ),
+    selectedMusicalInstruments:
+      finalClassSlug === 'bard' ? ['Lute', 'Flute', 'Drum'] : [],
+    divineOrder:
+      finalClassSlug === 'cleric' && edition === '2024'
+        ? 'protector'
+        : undefined,
+    primalOrder:
+      finalClassSlug === 'druid' && edition === '2024' ? 'warden' : undefined,
+    eldritchInvocations:
+      finalClassSlug === 'warlock' && edition === '2024'
+        ? ['eldritch-mind']
+        : undefined,
     hpCalculationMethod: 'max',
     spellSelection: {
       selectedCantrips: cantrips,
-      knownSpells: finalClassSlug === 'wizard' ? [] : spellbook,
+      knownSpells: finalClassSlug === 'wizard' ? [] : preparedSpells,
       preparedSpells,
+      dailyPrepared: finalClassSlug === 'wizard' ? preparedSpells : undefined,
       spellbook: finalClassSlug === 'wizard' ? spellbook : undefined,
     },
     personality: 'Prepared and dependable.',
     ideals: 'Courage: Never back down from protecting others.',
     bonds: 'My companions can count on me in battle.',
     flaws: 'I sometimes underestimate unknown hazards.',
-  } as unknown as CharacterCreationData;
+  };
 
-  const draft = creationDataToDraft(creationData, { provenance: 'recommended' });
+  creationData.featChoices = recommendedFeatProficiencies(creationData);
+  const draft = creationDataToDraft(creationData, {
+    provenance: 'recommended',
+  });
+  if (isArcher) {
+    const ranged = draft.loadout.items.find((item) =>
+      /bow|crossbow/i.test(item.name),
+    );
+    if (ranged)
+      draft.loadout.items = draft.loadout.items.map((item) => ({
+        ...item,
+        equipped:
+          item.id === ranged.id || (item.equipped && item.slot === 'armor'),
+      }));
+  }
 
   // Evaluate Draft
   const evaluation = evaluateDraft(draft);
@@ -341,5 +480,3 @@ export function getRecommendation(
     evaluation,
   };
 }
-
-

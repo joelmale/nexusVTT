@@ -3,6 +3,7 @@ import type {
   CampaignSession,
   EntityKind,
 } from '@/demo/fixture-registry';
+import { selectNextSession } from './overviewModel';
 
 export type OneShotPacingStatus = 'under' | 'balanced' | 'over';
 export type OneShotSceneStatus = 'few' | 'ideal' | 'many';
@@ -67,10 +68,7 @@ export function buildOneShotModel(
 ): OneShotModel {
   const isOneShot = bundle.campaign.mode === 'one-shot';
 
-  const sessionId =
-    bundle.campaign.currentSessionId || bundle.catalog.selectedSessionId;
-  const session: CampaignSession | undefined =
-    bundle.sessions.find((s) => s.id === sessionId) ?? bundle.sessions[0];
+  const session: CampaignSession | undefined = selectNextSession(bundle);
 
   const scheduledLoot =
     session && Array.isArray(bundle.items)
@@ -266,28 +264,40 @@ export function buildOneShotModel(
       label: `Hook (${formatDuration(hookMinutes)})`,
       phase: 'hook',
       minutes: hookMinutes,
-      percentage: totalDurationMinutes > 0 ? (hookMinutes / totalDurationMinutes) * 100 : 0,
+      percentage:
+        totalDurationMinutes > 0
+          ? (hookMinutes / totalDurationMinutes) * 100
+          : 0,
     },
     ...scenes.map((s, idx) => ({
       id: `pacing-scene-${idx + 1}`,
       label: `Scene ${idx + 1}: ${s.title} (${formatDuration(s.durationMinutes)})`,
       phase: 'scene' as const,
       minutes: s.durationMinutes,
-      percentage: totalDurationMinutes > 0 ? (s.durationMinutes / totalDurationMinutes) * 100 : 0,
+      percentage:
+        totalDurationMinutes > 0
+          ? (s.durationMinutes / totalDurationMinutes) * 100
+          : 0,
     })),
     {
       id: 'pacing-climax',
       label: `Climax (${formatDuration(climaxMinutes)})`,
       phase: 'climax',
       minutes: climaxMinutes,
-      percentage: totalDurationMinutes > 0 ? (climaxMinutes / totalDurationMinutes) * 100 : 0,
+      percentage:
+        totalDurationMinutes > 0
+          ? (climaxMinutes / totalDurationMinutes) * 100
+          : 0,
     },
     {
       id: 'pacing-rewards',
       label: `Rewards (${formatDuration(rewardsMinutes)})`,
       phase: 'rewards',
       minutes: rewardsMinutes,
-      percentage: totalDurationMinutes > 0 ? (rewardsMinutes / totalDurationMinutes) * 100 : 0,
+      percentage:
+        totalDurationMinutes > 0
+          ? (rewardsMinutes / totalDurationMinutes) * 100
+          : 0,
     },
   ];
 

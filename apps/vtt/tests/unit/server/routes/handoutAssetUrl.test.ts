@@ -22,7 +22,15 @@ describe('createHandoutUrlResolver', () => {
     );
   });
 
-  it('ignores non-image assets and unknown ids', async () => {
+  it('resolves published plain-text handouts', async () => {
+    const resolve = createHandoutUrlResolver(
+      'http://assets',
+      listing([{ id: 'letter', fullImage: 'users/u1/letter.txt' }]),
+    );
+    await expect(resolve('u1', 'letter')).resolves.toBe('/users/u1/letter.txt');
+  });
+
+  it('ignores unsupported assets and unknown ids', async () => {
     const resolve = createHandoutUrlResolver(
       'http://assets',
       listing([

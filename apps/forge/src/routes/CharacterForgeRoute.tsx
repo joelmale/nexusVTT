@@ -1,12 +1,10 @@
 import React, { useCallback, useState } from 'react';
 
-import {
-  CharacterCreationWizard,
-  type CharacterCreationResult,
-} from '@nexus/character-creator';
+import { type CharacterCreationResult } from '@nexus/character-creator';
 import Hammer from 'lucide-react/dist/esm/icons/hammer';
 
 import { addCharacter } from '../services/dbService';
+import { ForgeCharacterCreator } from '../components/ForgeCharacterCreator';
 
 export const CharacterForgeRoute: React.FC = () => {
   const [isWizardOpen, setIsWizardOpen] = useState(true);
@@ -67,7 +65,7 @@ export const CharacterForgeRoute: React.FC = () => {
         </section>
       )}
 
-      <CharacterCreationWizard
+      <ForgeCharacterCreator
         isOpen={isWizardOpen}
         edition="2024"
         submitLabel="Save Character"

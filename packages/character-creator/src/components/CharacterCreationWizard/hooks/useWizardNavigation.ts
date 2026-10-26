@@ -7,7 +7,7 @@ import { calculateFeatAvailability } from '../../../utils/featUtils';
 export const useWizardNavigation = (
   currentStep: number,
   setCurrentStep: (step: number) => void,
-  creationData: CharacterCreationData
+  creationData: CharacterCreationData,
 ) => {
   const stepTitles = getStepTitles(creationData.edition || '2014');
 
@@ -40,15 +40,21 @@ export const useWizardNavigation = (
     setCurrentStep(finalStep);
   }, [currentStep, setCurrentStep, creationData]);
 
-  const skipToStep = useCallback((step: number) => {
-    // Find the next valid step from the target step
-    let targetStep = step;
-    while (targetStep < stepTitles.length && !shouldShowStep(targetStep, creationData)) {
-      targetStep++;
-    }
+  const skipToStep = useCallback(
+    (step: number) => {
+      // Find the next valid step from the target step
+      let targetStep = step;
+      while (
+        targetStep < stepTitles.length &&
+        !shouldShowStep(targetStep, creationData)
+      ) {
+        targetStep++;
+      }
 
-    setCurrentStep(Math.min(Math.max(targetStep, 0), stepTitles.length - 1));
-  }, [setCurrentStep, creationData, stepTitles]);
+      setCurrentStep(Math.min(Math.max(targetStep, 0), stepTitles.length - 1));
+    },
+    [setCurrentStep, creationData, stepTitles],
+  );
 
   const getNextStepLabel = useCallback(() => {
     let nextStepIndex = currentStep + 1;
@@ -59,7 +65,8 @@ export const useWizardNavigation = (
         let label = stepTitles[nextStepIndex].split(':')[0].trim(); // Get the main title
 
         // Make labels level-aware
-        if (label.includes('Class')) { // Generic check for Class step title
+        if (label.includes('Class')) {
+          // Generic check for Class step title
           if (creationData.level >= 3) {
             label = 'Choose Class & Subclass';
           } else {
@@ -87,7 +94,7 @@ export const useWizardNavigation = (
       stepTitles
         .map((_, index) => index)
         .filter((index) => shouldShowStep(index, creationData)),
-    [stepTitles, creationData]
+    [stepTitles, creationData],
   );
 
   return {
@@ -109,56 +116,87 @@ export const useWizardNavigation = (
 // I need to refactor `shouldShowStep` to rely on the step CONTENT, not index.
 // Or I need separate `shouldShowStep2014` and `shouldShowStep2024`.
 
-const shouldShowStep = (stepIndex: number, data: CharacterCreationData): boolean => {
+const shouldShowStep = (
+  stepIndex: number,
+  data: CharacterCreationData,
+): boolean => {
   const edition = data.edition || '2014';
-  
+
   // Define the Logic Map based on Edition
   if (edition === '2024') {
-     // 2024 Map:
-     // 0: Level
-     // 1: Class
-     // 2: Identity (Bg)
-     // 3: Species
-     // 4: Abilities
-     // 5: High Level
-     // 6: ASI
-     // 7: Fighting Style
-     // 8: Spells
-     // 9: Feats
-     // ...
-     switch (stepIndex) {
-        case 0: return true; // Level
-        case 1: return true; // Class
-        case 2: return true; // Identity
-        case 3: return true; // Species
-        case 4: return true; // Abilities
-        case 5: return data.level >= 2; // High Level
-        case 6: return data.level >= 4; // ASI
-        case 7: return (data.classSlug === 'fighter' && data.level >= 1) || (['paladin', 'ranger'].includes(data.classSlug) && data.level >= 2); // Fighting Style
-        case 8: return hasSpellcastingAtLevel(data.classSlug, data.level); // Spells
-        case 9: return calculateFeatAvailability(data) > 0; // Feats
-        default: return true; // Rest are usually always shown
-     }
+    // 2024 Map:
+    // 0: Level
+    // 1: Class
+    // 2: Identity (Bg)
+    // 3: Species
+    // 4: Abilities
+    // 5: High Level
+    // 6: ASI
+    // 7: Fighting Style
+    // 8: Spells
+    // 9: Feats
+    // ...
+    switch (stepIndex) {
+      case 0:
+        return true; // Level
+      case 1:
+        return true; // Class
+      case 2:
+        return true; // Identity
+      case 3:
+        return true; // Species
+      case 4:
+        return true; // Abilities
+      case 5:
+        return data.level >= 2; // High Level
+      case 6:
+        return data.level >= 4; // ASI
+      case 7:
+        return (
+          (data.classSlug === 'fighter' && data.level >= 1) ||
+          (['paladin', 'ranger'].includes(data.classSlug) && data.level >= 2)
+        ); // Fighting Style
+      case 8:
+        return hasSpellcastingAtLevel(data.classSlug, data.level, data.edition); // Spells
+      case 9:
+        return calculateFeatAvailability(data) > 0; // Feats
+      default:
+        return true; // Rest are usually always shown
+    }
   } else {
-     // 2014 Map (Original):
-     // 0: Level
-     // 1: Identity
-     // 2: Species
-     // 3: Class
-     // 4: Abilities
-     // ...
-     switch (stepIndex) {
-        case 0: return true;
-        case 1: return true;
-        case 2: return true;
-        case 3: return true;
-        case 4: return true;
-        case 5: return data.level >= 2;
-        case 6: return data.level >= 4;
-        case 7: return (data.classSlug === 'fighter' && data.level >= 1) || (['paladin', 'ranger'].includes(data.classSlug) && data.level >= 2);
-        case 8: return hasSpellcastingAtLevel(data.classSlug, data.level);
-        case 9: return calculateFeatAvailability(data) > 0;
-        default: return true;
-     }
+    // 2014 Map (Original):
+    // 0: Level
+    // 1: Identity
+    // 2: Species
+    // 3: Class
+    // 4: Abilities
+    // ...
+    switch (stepIndex) {
+      case 0:
+        return true;
+      case 1:
+        return true;
+      case 2:
+        return true;
+      case 3:
+        return true;
+      case 4:
+        return true;
+      case 5:
+        return data.level >= 2;
+      case 6:
+        return data.level >= 4;
+      case 7:
+        return (
+          (data.classSlug === 'fighter' && data.level >= 1) ||
+          (['paladin', 'ranger'].includes(data.classSlug) && data.level >= 2)
+        );
+      case 8:
+        return hasSpellcastingAtLevel(data.classSlug, data.level, data.edition);
+      case 9:
+        return calculateFeatAvailability(data) > 0;
+      default:
+        return true;
+    }
   }
 };

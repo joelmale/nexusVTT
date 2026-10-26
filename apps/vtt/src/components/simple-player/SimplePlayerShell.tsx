@@ -2,7 +2,6 @@ import React, { Suspense, useEffect, useState } from 'react';
 import Dices from 'lucide-react/dist/esm/icons/dices';
 import MapIcon from 'lucide-react/dist/esm/icons/map';
 import User from 'lucide-react/dist/esm/icons/user';
-import type { Character } from '@nexus/character-contracts';
 import type {
   SimpleTabId,
   UseSimplePlayerModeReturn,
@@ -73,14 +72,9 @@ export const SimplePlayerShell: React.FC<SimplePlayerShellProps> = ({
   const sideTab: SimpleTabId =
     session.isSpectator && activeTab === 'hero' ? 'rolls' : activeTab;
 
-  const handleCreated = async (characterId: string, character?: Character) => {
+  const handleCreated = (characterId: string) => {
+    useCharacterStore.getState().setActiveCharacter(characterId);
     setCreatorOpen(false);
-    if (character) {
-      const result = await session.submitCharacter(character);
-      if (result.status === 'applied') {
-        useCharacterStore.getState().setActiveCharacter(characterId);
-      }
-    }
   };
 
   const panel = (tab: SimpleTabId) =>
@@ -256,7 +250,7 @@ export const SimplePlayerShell: React.FC<SimplePlayerShellProps> = ({
           <Suspense fallback={<p role="status">Loading character creator…</p>}>
             <SharedCharacterCreator
               playerId={session.userId}
-              onComplete={(id, character) => void handleCreated(id, character)}
+              onComplete={handleCreated}
               onCancel={() => setCreatorOpen(false)}
             />
           </Suspense>

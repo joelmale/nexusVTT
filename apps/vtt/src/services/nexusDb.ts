@@ -5,7 +5,7 @@
 export const DB_NAME = 'NexusVTT';
 // v5: Added tempStorage for generator
 // v6: Unified owner repair and schema versioning
-export const DB_VERSION = 6;
+export const DB_VERSION = 7;
 
 export interface StoreDescriptor {
   name: string;
@@ -14,6 +14,7 @@ export interface StoreDescriptor {
 }
 
 export const STORES: Record<string, StoreDescriptor> = {
+  CHARACTER_DRAFTS: { name: 'characterDrafts', keyPath: 'id' },
   MAPS: {
     name: 'maps',
     keyPath: 'id',
@@ -42,7 +43,9 @@ let currentDbVersion = DB_VERSION;
  */
 function ensureStore(db: IDBDatabase, descriptor: StoreDescriptor) {
   if (!db.objectStoreNames.contains(descriptor.name)) {
-    const store = db.createObjectStore(descriptor.name, { keyPath: descriptor.keyPath });
+    const store = db.createObjectStore(descriptor.name, {
+      keyPath: descriptor.keyPath,
+    });
     if (descriptor.indexes) {
       for (const index of descriptor.indexes) {
         store.createIndex(index.name, index.keyPath, { unique: index.unique });
@@ -57,7 +60,7 @@ function ensureStore(db: IDBDatabase, descriptor: StoreDescriptor) {
  * If so, it returns true, indicating a version bump is needed for repair.
  * Also returns the current version of the database.
  */
-async function needsRepair(): Promise<{missing: boolean, version: number}> {
+async function needsRepair(): Promise<{ missing: boolean; version: number }> {
   return new Promise((resolve) => {
     const request = indexedDB.open(DB_NAME);
     request.onblocked = () => {
@@ -107,7 +110,9 @@ export async function repairMissingStores(): Promise<void> {
     currentDbVersion = status.version;
   }
   if (status.missing) {
-    console.warn(`⚠️ Database missing required stores. Bumping version for repair...`);
+    console.warn(
+      `⚠️ Database missing required stores. Bumping version for repair...`,
+    );
     currentDbVersion += 1;
   }
 }
@@ -123,13 +128,21 @@ export async function openNexusDB(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, currentDbVersion);
 
     request.onblocked = () => {
-      console.warn(`⚠️ IndexedDB open blocked. Please close other NexusVTT tabs and refresh.`);
-      reject(new Error('Database upgrade blocked by another tab. Please close other tabs and refresh.'));
+      console.warn(
+        `⚠️ IndexedDB open blocked. Please close other NexusVTT tabs and refresh.`,
+      );
+      reject(
+        new Error(
+          'Database upgrade blocked by another tab. Please close other tabs and refresh.',
+        ),
+      );
     };
 
     request.onupgradeneeded = (event) => {
       const db = request.result;
-      console.log(`🔧 IndexedDB upgrade: v${event.oldVersion} → v${event.newVersion}`);
+      console.log(
+        `🔧 IndexedDB upgrade: v${event.oldVersion} → v${event.newVersion}`,
+      );
 
       // Idempotent upgrade logic
       for (const store of Object.values(STORES)) {
@@ -139,9 +152,11 @@ export async function openNexusDB(): Promise<IDBDatabase> {
 
     request.onsuccess = () => {
       const db = request.result;
-      
+
       db.onversionchange = () => {
-        console.warn('⚠️ Database version change requested by another tab. Closing connection to allow upgrade.');
+        console.warn(
+          '⚠️ Database version change requested by another tab. Closing connection to allow upgrade.',
+        );
         db.close();
         activeDb = null;
       };

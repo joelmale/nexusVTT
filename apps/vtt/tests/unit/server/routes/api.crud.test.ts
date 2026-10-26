@@ -62,6 +62,63 @@ describe('api.ts core CRUD routes', () => {
     }
   });
 
+  describe('character creation attempt contract', () => {
+    it('uses the owner-scoped receipt path and returns the canonical record', async () => {
+      const character = {
+        id: 'canonical-character',
+        data: { id: 'canonical-character' },
+      };
+      ctx = await startApp({
+        authUser: { id: 'owner' },
+        db: {
+          createCharacterOnce: vi.fn().mockResolvedValue(character),
+          getCharactersByUser: vi.fn(),
+        },
+      });
+      const response = await fetch(`${ctx.baseUrl}/api/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Hero',
+          data: { id: 'client-id' },
+          creationAttemptId: 'attempt-one',
+          draftRevision: 3,
+        }),
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual(character);
+      expect(ctx.db.createCharacterOnce).toHaveBeenCalledWith(
+        'owner',
+        'Hero',
+        { id: 'client-id' },
+        'attempt-one',
+        3,
+      );
+      expect(ctx.db.getCharactersByUser).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { creationAttemptId: 'attempt' },
+      { draftRevision: 1 },
+      { creationAttemptId: '', draftRevision: 1 },
+      { creationAttemptId: 'attempt', draftRevision: 1.5 },
+      { creationAttemptId: 'attempt', draftRevision: 0 },
+      { creationAttemptId: 'a'.repeat(129), draftRevision: 1 },
+    ])('rejects malformed attempt metadata %j', async (metadata) => {
+      ctx = await startApp({
+        authUser: { id: 'owner' },
+        db: { createCharacterOnce: vi.fn() },
+      });
+      const response = await fetch(`${ctx.baseUrl}/api/characters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Hero', data: {}, ...metadata }),
+      });
+      expect(response.status).toBe(400);
+      expect(ctx.db.createCharacterOnce).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Campaign routes', () => {
     it('GET /api/campaigns requires authentication', async () => {
       ctx = await startApp({});
@@ -115,20 +172,29 @@ describe('api.ts core CRUD routes', () => {
       const res = await fetch(`${ctx.baseUrl}/api/campaigns`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'New Campaign', description: 'Fun adventure' }),
+        body: JSON.stringify({
+          name: 'New Campaign',
+          description: 'Fun adventure',
+        }),
       });
 
       expect(res.status).toBe(201);
       const data = await res.json();
       expect(data).toEqual(created);
-      expect(ctx.db.createCampaign).toHaveBeenCalledWith('u1', 'New Campaign', 'Fun adventure');
+      expect(ctx.db.createCampaign).toHaveBeenCalledWith(
+        'u1',
+        'New Campaign',
+        'Fun adventure',
+      );
     });
 
     it('PUT /api/campaigns/:id checks ownership and updates campaign', async () => {
       ctx = await startApp({
         authUser: { id: 'u1' },
         db: {
-          getCampaignById: vi.fn().mockResolvedValue({ id: 'c-1', dmId: 'u1', name: 'Old' }),
+          getCampaignById: vi
+            .fn()
+            .mockResolvedValue({ id: 'c-1', dmId: 'u1', name: 'Old' }),
           updateCampaign: vi.fn().mockResolvedValue(undefined),
         },
       });
@@ -145,11 +211,117 @@ describe('api.ts core CRUD routes', () => {
       });
     });
 
+    it('preserves one-shot, edition and mood metadata when creating a campaign', async () => {
+      const metadata = { edition: '2014', mode: 'one-shot', mood: 'grimdark' };
+      ctx = await startApp({
+        authUser: { id: 'u1' },
+        db: {
+          createCampaign: vi
+            .fn()
+            .mockResolvedValue({ id: 'campaign-new', ...metadata }),
+        },
+      });
+      const response = await fetch(`${ctx.baseUrl}/api/campaigns`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'One evening', ...metadata }),
+      });
+      expect(response.status).toBe(201);
+      expect(ctx.db.createCampaign).toHaveBeenCalledWith(
+        'u1',
+        'One evening',
+        undefined,
+        metadata,
+      );
+    });
+
+    it.each(['PATCH', 'PUT'])(
+      '%s persists explicit metadata without inventing omitted fields',
+      async (method) => {
+        ctx = await startApp({
+          authUser: { id: 'u1' },
+          db: {
+            getCampaignById: vi
+              .fn()
+              .mockResolvedValue({ id: 'c1', dmId: 'u1' }),
+            updateCampaign: vi.fn().mockResolvedValue(undefined),
+          },
+        });
+        const response = await fetch(`${ctx.baseUrl}/api/campaigns/c1`, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mood: null, mode: 'one-shot' }),
+        });
+        expect(response.status).toBe(200);
+        expect(ctx.db.updateCampaign).toHaveBeenCalledWith('c1', {
+          mood: null,
+          mode: 'one-shot',
+        });
+      },
+    );
+
+    it.each([
+      { edition: '2025' },
+      { edition: null },
+      { mode: 'one-off' },
+      { mode: null },
+      { mood: 'unknown' },
+      { mood: 42 },
+    ])(
+      'rejects invalid campaign metadata %j on create and update',
+      async (metadata) => {
+        ctx = await startApp({
+          authUser: { id: 'u1' },
+          db: {
+            createCampaign: vi.fn(),
+            getCampaignById: vi
+              .fn()
+              .mockResolvedValue({ id: 'c1', dmId: 'u1' }),
+            updateCampaign: vi.fn(),
+          },
+        });
+        for (const [url, method] of [
+          ['/api/campaigns', 'POST'],
+          ['/api/campaigns/c1', 'PUT'],
+        ]) {
+          const response = await fetch(`${ctx.baseUrl}${url}`, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: 'Campaign', ...metadata }),
+          });
+          expect(response.status).toBe(400);
+        }
+        expect(ctx.db.createCampaign).not.toHaveBeenCalled();
+        expect(ctx.db.updateCampaign).not.toHaveBeenCalled();
+      },
+    );
+
+    it('PATCH campaign metadata retains the existing owner permission boundary', async () => {
+      ctx = await startApp({
+        authUser: { id: 'intruder' },
+        db: {
+          getCampaignById: vi
+            .fn()
+            .mockResolvedValue({ id: 'c1', dmId: 'owner' }),
+          updateCampaign: vi.fn(),
+        },
+      });
+      const response = await fetch(`${ctx.baseUrl}/api/campaigns/c1`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mood: 'feywild' }),
+      });
+      expect(response.status).toBe(403);
+      expect(ctx.db.updateCampaign).not.toHaveBeenCalled();
+    });
+
     it('PUT /api/campaigns/:id denies update for non-owner', async () => {
       ctx = await startApp({
         authUser: { id: 'u-intruder' },
         db: {
-          getCampaignById: vi.fn().mockResolvedValue({ id: 'c-1', dmId: 'u-owner' }),
+          getCampaignById: vi
+            .fn()
+            .mockResolvedValue({ id: 'c-1', dmId: 'u-owner' }),
         },
       });
 
@@ -185,8 +357,20 @@ describe('api.ts core CRUD routes', () => {
       const now = new Date();
       const older = new Date(now.getTime() - 1000);
       const chars = [
-        { id: 'c-1', name: 'Hero', ownerId: 'u1', data: { hp: 10 }, updatedAt: now },
-        { id: 'c-2', name: 'Hero', ownerId: 'u1', data: { hp: 10 }, updatedAt: older }, // Duplicate!
+        {
+          id: 'c-1',
+          name: 'Hero',
+          ownerId: 'u1',
+          data: { hp: 10 },
+          updatedAt: now,
+        },
+        {
+          id: 'c-2',
+          name: 'Hero',
+          ownerId: 'u1',
+          data: { hp: 10 },
+          updatedAt: older,
+        }, // Duplicate!
       ];
 
       ctx = await startApp({
@@ -212,9 +396,17 @@ describe('api.ts core CRUD routes', () => {
         db: {
           getCharacterById: vi
             .fn()
-            .mockResolvedValueOnce({ id: 'c-1', ownerId: 'u1', name: 'My Hero' })
+            .mockResolvedValueOnce({
+              id: 'c-1',
+              ownerId: 'u1',
+              name: 'My Hero',
+            })
             .mockResolvedValueOnce(null)
-            .mockResolvedValueOnce({ id: 'c-3', ownerId: 'other-user', name: 'Enemy Hero' }),
+            .mockResolvedValueOnce({
+              id: 'c-3',
+              ownerId: 'other-user',
+              name: 'Enemy Hero',
+            }),
         },
       });
 
@@ -254,14 +446,18 @@ describe('api.ts core CRUD routes', () => {
         body: JSON.stringify({ name: 'Ranger', data: { level: 1 } }),
       });
       expect(goodRes.status).toBe(201);
-      expect(ctx.db.createCharacter).toHaveBeenCalledWith('u1', 'Ranger', { level: 1 });
+      expect(ctx.db.createCharacter).toHaveBeenCalledWith('u1', 'Ranger', {
+        level: 1,
+      });
     });
 
     it('PUT /api/characters/:id updates owned character', async () => {
       ctx = await startApp({
         authUser: { id: 'u1' },
         db: {
-          getCharacterById: vi.fn().mockResolvedValue({ id: 'c-1', ownerId: 'u1' }),
+          getCharacterById: vi
+            .fn()
+            .mockResolvedValue({ id: 'c-1', ownerId: 'u1' }),
           updateCharacter: vi.fn().mockResolvedValue(undefined),
         },
       });
@@ -282,7 +478,9 @@ describe('api.ts core CRUD routes', () => {
       ctx = await startApp({
         authUser: { id: 'u1' },
         db: {
-          getCharacterById: vi.fn().mockResolvedValue({ id: 'c-1', ownerId: 'u1' }),
+          getCharacterById: vi
+            .fn()
+            .mockResolvedValue({ id: 'c-1', ownerId: 'u1' }),
           deleteCharacter: vi.fn().mockResolvedValue(undefined),
           deleteCharactersByUser: vi.fn().mockResolvedValue(3),
         },
@@ -309,7 +507,9 @@ describe('api.ts core CRUD routes', () => {
         authUser: { id: 'u1' },
         db: {
           getUserPreferences: vi.fn().mockResolvedValue(prefs),
-          updateUserPreferences: vi.fn().mockResolvedValue({ ...prefs, allowSpectators: false }),
+          updateUserPreferences: vi
+            .fn()
+            .mockResolvedValue({ ...prefs, allowSpectators: false }),
         },
       });
 
@@ -323,15 +523,20 @@ describe('api.ts core CRUD routes', () => {
         body: JSON.stringify({ allowSpectators: false }),
       });
       expect(putRes.status).toBe(200);
-      expect(ctx.db.updateUserPreferences).toHaveBeenCalledWith('u1', expect.objectContaining({
-        allowSpectators: false,
-      }));
+      expect(ctx.db.updateUserPreferences).toHaveBeenCalledWith(
+        'u1',
+        expect.objectContaining({
+          allowSpectators: false,
+        }),
+      );
     });
 
     it('POST /api/guest-users creates or returns guest', async () => {
       ctx = await startApp({
         db: {
-          createGuestUser: vi.fn().mockResolvedValue({ id: 'guest-1', name: 'Traveler' }),
+          createGuestUser: vi
+            .fn()
+            .mockResolvedValue({ id: 'guest-1', name: 'Traveler' }),
         },
       });
 
@@ -343,7 +548,11 @@ describe('api.ts core CRUD routes', () => {
 
       expect(res.status).toBe(201);
       const data = await res.json();
-      expect(data).toMatchObject({ id: 'guest-1', name: 'Traveler', provider: 'guest' });
+      expect(data).toMatchObject({
+        id: 'guest-1',
+        name: 'Traveler',
+        provider: 'guest',
+      });
     });
 
     it('GET /api/client-config returns devToolsEnabled flag', async () => {

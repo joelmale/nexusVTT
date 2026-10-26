@@ -67,7 +67,9 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     // Resolve the base token asset (synchronous in-memory lookup; the
     // parent gates the whole layer behind `assetsReady`, same as before).
     const token: Token | undefined = placedToken
-      ? tokenAssetManager.getTokenById(placedToken.tokenId) ?? undefined
+      ? (tokenAssetManager.getTokenById(placedToken.tokenId) ??
+        placedToken.baseToken ??
+        undefined)
       : undefined;
 
     const canEdit = isHost || placedToken?.placedBy === currentUserId;
@@ -94,7 +96,14 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
           isSelected,
         });
       }
-    }, [isSelected, canEdit, activeTool, canInteract, placedTokenId, token?.name]);
+    }, [
+      isSelected,
+      canEdit,
+      activeTool,
+      canInteract,
+      placedTokenId,
+      token?.name,
+    ]);
 
     // Transient drag: imperative rAF-batched `transform` writes during the
     // gesture (no setState/store writes), exactly one commit on release.
@@ -135,7 +144,7 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
       }
 
       e.stopPropagation();
-      console.log('✅ stopPropagation called, event won\'t reach DrawingTools');
+      console.log("✅ stopPropagation called, event won't reach DrawingTools");
 
       // Select this token (or add to multi-select with Shift/Cmd/Ctrl)
       const isMultiSelect = e.shiftKey || e.metaKey || e.ctrlKey;
@@ -239,324 +248,330 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
             touchAction: canInteract ? 'none' : undefined,
           }}
         >
-        {/* Token Image */}
-        <image
-          ref={imageRef}
-          href={token.image}
-          x={-tokenSize / 2}
-          y={-tokenSize / 2}
-          width={tokenSize}
-          height={tokenSize}
-          style={{
-            opacity: isGhost ? 0.5 : 1,
-            filter: placedToken.isDead ? 'grayscale(100%)' : 'none',
-          }}
-        />
+          {/* Token Image */}
+          <image
+            ref={imageRef}
+            href={token.image}
+            x={-tokenSize / 2}
+            y={-tokenSize / 2}
+            width={tokenSize}
+            height={tokenSize}
+            style={{
+              opacity: isGhost ? 0.5 : 1,
+              filter: placedToken.isDead ? 'grayscale(100%)' : 'none',
+            }}
+          />
 
-        {/* DM Ghost / Stealth View indicator */}
-        {isGhost && (
-          <g data-testid="token-ghost-indicator">
-            <circle
-              cx={0}
-              cy={0}
-              r={tokenSize / 2 + 3}
-              fill="none"
-              stroke="#38bdf8"
-              strokeWidth={2}
-              strokeDasharray="4,4"
-              opacity={0.9}
-            />
-            {/* DM Eye Badge in upper-left corner */}
-            <g transform={`translate(${-tokenSize / 2 + 4}, ${-tokenSize / 2 + 4})`}>
+          {/* DM Ghost / Stealth View indicator */}
+          {isGhost && (
+            <g data-testid="token-ghost-indicator">
               <circle
                 cx={0}
                 cy={0}
-                r={9}
-                fill="rgba(15, 23, 42, 0.85)"
+                r={tokenSize / 2 + 3}
+                fill="none"
                 stroke="#38bdf8"
-                strokeWidth={1}
+                strokeWidth={2}
+                strokeDasharray="4,4"
+                opacity={0.9}
               />
-              <text
-                x={0}
-                y={3}
-                textAnchor="middle"
-                fontSize="11"
-                dominantBaseline="central"
-                style={{ userSelect: 'none', pointerEvents: 'none' }}
+              {/* DM Eye Badge in upper-left corner */}
+              <g
+                transform={`translate(${-tokenSize / 2 + 4}, ${-tokenSize / 2 + 4})`}
               >
-                👁️
-              </text>
+                <circle
+                  cx={0}
+                  cy={0}
+                  r={9}
+                  fill="rgba(15, 23, 42, 0.85)"
+                  stroke="#38bdf8"
+                  strokeWidth={1}
+                />
+                <text
+                  x={0}
+                  y={3}
+                  textAnchor="middle"
+                  fontSize="11"
+                  dominantBaseline="central"
+                  style={{ userSelect: 'none', pointerEvents: 'none' }}
+                >
+                  👁️
+                </text>
+              </g>
             </g>
-          </g>
-        )}
+          )}
 
-        {/* Dead indicator - Black X */}
-        {placedToken.isDead && (
-          <g>
-            {/* X mark */}
-            <line
-              x1={-tokenSize / 3}
-              y1={-tokenSize / 3}
-              x2={tokenSize / 3}
-              y2={tokenSize / 3}
-              stroke="#000"
-              strokeWidth={4}
-              strokeLinecap="round"
-            />
-            <line
-              x1={tokenSize / 3}
-              y1={-tokenSize / 3}
-              x2={-tokenSize / 3}
-              y2={tokenSize / 3}
-              stroke="#000"
-              strokeWidth={4}
-              strokeLinecap="round"
-            />
-            {/* White outline for visibility */}
-            <line
-              x1={-tokenSize / 3}
-              y1={-tokenSize / 3}
-              x2={tokenSize / 3}
-              y2={tokenSize / 3}
-              stroke="#fff"
-              strokeWidth={6}
-              strokeLinecap="round"
-              opacity={0.3}
-            />
-            <line
-              x1={tokenSize / 3}
-              y1={-tokenSize / 3}
-              x2={-tokenSize / 3}
-              y2={tokenSize / 3}
-              stroke="#fff"
-              strokeWidth={6}
-              strokeLinecap="round"
-              opacity={0.3}
-            />
-          </g>
-        )}
+          {/* Dead indicator - Black X */}
+          {placedToken.isDead && (
+            <g>
+              {/* X mark */}
+              <line
+                x1={-tokenSize / 3}
+                y1={-tokenSize / 3}
+                x2={tokenSize / 3}
+                y2={tokenSize / 3}
+                stroke="#000"
+                strokeWidth={4}
+                strokeLinecap="round"
+              />
+              <line
+                x1={tokenSize / 3}
+                y1={-tokenSize / 3}
+                x2={-tokenSize / 3}
+                y2={tokenSize / 3}
+                stroke="#000"
+                strokeWidth={4}
+                strokeLinecap="round"
+              />
+              {/* White outline for visibility */}
+              <line
+                x1={-tokenSize / 3}
+                y1={-tokenSize / 3}
+                x2={tokenSize / 3}
+                y2={tokenSize / 3}
+                stroke="#fff"
+                strokeWidth={6}
+                strokeLinecap="round"
+                opacity={0.3}
+              />
+              <line
+                x1={tokenSize / 3}
+                y1={-tokenSize / 3}
+                x2={-tokenSize / 3}
+                y2={tokenSize / 3}
+                stroke="#fff"
+                strokeWidth={6}
+                strokeLinecap="round"
+                opacity={0.3}
+              />
+            </g>
+          )}
 
-        {/* Selection indicator */}
-        {isSelected && (
-          <circle
-            cx={0}
-            cy={0}
-            r={tokenSize / 2 + 5}
-            fill="none"
-            stroke="var(--color-primary)"
-            strokeWidth={3}
-            strokeDasharray="5,5"
-          />
-        )}
-
-        {/* Token border */}
-        <circle
-          cx={0}
-          cy={0}
-          r={tokenSize / 2}
-          fill="none"
-          stroke={placedToken.dmNotesOnly ? '#ff0000' : '#333'}
-          strokeWidth={2}
-          opacity={0.8}
-        />
-
-        {/* Dual Condition Aura Ring - Pulsing perimeter circle colored by primary condition */}
-        {placedToken.conditions.length > 0 && (() => {
-          const primaryCond = placedToken.conditions[0];
-          const standardRule = getConditionById(primaryCond.id);
-          const auraColor = primaryCond.color || standardRule?.color || '#a855f7';
-          return (
+          {/* Selection indicator */}
+          {isSelected && (
             <circle
-              data-testid="token-condition-aura"
               cx={0}
               cy={0}
               r={tokenSize / 2 + 5}
               fill="none"
-              stroke={auraColor}
+              stroke="var(--color-primary)"
               strokeWidth={3}
-              opacity={0.8}
-              strokeDasharray="4,2"
-              style={{
-                filter: `drop-shadow(0 0 6px ${auraColor})`,
-              }}
+              strokeDasharray="5,5"
             />
-          );
-        })()}
+          )}
 
-        {/* Status Badges with custom Icon & 5e rule definitions */}
-        {placedToken.conditions.length > 0 && (
-          <g
-            data-testid="token-conditions-badges"
-            transform={`translate(${tokenSize / 2 - 2}, ${-tokenSize / 2 + 2})`}
-          >
-            {placedToken.conditions.slice(0, 4).map((condition, index) => {
-              const rule = getConditionById(condition.id);
-              const badgeSize = Math.max(18, Math.min(26, tokenSize * 0.35));
-              const offset = index * (badgeSize + 4);
-              const badgeColor = condition.color || rule?.color || '#6366f1';
-              const description =
-                rule?.description || condition.description || 'Active status condition';
+          {/* Token border */}
+          <circle
+            cx={0}
+            cy={0}
+            r={tokenSize / 2}
+            fill="none"
+            stroke={placedToken.dmNotesOnly ? '#ff0000' : '#333'}
+            strokeWidth={2}
+            opacity={0.8}
+          />
 
+          {/* Dual Condition Aura Ring - Pulsing perimeter circle colored by primary condition */}
+          {placedToken.conditions.length > 0 &&
+            (() => {
+              const primaryCond = placedToken.conditions[0];
+              const standardRule = getConditionById(primaryCond.id);
+              const auraColor =
+                primaryCond.color || standardRule?.color || '#a855f7';
               return (
-                <g
-                  key={condition.id || index}
-                  transform={`translate(${-offset}, 0)`}
-                  data-testid={`condition-badge-${condition.id}`}
-                >
-                  <circle
-                    cx={0}
-                    cy={0}
-                    r={badgeSize / 2}
-                    fill="rgba(15, 23, 42, 0.9)"
-                    stroke={badgeColor}
-                    strokeWidth={1.5}
-                  />
-                  <foreignObject
-                    x={-badgeSize / 2 + 1}
-                    y={-badgeSize / 2 + 1}
-                    width={badgeSize - 2}
-                    height={badgeSize - 2}
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    <div
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: `${badgeSize * 0.55}px`,
-                      }}
-                    >
-                      <Icon
-                        id={`condition:${condition.id.toLowerCase()}`}
-                        fallback={condition.icon || rule?.icon || '🌀'}
-                        size={Math.round(badgeSize - 4)}
-                      />
-                    </div>
-                  </foreignObject>
-                  <title>{`${condition.name}: ${description}`}</title>
-                </g>
+                <circle
+                  data-testid="token-condition-aura"
+                  cx={0}
+                  cy={0}
+                  r={tokenSize / 2 + 5}
+                  fill="none"
+                  stroke={auraColor}
+                  strokeWidth={3}
+                  opacity={0.8}
+                  strokeDasharray="4,2"
+                  style={{
+                    filter: `drop-shadow(0 0 6px ${auraColor})`,
+                  }}
+                />
               );
-            })}
-          </g>
-        )}
+            })()}
 
-        {/* Token Health Bar (Synchronous SVG anchored directly inside canvas group - ADR-0005) */}
-        {hpStats && (
-          <g
-            transform={`translate(${-barWidth / 2}, ${tokenSize / 2 + 4})`}
-            data-testid="token-health-bar"
-          >
-            {/* Background track */}
-            <rect
-              x={0}
-              y={0}
-              width={barWidth}
-              height={barHeight}
-              rx={2}
-              fill="rgba(0, 0, 0, 0.75)"
-              stroke="rgba(255, 255, 255, 0.2)"
-              strokeWidth={0.5}
-            />
-            {/* Fill bar */}
-            <rect
-              x={0}
-              y={0}
-              width={fillWidth}
-              height={barHeight}
-              rx={2}
-              fill={hpColor}
-            />
-            <title>{`HP: ${hpStats.current} / ${hpStats.max}`}</title>
-          </g>
-        )}
+          {/* Status Badges with custom Icon & 5e rule definitions */}
+          {placedToken.conditions.length > 0 && (
+            <g
+              data-testid="token-conditions-badges"
+              transform={`translate(${tokenSize / 2 - 2}, ${-tokenSize / 2 + 2})`}
+            >
+              {placedToken.conditions.slice(0, 4).map((condition, index) => {
+                const rule = getConditionById(condition.id);
+                const badgeSize = Math.max(18, Math.min(26, tokenSize * 0.35));
+                const offset = index * (badgeSize + 4);
+                const badgeColor = condition.color || rule?.color || '#6366f1';
+                const description =
+                  rule?.description ||
+                  condition.description ||
+                  'Active status condition';
 
-        {/* Token dead marker (Red X overlay) */}
-        {placedToken.isDead && (
-          <g data-testid="token-dead-marker">
-            <line
-              x1={-tokenSize * 0.35}
-              y1={-tokenSize * 0.35}
-              x2={tokenSize * 0.35}
-              y2={tokenSize * 0.35}
-              stroke="#ef4444"
-              strokeWidth={Math.max(3, tokenSize * 0.08)}
-              strokeLinecap="round"
-            />
-            <line
-              x1={tokenSize * 0.35}
-              y1={-tokenSize * 0.35}
-              x2={-tokenSize * 0.35}
-              y2={tokenSize * 0.35}
-              stroke="#ef4444"
-              strokeWidth={Math.max(3, tokenSize * 0.08)}
-              strokeLinecap="round"
-            />
-          </g>
-        )}
-
-        {/* Token elevation badge (for flying/swimming) */}
-        {typeof placedToken.elevation === 'number' &&
-          placedToken.elevation !== 0 && (
-            <g transform={`translate(${-tokenSize / 2}, ${-tokenSize / 2})`}>
-              <rect
-                x={-6}
-                y={-14}
-                width={42}
-                height={14}
-                rx={3}
-                fill="rgba(15, 23, 42, 0.9)"
-                stroke="#38bdf8"
-                strokeWidth={1}
-              />
-              <text
-                x={15}
-                y={-4}
-                fill="#38bdf8"
-                fontSize={9}
-                fontWeight="bold"
-                textAnchor="middle"
-              >
-                {placedToken.elevation > 0
-                  ? `+${placedToken.elevation}ft`
-                  : `${placedToken.elevation}ft`}
-              </text>
+                return (
+                  <g
+                    key={condition.id || index}
+                    transform={`translate(${-offset}, 0)`}
+                    data-testid={`condition-badge-${condition.id}`}
+                  >
+                    <circle
+                      cx={0}
+                      cy={0}
+                      r={badgeSize / 2}
+                      fill="rgba(15, 23, 42, 0.9)"
+                      stroke={badgeColor}
+                      strokeWidth={1.5}
+                    />
+                    <foreignObject
+                      x={-badgeSize / 2 + 1}
+                      y={-badgeSize / 2 + 1}
+                      width={badgeSize - 2}
+                      height={badgeSize - 2}
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: `${badgeSize * 0.55}px`,
+                        }}
+                      >
+                        <Icon
+                          id={`condition:${condition.id.toLowerCase()}`}
+                          fallback={condition.icon || rule?.icon || '🌀'}
+                          size={Math.round(badgeSize - 4)}
+                        />
+                      </div>
+                    </foreignObject>
+                    <title>{`${condition.name}: ${description}`}</title>
+                  </g>
+                );
+              })}
             </g>
           )}
 
-        {/* Token label */}
-        {effectiveName ? (
-          <text
-            x={0}
-            y={tokenSize / 2 + (hpStats ? 20 : 15)}
-            textAnchor="middle"
-            fill="#fff"
-            stroke="#000"
-            strokeWidth={2}
-            paintOrder="stroke"
-            fontSize={12}
-            fontWeight="bold"
-          >
-            {effectiveName}
-          </text>
-        ) : null}
-      </g>
-      {isSelected && !isDragging && (
-        <TokenContextMenu
-          tokenId={placedTokenId}
-          sceneId={sceneId}
-          worldX={placedToken.x}
-          worldY={placedToken.y}
-          isDragging={isDragging}
-          onEdit={() =>
-            window.dispatchEvent(
-              new CustomEvent('open-panel', { detail: 'tokens' }),
-            )
-          }
-        />
-      )}
-    </>
-  );
+          {/* Token Health Bar (Synchronous SVG anchored directly inside canvas group - ADR-0005) */}
+          {hpStats && (
+            <g
+              transform={`translate(${-barWidth / 2}, ${tokenSize / 2 + 4})`}
+              data-testid="token-health-bar"
+            >
+              {/* Background track */}
+              <rect
+                x={0}
+                y={0}
+                width={barWidth}
+                height={barHeight}
+                rx={2}
+                fill="rgba(0, 0, 0, 0.75)"
+                stroke="rgba(255, 255, 255, 0.2)"
+                strokeWidth={0.5}
+              />
+              {/* Fill bar */}
+              <rect
+                x={0}
+                y={0}
+                width={fillWidth}
+                height={barHeight}
+                rx={2}
+                fill={hpColor}
+              />
+              <title>{`HP: ${hpStats.current} / ${hpStats.max}`}</title>
+            </g>
+          )}
+
+          {/* Token dead marker (Red X overlay) */}
+          {placedToken.isDead && (
+            <g data-testid="token-dead-marker">
+              <line
+                x1={-tokenSize * 0.35}
+                y1={-tokenSize * 0.35}
+                x2={tokenSize * 0.35}
+                y2={tokenSize * 0.35}
+                stroke="#ef4444"
+                strokeWidth={Math.max(3, tokenSize * 0.08)}
+                strokeLinecap="round"
+              />
+              <line
+                x1={tokenSize * 0.35}
+                y1={-tokenSize * 0.35}
+                x2={-tokenSize * 0.35}
+                y2={tokenSize * 0.35}
+                stroke="#ef4444"
+                strokeWidth={Math.max(3, tokenSize * 0.08)}
+                strokeLinecap="round"
+              />
+            </g>
+          )}
+
+          {/* Token elevation badge (for flying/swimming) */}
+          {typeof placedToken.elevation === 'number' &&
+            placedToken.elevation !== 0 && (
+              <g transform={`translate(${-tokenSize / 2}, ${-tokenSize / 2})`}>
+                <rect
+                  x={-6}
+                  y={-14}
+                  width={42}
+                  height={14}
+                  rx={3}
+                  fill="rgba(15, 23, 42, 0.9)"
+                  stroke="#38bdf8"
+                  strokeWidth={1}
+                />
+                <text
+                  x={15}
+                  y={-4}
+                  fill="#38bdf8"
+                  fontSize={9}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                >
+                  {placedToken.elevation > 0
+                    ? `+${placedToken.elevation}ft`
+                    : `${placedToken.elevation}ft`}
+                </text>
+              </g>
+            )}
+
+          {/* Token label */}
+          {effectiveName ? (
+            <text
+              x={0}
+              y={tokenSize / 2 + (hpStats ? 20 : 15)}
+              textAnchor="middle"
+              fill="#fff"
+              stroke="#000"
+              strokeWidth={2}
+              paintOrder="stroke"
+              fontSize={12}
+              fontWeight="bold"
+            >
+              {effectiveName}
+            </text>
+          ) : null}
+        </g>
+        {isSelected && !isDragging && (
+          <TokenContextMenu
+            tokenId={placedTokenId}
+            sceneId={sceneId}
+            worldX={placedToken.x}
+            worldY={placedToken.y}
+            isDragging={isDragging}
+            onEdit={() =>
+              window.dispatchEvent(
+                new CustomEvent('open-panel', { detail: 'tokens' }),
+              )
+            }
+          />
+        )}
+      </>
+    );
   },
 );

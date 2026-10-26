@@ -1,5 +1,16 @@
-import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, User, Heart, Target, Link2, Frown, Dices } from 'lucide-react';
+import React from 'react';
+import { useCreationSession } from '../../hooks/useCreationSession';
+import { CastingGrantChoices } from '../CastingGrantChoices';
+import {
+  ArrowLeft,
+  ArrowRight,
+  User,
+  Heart,
+  Target,
+  Link2,
+  Frown,
+  Dices,
+} from 'lucide-react';
 import { CharacterProfile } from '../../data/characterProfiles';
 import { Edition } from '../../types/dnd';
 import {
@@ -8,7 +19,6 @@ import {
   generateRandomIdeal,
   generateRandomBond,
   generateRandomFlaw,
-  generateAllCharacterDetails
 } from '../../utils/randomCharacterGenerator';
 
 interface CharacterFinalizationProps {
@@ -29,15 +39,31 @@ interface CharacterFinalizationProps {
 }
 
 const ALIGNMENTS = [
-  { value: 'Lawful Good', short: 'LG', description: 'Honor, compassion, and duty' },
+  {
+    value: 'Lawful Good',
+    short: 'LG',
+    description: 'Honor, compassion, and duty',
+  },
   { value: 'Neutral Good', short: 'NG', description: 'Kindness without bias' },
   { value: 'Chaotic Good', short: 'CG', description: 'Freedom and kindness' },
   { value: 'Lawful Neutral', short: 'LN', description: 'Order and tradition' },
   { value: 'True Neutral', short: 'N', description: 'Balance and pragmatism' },
-  { value: 'Chaotic Neutral', short: 'CN', description: 'Freedom and independence' },
+  {
+    value: 'Chaotic Neutral',
+    short: 'CN',
+    description: 'Freedom and independence',
+  },
   { value: 'Lawful Evil', short: 'LE', description: 'Tyranny and control' },
-  { value: 'Neutral Evil', short: 'NE', description: 'Selfishness without remorse' },
-  { value: 'Chaotic Evil', short: 'CE', description: 'Destruction and cruelty' }
+  {
+    value: 'Neutral Evil',
+    short: 'NE',
+    description: 'Selfishness without remorse',
+  },
+  {
+    value: 'Chaotic Evil',
+    short: 'CE',
+    description: 'Destruction and cruelty',
+  },
 ];
 
 const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
@@ -47,18 +73,28 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
   selectedBackground,
   edition, // Add edition to props
   onCreateCharacter,
-  onBack
+  onBack,
 }) => {
-  const [name, setName] = useState(() => generateAllCharacterDetails(selectedSpecies, edition).name);
-  const [alignment, setAlignment] = useState('True Neutral');
-  const [personality, setPersonality] = useState(() => generateAllCharacterDetails(selectedSpecies, edition).personality);
-  const [ideals, setIdeals] = useState(() => generateAllCharacterDetails(selectedSpecies, edition).ideals);
-  const [bonds, setBonds] = useState(() => generateAllCharacterDetails(selectedSpecies, edition).bonds);
-  const [flaws, setFlaws] = useState(() => generateAllCharacterDetails(selectedSpecies, edition).flaws);
+  const session = useCreationSession({ edition });
+  const name = session.data.name;
+  const alignment = session.data.alignment || 'True Neutral';
+  const personality = session.data.personality;
+  const ideals = session.data.ideals;
+  const bonds = session.data.bonds;
+  const flaws = session.data.flaws;
+  const setName = (name: string) => session.updateData({ name });
+  const setAlignment = (alignment: string) => session.updateData({ alignment });
+  const setPersonality = (personality: string) =>
+    session.updateData({ personality });
+  const setIdeals = (ideals: string) => session.updateData({ ideals });
+  const setBonds = (bonds: string) => session.updateData({ bonds });
+  const setFlaws = (flaws: string) => session.updateData({ flaws });
 
   // Randomize handlers
-  const randomizeName = () => setName(generateRandomName(selectedSpecies, edition));
-  const randomizePersonality = () => setPersonality(generateRandomPersonality());
+  const randomizeName = () =>
+    setName(generateRandomName(selectedSpecies, edition));
+  const randomizePersonality = () =>
+    setPersonality(generateRandomPersonality());
   const randomizeIdeals = () => setIdeals(generateRandomIdeal());
   const randomizeBonds = () => setBonds(generateRandomBond());
   const randomizeFlaws = () => setFlaws(generateRandomFlaw());
@@ -75,13 +111,17 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
       personality,
       ideals,
       bonds,
-      flaws
+      flaws,
     });
   };
 
   return (
     <div className="min-h-screen bg-theme-primary text-white font-sans">
       <div className="max-w-4xl mx-auto p-4 md:p-8">
+        <CastingGrantChoices
+          data={session.data}
+          onChange={session.updateData}
+        />
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
@@ -91,13 +131,17 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
           </button>
-          <h1 className="text-3xl font-bold text-accent-purple-light">Finalize Your Character</h1>
+          <h1 className="text-3xl font-bold text-accent-purple-light">
+            Finalize Your Character
+          </h1>
           <div className="w-24"></div>
         </div>
 
         {/* Character Summary */}
         <div className="bg-theme-secondary rounded-xl p-6 mb-6">
-          <h2 className="text-xl font-bold text-accent-yellow-light mb-4">Character Summary</h2>
+          <h2 className="text-xl font-bold text-accent-yellow-light mb-4">
+            Character Summary
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <span className="text-theme-muted">Profile:</span>
@@ -113,7 +157,9 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
             </div>
             <div className="md:col-span-3">
               <span className="text-theme-muted">Background:</span>
-              <div className="text-white font-semibold">{selectedBackground}</div>
+              <div className="text-white font-semibold">
+                {selectedBackground}
+              </div>
             </div>
           </div>
         </div>
@@ -123,7 +169,9 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <User className="w-5 h-5 text-accent-purple-light mr-2" />
-              <h3 className="text-lg font-semibold text-accent-purple-light">Character Name</h3>
+              <h3 className="text-lg font-semibold text-accent-purple-light">
+                Character Name
+              </h3>
             </div>
             <button
               onClick={randomizeName}
@@ -138,6 +186,7 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            aria-label="Character name"
             placeholder="Enter your character's name..."
             className="w-full p-3 bg-theme-tertiary border border-theme-primary rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
@@ -145,7 +194,9 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
 
         {/* Alignment Selection */}
         <div className="bg-theme-secondary rounded-xl p-6 mb-6">
-          <h3 className="text-lg font-semibold text-accent-blue-light mb-4">Alignment</h3>
+          <h3 className="text-lg font-semibold text-accent-blue-light mb-4">
+            Alignment
+          </h3>
           <div className="grid grid-cols-3 gap-3">
             {ALIGNMENTS.map((align) => (
               <button
@@ -158,7 +209,9 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
                 }`}
               >
                 <div className="font-bold text-blue-300">{align.short}</div>
-                <div className="text-xs text-theme-tertiary mt-1">{align.description}</div>
+                <div className="text-xs text-theme-tertiary mt-1">
+                  {align.description}
+                </div>
               </button>
             ))}
           </div>
@@ -169,7 +222,9 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <Heart className="w-5 h-5 text-pink-400 mr-2" />
-              <h3 className="text-lg font-semibold text-pink-400">Personality Traits</h3>
+              <h3 className="text-lg font-semibold text-pink-400">
+                Personality Traits
+              </h3>
             </div>
             <button
               onClick={randomizePersonality}
@@ -194,7 +249,9 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <Target className="w-5 h-5 text-accent-yellow-light mr-2" />
-              <h3 className="text-lg font-semibold text-accent-yellow-light">Ideals</h3>
+              <h3 className="text-lg font-semibold text-accent-yellow-light">
+                Ideals
+              </h3>
             </div>
             <button
               onClick={randomizeIdeals}
@@ -222,7 +279,9 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <Link2 className="w-5 h-5 text-accent-green-light mr-2" />
-              <h3 className="text-lg font-semibold text-accent-green-light">Bonds</h3>
+              <h3 className="text-lg font-semibold text-accent-green-light">
+                Bonds
+              </h3>
             </div>
             <button
               onClick={randomizeBonds}
@@ -247,7 +306,9 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <Frown className="w-5 h-5 text-accent-red-light mr-2" />
-              <h3 className="text-lg font-semibold text-accent-red-light">Flaws</h3>
+              <h3 className="text-lg font-semibold text-accent-red-light">
+                Flaws
+              </h3>
             </div>
             <button
               onClick={randomizeFlaws}

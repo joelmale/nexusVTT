@@ -37,6 +37,9 @@ vi.mock('../../../../src/services/commandClient', () => ({
     startEncounter: vi.fn(),
   },
 }));
+vi.mock('@/services/encounterRunClient', () => ({
+  placeEncounterTokens: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('../../../../src/services/panelRegistry', () => ({
   panelRegistry: {
@@ -167,6 +170,7 @@ describe('SessionPlanPanel', () => {
         scenes: [
           {
             id: 'scene-docks-1',
+            sourceTemplateRef: { id: 'scene-docks-1', revision: 1 },
             name: 'Glass Harbor Docks',
             background: '',
             grid: { size: 50, color: '#fff', visible: true, type: 'square' },

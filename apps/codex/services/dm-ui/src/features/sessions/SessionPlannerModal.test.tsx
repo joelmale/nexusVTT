@@ -220,7 +220,7 @@ describe('SessionPlannerModal', () => {
     await waitFor(() => {
       expect(mockStore.addItem).toHaveBeenCalled();
       expect(mockedNavigate).toHaveBeenCalledWith(
-        expect.stringMatching(/\/campaigns\/test\/sessions\/session-.*\/plan/),
+        '/campaigns/test/sessions/session-new-123/plan',
       );
     });
   });

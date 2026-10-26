@@ -252,6 +252,56 @@ export const sessionPlanStepSchema = z.discriminatedUnion('type', [
 ]);
 export type SessionPlanStep = z.infer<typeof sessionPlanStepSchema>;
 
+/** Editable Studio inputs, retained on the same versioned prep object as its
+ * compiled steps. Published revisions and active runs remain immutable. */
+export const sessionPlanAuthoringStepSchema = z.object({
+  id: z.string().min(1),
+  order: z.number().int().positive(),
+  kind: z.enum([
+    'recap',
+    'scene',
+    'note',
+    'encounter',
+    'handout',
+    'choice',
+    'closing',
+  ]),
+  track: sessionPlanStepTrackSchema,
+  title: z.string().trim().min(1),
+  durationMinutes: z.number().int().nonnegative(),
+  visibility: z.enum(['shared', 'dm-only']),
+  objectId: z.string().min(1).optional(),
+  body: z.string().optional(),
+  sceneTemplateId: z.string().uuid().optional(),
+  mapId: z.string().min(1).optional(),
+});
+
+export const sessionPlanAuthoringSchema = z.object({
+  version: z.literal(1).default(1),
+  revision: z.number().int().positive(),
+  lastEdited: z.string(),
+  estimatedMinutes: z.number().int().nonnegative(),
+  readiness: z.array(
+    z.object({
+      id: z.string().min(1),
+      label: z.string(),
+      complete: z.boolean(),
+    }),
+  ),
+  dependencies: z.array(
+    z.object({
+      objectId: z.string().min(1),
+      status: z.enum(['ready', 'needs-review']),
+    }),
+  ),
+  steps: z.array(sessionPlanAuthoringStepSchema).min(1),
+  notes: z.array(z.string()),
+  playerFacingSummary: z.string(),
+  attachments: z.array(z.string().min(1)),
+  defaultVisibility: z.enum(['shared', 'dm-only']).default('dm-only'),
+});
+export type SessionPlanAuthoring = z.infer<typeof sessionPlanAuthoringSchema>;
+
 export const sessionPlanSchema = z
   .object({
     id: z.string().uuid(),
@@ -262,6 +312,8 @@ export const sessionPlanSchema = z
     status: z.enum(['draft', 'ready', 'retired']),
     steps: z.array(sessionPlanStepSchema).min(1),
     dependencies: z.array(campaignObjectRefSchema).default([]),
+    authoring: sessionPlanAuthoringSchema.optional(),
+    sessionId: z.string().uuid().optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   })
@@ -308,7 +360,9 @@ export const sessionPlanActivationSchema = z.object({
   sessionId: z.string().min(1),
   currentStepIndex: z.number().int().nonnegative().default(0),
   status: sessionPlanActivationStatusSchema.default('active'),
-  stepStates: z.record(z.string().uuid(), sessionPlanStepStateSchema).default({}),
+  stepStates: z
+    .record(z.string().uuid(), sessionPlanStepStateSchema)
+    .default({}),
   activatedBy: z.string().nullable().optional(),
   requestId: z.string().uuid().nullable().optional(),
   /** Compare-and-swap counter; progress writes must echo the value they saw. */
@@ -318,4 +372,3 @@ export const sessionPlanActivationSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 export type SessionPlanActivation = z.infer<typeof sessionPlanActivationSchema>;
-

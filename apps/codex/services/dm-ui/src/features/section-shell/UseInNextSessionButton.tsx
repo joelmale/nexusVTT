@@ -3,7 +3,7 @@ import CalendarCheck from 'lucide-react/dist/esm/icons/calendar-check';
 import CalendarPlus from 'lucide-react/dist/esm/icons/calendar-plus';
 import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
 
-import { pickUpcomingSession } from '@/features/campaign-overview/overviewModel';
+import { selectNextSession } from '@/features/campaign-overview/overviewModel';
 import { useSectionBundle } from './SectionContext';
 import styles from './UseInNextSessionButton.module.css';
 
@@ -22,27 +22,10 @@ export function UseInNextSessionButton({
 }: UseInNextSessionButtonProps) {
   const { bundle, store } = useSectionBundle();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState<string>();
 
   const nextSession = useMemo(() => {
-    if (!bundle) return null;
-    const curatedId = bundle.campaign.nextSession?.sessionId;
-    if (curatedId) {
-      const match = bundle.sessions.find((s) => s.id === curatedId);
-      if (match) return match;
-    }
-    const currentId =
-      bundle.campaign.currentSessionId || bundle.catalog.selectedSessionId;
-    if (currentId) {
-      const match = bundle.sessions.find((s) => s.id === currentId);
-      if (match) return match;
-    }
-    const upcoming = pickUpcomingSession(bundle.sessions, Date.now());
-    if (upcoming) return upcoming;
-    const open = bundle.sessions.filter((s) => s.status !== 'complete');
-    if (open.length > 0) {
-      return [...open].sort((a, b) => a.number - b.number)[0];
-    }
-    return [...bundle.sessions].sort((a, b) => b.number - a.number)[0] ?? null;
+    return selectNextSession(bundle);
   }, [bundle]);
 
   const isLinked = useMemo(() => {
@@ -132,29 +115,38 @@ export function UseInNextSessionButton({
   const handleToggle = async () => {
     if (isUpdating) return;
     setIsUpdating(true);
+    setError(undefined);
     try {
+      let result;
       if (kind === 'item') {
-        await store.updateItem('item', id, {
+        result = await store.updateItem('item', id, {
           sessionId: isLinked ? undefined : nextSession.id,
         });
       } else if (kind === 'secret') {
-        await store.updateItem('secret', id, {
+        result = await store.updateItem('secret', id, {
           revealedInSessionId: isLinked ? undefined : nextSession.id,
         });
       } else {
         const key = `${kind}Ids` as
-          | 'npcIds'
-          | 'encounterIds'
-          | 'locationIds'
-          | 'questIds';
+          'npcIds' | 'encounterIds' | 'locationIds' | 'questIds';
         const currentList: string[] = nextSession[key] ?? [];
         const nextList = isLinked
           ? currentList.filter((itemId) => itemId !== id)
           : [...currentList, id];
-        await store.updateItem('session', nextSession.id, {
+        result = await store.updateItem('session', nextSession.id, {
           [key]: nextList,
         });
       }
+      if (!result.ok)
+        throw new Error(
+          result.error || 'The session link could not be saved. Try again.',
+        );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'The session link could not be saved. Try again.',
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -167,23 +159,30 @@ export function UseInNextSessionButton({
   const iconSize = size === 'sm' ? 12 : 14;
 
   return (
-    <button
-      aria-label={title}
-      aria-pressed={isLinked}
-      className={`${styles.button} ${size === 'sm' ? styles.sm : styles.md} ${isLinked ? styles.linked : ''} ${className ?? ''}`}
-      disabled={isUpdating}
-      onClick={handleToggle}
-      title={title}
-      type="button"
-    >
-      {isUpdating ? (
-        <Loader2 className={styles.spinner} size={iconSize} aria-hidden="true" />
-      ) : isLinked ? (
-        <CalendarCheck size={iconSize} aria-hidden="true" />
-      ) : (
-        <CalendarPlus size={iconSize} aria-hidden="true" />
-      )}
-      <span>{isLinked ? 'In next session' : 'Use in next session'}</span>
-    </button>
+    <>
+      <button
+        aria-label={title}
+        aria-pressed={isLinked}
+        className={`${styles.button} ${size === 'sm' ? styles.sm : styles.md} ${isLinked ? styles.linked : ''} ${className ?? ''}`}
+        disabled={isUpdating}
+        onClick={handleToggle}
+        title={title}
+        type="button"
+      >
+        {isUpdating ? (
+          <Loader2
+            className={styles.spinner}
+            size={iconSize}
+            aria-hidden="true"
+          />
+        ) : isLinked ? (
+          <CalendarCheck size={iconSize} aria-hidden="true" />
+        ) : (
+          <CalendarPlus size={iconSize} aria-hidden="true" />
+        )}
+        <span>{isLinked ? 'In next session' : 'Use in next session'}</span>
+      </button>
+      {error && <span role="alert">{error}</span>}
+    </>
   );
 }

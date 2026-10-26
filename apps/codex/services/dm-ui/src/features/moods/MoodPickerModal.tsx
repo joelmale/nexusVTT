@@ -17,6 +17,7 @@ export function MoodPickerModal({ isOpen, onClose }: MoodPickerModalProps) {
   const { activeCampaign, isDemoCampaign } = useCampaignContext();
   const [selectedMood, setSelectedMood] = useState<CampaignMood>(currentMood);
   const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [saveError, setSaveError] = useState<string>();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Sync selectedMood when modal opens or currentMood changes
@@ -42,13 +43,27 @@ export function MoodPickerModal({ isOpen, onClose }: MoodPickerModalProps) {
 
   const handleSelect = (mood: CampaignMood) => {
     setSelectedMood(mood);
-    void setMood(mood, saveAsDefault);
+    setSaveError(undefined);
+    void setMood(mood, saveAsDefault).catch((error: unknown) =>
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : 'The campaign default could not be saved. Try again.',
+      ),
+    );
   };
 
   const handlePersistChange = (checked: boolean) => {
     setSaveAsDefault(checked);
     if (checked) {
-      void setMood(selectedMood, true);
+      setSaveError(undefined);
+      void setMood(selectedMood, true).catch((error: unknown) =>
+        setSaveError(
+          error instanceof Error
+            ? error.message
+            : 'The campaign default could not be saved. Try again.',
+        ),
+      );
     }
   };
 
@@ -75,7 +90,8 @@ export function MoodPickerModal({ isOpen, onClose }: MoodPickerModalProps) {
           <div className={styles.headerText}>
             <h2 id="mood-modal-title">Campaign Atmosphere & Mood</h2>
             <p className={styles.subtitle} id="mood-modal-desc">
-              Choose a visual palette that reflects your campaign’s tone and aesthetic.
+              Choose a visual palette that reflects your campaign’s tone and
+              aesthetic.
             </p>
           </div>
           <button
@@ -122,11 +138,16 @@ export function MoodPickerModal({ isOpen, onClose }: MoodPickerModalProps) {
                           {mood.isDark ? 'Dark' : 'Light'}
                         </span>
                       </div>
-                      <p className={styles.moodDescription}>{mood.description}</p>
+                      <p className={styles.moodDescription}>
+                        {mood.description}
+                      </p>
                     </div>
 
                     {isActive ? (
-                      <span aria-hidden="true" className={styles.activeIndicator}>
+                      <span
+                        aria-hidden="true"
+                        className={styles.activeIndicator}
+                      >
                         <Check size={14} strokeWidth={3} />
                       </span>
                     ) : null}
@@ -138,6 +159,7 @@ export function MoodPickerModal({ isOpen, onClose }: MoodPickerModalProps) {
         </div>
 
         <footer className={styles.footer}>
+          {saveError && <p role="alert">{saveError}</p>}
           {isEditable ? (
             <label className={styles.persistOption}>
               <input
@@ -153,7 +175,11 @@ export function MoodPickerModal({ isOpen, onClose }: MoodPickerModalProps) {
           )}
 
           <div className={styles.actions}>
-            <button className={styles.doneButton} onClick={onClose} type="button">
+            <button
+              className={styles.doneButton}
+              onClick={onClose}
+              type="button"
+            >
               Done
             </button>
           </div>

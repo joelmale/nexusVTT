@@ -231,4 +231,4 @@ reached or help only appears on hover, use a larger screen or ask your DM
 for assistance and report the screen, device, and control name.
 
 Contributors can read the
-[shared-creator architecture](/vtt/adr/0002-shared-character-creator).
+[shared-creator architecture](/vtt/adr/shared-character-creator).

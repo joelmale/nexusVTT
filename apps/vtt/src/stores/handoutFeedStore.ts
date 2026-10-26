@@ -9,7 +9,7 @@ import { create } from 'zustand';
 export interface RevealedHandout {
   id: string;
   title: string;
-  /** Origin-relative image path, when the server could resolve one. */
+  /** Origin-relative image or plain-text path resolved by the server. */
   url?: string;
   revealedAt: number;
 }

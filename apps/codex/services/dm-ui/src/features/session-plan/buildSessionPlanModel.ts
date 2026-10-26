@@ -1,5 +1,7 @@
 import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
 import { generateSessionSpine } from '@/features/sessions/sessionSpineGenerator';
+import { buildMonsterCatalog } from '@/features/encounters/monsterCatalog';
+import { resolveMapImage } from '@/features/map-preparation/buildMapPreparationModel';
 
 import type {
   LibraryObject,
@@ -147,6 +149,9 @@ export function buildSessionPlanModel(
     objectId.replace(/-/g, ' ');
 
   return {
+    sessionId: session.id,
+    planId: session.planId,
+    authoring: plan,
     attachments: handouts
       .filter((item) => plan.attachments.includes(item.id))
       .map((item) => ({
@@ -211,22 +216,56 @@ export function buildSessionPlanModel(
       };
     }),
     revision: plan.revision,
-    sceneMapPath: bundle.maps[0]?.imagePath,
-    steps: plan.steps.map((step) => ({
-      body: step.body
-        ? step.body.replace(/Typed reference: @.*$/, '').trim() || undefined
-        : undefined,
-      command: STEP_COMMANDS[step.kind],
-      durationMinutes: step.durationMinutes,
-      id: step.id,
-      referenceLabel:
-        step.kind === 'note' && step.body
-          ? TYPED_REFERENCE.exec(step.body)?.[1]
+    steps: plan.steps.map((step) => {
+      const location = bundle.locations.find(
+        (item) => item.id === step.objectId,
+      );
+      const map = bundle.maps.find(
+        (item) => item.id === (step.mapId || location?.mapId),
+      );
+      const encounter = bundle.encounters.find(
+        (item) => item.id === step.objectId,
+      );
+      const catalog = buildMonsterCatalog(bundle.homebrewMonsters);
+      const monsters = encounter?.composition
+        .filter((row) => !row.nonCreature)
+        .flatMap((row) => {
+          const monster = catalog.find((item) => item.key === row.monsterKey);
+          return monster ? [monster] : [];
+        });
+      return {
+        objectId: step.objectId,
+        handoutBody:
+          step.kind === 'handout'
+            ? bundle.handouts.find((handout) => handout.id === step.objectId)
+                ?.body
+            : undefined,
+        sceneTemplateId:
+          step.sceneTemplateId ||
+          location?.sceneTemplateId ||
+          (bundle.sceneTemplates.some((item) => item.id === step.objectId)
+            ? step.objectId
+            : undefined),
+        mapId: map?.id,
+        mapAssetId: map?.imageAssetRef?.assetId,
+        mapImagePath: map ? resolveMapImage(map) : undefined,
+        encounterId: step.kind === 'encounter' ? step.objectId : undefined,
+        encounterMonsters: step.kind === 'encounter' ? monsters : undefined,
+        body: step.body
+          ? step.body.replace(/Typed reference: @.*$/, '').trim() || undefined
           : undefined,
-      title: removeCommandPrefix(step.title),
-      track: step.track,
-      visibility: step.visibility,
-    })),
+        command: STEP_COMMANDS[step.kind],
+        durationMinutes: step.durationMinutes,
+        id: step.id,
+        referenceLabel:
+          step.kind === 'note' && step.body
+            ? TYPED_REFERENCE.exec(step.body)?.[1]
+            : undefined,
+        title: removeCommandPrefix(step.title),
+        track: step.track,
+        visibility: step.visibility,
+      };
+    }),
     tags: session.tags,
     title: `Session ${session.number} - ${session.title}`,
   };

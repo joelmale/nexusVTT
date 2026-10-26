@@ -1,13 +1,23 @@
+import { CreatorDialog } from '../CreatorDialog';
+import { calculatePreparationLimit } from '@nexus/rules-5e';
 import React, { useState, useMemo } from 'react';
 import { X, Check, Sparkles, BookOpen } from 'lucide-react';
 import { SpellSelectionData } from '../../types/dnd';
-import { getCantripsByClass, getLeveledSpellsByClass } from '../../services/dataService';
-import { getSpellcastingType } from '../../utils/spellUtils';
+import {
+  getCantripsByClass,
+  getLeveledSpellsByClass,
+  loadClasses,
+} from '../../services/dataService';
+import {
+  getSpellcastingType,
+  getAvailableSpellLevels,
+} from '../../utils/spellUtils';
 import { SPELL_LEARNING_RULES } from '../../data/spellLearning';
 import cantripsData from '../../data/cantrips.json';
 
 interface SpellEditModalProps {
   classSlug: string;
+  edition?: '2014' | '2024';
   level: number;
   currentSelection: SpellSelectionData;
   abilities: Record<string, number>;
@@ -18,54 +28,93 @@ interface SpellEditModalProps {
 
 const SpellEditModal: React.FC<SpellEditModalProps> = ({
   classSlug,
+  edition = '2014',
   level,
   currentSelection,
   abilities,
   isOpen,
   onClose,
-  onSave
+  onSave,
 }) => {
-  const spellcastingType = getSpellcastingType(classSlug);
+  const spellcastingType = getSpellcastingType(classSlug, edition);
+  const castingAbility =
+    loadClasses(edition).find((entry) => entry.slug === classSlug)?.spellcasting
+      ?.ability ?? 'INT';
   const learningRules = SPELL_LEARNING_RULES[classSlug];
 
   // Get available spells
-  const availableCantrips = useMemo(() => getCantripsByClass(classSlug), [classSlug]);
-  const availableSpells = useMemo(() => getLeveledSpellsByClass(classSlug, level), [classSlug, level]);
+  const availableCantrips = useMemo(
+    () => getCantripsByClass(classSlug, edition),
+    [classSlug, edition],
+  );
+  const availableSpells = useMemo(
+    () =>
+      getAvailableSpellLevels(classSlug, level, edition).flatMap((spellLevel) =>
+        getLeveledSpellsByClass(classSlug, spellLevel, edition),
+      ),
+    [classSlug, level, edition],
+  );
 
   // Calculate spell limits
   // Dynamic access to cantrips data by class and level
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const numCantrips = (cantripsData as any)[classSlug]?.[level.toString()] || 0;
+  const numCantrips =
+    (cantripsData as Record<string, Record<string, number>>)[classSlug]?.[
+      level.toString()
+    ] || 0;
   const numSpells = useMemo(() => {
     if (spellcastingType === 'known' && learningRules?.spellsKnown) {
       return learningRules.spellsKnown[level - 1] || 0;
-    } else if (spellcastingType === 'prepared' && learningRules?.spellsPrepared) {
-      return learningRules.spellsPrepared[level - 1] || 0;
-    } else if (spellcastingType === 'wizard' && learningRules?.spellbookCapacity) {
+    } else if (spellcastingType === 'prepared') {
+      return calculatePreparationLimit(
+        classSlug,
+        level,
+        Math.floor(((abilities[castingAbility] ?? 10) - 10) / 2),
+        edition,
+      );
+    } else if (
+      spellcastingType === 'wizard' &&
+      learningRules?.spellbookCapacity
+    ) {
       return learningRules.spellbookCapacity[level - 1] || 6;
     }
     return 0;
-  }, [spellcastingType, learningRules, level]);
+  }, [
+    spellcastingType,
+    learningRules,
+    level,
+    classSlug,
+    abilities,
+    castingAbility,
+    edition,
+  ]);
 
   const numWizardPrepared = useMemo(() => {
     if (spellcastingType === 'wizard') {
       const intMod = Math.floor((abilities.INT - 10) / 2);
-      return Math.max(1, intMod + level);
+      return calculatePreparationLimit('wizard', level, intMod, edition);
     }
     return 0;
-  }, [spellcastingType, abilities, level]);
+  }, [spellcastingType, abilities, level, edition]);
 
   // Local state for selections
-  const [selectedCantrips, setSelectedCantrips] = useState<string[]>(currentSelection.selectedCantrips || []);
-  const [selectedKnownSpells, setSelectedKnownSpells] = useState<string[]>(currentSelection.knownSpells || []);
-  const [selectedPreparedSpells, setSelectedPreparedSpells] = useState<string[]>(currentSelection.preparedSpells || []);
-  const [selectedSpellbook, setSelectedSpellbook] = useState<string[]>(currentSelection.spellbook || []);
+  const [selectedCantrips, setSelectedCantrips] = useState<string[]>(
+    currentSelection.selectedCantrips || [],
+  );
+  const [selectedKnownSpells, setSelectedKnownSpells] = useState<string[]>(
+    currentSelection.knownSpells || [],
+  );
+  const [selectedPreparedSpells, setSelectedPreparedSpells] = useState<
+    string[]
+  >(currentSelection.preparedSpells || []);
+  const [selectedSpellbook, setSelectedSpellbook] = useState<string[]>(
+    currentSelection.spellbook || [],
+  );
 
   const handleCantripToggle = (spellSlug: string) => {
-    setSelectedCantrips(prev => {
+    setSelectedCantrips((prev) => {
       const isSelected = prev.includes(spellSlug);
       if (isSelected) {
-        return prev.filter(s => s !== spellSlug);
+        return prev.filter((s) => s !== spellSlug);
       } else if (prev.length < numCantrips) {
         return [...prev, spellSlug];
       }
@@ -75,30 +124,30 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
 
   const handleSpellToggle = (spellSlug: string) => {
     if (spellcastingType === 'known') {
-      setSelectedKnownSpells(prev => {
+      setSelectedKnownSpells((prev) => {
         const isSelected = prev.includes(spellSlug);
         if (isSelected) {
-          return prev.filter(s => s !== spellSlug);
+          return prev.filter((s) => s !== spellSlug);
         } else if (prev.length < numSpells) {
           return [...prev, spellSlug];
         }
         return prev;
       });
     } else if (spellcastingType === 'prepared') {
-      setSelectedPreparedSpells(prev => {
+      setSelectedPreparedSpells((prev) => {
         const isSelected = prev.includes(spellSlug);
         if (isSelected) {
-          return prev.filter(s => s !== spellSlug);
+          return prev.filter((s) => s !== spellSlug);
         } else if (prev.length < numSpells) {
           return [...prev, spellSlug];
         }
         return prev;
       });
     } else if (spellcastingType === 'wizard') {
-      setSelectedSpellbook(prev => {
+      setSelectedSpellbook((prev) => {
         const isSelected = prev.includes(spellSlug);
         if (isSelected) {
-          return prev.filter(s => s !== spellSlug);
+          return prev.filter((s) => s !== spellSlug);
         } else if (prev.length < numSpells) {
           return [...prev, spellSlug];
         }
@@ -108,10 +157,10 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
   };
 
   const handleWizardPreparedToggle = (spellSlug: string) => {
-    setSelectedPreparedSpells(prev => {
+    setSelectedPreparedSpells((prev) => {
       const isSelected = prev.includes(spellSlug);
       if (isSelected) {
-        return prev.filter(s => s !== spellSlug);
+        return prev.filter((s) => s !== spellSlug);
       } else if (prev.length < numWizardPrepared) {
         return [...prev, spellSlug];
       }
@@ -123,9 +172,15 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
     const newSelection: SpellSelectionData = {
       selectedCantrips,
       knownSpells: spellcastingType === 'known' ? selectedKnownSpells : [],
-      preparedSpells: spellcastingType === 'prepared' ? selectedPreparedSpells :
-                      spellcastingType === 'wizard' ? selectedPreparedSpells : [],
+      preparedSpells:
+        spellcastingType === 'prepared'
+          ? selectedPreparedSpells
+          : spellcastingType === 'wizard'
+            ? selectedPreparedSpells
+            : [],
       spellbook: spellcastingType === 'wizard' ? selectedSpellbook : undefined,
+      dailyPrepared:
+        spellcastingType === 'wizard' ? selectedPreparedSpells : undefined,
     };
     onSave(newSelection);
     onClose();
@@ -134,7 +189,11 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
   if (!isOpen || !spellcastingType) return null;
 
   return (
-    <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4">
+    <CreatorDialog
+      label="Edit Spells"
+      onClose={onClose}
+      className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4"
+    >
       <div className="bg-theme-secondary rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-theme-secondary">
@@ -148,6 +207,7 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
             </div>
           </div>
           <button
+            aria-label="Close spell editor"
             onClick={onClose}
             className="p-2 hover:bg-theme-tertiary rounded-lg transition-colors"
           >
@@ -165,12 +225,13 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                   Cantrips ({selectedCantrips.length}/{numCantrips})
                 </h3>
                 <p className="text-sm text-theme-muted">
-                  Select {numCantrips} cantrip{numCantrips !== 1 ? 's' : ''} to know
+                  Select {numCantrips} cantrip{numCantrips !== 1 ? 's' : ''} to
+                  know
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {availableCantrips.map(spell => {
+                {availableCantrips.map((spell) => {
                   const isSelected = selectedCantrips.includes(spell.slug);
                   return (
                     <button
@@ -181,13 +242,21 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                           ? 'bg-accent-blue-darker border-blue-500 shadow-md'
                           : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                       }`}
-                      disabled={!isSelected && selectedCantrips.length >= numCantrips}
+                      disabled={
+                        !isSelected && selectedCantrips.length >= numCantrips
+                      }
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-semibold text-white">{spell.name}</h4>
-                        {isSelected && <Check className="w-5 h-5 text-accent-blue-light flex-shrink-0" />}
+                        <h4 className="font-semibold text-white">
+                          {spell.name}
+                        </h4>
+                        {isSelected && (
+                          <Check className="w-5 h-5 text-accent-blue-light flex-shrink-0" />
+                        )}
                       </div>
-                      <p className="text-xs text-theme-muted">{spell.school || 'Cantrip'}</p>
+                      <p className="text-xs text-theme-muted">
+                        {spell.school || 'Cantrip'}
+                      </p>
                     </button>
                   );
                 })}
@@ -203,12 +272,13 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                   Known Spells ({selectedKnownSpells.length}/{numSpells})
                 </h3>
                 <p className="text-sm text-theme-muted">
-                  Select {numSpells} spell{numSpells !== 1 ? 's' : ''} to add to your known spells
+                  Select {numSpells} spell{numSpells !== 1 ? 's' : ''} to add to
+                  your known spells
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {availableSpells.map(spell => {
+                {availableSpells.map((spell) => {
                   const isSelected = selectedKnownSpells.includes(spell.slug);
                   return (
                     <button
@@ -219,13 +289,21 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                           ? 'bg-accent-purple-darker border-accent-purple shadow-md'
                           : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                       }`}
-                      disabled={!isSelected && selectedKnownSpells.length >= numSpells}
+                      disabled={
+                        !isSelected && selectedKnownSpells.length >= numSpells
+                      }
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-semibold text-white">{spell.name}</h4>
-                        {isSelected && <Check className="w-5 h-5 text-accent-purple-light flex-shrink-0" />}
+                        <h4 className="font-semibold text-white">
+                          {spell.name}
+                        </h4>
+                        {isSelected && (
+                          <Check className="w-5 h-5 text-accent-purple-light flex-shrink-0" />
+                        )}
                       </div>
-                      <p className="text-xs text-theme-muted">Level {spell.level} • {spell.school || 'Unknown'}</p>
+                      <p className="text-xs text-theme-muted">
+                        Level {spell.level} • {spell.school || 'Unknown'}
+                      </p>
                     </button>
                   );
                 })}
@@ -241,13 +319,16 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                   Prepared Spells ({selectedPreparedSpells.length}/{numSpells})
                 </h3>
                 <p className="text-sm text-theme-muted">
-                  Select {numSpells} spell{numSpells !== 1 ? 's' : ''} to prepare today
+                  Select {numSpells} spell{numSpells !== 1 ? 's' : ''} to
+                  prepare today
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {availableSpells.map(spell => {
-                  const isSelected = selectedPreparedSpells.includes(spell.slug);
+                {availableSpells.map((spell) => {
+                  const isSelected = selectedPreparedSpells.includes(
+                    spell.slug,
+                  );
                   return (
                     <button
                       key={spell.slug}
@@ -257,13 +338,22 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                           ? 'bg-green-800 border-green-500 shadow-md'
                           : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                       }`}
-                      disabled={!isSelected && selectedPreparedSpells.length >= numSpells}
+                      disabled={
+                        !isSelected &&
+                        selectedPreparedSpells.length >= numSpells
+                      }
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-semibold text-white">{spell.name}</h4>
-                        {isSelected && <Check className="w-5 h-5 text-accent-green-light flex-shrink-0" />}
+                        <h4 className="font-semibold text-white">
+                          {spell.name}
+                        </h4>
+                        {isSelected && (
+                          <Check className="w-5 h-5 text-accent-green-light flex-shrink-0" />
+                        )}
                       </div>
-                      <p className="text-xs text-theme-muted">Level {spell.level} • {spell.school || 'Unknown'}</p>
+                      <p className="text-xs text-theme-muted">
+                        Level {spell.level} • {spell.school || 'Unknown'}
+                      </p>
                     </button>
                   );
                 })}
@@ -284,12 +374,13 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                     </h3>
                   </div>
                   <p className="text-sm text-theme-muted">
-                    Select {numSpells} spell{numSpells !== 1 ? 's' : ''} for your spellbook
+                    Select {numSpells} spell{numSpells !== 1 ? 's' : ''} for
+                    your spellbook
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {availableSpells.map(spell => {
+                  {availableSpells.map((spell) => {
                     const isSelected = selectedSpellbook.includes(spell.slug);
                     return (
                       <button
@@ -300,13 +391,21 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                             ? 'bg-accent-purple-darker border-accent-purple shadow-md'
                             : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                         }`}
-                        disabled={!isSelected && selectedSpellbook.length >= numSpells}
+                        disabled={
+                          !isSelected && selectedSpellbook.length >= numSpells
+                        }
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-semibold text-white">{spell.name}</h4>
-                          {isSelected && <Check className="w-5 h-5 text-accent-purple-light flex-shrink-0" />}
+                          <h4 className="font-semibold text-white">
+                            {spell.name}
+                          </h4>
+                          {isSelected && (
+                            <Check className="w-5 h-5 text-accent-purple-light flex-shrink-0" />
+                          )}
                         </div>
-                        <p className="text-xs text-theme-muted">Level {spell.level} • {spell.school || 'Unknown'}</p>
+                        <p className="text-xs text-theme-muted">
+                          Level {spell.level} • {spell.school || 'Unknown'}
+                        </p>
                       </button>
                     );
                   })}
@@ -318,18 +417,25 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                 <div className="mb-8">
                   <div className="bg-accent-blue-darker/20 border border-accent-blue-dark rounded-lg p-4 mb-4">
                     <h3 className="text-lg font-bold text-accent-blue-light mb-2">
-                      Daily Prepared Spells ({selectedPreparedSpells.length}/{numWizardPrepared})
+                      Daily Prepared Spells ({selectedPreparedSpells.length}/
+                      {numWizardPrepared})
                     </h3>
                     <p className="text-sm text-theme-muted">
-                      Select {numWizardPrepared} spell{numWizardPrepared !== 1 ? 's' : ''} from your spellbook to prepare
+                      Select {numWizardPrepared} spell
+                      {numWizardPrepared !== 1 ? 's' : ''} from your spellbook
+                      to prepare
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {selectedSpellbook.map(spellSlug => {
-                      const spell = availableSpells.find(s => s.slug === spellSlug);
+                    {selectedSpellbook.map((spellSlug) => {
+                      const spell = availableSpells.find(
+                        (s) => s.slug === spellSlug,
+                      );
                       if (!spell) return null;
-                      const isSelected = selectedPreparedSpells.includes(spell.slug);
+                      const isSelected = selectedPreparedSpells.includes(
+                        spell.slug,
+                      );
                       return (
                         <button
                           key={spell.slug}
@@ -339,13 +445,22 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
                               ? 'bg-accent-blue-darker border-blue-500 shadow-md'
                               : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                           }`}
-                          disabled={!isSelected && selectedPreparedSpells.length >= numWizardPrepared}
+                          disabled={
+                            !isSelected &&
+                            selectedPreparedSpells.length >= numWizardPrepared
+                          }
                         >
                           <div className="flex items-start justify-between mb-2">
-                            <h4 className="font-semibold text-white">{spell.name}</h4>
-                            {isSelected && <Check className="w-5 h-5 text-accent-blue-light flex-shrink-0" />}
+                            <h4 className="font-semibold text-white">
+                              {spell.name}
+                            </h4>
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-accent-blue-light flex-shrink-0" />
+                            )}
                           </div>
-                          <p className="text-xs text-theme-muted">Level {spell.level} • {spell.school || 'Unknown'}</p>
+                          <p className="text-xs text-theme-muted">
+                            Level {spell.level} • {spell.school || 'Unknown'}
+                          </p>
                         </button>
                       );
                     })}
@@ -373,7 +488,7 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </CreatorDialog>
   );
 };
 

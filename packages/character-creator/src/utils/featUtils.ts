@@ -1,6 +1,9 @@
 import { Feat, CharacterCreationData, Edition } from '../types/dnd';
 import { resolveSpeciesSlug } from '../services/dataService';
-import { evaluatePredicate, evaluatePredicates } from '../rulesEngine/evaluators/predicates';
+import {
+  evaluatePredicate,
+  evaluatePredicates,
+} from '../rulesEngine/evaluators/predicates';
 import type { Predicate } from '../rulesEngine/types/predicates';
 import type { BaseFacts } from '../rulesEngine/types/baseFacts';
 import type { Ability } from '../rulesEngine/types/common';
@@ -47,34 +50,47 @@ const hasSpeciesRequirement = (prerequisite: string): boolean => {
     'half-elf',
     'human',
     'yuan-ti',
-    'orc'
-  ].some(keyword => prereq.includes(keyword));
+    'orc',
+  ].some((keyword) => prereq.includes(keyword));
 };
 
 const speciesPrerequisitePredicates = (
-  prerequisite: string
+  prerequisite: string,
 ): PredicateWithReason[] => {
   const prereq = prerequisite.toLowerCase();
 
-  const makeSpeciesPredicate = (slugs: string[], reasonLabel?: string): PredicateWithReason => {
+  const makeSpeciesPredicate = (
+    slugs: string[],
+    reasonLabel?: string,
+  ): PredicateWithReason => {
     if (slugs.length === 1) {
       return {
         predicate: { type: 'speciesIs', slug: slugs[0] },
-        reason: `Requires ${reasonLabel || slugs[0]}`
+        reason: `Requires ${reasonLabel || slugs[0]}`,
       };
     }
     return {
-      predicate: { type: 'or', predicates: slugs.map(slug => ({ type: 'speciesIs', slug })) },
-      reason: `Requires ${reasonLabel || slugs.join(' or ')}`
+      predicate: {
+        type: 'or',
+        predicates: slugs.map((slug) => ({ type: 'speciesIs', slug })),
+      },
+      reason: `Requires ${reasonLabel || slugs.join(' or ')}`,
     };
   };
 
   if (prereq.includes('elf or half-elf')) {
-    return [makeSpeciesPredicate(['elf-2024', 'elf', 'half-elf'], 'Elf or Half-Elf')];
+    return [
+      makeSpeciesPredicate(['elf-2024', 'elf', 'half-elf'], 'Elf or Half-Elf'),
+    ];
   }
 
   if (prereq.includes('half-elf, half-orc, or human')) {
-    return [makeSpeciesPredicate(['half-elf', 'half-orc', 'human-2024', 'human'], 'Half-Elf, Half-Orc, or Human')];
+    return [
+      makeSpeciesPredicate(
+        ['half-elf', 'half-orc', 'human-2024', 'human'],
+        'Half-Elf, Half-Orc, or Human',
+      ),
+    ];
   }
 
   if (prereq.includes('elf (drow)')) {
@@ -94,7 +110,9 @@ const speciesPrerequisitePredicates = (
   }
 
   if (prereq.includes('dragonborn')) {
-    return [makeSpeciesPredicate(['dragonborn-2024', 'dragonborn'], 'Dragonborn')];
+    return [
+      makeSpeciesPredicate(['dragonborn-2024', 'dragonborn'], 'Dragonborn'),
+    ];
   }
 
   if (prereq.includes('dwarf')) {
@@ -135,12 +153,16 @@ const speciesPrerequisitePredicates = (
 /**
  * Build base facts from character creation data for rule-engine evaluation.
  */
-const buildFactsFromCharacter = (character: Partial<CharacterCreationData>): BaseFacts => {
+const buildFactsFromCharacter = (
+  character: Partial<CharacterCreationData>,
+): BaseFacts => {
   const classSlug = (character.classSlug || '').toLowerCase();
   const level = character.level || 1;
   const legacySpecies = (character as { species?: string }).species;
   const legacyFeats = (character as { feats?: string[] }).feats;
-  const speciesSlug = resolveSpeciesSlug(character.speciesSlug || legacySpecies || '');
+  const speciesSlug = resolveSpeciesSlug(
+    character.speciesSlug || legacySpecies || '',
+  );
 
   const abilities = (character.abilities || {}) as Record<string, number>;
   const normalizedAbilities = {
@@ -149,7 +171,7 @@ const buildFactsFromCharacter = (character: Partial<CharacterCreationData>): Bas
     CON: abilities.CON ?? 10,
     INT: abilities.INT ?? 10,
     WIS: abilities.WIS ?? 10,
-    CHA: abilities.CHA ?? 10
+    CHA: abilities.CHA ?? 10,
   } as BaseFacts['abilities'];
 
   return {
@@ -168,7 +190,7 @@ const buildFactsFromCharacter = (character: Partial<CharacterCreationData>): Bas
     equippedItems: [],
     conditions: [],
     tags: [],
-    feats: character.selectedFeats || legacyFeats || []
+    feats: character.selectedFeats || legacyFeats || [],
   };
 };
 
@@ -182,17 +204,23 @@ const buildFeatPredicates = (feat: Feat): PredicateWithReason[] => {
     if (feat.prerequisites.level) {
       predicates.push({
         predicate: { type: 'levelAtLeast', value: feat.prerequisites.level },
-        reason: `Requires level ${feat.prerequisites.level}+`
+        reason: `Requires level ${feat.prerequisites.level}+`,
       });
     }
 
     if (feat.prerequisites.stats) {
-      for (const [ability, required] of Object.entries(feat.prerequisites.stats)) {
+      for (const [ability, required] of Object.entries(
+        feat.prerequisites.stats,
+      )) {
         const normalized = abilityFromKey(ability);
         if (normalized) {
           predicates.push({
-            predicate: { type: 'abilityAtLeast', ability: normalized, value: required },
-            reason: `Requires ${ability.toUpperCase()} ${required}+`
+            predicate: {
+              type: 'abilityAtLeast',
+              ability: normalized,
+              value: required,
+            },
+            reason: `Requires ${ability.toUpperCase()} ${required}+`,
           });
         }
       }
@@ -212,10 +240,10 @@ const buildFeatPredicates = (feat: Feat): PredicateWithReason[] => {
             { type: 'classIs', slug: 'paladin' },
             { type: 'classIs', slug: 'ranger' },
             { type: 'classIs', slug: 'warlock' },
-            { type: 'classIs', slug: 'artificer' }
-          ]
+            { type: 'classIs', slug: 'artificer' },
+          ],
         },
-        reason: 'Requires spellcasting ability'
+        reason: 'Requires spellcasting ability',
       });
     }
   }
@@ -223,15 +251,21 @@ const buildFeatPredicates = (feat: Feat): PredicateWithReason[] => {
   if (feat.prerequisite) {
     const prerequisite = feat.prerequisite.toLowerCase();
 
-    const abilityMatch = prerequisite.match(/(strength|dexterity|constitution|intelligence|wisdom|charisma)[^0-9]*(\d+)/i);
+    const abilityMatch = prerequisite.match(
+      /(strength|dexterity|constitution|intelligence|wisdom|charisma)[^0-9]*(\d+)/i,
+    );
     if (abilityMatch) {
       const abilityName = abilityMatch[1].toUpperCase().slice(0, 3);
       const requiredScore = parseInt(abilityMatch[2]);
       const normalized = abilityFromKey(abilityName);
       if (normalized) {
         predicates.push({
-          predicate: { type: 'abilityAtLeast', ability: normalized, value: requiredScore },
-          reason: `Requires ${abilityName} ${requiredScore}+`
+          predicate: {
+            type: 'abilityAtLeast',
+            ability: normalized,
+            value: requiredScore,
+          },
+          reason: `Requires ${abilityName} ${requiredScore}+`,
         });
       }
     }
@@ -241,7 +275,7 @@ const buildFeatPredicates = (feat: Feat): PredicateWithReason[] => {
       const requiredLevel = parseInt(levelMatch[1]);
       predicates.push({
         predicate: { type: 'levelAtLeast', value: requiredLevel },
-        reason: `Requires level ${requiredLevel}+`
+        reason: `Requires level ${requiredLevel}+`,
       });
     }
 
@@ -249,7 +283,10 @@ const buildFeatPredicates = (feat: Feat): PredicateWithReason[] => {
       predicates.push(...speciesPrerequisitePredicates(prerequisite));
     }
 
-    if (prerequisite.includes('spellcasting') || prerequisite.includes('the ability to cast')) {
+    if (
+      prerequisite.includes('spellcasting') ||
+      prerequisite.includes('the ability to cast')
+    ) {
       predicates.push({
         predicate: {
           type: 'or',
@@ -263,19 +300,33 @@ const buildFeatPredicates = (feat: Feat): PredicateWithReason[] => {
             { type: 'classIs', slug: 'paladin' },
             { type: 'classIs', slug: 'ranger' },
             { type: 'classIs', slug: 'warlock' },
-            { type: 'classIs', slug: 'artificer' }
-          ]
+            { type: 'classIs', slug: 'artificer' },
+          ],
         },
-        reason: 'Requires spellcasting ability'
+        reason: 'Requires spellcasting ability',
       });
     }
 
-    const classNames = ['fighter', 'rogue', 'wizard', 'cleric', 'barbarian', 'paladin', 'ranger', 'sorcerer', 'bard', 'druid', 'monk', 'warlock', 'artificer'];
-    classNames.forEach(className => {
+    const classNames = [
+      'fighter',
+      'rogue',
+      'wizard',
+      'cleric',
+      'barbarian',
+      'paladin',
+      'ranger',
+      'sorcerer',
+      'bard',
+      'druid',
+      'monk',
+      'warlock',
+      'artificer',
+    ];
+    classNames.forEach((className) => {
       if (prerequisite.includes(className)) {
         predicates.push({
           predicate: { type: 'classIs', slug: className },
-          reason: `Requires ${className}`
+          reason: `Requires ${className}`,
         });
       }
     });
@@ -292,12 +343,20 @@ const buildFeatPredicates = (feat: Feat): PredicateWithReason[] => {
 export const calculateFeatAvailability = (
   data: CharacterCreationData | number,
   edition?: Edition,
-  speciesSlug?: string
+  speciesSlug?: string,
 ): number => {
   const level = typeof data === 'number' ? data : data.level;
   const effectiveEdition = typeof data === 'number' ? edition : data.edition;
-  const effectiveSpecies = typeof data === 'number' ? speciesSlug : data.speciesSlug;
-  let baseFeats = Math.floor((level - 1) / 4); // Standard feat progression from level 4
+  const effectiveSpecies =
+    typeof data === 'number' ? speciesSlug : data.speciesSlug;
+  const classSlug = typeof data === 'number' ? undefined : data.classSlug;
+  const levels =
+    classSlug === 'fighter'
+      ? [4, 6, 8, 12, 14, 16, 19]
+      : classSlug === 'rogue'
+        ? [4, 8, 10, 12, 16, 19]
+        : [4, 8, 12, 16, 19];
+  let baseFeats = levels.filter((grantLevel) => grantLevel <= level).length;
 
   // 2024 Human additional feat at Level 1
   if (effectiveEdition === '2024' && effectiveSpecies === 'human-2024') {
@@ -312,7 +371,10 @@ export const calculateFeatAvailability = (
  * Check if a feat's prerequisites are met by the character
  * This is a basic implementation - can be enhanced with more complex prerequisite checking
  */
-export const checkFeatPrerequisites = (feat: Feat, character: Partial<CharacterCreationData>): boolean => {
+export const checkFeatPrerequisites = (
+  feat: Feat,
+  character: Partial<CharacterCreationData>,
+): boolean => {
   return getFeatAvailability(feat, character).isAvailable;
 };
 
@@ -321,7 +383,7 @@ export const checkFeatPrerequisites = (feat: Feat, character: Partial<CharacterC
  */
 export const getFeatAvailability = (
   feat: Feat,
-  character: Partial<CharacterCreationData>
+  character: Partial<CharacterCreationData>,
 ): FeatAvailability => {
   const facts = buildFactsFromCharacter(character);
   const predicatesWithReasons = buildFeatPredicates(feat);
@@ -337,7 +399,7 @@ export const getFeatAvailability = (
     }
   }
 
-  const predicates = predicatesWithReasons.map(p => p.predicate);
+  const predicates = predicatesWithReasons.map((p) => p.predicate);
   const isAvailable = evaluatePredicates(predicates, { facts, derived: {} });
 
   return { isAvailable };
@@ -346,8 +408,11 @@ export const getFeatAvailability = (
 /**
  * Filter feats based on character data and prerequisites
  */
-export const filterAvailableFeats = (allFeats: Feat[], character: Partial<CharacterCreationData>): Feat[] => {
-  return allFeats.filter(feat => checkFeatPrerequisites(feat, character));
+export const filterAvailableFeats = (
+  allFeats: Feat[],
+  character: Partial<CharacterCreationData>,
+): Feat[] => {
+  return allFeats.filter((feat) => checkFeatPrerequisites(feat, character));
 };
 
 /**
@@ -367,7 +432,10 @@ export const getFeatSourceInfo = (feat: Feat): string => {
 /**
  * Check if the character has reached the maximum number of feats for their level
  */
-export const canSelectMoreFeats = (currentFeats: string[], data: CharacterCreationData | number): boolean => {
+export const canSelectMoreFeats = (
+  currentFeats: string[],
+  data: CharacterCreationData | number,
+): boolean => {
   const maxFeats = calculateFeatAvailability(data);
   return currentFeats.length < maxFeats;
 };
@@ -378,50 +446,60 @@ export const canSelectMoreFeats = (currentFeats: string[], data: CharacterCreati
 export const getAvailableFeatsForCharacter = (
   allFeats: Feat[],
   character: Partial<CharacterCreationData>,
-  context: 'asi' | 'fighting_style' | 'background' = 'asi'
+  context: 'asi' | 'fighting_style' | 'background' = 'asi',
 ): Feat[] => {
   const level = character.level || 1;
   const classSlug = character.classSlug || '';
 
-  return allFeats.filter(feat => {
-    // Check category availability based on context and level
-    switch (context) {
-      case 'background':
-        return feat.category === 'origin';
+  return allFeats
+    .filter((feat) => {
+      // Check category availability based on context and level
+      switch (context) {
+        case 'background':
+          return feat.category === 'origin';
 
-      case 'fighting_style':
-        // Only available to classes with Fighting Style feature
-        if (!['fighter', 'paladin', 'ranger'].includes(classSlug)) return false;
-        return feat.category === 'fighting_style';
+        case 'fighting_style':
+          // Only available to classes with Fighting Style feature
+          if (!['fighter', 'paladin', 'ranger'].includes(classSlug))
+            return false;
+          return feat.category === 'fighting_style';
 
-      case 'asi':
-      default:
-        // General feats available at level 4+
-        if (level < 4) return false;
+        case 'asi':
+        default:
+          // General feats available at level 4+
+          if (level < 4) return false;
 
-        // Epic boons only at level 19+
-        if (feat.category === 'epic_boon' && level < 19) return false;
+          // Epic boons only at level 19+
+          if (feat.category === 'epic_boon' && level < 19) return false;
 
-        // Fighting styles not available in ASI (except via Fighting Initiate)
-        if (feat.category === 'fighting_style') return false;
+          // Fighting styles not available in ASI (except via Fighting Initiate)
+          if (feat.category === 'fighting_style') return false;
 
-        // Origin feats are allowed but generally players pick general feats
-        return ['general', 'origin'].includes(feat.category);
-    }
-  }).filter(feat => getFeatAvailability(feat, character).isAvailable);
+          // Origin feats are allowed but generally players pick general feats
+          return ['general', 'origin'].includes(feat.category);
+      }
+    })
+    .filter((feat) => getFeatAvailability(feat, character).isAvailable);
 };
 
 /**
  * Enhanced prerequisite checking for 2024 system
  */
-export const checkFeatPrerequisites2024 = (feat: Feat, character: Partial<CharacterCreationData>): boolean => {
+export const checkFeatPrerequisites2024 = (
+  feat: Feat,
+  character: Partial<CharacterCreationData>,
+): boolean => {
   return getFeatAvailability(feat, character).isAvailable;
 };
 
 /**
  * Validate feat selection for a character
  */
-export const validateFeatSelection = (selectedFeats: string[], allFeats: Feat[], character: Partial<CharacterCreationData>): {
+export const validateFeatSelection = (
+  selectedFeats: string[],
+  allFeats: Feat[],
+  character: Partial<CharacterCreationData>,
+): {
   isValid: boolean;
   errors: string[];
 } => {
@@ -429,11 +507,13 @@ export const validateFeatSelection = (selectedFeats: string[], allFeats: Feat[],
   const maxFeats = calculateFeatAvailability(
     character.level || 1,
     character.edition,
-    character.speciesSlug
+    character.speciesSlug,
   );
 
   if (selectedFeats.length > maxFeats) {
-    errors.push(`Too many feats selected. Maximum ${maxFeats} allowed at level ${character.level}.`);
+    errors.push(
+      `Too many feats selected. Maximum ${maxFeats} allowed at level ${character.level}.`,
+    );
   }
 
   // Check for duplicate feats
@@ -443,8 +523,8 @@ export const validateFeatSelection = (selectedFeats: string[], allFeats: Feat[],
   }
 
   // Check prerequisites for selected feats using 2024 system
-  selectedFeats.forEach(featSlug => {
-    const feat = allFeats.find(f => f.slug === featSlug);
+  selectedFeats.forEach((featSlug) => {
+    const feat = allFeats.find((f) => f.slug === featSlug);
     if (feat && !checkFeatPrerequisites2024(feat, character)) {
       errors.push(`Prerequisites not met for feat: ${feat.name}`);
     }
@@ -452,6 +532,6 @@ export const validateFeatSelection = (selectedFeats: string[], allFeats: Feat[],
 
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 };

@@ -1,97 +1,105 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { EncounterPanel } from '../../../../src/components/Panels/EncounterPanel';
-import { commandClient } from '../../../../src/services/commandClient';
-import type { ObjectLink } from '../../../../src/services/panelRegistry';
-
-vi.mock('../../../../src/services/commandClient', () => ({
-  commandClient: {
-    startEncounter: vi.fn().mockResolvedValue({ success: true }),
-    advanceCombatTurn: vi.fn().mockResolvedValue({ success: true }),
-  },
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { EncounterPanel } from '@/components/Panels/EncounterPanel';
+import {
+  loadEncounterRun,
+  type EncounterRunView,
+} from '@/services/encounterRunClient';
+import { commandClient } from '@/services/commandClient';
+vi.mock('@/services/encounterRunClient', () => ({ loadEncounterRun: vi.fn() }));
+vi.mock('@/services/commandClient', () => ({
+  commandClient: { startEncounter: vi.fn(), advanceCombatTurn: vi.fn() },
 }));
-
-describe('EncounterPanel', () => {
-  const mockLink: ObjectLink = {
-    kind: 'encounter',
-    id: 'run-enc-1',
-    campaignId: 'camp-1',
-    title: 'Goblin Ambush',
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
+const deployed: EncounterRunView = {
+  run: {
+    id: 'run',
+    stage: 'deployed',
+    currentRound: 1,
+    currentTurnIndex: 0,
+    participants: [{ actorId: 'goblin', initiativeRoll: 14 }],
+  },
+  actors: [{ id: 'goblin', name: 'Saved goblin', currentHp: 7, maxHp: 7 }],
+};
+const show = () =>
+  render(
+    <EncounterPanel
+      link={{
+        kind: 'encounter',
+        id: 'run',
+        campaignId: 'campaign',
+        title: 'Real encounter',
+      }}
+      onClose={vi.fn()}
+      isPopout={false}
+    />,
+  );
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(loadEncounterRun).mockResolvedValue(structuredClone(deployed));
+  vi.mocked(commandClient.startEncounter).mockResolvedValue({ success: true });
+  vi.mocked(commandClient.advanceCombatTurn).mockResolvedValue({
+    success: true,
   });
-
-  it('renders encounter details and participants list', () => {
-    render(
-      <EncounterPanel
-        link={mockLink}
-        onClose={vi.fn()}
-        isPopout={false}
-      />,
-    );
-
-    expect(screen.getByTestId('encounter-panel')).toBeInTheDocument();
-    expect(screen.getByText('Goblin Ambush')).toBeInTheDocument();
-    expect(screen.getByTestId('encounter-stage')).toHaveTextContent('deployed');
-    expect(screen.getByTestId('encounter-round')).toHaveTextContent('1');
-    expect(screen.getByText('Astarion')).toBeInTheDocument();
-    expect(screen.getByText('Goblin #1')).toBeInTheDocument();
+});
+describe('committed encounter panel', () => {
+  it('loads actual participants and never invents demo actors', async () => {
+    show();
+    expect(await screen.findByText('Saved goblin')).toBeInTheDocument();
+    expect(screen.queryByText('Astarion')).not.toBeInTheDocument();
+    expect(loadEncounterRun).toHaveBeenCalledWith('campaign', 'run');
   });
-
-  it('starts combat and activates round tracking', async () => {
-    render(
-      <EncounterPanel
-        link={mockLink}
-        onClose={vi.fn()}
-        isPopout={false}
-      />,
+  it('shows the server round and active participant after starting and advancing', async () => {
+    show();
+    const start = await screen.findByRole('button', { name: /Start Combat/ });
+    vi.mocked(loadEncounterRun).mockResolvedValue({
+      ...deployed,
+      run: { ...deployed.run, stage: 'active', currentRound: 3 },
+    });
+    fireEvent.click(start);
+    expect(
+      await screen.findByRole('button', { name: /Next Turn/ }),
+    ).toBeEnabled();
+    expect(screen.getByTestId('encounter-round')).toHaveTextContent('3');
+    expect(commandClient.startEncounter).toHaveBeenCalledWith(
+      'campaign',
+      'run',
     );
-
-    const startBtn = screen.getByTestId('start-combat-btn');
-    fireEvent.click(startBtn);
-
-    expect(commandClient.startEncounter).toHaveBeenCalledWith('camp-1', 'run-enc-1');
-    expect(screen.getByTestId('encounter-stage')).toHaveTextContent('active');
-    expect(screen.getByTestId('encounter-turn')).toHaveTextContent('1');
-    expect(screen.getByTestId('encounter-active-participant')).toHaveTextContent('Astarion');
-    expect(screen.getByTestId('next-turn-btn')).toBeInTheDocument();
+    vi.mocked(loadEncounterRun).mockResolvedValue({
+      ...deployed,
+      run: { ...deployed.run, stage: 'active', currentRound: 4 },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Next Turn/ }));
+    await waitFor(() =>
+      expect(screen.getByTestId('encounter-round')).toHaveTextContent('4'),
+    );
+    expect(commandClient.advanceCombatTurn).toHaveBeenCalledWith(
+      'campaign',
+      'run',
+    );
   });
-
-  it('advances turn and increments round on wrap-around', async () => {
-    render(
-      <EncounterPanel
-        link={mockLink}
-        onClose={vi.fn()}
-        isPopout={false}
-      />,
+  it('preserves committed state after rejection and permits explicit refresh', async () => {
+    vi.mocked(commandClient.startEncounter).mockResolvedValue({
+      success: false,
+      error: 'Conflict',
+    });
+    show();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Start Combat/ }),
     );
-
-    // Start combat first
-    fireEvent.click(screen.getByTestId('start-combat-btn'));
-    expect(screen.getByTestId('encounter-turn')).toHaveTextContent('1');
-
-    // Turn 2
-    fireEvent.click(screen.getByTestId('next-turn-btn'));
-    expect(commandClient.advanceCombatTurn).toHaveBeenCalledWith('camp-1', 'run-enc-1');
-    expect(screen.getByTestId('encounter-turn')).toHaveTextContent('2');
-    expect(screen.getByTestId('encounter-active-participant')).toHaveTextContent('Goblin #1');
-
-    // Turn 3
-    fireEvent.click(screen.getByTestId('next-turn-btn'));
-    expect(screen.getByTestId('encounter-turn')).toHaveTextContent('3');
-
-    // Turn 4
-    fireEvent.click(screen.getByTestId('next-turn-btn'));
-    expect(screen.getByTestId('encounter-turn')).toHaveTextContent('4');
-
-    // Wrap around to Round 2, Turn 1
-    fireEvent.click(screen.getByTestId('next-turn-btn'));
-    expect(screen.getByTestId('encounter-round')).toHaveTextContent('2');
-    expect(screen.getByTestId('encounter-turn')).toHaveTextContent('1');
-    expect(screen.getByTestId('encounter-active-participant')).toHaveTextContent('Astarion');
+    expect(await screen.findByRole('status')).toHaveTextContent('Conflict');
+    expect(screen.getByRole('button', { name: /Start Combat/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh encounter' }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /Start Combat/ }),
+      ).toBeEnabled(),
+    );
+  });
+  it('reports a failed load without showing fictional participants', async () => {
+    vi.mocked(loadEncounterRun).mockRejectedValue(new Error('Offline'));
+    show();
+    expect(await screen.findByText('Offline')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Next Turn/ })).toBeDisabled();
   });
 });

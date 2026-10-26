@@ -6,6 +6,7 @@ import {
   sceneTemplateSchema,
   sessionPlanSchema,
   sessionPlanActivationSchema,
+  sessionPlanAuthoringSchema,
 } from '../src/index';
 import {
   GLASS_HARBOR_IDS,
@@ -16,6 +17,48 @@ import {
 } from './prep-fixtures';
 
 describe('campaign preparation contracts', () => {
+  it('round-trips complete versioned authoring and refuses future or malformed drafts', () => {
+    const authoring = {
+      version: 1,
+      revision: 1,
+      lastEdited: '2026-10-24',
+      estimatedMinutes: 10,
+      readiness: [{ id: 'ready', label: 'Know the clue', complete: false }],
+      dependencies: [{ objectId: 'note-1', status: 'needs-review' }],
+      notes: ['Private'],
+      playerFacingSummary: 'At dawn',
+      attachments: ['letter'],
+      defaultVisibility: 'dm-only',
+      steps: [
+        {
+          id: 'beat',
+          order: 1,
+          kind: 'note',
+          track: 'main',
+          title: 'Opening',
+          durationMinutes: 10,
+          visibility: 'dm-only',
+          body: 'Secret',
+          objectId: 'note-1',
+        },
+      ],
+    };
+    const plan = sessionPlanSchema.parse({
+      ...glassHarborSessionPlanFixture,
+      authoring,
+    });
+    expect(plan.authoring).toEqual(authoring);
+    expect(
+      sessionPlanAuthoringSchema.safeParse({ ...authoring, version: 2 })
+        .success,
+    ).toBe(false);
+    expect(
+      sessionPlanAuthoringSchema.safeParse({
+        ...authoring,
+        steps: [{ ...authoring.steps[0], durationMinutes: -1 }],
+      }).success,
+    ).toBe(false);
+  });
   it('parses the Glass Harbor note and scene fixtures from unknown input', () => {
     const entry = campaignEntrySchema.parse(glassHarborWarningFixture);
     const scene = sceneTemplateSchema.parse(glassHarborSceneFixture);

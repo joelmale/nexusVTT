@@ -7,6 +7,7 @@
 
 import React, { useEffect } from 'react';
 import type { Character } from '@nexus/character-contracts';
+import { SpellbookPanel } from '@/components/Panels/SpellbookPanel';
 
 interface CharacterSheetPopupProps {
   character: Character;
@@ -138,7 +139,8 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
               <div className="combat-stat">
                 <span className="stat-label">HP</span>
                 <span className="stat-value">
-                  {character.hitPoints}/{character.maxHitPoints ?? character.hitPoints}
+                  {character.hitPoints}/
+                  {character.maxHitPoints ?? character.hitPoints}
                 </span>
               </div>
               <div className="combat-stat">
@@ -180,30 +182,29 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
         </div>
 
         {/* Spells Section (if applicable) */}
-        {spellcasting && (
+        {(spellcasting || Boolean(character.castingSources?.length)) && (
           <section className="character-section spells-section">
             <h2 className="section-header">Spells</h2>
             <div className="spells-content">
               <div className="spell-info">
                 <span>Cantrips: {cantrips.length}</span>
-                <span>Spell Save DC: {spellcasting.spellSaveDC}</span>
+                <span>Spell Save DC: {spellcasting?.spellSaveDC ?? '—'}</span>
                 <span>
                   Spell Attack:{' '}
-                  {spellcasting.spellAttackBonus >= 0 ? '+' : ''}
-                  {spellcasting.spellAttackBonus}
+                  {(spellcasting?.spellAttackBonus ?? 0) >= 0 ? '+' : ''}
+                  {spellcasting?.spellAttackBonus ?? 0}
                 </span>
               </div>
-              {spellcasting.spellSlots.length > 0 && (
-                <div className="spell-slots">
-                  {spellcasting.spellSlots.map((slot, index) => (
-                    <span key={index} className="spell-slot">
-                      {index + 1}:{' '}
-                      {spellcasting.usedSpellSlots?.[index] ?? 0}/{slot}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
+            <SpellbookPanel
+              link={{
+                kind: 'spellbook',
+                id: character.id,
+                title: character.name,
+              }}
+              onClose={onClose}
+              isPopout={false}
+            />
           </section>
         )}
 
@@ -213,7 +214,10 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
           <div className="equipment-list">
             {inventoryItems.slice(0, 8).map((item) => (
               <span key={item.equipmentSlug} className="equipment-item">
-                {item.name || item.equipmentSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                {item.name ||
+                  item.equipmentSlug
+                    .replace(/-/g, ' ')
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
                 {item.quantity > 1 && ` (${item.quantity})`}
               </span>
             ))}

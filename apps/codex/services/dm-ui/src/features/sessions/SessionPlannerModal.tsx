@@ -52,6 +52,7 @@ export function SessionPlannerModal({
   onSessionSaved,
 }: SessionPlannerModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const newSessionIdRef = useRef(crypto.randomUUID());
   const navigate = useNavigate();
   const titleId = useId();
 
@@ -470,7 +471,7 @@ export function SessionPlannerModal({
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const sessionId = initialSession?.id ?? `session-${sessionNumber}`;
+    let sessionId = initialSession?.id ?? newSessionIdRef.current;
 
     const plan: SessionPlan = {
       revision: (initialSession?.plan?.revision ?? 0) + 1,
@@ -548,9 +549,14 @@ export function SessionPlannerModal({
         if (!res.ok) {
           throw new Error(res.error || 'Failed to create session.');
         }
+        if (!res.id)
+          throw new Error(
+            'The server did not return the saved session identity.',
+          );
+        sessionId = res.id;
       }
 
-      onSessionSaved?.(sessionData, openRunSheet);
+      onSessionSaved?.({ ...sessionData, id: sessionId }, openRunSheet);
       onClose();
 
       if (openRunSheet) {
@@ -804,6 +810,7 @@ export function SessionPlannerModal({
                   value={primaryLocationId}
                   onChange={(e) => setPrimaryLocationId(e.target.value)}
                   data-testid="select-primary-location"
+                  aria-label="Primary location"
                 >
                   <option value="">No Location Linked</option>
                   {bundle.locations.map((loc) => (
@@ -832,7 +839,9 @@ export function SessionPlannerModal({
                           gap: '4px',
                         }}
                       >
-                        <div
+                        <button
+                          type="button"
+                          aria-pressed={active}
                           className={`${styles.selectionCard} ${active ? styles.selectionCardActive : ''}`}
                           onClick={() => handleToggleQuest(q.id)}
                           data-testid={`chip-quest-${q.id}`}
@@ -840,7 +849,7 @@ export function SessionPlannerModal({
                           <Compass size={14} />
                           <span>{q.title}</span>
                           <span className={styles.metaPill}>{q.status}</span>
-                        </div>
+                        </button>
                         {active && q.objectiveIds.length > 0 && (
                           <div className={styles.objectiveList}>
                             {q.objectiveIds.map((objId, idx) => {
@@ -882,7 +891,9 @@ export function SessionPlannerModal({
                   {bundle.encounters.map((enc) => {
                     const active = selectedEncounterIds.has(enc.id);
                     return (
-                      <div
+                      <button
+                        type="button"
+                        aria-pressed={active}
                         key={enc.id}
                         className={`${styles.selectionCard} ${active ? styles.selectionCardActive : ''}`}
                         onClick={() => handleToggleEncounter(enc.id)}
@@ -893,7 +904,7 @@ export function SessionPlannerModal({
                         <span className={styles.metaPill}>
                           {enc.kind} · {enc.difficulty}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -909,7 +920,9 @@ export function SessionPlannerModal({
                   {bundle.npcs.map((npc) => {
                     const active = selectedNpcIds.has(npc.id);
                     return (
-                      <div
+                      <button
+                        type="button"
+                        aria-pressed={active}
                         key={npc.id}
                         className={`${styles.selectionCard} ${active ? styles.selectionCardActive : ''}`}
                         onClick={() => handleToggleNpc(npc.id)}
@@ -918,7 +931,7 @@ export function SessionPlannerModal({
                         <Users size={14} />
                         <span>{npc.name}</span>
                         <span className={styles.metaPill}>{npc.role}</span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -935,7 +948,9 @@ export function SessionPlannerModal({
                     {bundle.factions.map((f) => {
                       const active = selectedFactionIds.has(f.id);
                       return (
-                        <div
+                        <button
+                          type="button"
+                          aria-pressed={active}
                           key={f.id}
                           className={`${styles.selectionCard} ${active ? styles.selectionCardActive : ''}`}
                           onClick={() => handleToggleFaction(f.id)}
@@ -943,7 +958,7 @@ export function SessionPlannerModal({
                         >
                           <span>{f.name}</span>
                           <span className={styles.metaPill}>{f.status}</span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -961,7 +976,9 @@ export function SessionPlannerModal({
                     {bundle.handouts.map((h) => {
                       const active = selectedHandoutIds.has(h.id);
                       return (
-                        <div
+                        <button
+                          type="button"
+                          aria-pressed={active}
                           key={h.id}
                           className={`${styles.selectionCard} ${active ? styles.selectionCardActive : ''}`}
                           onClick={() => handleToggleHandout(h.id)}
@@ -972,7 +989,7 @@ export function SessionPlannerModal({
                           <span className={styles.metaPill}>
                             {h.visibility}
                           </span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -990,7 +1007,9 @@ export function SessionPlannerModal({
                     {bundle.clues.map((c) => {
                       const active = selectedClueIds.has(c.id);
                       return (
-                        <div
+                        <button
+                          type="button"
+                          aria-pressed={active}
                           key={c.id}
                           className={`${styles.selectionCard} ${active ? styles.selectionCardActive : ''}`}
                           onClick={() => handleToggleClue(c.id)}
@@ -999,7 +1018,7 @@ export function SessionPlannerModal({
                           <FileText size={14} />
                           <span>{c.title}</span>
                           <span className={styles.metaPill}>{c.priority}</span>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>

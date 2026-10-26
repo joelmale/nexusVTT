@@ -220,7 +220,11 @@ for (const { label, device, split } of DEVICES) {
         new RegExp(`/lobby/game/${roomCode}$`),
       );
 
-      await ribbon.getByRole('button', { name: /Hit points 19 of 30/ }).click();
+      const hpToggle = ribbon.getByRole('button', {
+        name: /Hit points 19 of 30/,
+      });
+      if ((await hpToggle.getAttribute('aria-expanded')) !== 'true')
+        await hpToggle.click();
       await ribbon.getByRole('button', { name: '+1', exact: true }).click();
       await expect(hostCard(hostPage).locator('.hp-current')).toHaveText(/20/);
     } finally {

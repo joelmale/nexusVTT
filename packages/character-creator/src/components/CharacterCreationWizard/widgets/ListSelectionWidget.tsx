@@ -1,5 +1,6 @@
 import React from 'react';
 import { ListSelectionWidgetProps } from '../../../types/widgets';
+import { INVOCATIONS_2024 } from '../../../services/invocations';
 
 /**
  * ListSelectionWidget
@@ -17,18 +18,31 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
   feature,
   currentSelection,
   onSelectionChange,
+  data,
 }) => {
   const config = feature.widget_config;
 
   // Get options based on type
-  const options = getOptionsForType(config.type, config.filter);
+  const options: ListOption[] =
+    config.type === 'invocation' && data.edition === '2024'
+      ? INVOCATIONS_2024.map((entry) => ({
+          id: entry.id,
+          name: entry.name,
+          description: entry.spell
+            ? `Grants ${entry.spell.replace(/-/g, ' ')} without a spell slot.`
+            : 'A Warlock class feature.',
+          prerequisite: `Warlock level ${entry.level}`,
+          prerequisiteMet: data.level >= entry.level,
+        }))
+      : getOptionsForType(config.type, config.filter);
 
   const handleSelect = (optionId: string) => {
     // For single selection, replace the array
     onSelectionChange([optionId]);
   };
 
-  const selectedOption = currentSelection.length > 0 ? currentSelection[0] : null;
+  const selectedOption =
+    currentSelection.length > 0 ? currentSelection[0] : null;
 
   return (
     <div className="list-selection-widget mb-6">
@@ -37,9 +51,7 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
         <h3 className="text-xl font-bold text-amber-400 mb-2">
           {feature.name}
         </h3>
-        <p className="text-gray-300 text-sm mb-3">
-          {feature.desc}
-        </p>
+        <p className="text-gray-300 text-sm mb-3">{feature.desc}</p>
         {!selectedOption && (
           <div className="text-amber-400 text-sm">
             ⚠️ Please choose one option
@@ -56,14 +68,18 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
             <button
               key={option.id}
               onClick={() => handleSelect(option.id)}
-              disabled={!!(option.prerequisite && option.prerequisite.trim()) && !option.prerequisiteMet}
+              disabled={
+                !!(option.prerequisite && option.prerequisite.trim()) &&
+                !option.prerequisiteMet
+              }
               className={`
                 p-5 rounded-xl border-2 text-left transition-all
-                ${isSelected
-                  ? 'border-amber-400 bg-amber-400/20 shadow-2xl shadow-amber-400/50 scale-[1.02]'
-                  : option.prerequisite && !option.prerequisiteMet
-                    ? 'border-gray-700 bg-gray-800/30 opacity-50 cursor-not-allowed'
-                    : 'border-gray-600 bg-gray-800/50 hover:border-amber-400/50 hover:bg-gray-700/50 cursor-pointer'
+                ${
+                  isSelected
+                    ? 'border-amber-400 bg-amber-400/20 shadow-2xl shadow-amber-400/50 scale-[1.02]'
+                    : option.prerequisite && !option.prerequisiteMet
+                      ? 'border-gray-700 bg-gray-800/30 opacity-50 cursor-not-allowed'
+                      : 'border-gray-600 bg-gray-800/50 hover:border-amber-400/50 hover:bg-gray-700/50 cursor-pointer'
                 }
               `}
             >
@@ -72,7 +88,9 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
                 <div className="flex-1">
                   <h4 className="text-lg font-bold text-white mb-1">
                     {option.name}
-                    {isSelected && <span className="ml-2 text-amber-400">✓</span>}
+                    {isSelected && (
+                      <span className="ml-2 text-amber-400">✓</span>
+                    )}
                   </h4>
                   {option.shortDesc && (
                     <p className="text-xs text-amber-300 font-semibold">
@@ -83,9 +101,7 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
               </div>
 
               {/* Description */}
-              <p className="text-sm text-gray-300 mb-3">
-                {option.description}
-              </p>
+              <p className="text-sm text-gray-300 mb-3">{option.description}</p>
 
               {/* Prerequisites (if any) */}
               {option.prerequisite && (
@@ -113,8 +129,9 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
       {selectedOption && (
         <div className="mt-4 p-4 bg-green-900/30 border border-green-500/50 rounded-lg">
           <div className="text-green-300 text-sm">
-            ✓ Selected: <strong className="text-green-400">
-              {options.find(o => o.id === selectedOption)?.name}
+            ✓ Selected:{' '}
+            <strong className="text-green-400">
+              {options.find((o) => o.id === selectedOption)?.name}
             </strong>
           </div>
         </div>
@@ -139,7 +156,10 @@ interface ListOption {
 /**
  * Get options based on selection type
  */
-function getOptionsForType(type: 'fighting_style' | 'invocation' | 'feat', filter?: string): ListOption[] {
+function getOptionsForType(
+  type: 'fighting_style' | 'invocation' | 'feat',
+  filter?: string,
+): ListOption[] {
   switch (type) {
     case 'fighting_style':
       return getFightingStyleOptions();
@@ -161,61 +181,71 @@ function getFightingStyleOptions(): ListOption[] {
       id: 'archery',
       name: 'Archery',
       shortDesc: '+2 to ranged attack rolls',
-      description: 'You gain a +2 bonus to attack rolls you make with Ranged weapons.',
+      description:
+        'You gain a +2 bonus to attack rolls you make with Ranged weapons.',
     },
     {
       id: 'defense',
       name: 'Defense',
       shortDesc: '+1 AC while wearing armor',
-      description: 'While you are wearing armor, you gain a +1 bonus to Armor Class.',
+      description:
+        'While you are wearing armor, you gain a +1 bonus to Armor Class.',
     },
     {
       id: 'dueling',
       name: 'Dueling',
       shortDesc: '+2 damage with one-handed weapon',
-      description: 'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
+      description:
+        'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
     },
     {
       id: 'great-weapon-fighting',
       name: 'Great Weapon Fighting',
       shortDesc: 'Reroll 1s and 2s on damage',
-      description: 'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll. The weapon must have the Two-Handed or Versatile property for you to gain this benefit.',
+      description:
+        'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll. The weapon must have the Two-Handed or Versatile property for you to gain this benefit.',
     },
     {
       id: 'two-weapon-fighting',
       name: 'Two-Weapon Fighting',
       shortDesc: 'Add ability modifier to off-hand attack',
-      description: 'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
+      description:
+        'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
     },
     {
       id: 'blind-fighting',
       name: 'Blind Fighting',
       shortDesc: 'Blindsight 10 feet',
-      description: 'You have Blindsight with a range of 10 feet. Within that range, you can effectively see anything that isn\'t behind Total Cover, even if you\'re Blinded or in Darkness. Moreover, you can see an invisible creature within that range, unless the creature successfully hides from you.',
+      description:
+        "You have Blindsight with a range of 10 feet. Within that range, you can effectively see anything that isn't behind Total Cover, even if you're Blinded or in Darkness. Moreover, you can see an invisible creature within that range, unless the creature successfully hides from you.",
     },
     {
       id: 'interception',
       name: 'Interception',
       shortDesc: 'Reduce damage to nearby ally',
-      description: 'When a creature you can see hits a target, other than you, within 5 feet of you with an attack, you can use your reaction to reduce the damage the target takes by 1d10 + your proficiency bonus (to a minimum of 0 damage). You must be wielding a Shield or a Simple or Martial weapon to use this reaction.',
+      description:
+        'When a creature you can see hits a target, other than you, within 5 feet of you with an attack, you can use your reaction to reduce the damage the target takes by 1d10 + your proficiency bonus (to a minimum of 0 damage). You must be wielding a Shield or a Simple or Martial weapon to use this reaction.',
     },
     {
       id: 'protection',
       name: 'Protection',
       shortDesc: 'Impose disadvantage on attacks',
-      description: 'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a Shield.',
+      description:
+        'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a Shield.',
     },
     {
       id: 'thrown-weapon-fighting',
       name: 'Thrown Weapon Fighting',
       shortDesc: '+2 damage with thrown weapons',
-      description: 'You can draw a weapon that has the Thrown property as part of the attack you make with the weapon. In addition, when you hit with a ranged attack using a thrown weapon, you gain a +2 bonus to the damage roll.',
+      description:
+        'You can draw a weapon that has the Thrown property as part of the attack you make with the weapon. In addition, when you hit with a ranged attack using a thrown weapon, you gain a +2 bonus to the damage roll.',
     },
     {
       id: 'unarmed-fighting',
       name: 'Unarmed Fighting',
       shortDesc: '1d6 (or 1d8) unarmed damage',
-      description: 'Your unarmed strikes can deal bludgeoning damage equal to 1d6 + your Strength modifier on a hit. If you aren\'t wielding any weapons or a Shield when you make the attack roll, the d6 becomes a d8. At the start of each of your turns, you can deal 1d4 bludgeoning damage to one creature grappled by you.',
+      description:
+        "Your unarmed strikes can deal bludgeoning damage equal to 1d6 + your Strength modifier on a hit. If you aren't wielding any weapons or a Shield when you make the attack roll, the d6 becomes a d8. At the start of each of your turns, you can deal 1d4 bludgeoning damage to one creature grappled by you.",
     },
   ];
 }
@@ -230,37 +260,43 @@ function getInvocationOptions(filter?: string): ListOption[] {
       id: 'armor-of-shadows',
       name: 'Armor of Shadows',
       shortDesc: 'Cast Mage Armor at will',
-      description: 'You can cast Mage Armor on yourself at will, without expending a spell slot or material components.',
+      description:
+        'You can cast Mage Armor on yourself at will, without expending a spell slot or material components.',
     },
     {
       id: 'beast-speech',
       name: 'Beast Speech',
       shortDesc: 'Speak with animals at will',
-      description: 'You can cast Speak with Animals at will, without expending a spell slot.',
+      description:
+        'You can cast Speak with Animals at will, without expending a spell slot.',
     },
     {
       id: 'eldritch-mind',
       name: 'Eldritch Mind',
       shortDesc: 'Advantage on concentration saves',
-      description: 'You have advantage on Constitution saving throws that you make to maintain your concentration on a spell.',
+      description:
+        'You have advantage on Constitution saving throws that you make to maintain your concentration on a spell.',
     },
     {
       id: 'fiendish-vigor',
       name: 'Fiendish Vigor',
       shortDesc: 'Cast False Life at will',
-      description: 'You can cast False Life on yourself at will as a 1st-level spell, without expending a spell slot or material components.',
+      description:
+        'You can cast False Life on yourself at will as a 1st-level spell, without expending a spell slot or material components.',
     },
     {
       id: 'misty-visions',
       name: 'Misty Visions',
       shortDesc: 'Cast Silent Image at will',
-      description: 'You can cast Silent Image at will, without expending a spell slot or material components.',
+      description:
+        'You can cast Silent Image at will, without expending a spell slot or material components.',
     },
     {
       id: 'thief-of-five-fates',
       name: 'Thief of Five Fates',
       shortDesc: 'Cast Bane once per long rest',
-      description: 'You can cast Bane once using a Warlock spell slot. You can\'t do so again until you finish a long rest.',
+      description:
+        "You can cast Bane once using a Warlock spell slot. You can't do so again until you finish a long rest.",
     },
   ];
 

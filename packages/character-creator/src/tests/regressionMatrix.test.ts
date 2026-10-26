@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { REFERENCE_BUILDS, ReferenceBuildOracle } from './fixtures/referenceBuilds';
-import { creationDataToDraft, draftToCreationData } from '../adapters/draftAdapter';
-import { evaluateDraft, toCharacterCreationResult } from '../services/draftEvaluator';
+import {
+  REFERENCE_BUILDS,
+  ReferenceBuildOracle,
+} from './fixtures/referenceBuilds';
+import {
+  creationDataToDraft,
+  draftToCreationData,
+} from '../adapters/draftAdapter';
+import {
+  evaluateDraft,
+  toCharacterCreationResult,
+} from '../services/draftEvaluator';
 import { createdCharacterToNexus } from '../adapters/nexusCharacter';
 import { resolveCatalogEntitlements } from '../services/catalogResolver';
 import { resolveLoadout } from '../services/loadoutResolver';
@@ -15,7 +24,14 @@ import {
 import { studyRecorder } from '../services/studyRecorder';
 
 describe('CC-601: Real-path 24-case Regression Matrix and Resilience Suite', () => {
-  const buildKeys: Array<keyof typeof REFERENCE_BUILDS> = ['F14', 'F24', 'R14', 'R24', 'W14', 'W24'];
+  const buildKeys: Array<keyof typeof REFERENCE_BUILDS> = [
+    'F14',
+    'F24',
+    'R14',
+    'R24',
+    'W14',
+    'W24',
+  ];
 
   describe('24 Completion Cases (6 reference builds x 2 creation paths x 2 host conversions)', () => {
     buildKeys.forEach((buildKey) => {
@@ -23,24 +39,38 @@ describe('CC-601: Real-path 24-case Regression Matrix and Resilience Suite', () 
 
       it(`[${buildKey}] Full Evaluation Path -> Forge & VTT Host conversion`, () => {
         // 1. Adapter from creationData to canonical draft
-        const draft = creationDataToDraft(oracle.creationData, { provenance: 'player' });
+        const draft = creationDataToDraft(oracle.creationData, {
+          provenance: 'player',
+        });
         expect(draft.edition).toBe(oracle.edition);
 
         // 2. Evaluate Draft
         const evaluation = evaluateDraft(draft);
         expect(evaluation.isValid).toBe(true);
-        expect(evaluation.issues.filter((i) => i.severity === 'error')).toHaveLength(0);
+        expect(
+          evaluation.issues.filter((i) => i.severity === 'error'),
+        ).toHaveLength(0);
 
         // Check key stats
-        expect(evaluation.calculatedCharacter.abilities.STR.score).toBe(oracle.expected.abilities.STR);
-        expect(evaluation.calculatedCharacter.abilities.DEX.score).toBe(oracle.expected.abilities.DEX);
-        expect(evaluation.calculatedCharacter.maxHitPoints).toBe(oracle.expected.hp);
-        expect(evaluation.calculatedCharacter.armorClass).toBe(oracle.expected.ac);
+        expect(evaluation.calculatedCharacter!.abilities.STR.score).toBe(
+          oracle.expected.abilities.STR,
+        );
+        expect(evaluation.calculatedCharacter!.abilities.DEX.score).toBe(
+          oracle.expected.abilities.DEX,
+        );
+        expect(evaluation.calculatedCharacter!.maxHitPoints).toBe(
+          oracle.expected.hp,
+        );
+        expect(evaluation.calculatedCharacter!.armorClass).toBe(
+          oracle.expected.ac,
+        );
 
         // 3. Forge Host Hand-off (CC-502)
         const forgeResult = toCharacterCreationResult(evaluation);
         expect(forgeResult.character.name).toBe(oracle.creationData.name);
-        expect(forgeResult.character.classSlug).toBe(oracle.creationData.classSlug);
+        expect(forgeResult.character.classSlug).toBe(
+          oracle.creationData.classSlug,
+        );
         expect(forgeResult.combatGuidance).toBeDefined();
 
         // 4. VTT Host Hand-off (CC-503)
@@ -73,7 +103,9 @@ describe('CC-601: Real-path 24-case Regression Matrix and Resilience Suite', () 
 
         // Convert to Forge format
         const forgeResult = toCharacterCreationResult(recResult.evaluation);
-        expect(forgeResult.character.classSlug).toBe(oracle.creationData.classSlug);
+        expect(forgeResult.character.classSlug).toBe(
+          oracle.creationData.classSlug,
+        );
 
         // Convert to VTT format
         const vttChar = createdCharacterToNexus(forgeResult.character, {
@@ -102,7 +134,9 @@ describe('CC-601: Real-path 24-case Regression Matrix and Resilience Suite', () 
         length: 0,
       };
 
-      const originalDraft = creationDataToDraft(REFERENCE_BUILDS.F24.creationData);
+      const originalDraft = creationDataToDraft(
+        REFERENCE_BUILDS.F24.creationData,
+      );
 
       // Save draft from Tab 1
       saveDraftToStorage(storageKey, originalDraft, {
@@ -148,7 +182,9 @@ describe('CC-601: Real-path 24-case Regression Matrix and Resilience Suite', () 
       };
 
       const issues = resolveCatalogEntitlements(draft);
-      const invalidAsi = issues.find((i) => i.id === 'INVALID_2_1_BONUS_ALLOCATION');
+      const invalidAsi = issues.find(
+        (i) => i.id === 'INVALID_2_1_BONUS_ALLOCATION',
+      );
       expect(invalidAsi).toBeDefined();
       expect(invalidAsi?.severity).toBe('error');
     });
@@ -161,8 +197,11 @@ describe('CC-601: Real-path 24-case Regression Matrix and Resilience Suite', () 
       // Items inside pack expanded into loadout inventory
       expect(
         loadout.items.some(
-          (i) => i.name.includes('Torch') || i.name.includes('Ration') || i.name.includes('Crowbar')
-        )
+          (i) =>
+            i.name.includes('Torch') ||
+            i.name.includes('Ration') ||
+            i.name.includes('Crowbar'),
+        ),
       ).toBe(true);
     });
   });

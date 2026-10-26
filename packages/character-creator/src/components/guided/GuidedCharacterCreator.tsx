@@ -1,3 +1,8 @@
+import { CreatorDialog } from '../CreatorDialog';
+import {
+  CreationSessionContext,
+  useCreationSession,
+} from '../../hooks/useCreationSession';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { CHARACTER_CREATOR_ROOT_CLASS } from '../../api/types';
@@ -7,7 +12,7 @@ import { useCreationSubmission } from '../CharacterCreationWizard/hooks/useCreat
 import PersonalityWizard from './PersonalityWizard';
 import { FourScreenNewcomerFlow } from './FourScreenNewcomerFlow';
 
-import type { CreationDraft } from '../../types/draft';
+import type { CreationDraft, CreatorPresentation } from '../../types/draft';
 
 export interface GuidedCharacterCreatorProps {
   isOpen: boolean;
@@ -15,6 +20,8 @@ export interface GuidedCharacterCreatorProps {
   /** Written to `data-theme` on the creator root — the explicit theme boundary. */
   theme?: string;
   initialDraft?: CreationDraft;
+  initialPresentation?: CreatorPresentation;
+  onPresentationChange?: (presentation: CreatorPresentation) => void;
   onDraftChange?: (draft: CreationDraft) => void;
   onDraftDiscard?: () => void;
   onCancel: () => void;
@@ -45,14 +52,17 @@ export const GuidedCharacterCreator: React.FC<GuidedCharacterCreatorProps> = ({
   edition,
   theme,
   initialDraft,
+  initialPresentation,
+  onPresentationChange,
   onDraftChange,
   onDraftDiscard,
   onCancel,
   onComplete,
   onSwitchToFullWizard,
 }) => {
+  const session = useCreationSession({ initialDraft, edition, onDraftChange });
   const { submit, isSubmitting, isSubmittingRef, error, setError } =
-    useCreationSubmission({ onComplete, edition });
+    useCreationSubmission({ onComplete, edition, draft: session.draft });
 
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -62,27 +72,23 @@ export const GuidedCharacterCreator: React.FC<GuidedCharacterCreatorProps> = ({
     onCancel();
   }, [isSubmittingRef, onCancel]);
 
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        handleCancel();
-      }
-    },
-    [handleCancel],
-  );
-
   // Move focus into the dialog on open, restore it on close.
   useEffect(() => {
     if (!isOpen) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
-    const dialog = rootRef.current?.querySelector<HTMLElement>('[role="dialog"]');
+    const dialog =
+      rootRef.current?.querySelector<HTMLElement>('[role="dialog"]');
     dialog?.focus();
     return () => previouslyFocused?.focus?.();
   }, [isOpen]);
 
-  const [flowMode, setFlowMode] = useState<'four-screen' | 'quiz'>('four-screen');
+  const [flowMode, setFlowMode] = useState<'four-screen' | 'quiz'>(
+    initialPresentation?.guidedFlow || 'four-screen',
+  );
 
+  useEffect(() => {
+    onPresentationChange?.({ mode: 'guided', guidedFlow: flowMode });
+  }, [flowMode, onPresentationChange]);
   const handleGuidedComplete = useCallback(
     (data: CharacterCreationData) => {
       // The guided flow derives these; a missing one means the profile mapping
@@ -102,76 +108,78 @@ export const GuidedCharacterCreator: React.FC<GuidedCharacterCreatorProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div
-      ref={rootRef}
-      className={`${CHARACTER_CREATOR_ROOT_CLASS} fixed inset-0 z-50 overflow-y-auto`}
-      data-theme={theme}
-      onKeyDown={handleKeyDown}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Create a character — guided"
-        tabIndex={-1}
-      >
-        {error && (
-          <div
-            role="alert"
-            aria-live="assertive"
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[calc(100%-2rem)]"
-          >
-            <div className="bg-red-900 border border-accent-red-dark rounded-lg p-4 text-sm text-red-200 flex items-start gap-3">
-              <span className="flex-1">{error}</span>
-              <button
-                onClick={() => setError(null)}
-                className="text-accent-red-light hover:text-white"
+    <CreationSessionContext.Provider value={session}>
+      <CreatorDialog label="Create a character" onClose={handleCancel}>
+        <div
+          ref={rootRef}
+          className={`${CHARACTER_CREATOR_ROOT_CLASS} fixed inset-0 z-50 overflow-y-auto`}
+          data-theme={theme}
+        >
+          <div tabIndex={-1}>
+            {error && (
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[calc(100%-2rem)]"
               >
-                <span className="sr-only">Dismiss</span>✕
-              </button>
-            </div>
-          </div>
-        )}
+                <div className="bg-red-900 border border-accent-red-dark rounded-lg p-4 text-sm text-red-200 flex items-start gap-3">
+                  <span className="flex-1">{error}</span>
+                  <button
+                    onClick={() => setError(null)}
+                    className="text-accent-red-light hover:text-white"
+                  >
+                    <span className="sr-only">Dismiss</span>✕
+                  </button>
+                </div>
+              </div>
+            )}
 
-        {flowMode === 'four-screen' ? (
-          <FourScreenNewcomerFlow
-            isOpen
-            edition={edition ?? '2024'}
-            initialDraft={initialDraft}
-            onDraftChange={onDraftChange}
-            onDraftDiscard={onDraftDiscard}
-            onClose={handleCancel}
-            onComplete={handleGuidedComplete}
-            onSwitchToFullWizard={onSwitchToFullWizard}
-            onSwitchToQuiz={() => setFlowMode('quiz')}
-            backLabel={
-              onSwitchToFullWizard
-                ? 'Choose everything myself'
-                : 'Back to Options'
-            }
-          />
-        ) : (
-          <PersonalityWizard
-            isOpen
-            edition={edition ?? '2024'}
-            onClose={handleCancel}
-            onBack={() => setFlowMode('four-screen')}
-            backLabel="Back to Quick Build"
-            onComplete={handleGuidedComplete}
-          />
-        )}
+            {flowMode === 'four-screen' ? (
+              <FourScreenNewcomerFlow
+                isOpen
+                edition={session.data.edition || edition || '2024'}
+                initialDraft={session.draft}
+                initialPresentation={initialPresentation}
+                onPresentationChange={onPresentationChange}
+                onDraftChange={onDraftChange}
+                onDraftDiscard={onDraftDiscard}
+                onClose={handleCancel}
+                onComplete={handleGuidedComplete}
+                onSwitchToFullWizard={onSwitchToFullWizard}
+                onSwitchToQuiz={() => setFlowMode('quiz')}
+                backLabel={
+                  onSwitchToFullWizard
+                    ? 'Choose everything myself'
+                    : 'Back to Options'
+                }
+              />
+            ) : (
+              <PersonalityWizard
+                isOpen
+                initialPresentation={initialPresentation}
+                onPresentationChange={onPresentationChange}
+                edition={session.data.edition || edition || '2024'}
+                onClose={handleCancel}
+                onBack={() => setFlowMode('four-screen')}
+                backLabel="Back to Quick Build"
+                onComplete={handleGuidedComplete}
+              />
+            )}
 
-        {isSubmitting && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-            aria-busy="true"
-          >
-            <div className="bg-theme-secondary rounded-xl px-6 py-4 text-white">
-              Saving…
-            </div>
+            {isSubmitting && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                aria-busy="true"
+              >
+                <div className="bg-theme-secondary rounded-xl px-6 py-4 text-white">
+                  Saving…
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </div>,
+        </div>
+      </CreatorDialog>
+    </CreationSessionContext.Provider>,
     document.body,
   );
 };

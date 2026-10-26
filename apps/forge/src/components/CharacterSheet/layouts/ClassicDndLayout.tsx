@@ -16,7 +16,7 @@ import {
   EquipmentSection,
   ProficienciesAndLanguages,
   FeaturesSection,
-  ActiveEquipmentPanel
+  ActiveEquipmentPanel,
 } from '../index';
 import { SpellPreparationModal } from '../../SpellPreparationModal';
 import { getSpellsForClass } from '../../../services/dataService';
@@ -30,21 +30,37 @@ import { getSpellsForClass } from '../../../services/dataService';
  * - Right: Features, proficiencies, personality traits
  */
 export const ClassicDndLayout: React.FC<CharacterSheetProps> = ({
-  character, onClose, onDelete, setRollResult, onDiceRoll, onToggleInspiration, onFeatureClick,
-  onLongRest, onShortRest, onLevelUp, onLevelDown, onUpdateCharacter, onEquipArmor, onEquipWeapon, onUnequipItem,
-  onAddItem, onRemoveItem, setEquipmentModal, onOpenDiceTray
+  character,
+  onClose,
+  onDelete,
+  onEdit,
+  setRollResult,
+  onDiceRoll,
+  onToggleInspiration,
+  onFeatureClick,
+  onLongRest,
+  onShortRest,
+  onLevelUp,
+  onLevelDown,
+  onUpdateCharacter,
+  onEquipArmor,
+  onEquipWeapon,
+  onUnequipItem,
+  onAddItem,
+  onRemoveItem,
+  setEquipmentModal,
+  onOpenDiceTray,
 }) => {
-  const [showSpellPreparationModal, setShowSpellPreparationModal] = useState(false);
-
-
+  const [showSpellPreparationModal, setShowSpellPreparationModal] =
+    useState(false);
 
   const handleSpellPreparationSave = (preparedSpells: string[]) => {
     onUpdateCharacter({
       ...character,
       spellcasting: {
         ...character.spellcasting!,
-        preparedSpells
-      }
+        preparedSpells,
+      },
     });
   };
 
@@ -53,6 +69,7 @@ export const ClassicDndLayout: React.FC<CharacterSheetProps> = ({
       <div className="max-w-[1400px] mx-auto space-y-4">
         <CharacterHeader
           character={character}
+          onEdit={onEdit}
           onClose={onClose}
           onDelete={onDelete}
           onShortRest={onShortRest}
@@ -95,11 +112,19 @@ export const ClassicDndLayout: React.FC<CharacterSheetProps> = ({
                       <button
                         onClick={() => onToggleInspiration(character.id)}
                         className={`w-10 h-10 rounded-full transition-all cursor-pointer flex items-center justify-center ${
-                          character.inspiration ? 'bg-accent-yellow border-2 border-yellow-400' : 'bg-theme-quaternary hover:bg-theme-hover border-2 border-gray-500'
+                          character.inspiration
+                            ? 'bg-accent-yellow border-2 border-yellow-400'
+                            : 'bg-theme-quaternary hover:bg-theme-hover border-2 border-gray-500'
                         }`}
-                        title={character.inspiration ? 'Remove Inspiration' : 'Grant Inspiration'}
+                        title={
+                          character.inspiration
+                            ? 'Remove Inspiration'
+                            : 'Grant Inspiration'
+                        }
                       >
-                        {character.inspiration && <Zap className="w-5 h-5 text-gray-900" />}
+                        {character.inspiration && (
+                          <Zap className="w-5 h-5 text-gray-900" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -121,23 +146,23 @@ export const ClassicDndLayout: React.FC<CharacterSheetProps> = ({
 
                 {/* Saving Throws */}
                 <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
-                   <h3 className="text-sm font-bold text-center mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
-                     Saving Throws
-                   </h3>
+                  <h3 className="text-sm font-bold text-center mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
+                    Saving Throws
+                  </h3>
                   <SavingThrows
                     character={character}
                     setRollResult={setRollResult}
                     onDiceRoll={onDiceRoll}
                     onUpdateCharacter={onUpdateCharacter}
                     layoutMode="classic-dnd"
-                   />
+                  />
                 </div>
 
                 {/* Skills */}
                 <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
-                   <h3 className="text-sm font-bold text-center mb-4 text-theme-muted uppercase tracking-wider font-cinzel">
-                     Skills
-                   </h3>
+                  <h3 className="text-sm font-bold text-center mb-4 text-theme-muted uppercase tracking-wider font-cinzel">
+                    Skills
+                  </h3>
                   <SkillsSection
                     character={character}
                     setRollResult={setRollResult}
@@ -148,14 +173,14 @@ export const ClassicDndLayout: React.FC<CharacterSheetProps> = ({
               </div>
             </div>
 
-             {/* Currency - Condensed */}
-             <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-2 shadow-lg">
-               <CoinManagement
-                 character={character}
-                 onUpdateCharacter={onUpdateCharacter}
-                 compact={true}
-               />
-             </div>
+            {/* Currency - Condensed */}
+            <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-2 shadow-lg">
+              <CoinManagement
+                character={character}
+                onUpdateCharacter={onUpdateCharacter}
+                compact={true}
+              />
+            </div>
 
             {/* Progression - Experience & Attunement */}
             <div className="bg-gradient-to-br from-theme-secondary/80 via-theme-tertiary/60 to-theme-secondary/80 border border-theme-border rounded-lg p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
@@ -183,50 +208,48 @@ export const ClassicDndLayout: React.FC<CharacterSheetProps> = ({
           <div className="col-span-6 space-y-4">
             {/* Combat Stats Panel - AC, Initiative, Speed, HP, Hit Dice, Death Saves */}
             <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
-               <CombatStatsPanel
-                 character={character}
-                 setRollResult={setRollResult}
-                 onDiceRoll={onDiceRoll}
-                 onUpdateCharacter={onUpdateCharacter}
-                 layoutMode="classic-dnd"
-               />
-             </div>
-
-
+              <CombatStatsPanel
+                character={character}
+                setRollResult={setRollResult}
+                onDiceRoll={onDiceRoll}
+                onUpdateCharacter={onUpdateCharacter}
+                layoutMode="classic-dnd"
+              />
+            </div>
 
             {/* Attacks & Actions */}
             <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
-               <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
-                 Attacks & Spellcasting
-               </h2>
-                <AttacksAndActions
-                  character={character}
-                  setRollResult={setRollResult}
-                  onDiceRoll={onDiceRoll}
-                  onUpdateCharacter={onUpdateCharacter}
-                  layoutMode="classic-dnd"
-                />
-             </div>
+              <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
+                Attacks & Spellcasting
+              </h2>
+              <AttacksAndActions
+                character={character}
+                setRollResult={setRollResult}
+                onDiceRoll={onDiceRoll}
+                onUpdateCharacter={onUpdateCharacter}
+                layoutMode="classic-dnd"
+              />
+            </div>
 
-             {/* Spellcasting (if applicable) */}
-             {character.spellcasting && (
-               <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
-                 <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
-                   Spellcasting
-                 </h2>
+            {/* Spellcasting (if applicable) */}
+            {character.spellcasting && (
+              <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
+                <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
+                  Spellcasting
+                </h2>
                 <SpellcastingSection
                   character={character}
                   onUpdateCharacter={onUpdateCharacter}
                   onSpellPreparation={() => setShowSpellPreparationModal(true)}
                 />
               </div>
-             )}
+            )}
 
-              {/* Inventory */}
-             <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
-                <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
-                  Inventory
-                </h2>
+            {/* Inventory */}
+            <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
+              <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
+                Inventory
+              </h2>
               <EquipmentSection
                 character={character}
                 onUpdateCharacter={onUpdateCharacter}
@@ -238,51 +261,51 @@ export const ClassicDndLayout: React.FC<CharacterSheetProps> = ({
                 setEquipmentModal={setEquipmentModal}
               />
             </div>
-
-
           </div>
 
           {/* RIGHT COLUMN - Features, Proficiencies, Traits */}
           <div className="col-span-3 space-y-4">
-              {/* Active Equipment */}
-              <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
-                 <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
-                   Active Equipment
-                 </h2>
-                 <ActiveEquipmentPanel
-                   character={character}
-                   onUnequipItem={(itemSlug) => onUnequipItem(character.id, itemSlug)}
-                 />
-               </div>
-
-              {/* Proficiencies & Languages */}
-              <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
-                <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
-                  Proficiencies & Languages
-                </h2>
-                <ProficienciesAndLanguages character={character} />
-              </div>
-
-              {/* Conditions */}
-             <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-2 shadow-lg">
-               <Conditions
-                 character={character}
-                 onUpdateCharacter={onUpdateCharacter}
-               />
-             </div>
-
-             {/* Features & Traits */}
+            {/* Active Equipment */}
             <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
-               <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
-                 Features & Traits
-               </h2>
+              <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
+                Active Equipment
+              </h2>
+              <ActiveEquipmentPanel
+                character={character}
+                onUnequipItem={(itemSlug) =>
+                  onUnequipItem(character.id, itemSlug)
+                }
+              />
+            </div>
+
+            {/* Proficiencies & Languages */}
+            <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
+              <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
+                Proficiencies & Languages
+              </h2>
+              <ProficienciesAndLanguages character={character} />
+            </div>
+
+            {/* Conditions */}
+            <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-2 shadow-lg">
+              <Conditions
+                character={character}
+                onUpdateCharacter={onUpdateCharacter}
+              />
+            </div>
+
+            {/* Features & Traits */}
+            <div className="bg-theme-secondary border border-theme-secondary rounded-lg p-4 shadow-lg">
+              <h2 className="text-sm font-bold mb-3 text-theme-muted uppercase tracking-wider font-cinzel">
+                Features & Traits
+              </h2>
               <FeaturesSection
                 character={character}
                 onFeatureClick={onFeatureClick}
                 layoutMode="classic-dnd"
               />
-             </div>
-           </div>
+            </div>
+          </div>
         </div>
 
         {/* Spell Preparation Modal */}

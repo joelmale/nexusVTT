@@ -1,9 +1,12 @@
 import {
   campaignObjectRefKey,
+  campaignEntrySchema,
+  sessionPlanSchema,
   type CampaignObjectRef,
   type SessionPlan,
 } from '@nexus/game-contracts';
 import type { PoolClient } from 'pg';
+import { isDeepStrictEqual } from 'node:util';
 
 import {
   BaseRepository,
@@ -133,6 +136,150 @@ export interface AssetReference {
 }
 
 export class CampaignPrepRepository extends BaseRepository {
+  /** A session and its one authoring plan commit together. Old revisions used
+   * by active runs are never rewritten. The request ID replays a lost reply. */
+  async saveSessionAuthoring(input: {
+    campaignId: string;
+    sessionId: string;
+    session: unknown;
+    plan: unknown;
+    expectedSessionRevision?: number;
+    expectedPlanRevision?: number;
+    principalId: string;
+    requestId: string;
+  }): Promise<{
+    session: CampaignPrepObjectRecord;
+    plan: CampaignPrepObjectRecord;
+  }> {
+    const session = campaignEntrySchema.parse(input.session);
+    const plan = sessionPlanSchema.parse(input.plan);
+    const fields = session.content.value as {
+      nexusStudio?: { fields?: { planId?: string } };
+    };
+    if (
+      session.id !== input.sessionId ||
+      session.campaignId !== input.campaignId ||
+      session.kind !== 'session' ||
+      plan.campaignId !== input.campaignId ||
+      plan.sessionId !== session.id ||
+      !plan.authoring ||
+      plan.status !== 'draft' ||
+      fields.nexusStudio?.fields?.planId !== plan.id
+    ) {
+      throw new Error('Session authoring identity or plan link is invalid');
+    }
+    return this.withTransaction(undefined, async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `studio-authoring:${input.campaignId}:${session.id}`,
+      ]);
+      const currentSession = await this.getObject(
+        input.campaignId,
+        session.id,
+        client,
+      );
+      const currentPlan = await this.getObject(
+        input.campaignId,
+        plan.id,
+        client,
+      );
+      if (currentPlan) {
+        const priorPlan = await this.getRevision(
+          plan.id,
+          currentPlan.currentRevision,
+          client,
+        );
+        const previous = priorPlan?.data as { sessionId?: string } | undefined;
+        if (previous?.sessionId && previous.sessionId !== session.id)
+          throw new Error('The plan belongs to another authored session');
+      }
+      if (currentSession && currentPlan) {
+        const prior = await this.getRevision(
+          plan.id,
+          currentPlan.currentRevision,
+          client,
+        );
+        if (prior?.requestId === input.requestId) {
+          const previousSession = await this.getRevision(
+            session.id,
+            currentSession.currentRevision,
+            client,
+          );
+          if (
+            !isDeepStrictEqual(prior.data, plan) ||
+            !isDeepStrictEqual(previousSession?.data, session)
+          ) {
+            throw new Error(
+              'The authoring request ID was already used for different data',
+            );
+          }
+          return { session: currentSession, plan: currentPlan };
+        }
+      }
+      const save = async (
+        data: typeof session | typeof plan,
+        kind: 'session' | 'session-plan',
+        current: CampaignPrepObjectRecord | null,
+        expected?: number,
+      ) => {
+        if (
+          (current &&
+            (current.kind !== kind ||
+              current.currentRevision !== expected ||
+              current.status === 'archived' ||
+              current.status === 'retired')) ||
+          (!current && expected !== undefined)
+        ) {
+          throw new CampaignPrepRevisionConflictError(data.id, expected ?? 0);
+        }
+        const revision = (expected ?? 0) + 1;
+        if (data.revision !== revision)
+          throw new Error(
+            'Authoring revision must immediately follow the observed revision',
+          );
+        const payload = {
+          revision,
+          schemaVersion: data.schemaVersion,
+          data,
+          dependencies: 'links' in data ? data.links : data.dependencies,
+          createdBy: input.principalId,
+          requestId: input.requestId,
+        };
+        return current
+          ? this.addRevision(
+              input.campaignId,
+              data.id,
+              expected!,
+              { ...payload, title: data.title, status: 'draft' },
+              client,
+            )
+          : this.createObject(
+              {
+                id: data.id,
+                campaignId: input.campaignId,
+                kind,
+                title: data.title,
+                createdBy: input.principalId,
+              },
+              payload,
+              client,
+            );
+      };
+      const savedPlan = await save(
+        plan,
+        'session-plan',
+        currentPlan,
+        input.expectedPlanRevision,
+      );
+      const savedSession = await save(
+        session,
+        'session',
+        currentSession,
+        input.expectedSessionRevision,
+      );
+      return { session: savedSession.object, plan: savedPlan.object };
+    });
+  }
+
   /**
    * Non-archived prep objects, in campaigns the user owns, whose current
    * revision points at the asset: by `imageAssetRef.assetId`, or by an

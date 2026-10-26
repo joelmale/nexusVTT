@@ -7,9 +7,32 @@
 
 import { wrap, Remote } from 'comlink';
 import type { StorageWorkerAPI } from '../workers/storageWorker';
-import type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
+import type {
+  DungeonMapDB,
+  GameStateDB,
+  StorageStats,
+  StoredCreatorDraft,
+} from '@/types/storage';
 
 class StorageWorkerClient {
+  async getCreatorDraft(id: string): Promise<StoredCreatorDraft | undefined> {
+    return (await this.ensureInit()).getCreatorDraft(id);
+  }
+
+  async saveCreatorDraft(
+    draft: StoredCreatorDraft,
+    expectedRevision: number,
+  ): Promise<void> {
+    return (await this.ensureInit()).saveCreatorDraft(draft, expectedRevision);
+  }
+
+  async deleteCreatorDraft(
+    id: string,
+    expectedRevision: number,
+  ): Promise<void> {
+    return (await this.ensureInit()).deleteCreatorDraft(id, expectedRevision);
+  }
+
   private worker: Worker | null = null;
   private workerAPI: Remote<StorageWorkerAPI> | null = null;
   private initPromise: Promise<void> | null = null;

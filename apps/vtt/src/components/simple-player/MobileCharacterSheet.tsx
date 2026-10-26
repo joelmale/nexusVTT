@@ -9,9 +9,10 @@ import {
   savingThrowBonus,
   weaponAttacks,
 } from '@/utils/characterRolls';
+import { SpellbookPanel } from '@/components/Panels/SpellbookPanel';
 import styles from './MobileCharacterSheet.module.css';
 
-export type SheetCard = 'combat' | 'skills' | 'gear';
+export type SheetCard = 'combat' | 'skills' | 'gear' | 'spells';
 
 export interface MobileCharacterSheetProps {
   character: Character | undefined;
@@ -26,6 +27,7 @@ const CARDS: Array<{ id: SheetCard; label: string }> = [
   { id: 'combat', label: 'Combat' },
   { id: 'skills', label: 'Skills & Saves' },
   { id: 'gear', label: 'Gear & Traits' },
+  { id: 'spells', label: 'Spells' },
 ];
 
 const ROLL_MODES: Array<{ id: RollMode; label: string }> = [
@@ -256,6 +258,14 @@ export const MobileCharacterSheet: React.FC<MobileCharacterSheetProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {card === 'spells' && (
+        <SpellbookPanel
+          link={{ kind: 'spellbook', id: character.id, title: character.name }}
+          onClose={() => setCard('combat')}
+          isPopout={false}
+        />
       )}
 
       {card === 'skills' && (

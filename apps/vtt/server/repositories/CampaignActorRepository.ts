@@ -2,14 +2,19 @@ import type { PoolClient } from 'pg';
 import { BaseRepository, type CampaignActorRecord } from './base.js';
 import { sanitizeLog } from '../sanitizeLog.js';
 
-interface RawCampaignActorRecord extends Omit<CampaignActorRecord, 'stateVersion'> {
+interface RawCampaignActorRecord extends Omit<
+  CampaignActorRecord,
+  'stateVersion'
+> {
   stateVersion: string | number;
 }
 
 function parseStateVersion(value: string | number): number {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    throw new Error(`Invalid stateVersion in campaign_actors: ${String(value)}`);
+    throw new Error(
+      `Invalid stateVersion in campaign_actors: ${String(value)}`,
+    );
   }
   return parsed;
 }
@@ -90,14 +95,17 @@ export class CampaignActorRepository extends BaseRepository {
   }
 
   async createActor(
-    actor: Omit<CampaignActorRecord, 'id' | 'createdAt' | 'updatedAt' | 'stateVersion'> & {
+    actor: Omit<
+      CampaignActorRecord,
+      'id' | 'createdAt' | 'updatedAt' | 'stateVersion'
+    > & {
       stateVersion?: number;
     },
     customId?: string,
     client?: PoolClient,
   ): Promise<CampaignActorRecord> {
     const executor = this.getExecutor(client);
-    const idClause = customId ? '$1, ' : '';
+    const idClause = customId ? 'id, ' : '';
     const valuesClause = customId
       ? '$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17'
       : '$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16';
@@ -159,7 +167,10 @@ export class CampaignActorRepository extends BaseRepository {
     client?: PoolClient,
   ): Promise<UpdateActorResult> {
     const executor = this.getExecutor(client);
-    const updateClauses: string[] = ['"stateVersion" = "stateVersion" + 1', '"updatedAt" = NOW()'];
+    const updateClauses: string[] = [
+      '"stateVersion" = "stateVersion" + 1',
+      '"updatedAt" = NOW()',
+    ];
     const params: unknown[] = [actorId, updates.expectedVersion];
     let paramIndex = 3;
 
@@ -237,7 +248,10 @@ export class CampaignActorRepository extends BaseRepository {
 
   async deleteActor(actorId: string, client?: PoolClient): Promise<boolean> {
     const executor = this.getExecutor(client);
-    const result = await executor.query('DELETE FROM campaign_actors WHERE id = $1', [actorId]);
+    const result = await executor.query(
+      'DELETE FROM campaign_actors WHERE id = $1',
+      [actorId],
+    );
     console.log(`🗄️ CampaignActor deleted: ${sanitizeLog(actorId)}`);
     return (result.rowCount ?? 0) > 0;
   }

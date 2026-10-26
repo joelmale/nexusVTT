@@ -90,7 +90,8 @@ function toInventoryItem(item: Record<string, unknown>): InventoryItem {
   };
 
   if (typeof item.name === 'string') inventoryItem.name = item.name;
-  if (typeof item.equipped === 'boolean') inventoryItem.equipped = item.equipped;
+  if (typeof item.equipped === 'boolean')
+    inventoryItem.equipped = item.equipped;
   if (typeof item.attuned === 'boolean') inventoryItem.attuned = item.attuned;
   if (typeof item.notes === 'string') inventoryItem.notes = item.notes;
   if (typeof item.weight === 'number') inventoryItem.weight = item.weight;
@@ -148,7 +149,10 @@ function toSkillMap(
     const key = normalizeSkillKey(name);
     result[key] = {
       proficient: !!skill.proficient,
-      value: typeof skill.value === 'number' ? skill.value : (result[key]?.value ?? 0),
+      value:
+        typeof skill.value === 'number'
+          ? skill.value
+          : (result[key]?.value ?? 0),
       ...(skill.expertise !== undefined ? { expertise: skill.expertise } : {}),
     };
   }
@@ -292,6 +296,7 @@ export function toNexusCharacter(
 
     // Spellcasting
     spellcasting: created.spellcasting,
+    castingSources: created.castingSources,
 
     // Equipment
     inventory: created.inventory?.map((item) =>
@@ -347,6 +352,9 @@ export function createdCharacterToNexus(
     ...options,
     proficientSaves:
       options.proficientSaves ??
-      resolveProficientSaves(created.classSlug || created.class, created.edition),
+      resolveProficientSaves(
+        created.classSlug || created.class,
+        created.edition,
+      ),
   });
 }

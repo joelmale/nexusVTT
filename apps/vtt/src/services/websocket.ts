@@ -450,6 +450,16 @@ class WebSocketService extends EventTarget {
 
     switch (message.type) {
       case 'event': {
+        if (
+          message.data.name === 'actor/state-changed' &&
+          typeof window !== 'undefined'
+        ) {
+          window.dispatchEvent(
+            new CustomEvent('nexus-campaign-actors-changed', {
+              detail: message.data,
+            }),
+          );
+        }
         console.log(
           '🎯 Processing event:',
           sanitizeLog(message.data.name),

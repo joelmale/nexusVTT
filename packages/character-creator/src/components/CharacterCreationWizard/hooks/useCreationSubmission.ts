@@ -1,11 +1,21 @@
 import { useCallback, useRef, useState } from 'react';
-import type { CharacterCreationCompleteHandler } from '../../../api/types';
+import type {
+  CharacterCreationCompleteHandler,
+  CharacterCreationResult,
+} from '../../../api/types';
 import type { CharacterCreationData, Edition } from '../../../types/dnd';
+import type { CreationDraft } from '../../../types/draft';
+import { creationDataToDraft } from '../../../adapters/draftAdapter';
+import {
+  evaluateDraft,
+  toCharacterCreationResult,
+} from '../../../services/draftEvaluator';
 
 interface UseCreationSubmissionOptions {
   onComplete: CharacterCreationCompleteHandler;
   /** Fallback edition when the wizard data has none. */
   edition?: Edition;
+  draft?: CreationDraft;
   /** Injectable for tests; defaults to the real calculator and UUID source. */
   buildCharacter?: (data: CharacterCreationData) => Promise<{
     character: import('../../../types/dnd').Character;
@@ -26,17 +36,20 @@ export const useCreationSubmission = ({
   onComplete,
   edition,
   buildCharacter,
+  draft,
 }: UseCreationSubmissionOptions) => {
   // A ref, not state: it is read synchronously so a second call in the same
   // tick cannot slip past before React has re-rendered.
   const inFlight = useRef(false);
+  const completed = useRef(false);
+  const attempt = useRef<CreationDraft | null>(null);
+  const pendingResult = useRef<CharacterCreationResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const defaultBuild = useCallback(async (data: CharacterCreationData) => {
-    const { calculateCharacterStats } = await import(
-      '../../../utils/characterCreationUtils'
-    );
+    const { calculateCharacterStats } =
+      await import('../../../utils/characterCreationUtils');
     const { generateUUID } = await import('../../../services/diceService');
     return {
       character: { ...calculateCharacterStats(data), id: generateUUID() },
@@ -45,20 +58,49 @@ export const useCreationSubmission = ({
 
   const submit = useCallback(
     async (data: CharacterCreationData) => {
-      if (inFlight.current) return;
+      if (inFlight.current || completed.current) return;
       inFlight.current = true;
       setIsSubmitting(true);
 
       try {
         setError(null);
-        const { character } = await (buildCharacter ?? defaultBuild)(data);
-
-        await onComplete({
-          character,
-          creationData: data,
-          edition: data.edition || edition || '2014',
-          createdAt: new Date().toISOString(),
-        });
+        if (pendingResult.current) {
+          await onComplete(pendingResult.current);
+          completed.current = true;
+          return;
+        }
+        const identity = draft || attempt.current;
+        const current = creationDataToDraft(
+          data,
+          identity
+            ? {
+                draftId: identity.draftId,
+                characterId: identity.characterId,
+                attemptId: identity.attemptId,
+                revision: identity.revision,
+              }
+            : undefined,
+        );
+        attempt.current = current;
+        current.allowedSources = identity?.allowedSources;
+        if (buildCharacter) {
+          const { character } = await buildCharacter(data);
+          pendingResult.current = {
+            character: { ...character, id: current.characterId },
+            creationData: data,
+            edition: data.edition || edition || '2014',
+            createdAt: new Date().toISOString(),
+            creationAttemptId: current.attemptId,
+            draftId: current.draftId,
+            draftRevision: current.revision,
+          };
+        } else {
+          pendingResult.current = toCharacterCreationResult(
+            evaluateDraft(current),
+          );
+        }
+        await onComplete(pendingResult.current);
+        completed.current = true;
       } catch (caught) {
         setError(
           caught instanceof Error
@@ -70,7 +112,7 @@ export const useCreationSubmission = ({
         setIsSubmitting(false);
       }
     },
-    [buildCharacter, defaultBuild, edition, onComplete],
+    [buildCharacter, defaultBuild, edition, onComplete, draft],
   );
 
   /** True while a submission is in flight; used to block cancellation. */

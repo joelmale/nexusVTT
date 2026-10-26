@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  createCampaign,
-  listCampaigns,
-  updateCampaign,
-} from './campaign-api';
+import { createCampaign, listCampaigns, updateCampaign } from './campaign-api';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -96,10 +92,10 @@ describe('campaign-api', () => {
     });
   });
 
-  it('updates a campaign via PATCH request', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      json({ success: true }),
-    );
+  it('updates a campaign via the existing PUT contract', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(json({ success: true }));
 
     await updateCampaign('camp-123', { mood: 'feywild' });
 
@@ -107,7 +103,7 @@ describe('campaign-api', () => {
       '/api/campaigns/camp-123',
       expect.objectContaining({
         body: JSON.stringify({ mood: 'feywild' }),
-        method: 'PATCH',
+        method: 'PUT',
       }),
     );
   });

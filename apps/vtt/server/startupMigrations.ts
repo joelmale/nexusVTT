@@ -35,11 +35,7 @@ export const STARTUP_MIGRATIONS: StartupMigration[] = [
   {
     fileName: '2026-10-01-add-campaign-prep-kinds.sql',
     isApplied: (client) =>
-      constraintMentions(
-        client,
-        'campaign_objects_kind_check',
-        'party-member',
-      ),
+      constraintMentions(client, 'campaign_objects_kind_check', 'party-member'),
   },
   {
     fileName: '2026-10-02-add-homebrew-monster-kind.sql',
@@ -60,6 +56,10 @@ export const STARTUP_MIGRATIONS: StartupMigration[] = [
     isApplied: (client) =>
       constraintMentions(client, 'campaign_objects_kind_check', 'secret'),
   },
+  {
+    fileName: '2026-10-24-add-character-creation-attempts.sql',
+    isApplied: (client) => hasTable(client, 'character_creation_attempts'),
+  },
 ];
 
 export interface NonStartupMigration {
@@ -70,23 +70,28 @@ export interface NonStartupMigration {
 export const KNOWN_NON_STARTUP_MIGRATIONS: NonStartupMigration[] = [
   {
     fileName: '2025-12-08-add-account-fields.sql',
-    reason: 'Baseline user table OAuth columns already represented in initial schema.sql',
+    reason:
+      'Baseline user table OAuth columns already represented in initial schema.sql',
   },
   {
     fileName: '2026-01-05-add-campaign-roomcode.sql',
-    reason: 'Pre-deploy manual replica migration documented in AGENTS.md; represented in schema.sql',
+    reason:
+      'Pre-deploy manual replica migration documented in AGENTS.md; represented in schema.sql',
   },
   {
     fileName: '2026-07-19-add-room-event-journal.sql',
-    reason: 'Durability migration step 1 applied pre-deploy in event-journal order; represented in schema.sql',
+    reason:
+      'Durability migration step 1 applied pre-deploy in event-journal order; represented in schema.sql',
   },
   {
     fileName: '2026-07-19-add-durable-game-state-commits.sql',
-    reason: 'Durability migration step 2 applied pre-deploy in game-state order; represented in schema.sql',
+    reason:
+      'Durability migration step 2 applied pre-deploy in game-state order; represented in schema.sql',
   },
   {
     fileName: '2026-07-19-add-room-entity-versions.sql',
-    reason: 'Durability migration step 3 applied pre-deploy in entity-version order; represented in schema.sql',
+    reason:
+      'Durability migration step 3 applied pre-deploy in entity-version order; represented in schema.sql',
   },
   {
     fileName: '2026-09-24-add-campaign-actors-and-domain-commands.sql',
@@ -94,11 +99,13 @@ export const KNOWN_NON_STARTUP_MIGRATIONS: NonStartupMigration[] = [
   },
   {
     fileName: '2026-09-24-add-control-plane-identity.sql',
-    reason: 'Control API standalone identity/roles migration executed separately by operator/control service',
+    reason:
+      'Control API standalone identity/roles migration executed separately by operator/control service',
   },
   {
     fileName: '2026-09-24-add-encounter-runs.sql',
-    reason: 'Live combat execution encounter_runs table represented in schema.sql',
+    reason:
+      'Live combat execution encounter_runs table represented in schema.sql',
   },
 ];
 
@@ -154,7 +161,9 @@ function loadMigrationSql(fileName: string): string {
     path.join(__dirname, 'migrations', fileName),
     path.join(process.cwd(), 'server', 'migrations', fileName),
   ];
-  const migrationPath = candidates.find((candidate) => fs.existsSync(candidate));
+  const migrationPath = candidates.find((candidate) =>
+    fs.existsSync(candidate),
+  );
 
   if (!migrationPath) {
     throw new Error(`Required startup migration not found: ${fileName}`);

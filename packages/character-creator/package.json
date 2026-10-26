@@ -30,7 +30,8 @@
   "dependencies": {
     "@nexus/character-contracts": "1.0.0",
     "loglevel": "^1.9.2",
-    "lucide-react": "^0.561.0"
+    "lucide-react": "^0.561.0",
+    "@nexus/rules-5e": "*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",

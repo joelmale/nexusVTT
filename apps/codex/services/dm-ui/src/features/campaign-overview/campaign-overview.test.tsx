@@ -110,16 +110,10 @@ describe('CampaignOverview panels', () => {
     expect(
       within(panel(/Prepared Encounters/)).getAllByText('Kind').length,
     ).toBeGreaterThan(0);
-    expect(panelToggle(/^Quests/)).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
+    expect(panelToggle(/^Quests/)).toHaveAttribute('aria-expanded', 'false');
 
     await user.keyboard('{Escape}');
-    expect(panelToggle(/^Quests/)).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
+    expect(panelToggle(/^Quests/)).toHaveAttribute('aria-expanded', 'true');
     expect(openLinks(/Prepared Encounters/)).toHaveLength(4);
   });
 
@@ -138,7 +132,28 @@ describe('CampaignOverview panels', () => {
   });
 
   it('renders Next Session hub with strong start, scenes timeline and opens run sheet export modal', async () => {
-    const user = renderOverview();
+    const user = userEvent.setup();
+    const upcomingBundle = {
+      ...bundle,
+      sessions: bundle.sessions.map((session, index) =>
+        index === 0 ? { ...session, status: 'planned' as const } : session,
+      ),
+    };
+    render(
+      <MemoryRouter>
+        <CapabilityNoticeProvider>
+          <SectionContext.Provider
+            value={{
+              bundle: upcomingBundle,
+              basePath: `/demo/${SLUG}`,
+              store: createReadOnlyStore(upcomingBundle),
+            }}
+          >
+            <CampaignOverview />
+          </SectionContext.Provider>
+        </CapabilityNoticeProvider>
+      </MemoryRouter>,
+    );
 
     // Strong start heading or content visible
     expect(screen.getByText('Strong Start')).toBeInTheDocument();
@@ -156,7 +171,10 @@ describe('CampaignOverview panels', () => {
     await user.click(exportBtn);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { level: 2, name: /Session Run Sheet Export/ }),
+      screen.getByRole('heading', {
+        level: 2,
+        name: /Session Run Sheet Export/,
+      }),
     ).toBeInTheDocument();
   });
 
@@ -189,4 +207,3 @@ describe('CampaignOverview panels', () => {
     expect(screen.getByText('One-Shot Mode')).toBeInTheDocument();
   });
 });
-

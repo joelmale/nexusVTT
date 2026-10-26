@@ -9,6 +9,40 @@ import {
 const ASHES = getFixtureBundle('ashes-of-veyra')!;
 
 describe('buildSessionPlanModel', () => {
+  it('keeps linked player handout contents separate from run-sheet instructions', () => {
+    const session = structuredClone(ASHES.sessions[0]);
+    const handout = { ...ASHES.handouts[0], body: 'Actual player letter.' };
+    session.plan = {
+      version: 1,
+      revision: 1,
+      lastEdited: new Date().toISOString(),
+      estimatedMinutes: 5,
+      readiness: [],
+      dependencies: [],
+      notes: [],
+      playerFacingSummary: '',
+      attachments: [],
+      steps: [
+        {
+          id: 'handout-step',
+          order: 1,
+          kind: 'handout',
+          track: 'main',
+          title: handout.title,
+          objectId: handout.id,
+          durationMinutes: 5,
+          visibility: 'shared',
+          body: 'DM ONLY: introduce the letter.',
+        },
+      ],
+    };
+    const model = buildSessionPlanModel(
+      { ...ASHES, sessions: [session], handouts: [handout] },
+      session.id,
+    );
+    expect(model?.steps[0].handoutBody).toBe('Actual player letter.');
+    expect(model?.steps[0].body).toBe('DM ONLY: introduce the letter.');
+  });
   it('findPlannedSession finds any existing session by id in the bundle', () => {
     const plannedSession = findPlannedSession(ASHES, 'session-12');
     expect(plannedSession).toBeDefined();
@@ -51,7 +85,9 @@ describe('buildSessionPlanModel', () => {
     // Verify fallback synthesized narrative spine steps
     expect(result?.steps.length).toBeGreaterThanOrEqual(4);
     expect(result?.steps[0]?.command).toBe('Opening recap');
-    expect(result?.steps[result.steps.length - 1]?.command).toBe('Closing beat');
+    expect(result?.steps[result.steps.length - 1]?.command).toBe(
+      'Closing beat',
+    );
     expect(result?.checklist.length).toBeGreaterThan(0);
     expect(result?.dateLabel).toBeDefined();
   });

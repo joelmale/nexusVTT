@@ -1,7 +1,7 @@
 import { CharacterCreationData, Edition } from '../../../types/dnd';
 import type { CharacterCreationCompleteHandler } from '../../../api/types';
 
-import type { CreationDraft } from '../../../types/draft';
+import type { CreationDraft, CreatorPresentation } from '../../../types/draft';
 
 export interface WizardProps {
   isOpen: boolean;
@@ -12,11 +12,14 @@ export interface WizardProps {
   submitLabel?: string;
   /** Initial draft to resume from (CC-501). */
   initialDraft?: CreationDraft;
+  initialPresentation?: CreatorPresentation;
+  onPresentationChange?: (presentation: CreatorPresentation) => void;
   /** Callback fired when draft updates (CC-501). */
   onDraftChange?: (draft: CreationDraft) => void;
   /** Callback fired when draft is discarded (CC-501). */
   onDraftDiscard?: () => void;
   onCancel: () => void;
+  onSwitchToGuided?: () => void;
   /**
    * Receives the finished character. The host owns persistence; throwing or
    * rejecting surfaces the failure in the wizard and keeps it open.

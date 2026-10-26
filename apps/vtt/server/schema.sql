@@ -44,6 +44,17 @@ CREATE TABLE IF NOT EXISTS characters (
 );
 
 -- Sessions Table (replaces 'rooms')
+-- Owner-scoped creation receipts survive character deletion as tombstones.
+CREATE TABLE IF NOT EXISTS character_creation_attempts (
+    "ownerId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    "attemptId" VARCHAR(128) NOT NULL,
+    "payloadHash" VARCHAR(64) NOT NULL,
+    "characterId" UUID REFERENCES characters(id) ON DELETE SET NULL,
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY ("ownerId", "attemptId")
+);
+
+-- Sessions Table (replaces 'rooms')
 CREATE TABLE IF NOT EXISTS sessions (
     id UUID PRIMARY KEY, -- Using UUIDs for session IDs
     "joinCode" VARCHAR(10) UNIQUE NOT NULL,

@@ -22,11 +22,7 @@ export interface OverviewRecord {
 }
 
 export type OverviewPanelId =
-  | 'quests'
-  | 'encounters'
-  | 'clues'
-  | 'objects'
-  | 'party';
+  'quests' | 'encounters' | 'clues' | 'objects' | 'party';
 
 export interface OverviewPanelModel {
   id: OverviewPanelId;
@@ -174,7 +170,8 @@ export function buildOverviewModel(
         kind: 'quest',
         title: quest.title,
         subtitle: quest.summary,
-        meta: quest.status === 'active' ? 'In progress' : humanize(quest.status),
+        meta:
+          quest.status === 'active' ? 'In progress' : humanize(quest.status),
         tone: questTone(quest.status),
         href: hrefFor(bundle, quest.id),
         details: [
@@ -225,90 +222,79 @@ export function buildOverviewModel(
         (CLUE_RANK[a.status] ?? 9) - (CLUE_RANK[b.status] ?? 9) ||
         (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9),
     )
-    .map(
-      (clue): OverviewRecord => ({
-        id: clue.id,
-        kind: 'clue',
-        title: clue.title,
-        subtitle: clue.meaning,
-        meta:
-          clue.status === 'resolved' ? 'Resolved' : humanize(clue.priority),
-        tone:
-          clue.status === 'resolved' ? 'positive' : priorityTone(clue.priority),
-        href: hrefFor(bundle, clue.id),
-        details: [
-          { label: 'Status', value: humanize(clue.status) },
-          ...(clue.relatedQuestIds.length > 0
-            ? [
-                {
-                  label: 'Related quests',
-                  value: compact(
-                    clue.relatedQuestIds.map((id) => questById.get(id)?.title),
-                  ).join(', '),
-                },
-              ]
-            : []),
-        ],
-      }),
-    );
+    .map((clue): OverviewRecord => ({
+      id: clue.id,
+      kind: 'clue',
+      title: clue.title,
+      subtitle: clue.meaning,
+      meta: clue.status === 'resolved' ? 'Resolved' : humanize(clue.priority),
+      tone:
+        clue.status === 'resolved' ? 'positive' : priorityTone(clue.priority),
+      href: hrefFor(bundle, clue.id),
+      details: [
+        { label: 'Status', value: humanize(clue.status) },
+        ...(clue.relatedQuestIds.length > 0
+          ? [
+              {
+                label: 'Related quests',
+                value: compact(
+                  clue.relatedQuestIds.map((id) => questById.get(id)?.title),
+                ).join(', '),
+              },
+            ]
+          : []),
+      ],
+    }));
 
   const objects: OverviewRecord[] = [
-    ...bundle.npcs.map(
-      (npc): OverviewRecord => ({
-        id: npc.id,
-        kind: 'npc',
-        title: npc.name,
-        subtitle: `NPC · ${npc.role}`,
-        meta: updatedById.get(npc.id) ?? 'NPC',
-        href: hrefFor(bundle, npc.id),
-        details: compact([npc.motivation]).map((value) => ({
-          label: 'Motivation',
-          value,
-        })),
-      }),
-    ),
-    ...bundle.factions.map(
-      (faction): OverviewRecord => ({
-        id: faction.id,
-        kind: 'faction',
-        title: faction.name,
-        subtitle: `Faction · ${faction.publicFace}`,
-        meta: updatedById.get(faction.id) ?? humanize(faction.status),
-        href: hrefFor(bundle, faction.id),
-        details: [{ label: 'Standing', value: humanize(faction.status) }],
-      }),
-    ),
-  ];
-
-  const party = campaign.playerCharacters.map(
-    (character): OverviewRecord => ({
-      id: character.id,
+    ...bundle.npcs.map((npc): OverviewRecord => ({
+      id: npc.id,
       kind: 'npc',
-      title: character.name,
-      subtitle: `Level ${character.level} ${character.ancestry} ${character.className}`,
-      meta: `Lv ${character.level}`,
-      details: compact([character.hook]).map((value) => ({
-        label: 'Hook',
+      title: npc.name,
+      subtitle: `NPC · ${npc.role}`,
+      meta: updatedById.get(npc.id) ?? 'NPC',
+      href: hrefFor(bundle, npc.id),
+      details: compact([npc.motivation]).map((value) => ({
+        label: 'Motivation',
         value,
       })),
-    }),
-  );
+    })),
+    ...bundle.factions.map((faction): OverviewRecord => ({
+      id: faction.id,
+      kind: 'faction',
+      title: faction.name,
+      subtitle: `Faction · ${faction.publicFace}`,
+      meta: updatedById.get(faction.id) ?? humanize(faction.status),
+      href: hrefFor(bundle, faction.id),
+      details: [{ label: 'Standing', value: humanize(faction.status) }],
+    })),
+  ];
+
+  const party = campaign.playerCharacters.map((character): OverviewRecord => ({
+    id: character.id,
+    kind: 'npc',
+    title: character.name,
+    subtitle: `Level ${character.level} ${character.ancestry} ${character.className}`,
+    meta: `Lv ${character.level}`,
+    details: compact([character.hook]).map((value) => ({
+      label: 'Hook',
+      value,
+    })),
+  }));
 
   const activity = (
     items: CampaignFixtureBundle['campaign']['activity']['backlinks'],
     metaFor: (item: (typeof items)[number]) => string,
   ) =>
-    items.map(
-      (item): OverviewRecord => ({
-        id: item.id,
-        kind: item.objectType,
-        title: item.label,
-        subtitle: item.detail,
-        meta: metaFor(item),
-        href: hrefFor(bundle, item.targetId),
-        details: [],
-      }),
-    );
+    items.map((item): OverviewRecord => ({
+      id: item.id,
+      kind: item.objectType,
+      title: item.label,
+      subtitle: item.detail,
+      meta: metaFor(item),
+      href: hrefFor(bundle, item.targetId),
+      details: [],
+    }));
 
   return {
     title: campaign.title,
@@ -374,9 +360,7 @@ export function buildOverviewModel(
         : deriveBacklinks(bundle),
     recentEdits: activity(campaign.activity.recentEdits, (item) => {
       const at = item.updatedAt ? Date.parse(item.updatedAt) : NaN;
-      return Number.isNaN(at)
-        ? item.detail
-        : `Edited ${timeAgo(at, now)}`;
+      return Number.isNaN(at) ? item.detail : `Edited ${timeAgo(at, now)}`;
     }).map((record) => ({ ...record, subtitle: humanize(record.kind) })),
   };
 }
@@ -399,13 +383,21 @@ const LINKABLE_KINDS = [
  */
 function deriveBacklinks(bundle: CampaignFixtureBundle): OverviewRecord[] {
   const candidates = [
-    ...bundle.npcs.map((n) => ({ id: n.id, kind: 'npc' as const, label: n.name })),
+    ...bundle.npcs.map((n) => ({
+      id: n.id,
+      kind: 'npc' as const,
+      label: n.name,
+    })),
     ...bundle.locations.map((l) => ({
       id: l.id,
       kind: 'location' as const,
       label: l.name,
     })),
-    ...bundle.quests.map((q) => ({ id: q.id, kind: 'quest' as const, label: q.title })),
+    ...bundle.quests.map((q) => ({
+      id: q.id,
+      kind: 'quest' as const,
+      label: q.title,
+    })),
     ...bundle.factions.map((f) => ({
       id: f.id,
       kind: 'faction' as const,
@@ -416,7 +408,11 @@ function deriveBacklinks(bundle: CampaignFixtureBundle): OverviewRecord[] {
       kind: 'encounter' as const,
       label: e.title,
     })),
-    ...bundle.maps.map((m) => ({ id: m.id, kind: 'map' as const, label: m.title })),
+    ...bundle.maps.map((m) => ({
+      id: m.id,
+      kind: 'map' as const,
+      label: m.title,
+    })),
   ].filter((item) => LINKABLE_KINDS.includes(item.kind));
 
   return candidates
@@ -424,17 +420,15 @@ function deriveBacklinks(bundle: CampaignFixtureBundle): OverviewRecord[] {
     .filter((item) => item.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
-    .map(
-      (item): OverviewRecord => ({
-        id: `backlink-${item.id}`,
-        kind: item.kind,
-        title: item.label,
-        subtitle: humanize(item.kind),
-        meta: `Linked from ${plural(item.count, 'object')}`,
-        href: hrefFor(bundle, item.id),
-        details: [],
-      }),
-    );
+    .map((item): OverviewRecord => ({
+      id: `backlink-${item.id}`,
+      kind: item.kind,
+      title: item.label,
+      subtitle: humanize(item.kind),
+      meta: `Linked from ${plural(item.count, 'object')}`,
+      href: hrefFor(bundle, item.id),
+      details: [],
+    }));
 }
 
 /** "3 hours ago" relative to `now` (never in the future). */
@@ -469,6 +463,24 @@ export function pickUpcomingSession(
     .sort((a, b) => a.at - b.at);
   if (upcoming.length > 0) return upcoming[0].session;
   return [...open].sort((a, b) => a.number - b.number)[0];
+}
+
+export function selectNextSession(
+  bundle: CampaignFixtureBundle,
+  now = Date.now(),
+): CampaignSession | undefined {
+  const ids = [
+    bundle.campaign.nextSession?.sessionId,
+    bundle.campaign.currentSessionId,
+    bundle.catalog.selectedSessionId,
+  ];
+  for (const id of ids) {
+    const session = bundle.sessions.find(
+      (item) => item.id === id && item.status !== 'complete',
+    );
+    if (session) return session;
+  }
+  return pickUpcomingSession(bundle.sessions, now);
 }
 
 function scheduleFor(plannedDate: string | undefined, now: number): string[] {
@@ -508,8 +520,10 @@ function buildNextSession(
   },
 ): NextSessionModel | null {
   const next = bundle.campaign.nextSession;
-  const curated = bundle.sessions.find(({ id }) => id === next.sessionId);
-  const session = curated ?? pickUpcomingSession(bundle.sessions, now);
+  const curated = bundle.sessions.find(
+    ({ id, status }) => id === next?.sessionId && status !== 'complete',
+  );
+  const session = selectNextSession(bundle, now);
   if (!session) return null;
   // Curated fact ids win; otherwise use the session's first linked objects.
   const factId = (curatedId: string, fallback: readonly string[]) =>
@@ -613,7 +627,8 @@ function buildNextSession(
         title: clue.title,
         subtitle: clue.meaning,
         meta: humanize(clue.status),
-        tone: clue.status === 'resolved' ? 'positive' : priorityTone(clue.priority),
+        tone:
+          clue.status === 'resolved' ? 'positive' : priorityTone(clue.priority),
         href: href(clue.id),
         details: [],
       })) ?? []),
@@ -676,7 +691,8 @@ function buildNextSession(
         id: loc.id,
         kind: 'location',
         title: loc.name,
-        subtitle: helpers.locationName(loc.parentLocationId) ?? humanize(loc.type),
+        subtitle:
+          helpers.locationName(loc.parentLocationId) ?? humanize(loc.type),
         meta: 'Location',
         href: href(loc.id),
         details: [],

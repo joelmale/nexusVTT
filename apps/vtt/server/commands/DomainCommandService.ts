@@ -10,22 +10,27 @@ import type {
   DomainCommandPayload,
   DomainCommandReceipt,
   SpellcastingProfile,
-  SpellDefinition,
   ResourcePool,
   ActiveConcentration,
   CastRecord,
   ItemInstance,
   CampaignActor,
 } from '@nexus/game-contracts';
+import { spellDefinitionSchema } from '@nexus/game-contracts';
 import {
   evaluatePreparationPlan,
   evaluateCastEligibility,
 } from '@nexus/rules-5e';
+import {
+  bundledSpellDefinitions,
+  projectCharacterCasting,
+} from '../services/characterActorProjection.js';
 
 export interface DomainCommandContext {
   principalId: string;
   isDm?: boolean;
   roomId?: string;
+  campaignId?: string;
 }
 export interface ExecuteCommandResponse {
   receipt: DomainCommandReceipt;
@@ -50,6 +55,7 @@ export class DomainCommandService {
     command: DomainCommand,
     context: DomainCommandContext,
   ): Promise<ExecuteCommandResponse> {
+    context = { ...context, campaignId: command.campaignId };
     const payloadHash = this.computePayloadHash(command.payload);
 
     // 1. Idempotency Check: check if receipt already exists
@@ -57,6 +63,14 @@ export class DomainCommandService {
       command.commandId,
     );
     if (existingReceipt) {
+      if (
+        existingReceipt.principalId !== context.principalId ||
+        existingReceipt.scopeId !== command.campaignId
+      ) {
+        throw new Error(
+          'This command receipt belongs to another principal or campaign.',
+        );
+      }
       if (existingReceipt.payloadHash !== payloadHash) {
         throw new Error(
           `Command ID ${command.commandId} was already submitted with a different payload`,
@@ -70,6 +84,31 @@ export class DomainCommandService {
 
     // 2. Transactional execution
     return this.db.withTransaction(async (client: PoolClient) => {
+      // The receipt is rechecked under a durable lock, so simultaneous retries
+      // cannot consume a resource twice or race the receipt's unique key.
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [command.commandId],
+      );
+      const replay = await this.db.commandReceipts.getReceipt(
+        command.commandId,
+        client,
+      );
+      if (replay) {
+        if (
+          replay.principalId !== context.principalId ||
+          replay.scopeId !== command.campaignId ||
+          replay.payloadHash !== payloadHash
+        ) {
+          throw new Error(
+            'Command identity conflicts with an existing receipt.',
+          );
+        }
+        return {
+          receipt: replay.result as DomainCommandReceipt,
+          duplicate: true,
+        };
+      }
       let receipt: DomainCommandReceipt;
 
       switch (command.payload.type) {
@@ -271,16 +310,7 @@ export class DomainCommandService {
       throw new Error(`Target actor not found: ${payload.targetActorId}`);
     }
 
-    // Authorization: owner or DM
-    if (
-      !context.isDm &&
-      actor.ownerId &&
-      actor.ownerId !== context.principalId
-    ) {
-      throw new Error(
-        `Principal ${context.principalId} is not authorized to damage actor ${actor.id}`,
-      );
-    }
+    await this.assertCanControlActor(actor, context, 'damage', client);
 
     // CAS check on actor version if specified
     const expectedVersion = command.expectedActorVersions?.[actor.id];
@@ -394,6 +424,8 @@ export class DomainCommandService {
       throw new Error(`Target actor not found: ${payload.targetActorId}`);
     }
 
+    await this.assertCanControlActor(actor, context, 'heal', client);
+
     const expectedVersion = command.expectedActorVersions?.[actor.id];
     if (
       expectedVersion !== undefined &&
@@ -477,13 +509,71 @@ export class DomainCommandService {
     client: PoolClient,
   ): Promise<DomainCommandReceipt> {
     const characterId = payload.characterDefinitionRef.id;
-    const character = await this.db.characters.getCharacterById(
+    let character = await this.db.characters.getCharacterById(
       characterId,
       client,
     );
+    const room = context.roomId
+      ? await this.db.sessions.getSessionById(context.roomId, client)
+      : null;
+    if (room && room.campaignId !== command.campaignId)
+      throw new Error('Session does not belong to this campaign.');
+    const roomCharacters = (
+      room?.gameState as
+        { characters?: Array<Record<string, unknown>> } | undefined
+    )?.characters;
+    const claimedByPrincipal =
+      room?.campaignId === command.campaignId &&
+      roomCharacters?.some(
+        (entry) =>
+          entry.id === characterId && entry.playerId === context.principalId,
+      );
+    if (!character && room) {
+      const state = room?.gameState as
+        { characters?: Array<Record<string, unknown>> } | undefined;
+      const saved =
+        room?.campaignId === command.campaignId
+          ? state?.characters?.find(
+              (entry) =>
+                entry.id === characterId &&
+                entry.playerId === context.principalId,
+            )
+          : undefined;
+      if (saved)
+        character = {
+          id: characterId,
+          name: String(saved.name),
+          ownerId: context.principalId,
+          data: saved,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+    }
     if (!character) {
       throw new Error(`Character record not found: ${characterId}`);
     }
+    if (
+      !context.isDm &&
+      character.ownerId !== context.principalId &&
+      !claimedByPrincipal
+    ) {
+      throw new Error(
+        'Only the character owner or campaign DM can admit this character.',
+      );
+    }
+    if (
+      !context.isDm &&
+      payload.initialControllerUserIds.some((id) => id !== context.principalId)
+    ) {
+      throw new Error(
+        'Only the campaign DM can assign another character controller.',
+      );
+    }
+    // Admission from separate command IDs is also one actor per source.
+    await client.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+      [JSON.stringify([command.campaignId, character.id])],
+    );
 
     // Check if character already admitted into this campaign
     const existingActors = await this.db.campaignActors.getActorsByCampaign(
@@ -514,8 +604,48 @@ export class DomainCommandService {
 
     // Extract character HP / stats safely from character.data
     const data = (character.data as Record<string, unknown>) || {};
-    const maxHp = Number(data.maxHp || data.hp || 10);
-    const currentHp = Number(data.currentHp || data.hp || maxHp);
+    const maxHp = Number(data.maxHitPoints ?? data.maxHp ?? data.hp ?? 10);
+    const currentHp = Number(
+      data.hitPoints ?? data.currentHp ?? data.hp ?? maxHp,
+    );
+    const edition = data.edition === '2014' ? '2014' : '2024';
+    const definitions =
+      data.spellcasting || data.castingSources
+        ? bundledSpellDefinitions(
+            command.campaignId,
+            character.ownerId,
+            edition,
+          )
+        : [];
+    const casting = projectCharacterCasting(data, definitions);
+    const availableSlugs = new Set(
+      casting.profiles.flatMap((profile) => profile.knownSpellSlugs),
+    );
+    for (const definition of definitions.filter((entry) =>
+      availableSlugs.has(entry.slug),
+    )) {
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [definition.id],
+      );
+      const existing = await this.db.libraryObjects.getObjectById(
+        definition.id,
+        client,
+      );
+      if (!existing)
+        await this.db.libraryObjects.createObject(
+          {
+            ownerId: character.ownerId,
+            campaignId: command.campaignId,
+            kind: 'spell',
+            name: definition.name,
+            currentRevision: 1,
+          },
+          { ruleset: definition.ruleset, data: definition },
+          definition.id,
+          client,
+        );
+    }
 
     const createdActor = await this.db.campaignActors.createActor(
       {
@@ -529,21 +659,24 @@ export class DomainCommandService {
         name: character.name,
         ruleset: {
           system: 'dnd5e',
-          edition: '2024',
-          contentPackId: 'srd-5.2.1',
+          edition,
+          contentPackId: edition === '2014' ? 'srd-5.1' : 'srd-5.2.1',
           contentRevision: '1.0',
           rulesRevision: '2024.1',
         },
         stateVersion: 1,
         currentHp,
         maxHp,
-        tempHp: 0,
-        conditions: [],
-        deathSaves: { successes: 0, failures: 0 },
-        resourcePools: {},
-        spellcastingProfiles: [],
-        inventory: [],
-        activeSessionId: null,
+        tempHp: Number(data.temporaryHitPoints) || 0,
+        conditions: Array.isArray(data.conditions) ? data.conditions : [],
+        deathSaves: (data.deathSaves as {
+          successes: number;
+          failures: number;
+        }) ?? { successes: 0, failures: 0 },
+        resourcePools: casting.pools,
+        spellcastingProfiles: casting.profiles,
+        inventory: Array.isArray(data.inventory) ? data.inventory : [],
+        activeSessionId: room?.id ?? null,
         payload: {
           kind: 'character',
           characterId: character.id,
@@ -551,6 +684,7 @@ export class DomainCommandService {
           level: Number(data.level || 1),
           experiencePoints: Number(data.experiencePoints || 0),
           spellcasting: data.spellcasting || null,
+          controllerUserIds: payload.initialControllerUserIds,
         },
       },
       undefined,
@@ -615,7 +749,7 @@ export class DomainCommandService {
       );
       if (rev) templateData = rev.data as TemplateData;
     }
-    if (!templateData) {
+    if (!templateData && !payload.templateRef.revision) {
       const obj = await this.db.libraryObjects.getObjectById(
         payload.templateRef.id,
         client,
@@ -630,15 +764,13 @@ export class DomainCommandService {
       }
     }
 
-    const groups: TemplateGroup[] = templateData?.groups || [
-      {
-        id: crypto.randomUUID(),
-        monsterRef: { kind: 'monster', id: 'custom-monster' },
-        count: 1,
-        faction: 'hostile',
-        customName: 'Creature',
-      },
-    ];
+    if (!templateData)
+      throw new Error(
+        'The requested encounter template revision is unavailable.',
+      );
+    const groups: TemplateGroup[] = templateData.groups || [];
+    if (!groups.length)
+      throw new Error('The encounter template has no creature groups.');
 
     const spawnedActorIds: string[] = [];
     const participants: Array<{
@@ -662,7 +794,7 @@ export class DomainCommandService {
           );
           if (mRev) monsterStatBlock = mRev.data as MonsterStatBlock;
         }
-        if (!monsterStatBlock) {
+        if (!monsterStatBlock && !group.monsterRef.revision) {
           const mObj = await this.db.libraryObjects.getObjectById(
             group.monsterRef.id,
             client,
@@ -678,7 +810,11 @@ export class DomainCommandService {
         }
       }
 
-      const baseName = group.customName || monsterStatBlock?.name || 'Creature';
+      if (!monsterStatBlock)
+        throw new Error(
+          'A pinned monster revision is unavailable. Restore it before deployment.',
+        );
+      const baseName = group.customName || monsterStatBlock.name || 'Creature';
       const hp = monsterStatBlock?.hitPoints?.average ?? 10;
 
       for (let i = 0; i < group.count; i++) {
@@ -923,15 +1059,57 @@ export class DomainCommandService {
     };
   }
 
-  private assertCanControlActor(
-    actor: { id: string; ownerId: string | null },
+  private async assertCanControlActor(
+    actor: {
+      id: string;
+      ownerId: string | null;
+      campaignId?: string;
+      payload?: unknown;
+      sourceRef?: unknown;
+    },
     context: DomainCommandContext,
     action: string = 'modify',
-  ): void {
+    client?: PoolClient,
+  ): Promise<void> {
+    if (
+      context.campaignId &&
+      actor.campaignId &&
+      actor.campaignId !== context.campaignId
+    ) {
+      throw new Error('Actor does not belong to this campaign.');
+    }
+    const source = actor.sourceRef as
+      { kind?: string; id?: string } | undefined;
+    if (!context.isDm && context.roomId && source?.kind === 'character') {
+      const room = await this.db.sessions.getSessionById(
+        context.roomId,
+        client,
+      );
+      const characters = (
+        room?.gameState as
+          { characters?: Array<Record<string, unknown>> } | undefined
+      )?.characters;
+      // A room claim is a revocable delegation. Persisted controller IDs must
+      // not let a previous claimant continue acting after reassignment.
+      if (
+        room?.campaignId === actor.campaignId &&
+        characters?.some(
+          (entry) =>
+            entry.id === source.id && entry.playerId === context.principalId,
+        )
+      )
+        return;
+      throw new Error(
+        `Principal ${context.principalId} is not the current room controller for actor ${actor.id}`,
+      );
+    }
+    const controllers = (
+      actor.payload as { controllerUserIds?: unknown } | undefined
+    )?.controllerUserIds;
     if (
       !context.isDm &&
-      actor.ownerId &&
-      actor.ownerId !== context.principalId
+      actor.ownerId !== context.principalId &&
+      !(Array.isArray(controllers) && controllers.includes(context.principalId))
     ) {
       throw new Error(
         `Principal ${context.principalId} is not authorized to ${action} actor ${actor.id}`,
@@ -954,7 +1132,12 @@ export class DomainCommandService {
       throw new Error(`Target actor not found: ${payload.targetActorId}`);
     }
 
-    this.assertCanControlActor(actor, context, 'prepare spells for');
+    await this.assertCanControlActor(
+      actor,
+      context,
+      'prepare spells for',
+      client,
+    );
 
     const expectedVersion = command.expectedActorVersions?.[actor.id];
     if (
@@ -987,6 +1170,7 @@ export class DomainCommandService {
     const valResult = evaluatePreparationPlan(
       profile,
       payload.preparedSpellSlugs,
+      profile.knownSpellSlugs,
     );
     if (!valResult.isValid) {
       return {
@@ -1066,7 +1250,7 @@ export class DomainCommandService {
       throw new Error(`Actor not found: ${payload.actorId}`);
     }
 
-    this.assertCanControlActor(actor, context, 'cast spell with');
+    await this.assertCanControlActor(actor, context, 'cast spell with', client);
 
     const expectedVersion = command.expectedActorVersions?.[actor.id];
     if (
@@ -1087,65 +1271,32 @@ export class DomainCommandService {
       };
     }
 
-    let spellDef: SpellDefinition | null = null;
-    if (payload.spellRef.revision) {
-      const rev = await this.db.libraryObjects.getRevision(
-        payload.spellRef.id,
-        payload.spellRef.revision,
-        client,
+    const object = await this.db.libraryObjects.getObjectById(
+      payload.spellRef.id,
+      client,
+    );
+    if (
+      !object ||
+      object.kind !== 'spell' ||
+      object.campaignId !== command.campaignId
+    )
+      throw new Error('Spell definition does not belong to this campaign.');
+    const revision = await this.db.libraryObjects.getRevision(
+      object.id,
+      payload.spellRef.revision ?? object.currentRevision,
+      client,
+    );
+    const parsed = spellDefinitionSchema.safeParse(revision?.data);
+    if (
+      !parsed.success ||
+      parsed.data.ruleset.edition !==
+        (actor.ruleset as { edition?: string }).edition
+    )
+      throw new Error(
+        'The requested spell revision is unavailable for this ruleset.',
       );
-      if (rev) spellDef = rev.data as SpellDefinition;
-    }
-    if (!spellDef) {
-      const obj = await this.db.libraryObjects.getObjectById(
-        payload.spellRef.id,
-        client,
-      );
-      if (obj) {
-        const rev = await this.db.libraryObjects.getRevision(
-          obj.id,
-          obj.currentRevision,
-          client,
-        );
-        if (rev) spellDef = rev.data as SpellDefinition;
-      }
-    }
-
-    const effectiveSpellDef: SpellDefinition = spellDef || {
-      id: payload.spellRef.id,
-      kind: 'spell',
-      ruleset: {
-        system: 'dnd5e',
-        edition: '2024',
-        contentPackId: 'srd-5.2.1',
-        contentRevision: '1.0',
-        rulesRevision: '2024.1',
-      },
-      name: payload.spellRef.id,
-      slug: payload.spellRef.id,
-      level: payload.castAtLevel,
-      school: 'evocation',
-      castingTime: '1 action',
-      range: '60 feet',
-      duration: 'Instantaneous',
-      concentration: false,
-      ritual: false,
-      components: {
-        verbal: true,
-        somatic: true,
-        material: false,
-        materialConsumed: false,
-      },
-      description: 'Spell',
-      classes: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ownerId: context.principalId,
-      schemaVersion: 1,
-      revision: 1,
-      tags: [],
-      archived: false,
-    };
+    const spellDef = parsed.data;
+    const effectiveSpellDef = spellDef;
 
     const profiles =
       (actor.spellcastingProfiles as SpellcastingProfile[]) || [];
@@ -1156,6 +1307,9 @@ export class DomainCommandService {
         ...actor,
         spellcastingProfiles: profiles,
         resourcePools: pools,
+        concentration: (
+          actor.payload as { concentration?: ActiveConcentration } | null
+        )?.concentration,
       } as unknown as CampaignActor,
       spell: effectiveSpellDef,
       profileId: payload.profileId,
@@ -1196,9 +1350,16 @@ export class DomainCommandService {
               slotLevel: evalResult.slotLevelToCharge,
             });
           }
-        } else if (pool.poolType === 'pact') {
+        } else if (pool.poolType === 'pact' || pool.poolType === 'uses') {
           if (pool.current && pool.current > 0) {
             pool.current -= 1;
+            if (
+              pool.poolType === 'pact' &&
+              evalResult.slotLevelToCharge &&
+              pool.slots?.[evalResult.slotLevelToCharge]
+            ) {
+              pool.slots[evalResult.slotLevelToCharge].current -= 1;
+            }
             consumedResources.push({
               poolId: pool.id,
               amount: 1,
@@ -1305,7 +1466,12 @@ export class DomainCommandService {
       throw new Error(`Actor not found: ${payload.actorId}`);
     }
 
-    this.assertCanControlActor(actor, context, 'end concentration for');
+    await this.assertCanControlActor(
+      actor,
+      context,
+      'end concentration for',
+      client,
+    );
 
     const expectedVersion = command.expectedActorVersions?.[actor.id];
     if (
@@ -1392,7 +1558,7 @@ export class DomainCommandService {
       throw new Error(`Actor not found: ${payload.actorId}`);
     }
 
-    this.assertCanControlActor(actor, context, 'rest');
+    await this.assertCanControlActor(actor, context, 'rest', client);
 
     const expectedVersion = command.expectedActorVersions?.[actor.id];
     if (
@@ -1439,6 +1605,8 @@ export class DomainCommandService {
           }
         } else if (pool.poolType === 'pact') {
           pool.current = pool.max ?? pool.current;
+          for (const slot of Object.values(pool.slots ?? {}))
+            slot.current = slot.total;
         } else if (pool.max !== undefined) {
           pool.current = pool.max;
         }
@@ -1449,6 +1617,8 @@ export class DomainCommandService {
         if (pool.resetOn === 'short-rest') {
           if (pool.poolType === 'pact') {
             pool.current = pool.max ?? pool.current;
+            for (const slot of Object.values(pool.slots ?? {}))
+              slot.current = slot.total;
           } else if (pool.max !== undefined) {
             pool.current = pool.max;
           }
@@ -1571,7 +1741,12 @@ export class DomainCommandService {
     }
 
     if (sourceActor) {
-      this.assertCanControlActor(sourceActor, context, 'transfer items from');
+      await this.assertCanControlActor(
+        sourceActor,
+        context,
+        'transfer items from',
+        client,
+      );
       const expectedSourceVer = command.expectedActorVersions?.[sourceActor.id];
       if (
         expectedSourceVer !== undefined &&

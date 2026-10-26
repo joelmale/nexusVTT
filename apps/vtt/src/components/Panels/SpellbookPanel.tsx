@@ -1,450 +1,408 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type { SpellDefinition } from '@nexus/game-contracts';
 import type { PanelComponentProps } from '@/services/panelRegistry';
+import {
+  loadActorSpellbook,
+  type SpellbookActor,
+} from '@/services/actorSpellbook';
+import {
+  commandClient,
+  type CommandExecutionResult,
+} from '@/services/commandClient';
 import { useCharacterStore } from '@/stores/characterStore';
-import { commandClient } from '@/services/commandClient';
-import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
-import BookOpen from 'lucide-react/dist/esm/icons/book-open';
-import Sun from 'lucide-react/dist/esm/icons/sun';
-import Moon from 'lucide-react/dist/esm/icons/moon';
-import Zap from 'lucide-react/dist/esm/icons/zap';
-import EyeOff from 'lucide-react/dist/esm/icons/eye-off';
+import { useGameStore } from '@/stores/gameStore';
 import styles from './SpellbookPanel.module.css';
 
-interface SpellViewItem {
-  slug: string;
-  name: string;
-  level: number;
-  school: string;
-  isConcentration: boolean;
-  isRitual: boolean;
-  isPrepared: boolean;
-}
-
-interface SpellcastingProfileState {
-  profileId: string;
-  name: string;
-  ability: string;
-  saveDC: number;
-  attackBonus: number;
-  preparationMode: 'prepared' | 'known' | 'innate';
-  slots: Record<number, { current: number; max: number }>;
-}
-
-export const SpellbookPanel: React.FC<PanelComponentProps> = ({ link }) => {
-  const characters = useCharacterStore((state) => state.characters);
-  const character = characters.find((c) => c.id === link.id);
-
-  const campaignId = link.campaignId || 'default-campaign';
-  const actorId = link.id;
-
-  const [profile, setProfile] = useState<SpellcastingProfileState>({
-    profileId: 'primary-profile',
-    name: character ? `${character.class || 'Caster'} Spellcasting` : 'Spellcasting Profile',
-    ability: 'INT',
-    saveDC: 15,
-    attackBonus: 7,
-    preparationMode: 'prepared',
-    slots: {
-      1: { current: 4, max: 4 },
-      2: { current: 3, max: 3 },
-      3: { current: 2, max: 2 },
-    },
-  });
-
-  const [concentration, setConcentration] = useState<{
-    spellSlug: string;
-    castId: string;
-    castAtLevel: number;
-  } | null>(null);
-
-  const [spells, setSpells] = useState<SpellViewItem[]>([
-    {
-      slug: 'fire-bolt',
-      name: 'Fire Bolt',
-      level: 0,
-      school: 'Evocation',
-      isConcentration: false,
-      isRitual: false,
-      isPrepared: true,
-    },
-    {
-      slug: 'mage-armor',
-      name: 'Mage Armor',
-      level: 1,
-      school: 'Abjuration',
-      isConcentration: false,
-      isRitual: false,
-      isPrepared: true,
-    },
-    {
-      slug: 'magic-missile',
-      name: 'Magic Missile',
-      level: 1,
-      school: 'Evocation',
-      isConcentration: false,
-      isRitual: false,
-      isPrepared: true,
-    },
-    {
-      slug: 'shield',
-      name: 'Shield',
-      level: 1,
-      school: 'Abjuration',
-      isConcentration: false,
-      isRitual: false,
-      isPrepared: true,
-    },
-    {
-      slug: 'detect-magic',
-      name: 'Detect Magic',
-      level: 1,
-      school: 'Divination',
-      isConcentration: true,
-      isRitual: true,
-      isPrepared: false,
-    },
-    {
-      slug: 'misty-step',
-      name: 'Misty Step',
-      level: 2,
-      school: 'Conjuration',
-      isConcentration: false,
-      isRitual: false,
-      isPrepared: true,
-    },
-    {
-      slug: 'hold-person',
-      name: 'Hold Person',
-      level: 2,
-      school: 'Enchantment',
-      isConcentration: true,
-      isRitual: false,
-      isPrepared: true,
-    },
-    {
-      slug: 'fireball',
-      name: 'Fireball',
-      level: 3,
-      school: 'Evocation',
-      isConcentration: false,
-      isRitual: false,
-      isPrepared: true,
-    },
-  ]);
-
-  const [selectedLevels, setSelectedLevels] = useState<Record<string, number>>({});
-  const [preparedPlanSlugs, setPreparedPlanSlugs] = useState<string[]>(
-    spells.filter((s) => s.isPrepared).map((s) => s.slug),
+/** One casting surface reused by the desktop sheet and Simple Player Mode. */
+export const SpellbookPanel: React.FC<
+  PanelComponentProps & { readonly?: boolean }
+> = ({ link, readonly = false }) => {
+  const character = useCharacterStore((state) =>
+    state.characters.find((entry) => entry.id === link.id),
   );
-  const [statusMessage, setStatusMessage] = useState<{
-    text: string;
-    isError?: boolean;
-  } | null>(null);
+  const user = useGameStore((state) => state.user);
+  const campaignId = useGameStore(
+    (state) => link.campaignId || state.session?.campaignId,
+  );
+  const [actor, setActor] = useState<SpellbookActor>();
+  const [spells, setSpells] = useState<SpellDefinition[]>([]);
+  const [profileId, setProfileId] = useState('');
+  const [preparationEdits, setPreparationEdits] = useState<
+    Record<string, string[]>
+  >({});
+  const [levels, setLevels] = useState<Record<string, number>>({});
+  const [status, setStatus] = useState<string>();
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const inFlight = useRef(false);
+  const refreshGeneration = useRef(0);
+  const [retry, setRetry] = useState<{
+    operation: () => Promise<CommandExecutionResult>;
+  }>();
+  const canControl =
+    !readonly && (user.type === 'host' || character?.playerId === user.id);
 
-  const handleTogglePreparation = (slug: string) => {
-    setPreparedPlanSlugs((prev) =>
-      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
+  const refresh = useCallback(async () => {
+    if (!campaignId) return;
+    const generation = ++refreshGeneration.current;
+    try {
+      const result = await loadActorSpellbook(
+        campaignId,
+        link.id,
+        user.id,
+        canControl,
+      );
+      if (generation !== refreshGeneration.current) return;
+      setActor(result.actor);
+      setSpells(result.spells);
+      setProfileId((current) =>
+        result.actor.profiles.some((profile) => profile.profileId === current)
+          ? current
+          : result.actor.profiles[0]?.profileId || '',
+      );
+    } catch (caught) {
+      if (generation !== refreshGeneration.current) return;
+      setStatus(
+        caught instanceof Error
+          ? caught.message
+          : 'Spellbook could not be loaded.',
+      );
+    } finally {
+      if (generation === refreshGeneration.current) setLoading(false);
+    }
+  }, [campaignId, link.id, user.id, canControl]);
+
+  useEffect(() => {
+    // Synchronize with committed server state; setters run after the request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
+    return () => {
+      refreshGeneration.current += 1;
+    };
+  }, [refresh]);
+  useEffect(() => {
+    const reload = () => {
+      if (!document.hidden) void refresh();
+    };
+    window.addEventListener('online', reload);
+    window.addEventListener('nexus-domain-command-executed', reload);
+    window.addEventListener('nexus-campaign-actors-changed', reload);
+    document.addEventListener('visibilitychange', reload);
+    return () => {
+      window.removeEventListener('online', reload);
+      window.removeEventListener('nexus-domain-command-executed', reload);
+      window.removeEventListener('nexus-campaign-actors-changed', reload);
+      document.removeEventListener('visibilitychange', reload);
+    };
+  }, [refresh]);
+
+  const profile = actor?.profiles.find(
+    (entry) => entry.profileId === profileId,
+  );
+  const prepared =
+    preparationEdits[profileId] ?? profile?.preparedSpellSlugs ?? [];
+  const setPrepared = (update: (current: string[]) => string[]) =>
+    setPreparationEdits((current) => ({
+      ...current,
+      [profileId]: update(
+        current[profileId] ?? profile?.preparedSpellSlugs ?? [],
+      ),
+    }));
+  const slots = profile
+    ? actor?.pools[profile.resourcePoolId]?.slots || {}
+    : {};
+  const eligible = new Set([
+    ...(profile?.knownSpellSlugs || []),
+    ...(profile?.preparedSpellSlugs || []),
+  ]);
+  const available = spells.filter((spell) => eligible.has(spell.slug));
+
+  const execute = async (operation: () => Promise<CommandExecutionResult>) => {
+    if (inFlight.current || !canControl) return;
+    inFlight.current = true;
+    setPending(true);
+    setRetry({ operation });
+    try {
+      const result = await operation();
+      if (result.uncertain)
+        setStatus(
+          'The command outcome is not confirmed. Retry confirmation before taking another spell action.',
+        );
+      else {
+        setRetry(undefined);
+        if (result.success) setPreparationEdits({});
+        setStatus(
+          result.success
+            ? 'Change committed to the campaign.'
+            : result.error || 'The campaign rejected this action.',
+        );
+        await refresh();
+      }
+    } catch (caught) {
+      setStatus(
+        caught instanceof Error
+          ? caught.message
+          : 'Could not confirm the action. Retry confirmation.',
+      );
+    } finally {
+      inFlight.current = false;
+      setPending(false);
+    }
+  };
+
+  const disabled = pending || Boolean(retry) || !canControl;
+  const cast = (spell: SpellDefinition) => {
+    if (!actor || !profile || !campaignId) return;
+    const pool = actor.pools[profile.resourcePoolId];
+    const level =
+      spell.level === 0
+        ? 0
+        : ['uses', 'at-will'].includes(pool?.poolType ?? '')
+          ? spell.level
+          : levels[spell.slug] || spell.level;
+    const commandId = crypto.randomUUID();
+    void execute(() =>
+      commandClient.castSpell(
+        campaignId,
+        actor.id,
+        { kind: 'spell', id: spell.id, revision: spell.revision },
+        profile.profileId,
+        level,
+        { expectedVersion: actor.stateVersion, commandId },
+      ),
     );
   };
 
-  const handleApplyPlan = async () => {
-    try {
-      const res = await commandClient.applyPreparationPlan(
-        campaignId,
-        actorId,
-        profile.profileId,
-        preparedPlanSlugs,
-      );
-
-      if (res.success) {
-        setSpells((prev) =>
-          prev.map((s) => ({
-            ...s,
-            isPrepared: preparedPlanSlugs.includes(s.slug),
-          })),
-        );
-        setStatusMessage({ text: 'Preparation plan applied successfully.' });
-      } else {
-        setStatusMessage({ text: 'Failed to apply plan.', isError: true });
-      }
-    } catch {
-      setStatusMessage({ text: 'Error applying preparation plan.', isError: true });
-    }
-  };
-
-  const handleCastSpell = async (spell: SpellViewItem) => {
-    const levelToCast =
-      spell.level === 0 ? 0 : selectedLevels[spell.slug] || spell.level;
-
-    if (levelToCast > 0) {
-      const available = profile.slots[levelToCast]?.current ?? 0;
-      if (available <= 0) {
-        setStatusMessage({
-          text: `No level ${levelToCast} slots remaining!`,
-          isError: true,
-        });
-        return;
-      }
-    }
-
-    try {
-      const res = await commandClient.castSpell(
-        campaignId,
-        actorId,
-        { kind: 'spell', id: crypto.randomUUID(), revision: 1 },
-        profile.profileId,
-        levelToCast,
-      );
-
-      if (res.success) {
-        if (levelToCast > 0) {
-          setProfile((prev) => ({
-            ...prev,
-            slots: {
-              ...prev.slots,
-              [levelToCast]: {
-                ...prev.slots[levelToCast],
-                current: Math.max(0, (prev.slots[levelToCast]?.current ?? 1) - 1),
-              },
-            },
-          }));
-        }
-
-        if (spell.isConcentration) {
-          setConcentration({
-            spellSlug: spell.slug,
-            castId: crypto.randomUUID(),
-            castAtLevel: levelToCast,
-          });
-        }
-
-        setStatusMessage({
-          text: `Cast ${spell.name}${levelToCast > 0 ? ` at level ${levelToCast}` : ''}!`,
-        });
-      } else {
-        setStatusMessage({ text: 'Cast failed.', isError: true });
-      }
-    } catch {
-      setStatusMessage({ text: 'Error dispatching spell cast.', isError: true });
-    }
-  };
-
-  const handleEndConcentration = async () => {
-    if (!concentration) return;
-    try {
-      await commandClient.endConcentration(campaignId, actorId, concentration.castId);
-      setConcentration(null);
-      setStatusMessage({ text: 'Concentration ended.' });
-    } catch {
-      setStatusMessage({ text: 'Error ending concentration.', isError: true });
-    }
-  };
-
-  const handleRest = async (restType: 'short' | 'long') => {
-    try {
-      const res = await commandClient.restActor(campaignId, actorId, restType);
-      if (res.success) {
-        if (restType === 'long') {
-          setProfile((prev) => {
-            const restoredSlots: Record<number, { current: number; max: number }> = {};
-            for (const [lvl, s] of Object.entries(prev.slots)) {
-              restoredSlots[parseInt(lvl, 10)] = { ...s, current: s.max };
-            }
-            return { ...prev, slots: restoredSlots };
-          });
-        }
-        setStatusMessage({
-          text: `${restType === 'long' ? 'Long' : 'Short'} rest completed.`,
-        });
-      }
-    } catch {
-      setStatusMessage({ text: `Failed to complete ${restType} rest.`, isError: true });
-    }
-  };
-
   return (
-    <div className={styles.container} data-testid="spellbook-panel">
-      <div className={styles.header}>
-        <div className={styles.titleGroup}>
-          <h2 className={styles.title}>
-            <BookOpen size={20} />
-            {character ? `${character.name}'s Spellbook` : link.title || 'Spellbook'}
-          </h2>
-          <div className={styles.subtitle}>{profile.name}</div>
-        </div>
-
-        <div className={styles.statsBar}>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Ability</span>
-            <span className={styles.statValue}>{profile.ability}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Save DC</span>
-            <span className={styles.statValue}>{profile.saveDC}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Attack</span>
-            <span className={styles.statValue}>+{profile.attackBonus}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Active Concentration Banner */}
-      {concentration && (
-        <div className={styles.concentrationBanner} data-testid="concentration-banner">
-          <div className={styles.concentrationText}>
-            <Zap size={16} />
-            <span>
-              Concentrating on <strong>{concentration.spellSlug}</strong> (Level{' '}
-              {concentration.castAtLevel})
-            </span>
-          </div>
-          <button
-            onClick={handleEndConcentration}
-            className={styles.endConcentrationBtn}
-            data-testid="end-concentration-btn"
-          >
-            <EyeOff size={14} />
-            End
-          </button>
-        </div>
+    <section
+      className={styles.container}
+      aria-label="Spellbook"
+      data-testid="spellbook-panel"
+    >
+      <h2 className={styles.title}>
+        {character?.name || link.title || 'Character'} — Spellbook
+      </h2>
+      {status && <p role="status">{status}</p>}
+      {!campaignId && (
+        <p role="status">
+          Join a campaign session to use its spellcasting controls.
+        </p>
       )}
-
-      {/* Spell Slots */}
-      <div className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <span>Spell Slots</span>
-          <div className={styles.restActions}>
-            <button
-              onClick={() => handleRest('short')}
-              className={styles.restBtn}
-              data-testid="short-rest-btn"
-              title="Short Rest"
-            >
-              <Moon size={14} />
-              Short Rest
-            </button>
-            <button
-              onClick={() => handleRest('long')}
-              className={styles.restBtn}
-              data-testid="long-rest-btn"
-              title="Long Rest"
-            >
-              <Sun size={14} />
-              Long Rest
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.slotsGrid} data-testid="slots-grid">
-          {Object.entries(profile.slots).map(([lvl, s]) => (
-            <div key={lvl} className={styles.slotCard} data-testid={`slot-card-${lvl}`}>
-              <span className={styles.slotLevel}>Level {lvl}</span>
-              <span className={styles.slotCount}>
-                {s.current} / {s.max}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Spells List */}
-      <div className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <span>Spells & Preparations</span>
+      {campaignId && loading ? (
+        <p role="status">Loading campaign spellcasting…</p>
+      ) : (
+        <>
           <button
-            onClick={handleApplyPlan}
-            className={styles.applyPlanBtn}
-            data-testid="apply-plan-btn"
+            type="button"
+            disabled={pending}
+            onClick={() => void refresh()}
           >
-            Apply Plan
+            Refresh spellbook
           </button>
-        </div>
-
-        {statusMessage && (
-          <div
-            className={`${styles.statusMessage} ${
-              statusMessage.isError ? styles.statusError : styles.statusSuccess
-            }`}
-            data-testid="spellbook-status"
-          >
-            {statusMessage.text}
-          </div>
-        )}
-
-        <div className={styles.spellList}>
-          {spells.map((spell) => {
-            const isPrepared = preparedPlanSlugs.includes(spell.slug);
-            const selectedLevel = selectedLevels[spell.slug] || spell.level;
-
-            return (
-              <div key={spell.slug} className={styles.spellItem} data-testid={`spell-item-${spell.slug}`}>
-                <div className={styles.spellInfo}>
-                  <div className={styles.spellNameRow}>
-                    {spell.level > 0 && (
-                      <input
-                        type="checkbox"
-                        checked={isPrepared}
-                        onChange={() => handleTogglePreparation(spell.slug)}
-                        className={styles.prepareCheckbox}
-                        aria-label={`Prepare ${spell.name}`}
-                        data-testid={`prepare-checkbox-${spell.slug}`}
-                      />
-                    )}
-                    <span className={styles.spellName}>{spell.name}</span>
-                    {spell.level === 0 ? (
-                      <span className={styles.preparedBadge}>Cantrip</span>
-                    ) : isPrepared ? (
-                      <span className={styles.preparedBadge}>Prepared</span>
-                    ) : null}
-                    {spell.isRitual && <span className={styles.ritualBadge}>Ritual</span>}
-                    {spell.isConcentration && (
-                      <span className={styles.ritualBadge}>Conc</span>
-                    )}
-                  </div>
-                  <div className={styles.spellMeta}>
-                    Level {spell.level} • {spell.school}
-                  </div>
-                </div>
-
-                <div className={styles.spellActions}>
-                  {spell.level > 0 && (
-                    <select
-                      value={selectedLevel}
-                      onChange={(e) =>
-                        setSelectedLevels({
-                          ...selectedLevels,
-                          [spell.slug]: parseInt(e.target.value, 10),
-                        })
-                      }
-                      className={styles.levelSelect}
-                      data-testid={`level-select-${spell.slug}`}
-                    >
-                      {Object.keys(profile.slots)
-                        .map((l) => parseInt(l, 10))
-                        .filter((l) => l >= spell.level)
-                        .map((l) => (
-                          <option key={l} value={l}>
-                            Lvl {l} ({profile.slots[l]?.current ?? 0} left)
-                          </option>
-                        ))}
-                    </select>
-                  )}
-
+          {retry && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                const operation = retry.operation;
+                if (operation) void execute(operation);
+              }}
+            >
+              Retry confirmation
+            </button>
+          )}
+          {!actor || !profile ? (
+            <p>
+              No casting profile is available. Check admission and character
+              choices with the DM.
+            </p>
+          ) : (
+            <>
+              <label>
+                Casting source{' '}
+                <select
+                  aria-label="Casting source"
+                  value={profileId}
+                  disabled={pending}
+                  onChange={(event) => setProfileId(event.target.value)}
+                >
+                  {actor.profiles.map((entry) => (
+                    <option key={entry.profileId} value={entry.profileId}>
+                      {entry.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p>
+                {profile.spellcastingAbility} · Save DC {profile.spellSaveDC} ·
+                Attack {profile.spellAttackBonus >= 0 ? '+' : ''}
+                {profile.spellAttackBonus}
+              </p>
+              <div className={styles.slotsGrid} aria-label="Spell slots">
+                {Object.entries(slots).map(([level, slot]) => (
+                  <p key={level}>
+                    Level {level}: {slot.current} / {slot.total}
+                  </p>
+                ))}
+              </div>
+              {actor.concentration && (
+                <div className={styles.concentrationBanner}>
+                  Concentrating on {actor.concentration.spellName}
                   <button
-                    onClick={() => handleCastSpell(spell)}
-                    className={styles.castBtn}
-                    data-testid={`cast-btn-${spell.slug}`}
+                    disabled={disabled}
+                    onClick={() => {
+                      if (!campaignId || !actor.concentration) return;
+                      const castId = actor.concentration.castId;
+                      const commandId = crypto.randomUUID();
+                      void execute(() =>
+                        commandClient.endConcentration(
+                          campaignId,
+                          actor.id,
+                          castId,
+                          { expectedVersion: actor.stateVersion, commandId },
+                        ),
+                      );
+                    }}
                   >
-                    <Sparkles size={14} />
-                    Cast
+                    End concentration
                   </button>
                 </div>
+              )}
+              {profile.preparationMode === 'prepared' && (
+                <button
+                  disabled={disabled}
+                  onClick={() => {
+                    if (!campaignId) return;
+                    const commandId = crypto.randomUUID();
+                    void execute(() =>
+                      commandClient.applyPreparationPlan(
+                        campaignId,
+                        actor.id,
+                        profile.profileId,
+                        prepared,
+                        { expectedVersion: actor.stateVersion, commandId },
+                      ),
+                    );
+                  }}
+                >
+                  Apply preparation
+                </button>
+              )}
+              {available.length === 0 && (
+                <p>No spells are available in this casting source.</p>
+              )}
+              <div className={styles.spellList}>
+                {available.map((spell) => {
+                  const castLevel = levels[spell.slug] || spell.level;
+                  const pool = actor.pools[profile.resourcePoolId];
+                  const noSlot =
+                    spell.level > 0 &&
+                    pool?.poolType !== 'at-will' &&
+                    (pool?.poolType === 'uses'
+                      ? (pool.current ?? 0) < 1
+                      : (slots[String(castLevel)]?.current || 0) < 1);
+                  const notPrepared =
+                    profile.preparationMode === 'prepared' &&
+                    spell.level > 0 &&
+                    !profile.preparedSpellSlugs.includes(spell.slug);
+                  return (
+                    <article className={styles.spellItem} key={spell.id}>
+                      <details>
+                        <summary>
+                          {spell.name}{' '}
+                          {spell.level === 0
+                            ? '(Cantrip)'
+                            : `(Level ${spell.level})`}
+                        </summary>
+                        <p>{spell.description}</p>
+                        <p>
+                          {spell.castingTime} · {spell.range} · {spell.duration}
+                        </p>
+                      </details>
+                      {profile.preparationMode === 'prepared' &&
+                        spell.level > 0 && (
+                          <label>
+                            <input
+                              type="checkbox"
+                              aria-label={`Prepare ${spell.name}`}
+                              disabled={disabled}
+                              checked={prepared.includes(spell.slug)}
+                              onChange={() =>
+                                setPrepared((current) =>
+                                  current.includes(spell.slug)
+                                    ? current.filter(
+                                        (slug) => slug !== spell.slug,
+                                      )
+                                    : [...current, spell.slug],
+                                )
+                              }
+                            />
+                            Prepared
+                          </label>
+                        )}
+                      {spell.level > 0 &&
+                        !['uses', 'at-will'].includes(pool?.poolType ?? '') && (
+                          <select
+                            aria-label={`Slot level for ${spell.name}`}
+                            value={castLevel}
+                            disabled={disabled}
+                            onChange={(event) =>
+                              setLevels((current) => ({
+                                ...current,
+                                [spell.slug]: Number(event.target.value),
+                              }))
+                            }
+                          >
+                            {Object.entries(slots)
+                              .filter(([level]) => Number(level) >= spell.level)
+                              .map(([level, slot]) => (
+                                <option key={level} value={level}>
+                                  Level {level} ({slot.current} left)
+                                </option>
+                              ))}
+                          </select>
+                        )}
+                      <button
+                        disabled={disabled || noSlot || notPrepared}
+                        onClick={() => cast(spell)}
+                        aria-label={`Cast ${spell.name}${profile.ritualOnly ? ' as a ritual' : ''}`}
+                      >
+                        {profile.ritualOnly
+                          ? 'Cast ritual (+10 minutes)'
+                          : pool?.poolType === 'at-will'
+                            ? 'Cast at will'
+                            : 'Cast'}
+                      </button>
+                    </article>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+              <div className={styles.restActions}>
+                {(['short', 'long'] as const).map((restType) => (
+                  <button
+                    key={restType}
+                    disabled={disabled}
+                    onClick={() => {
+                      if (!campaignId) return;
+                      const commandId = crypto.randomUUID();
+                      void execute(() =>
+                        commandClient.restActor(
+                          campaignId,
+                          actor.id,
+                          restType,
+                          { expectedVersion: actor.stateVersion, commandId },
+                        ),
+                      );
+                    }}
+                  >
+                    {restType === 'short' ? 'Short Rest' : 'Long Rest'}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </section>
   );
 };

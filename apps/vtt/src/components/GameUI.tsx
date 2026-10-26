@@ -14,6 +14,8 @@ import {
   useServerRoomCode,
 } from '@/stores/gameStore';
 import { useCharacterStore } from '@/stores/characterStore';
+import { useHandoutFeedStore } from '@/stores/handoutFeedStore';
+import { HandoutSpotlight } from './simple-player/HandoutSpotlight';
 import { SceneCanvas } from './Scene/SceneCanvas';
 import { ScenePill } from './Scene/ScenePill';
 import { GeneratorOverlay } from './Generator/GeneratorOverlay';
@@ -64,6 +66,12 @@ export const GameUI: React.FC = () => {
   const roomCode = useServerRoomCode();
 
   const isHost = user.type === 'host';
+  const spotlight = useHandoutFeedStore((state) =>
+    state.handouts.find((handout) => handout.id === state.spotlightId),
+  );
+  const dismissSpotlight = useHandoutFeedStore(
+    (state) => state.dismissSpotlight,
+  );
 
   const characters = useCharacterStore((state) => state.characters);
   const myCharacters = useMemo(
@@ -72,11 +80,14 @@ export const GameUI: React.FC = () => {
   );
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const showOnboardingBanner =
-    !isHost && !user.isSpectator && myCharacters.length === 0 && !onboardingDismissed;
+    !isHost &&
+    !user.isSpectator &&
+    myCharacters.length === 0 &&
+    !onboardingDismissed;
 
-  const activePanels = useUIStackStore(state => state.activePanels);
-  const togglePanel = useUIStackStore(state => state.togglePanel);
-  const selectPanel = useUIStackStore(state => state.selectPanel);
+  const activePanels = useUIStackStore((state) => state.activePanels);
+  const togglePanel = useUIStackStore((state) => state.togglePanel);
+  const selectPanel = useUIStackStore((state) => state.selectPanel);
 
   // Immersive mode (press F) and the in-app reduced-motion setting. Both
   // mirror a flag onto <html> so CSS can reach portal-mounted chrome too.
@@ -152,7 +163,11 @@ export const GameUI: React.FC = () => {
                       console.log('💾 Manual save triggered');
                     }}
                     className="glass-button small"
-                    style={{ marginLeft: '12px', fontSize: '12px', padding: '4px 12px' }}
+                    style={{
+                      marginLeft: '12px',
+                      fontSize: '12px',
+                      padding: '4px 12px',
+                    }}
                     title="Save campaign to server"
                   >
                     💾 Save
@@ -236,6 +251,9 @@ export const GameUI: React.FC = () => {
       <ScenePill scenes={scenes} activeSceneId={activeScene?.id || ''} />
 
       {/* Main Game Canvas */}
+      {!isHost && spotlight && (
+        <HandoutSpotlight handout={spotlight} onDismiss={dismissSpotlight} />
+      )}
       <ErrorBoundary name="Main Canvas" key={activeScene?.id || 'no-scene'}>
         {/* tabIndex -1: focus is parked here when focus mode marks chrome inert */}
         <div className="layout-scene" tabIndex={-1}>
@@ -276,7 +294,7 @@ export const GameUI: React.FC = () => {
       {activePanels.map((panelId) => {
         // Generator is handled via overlay, skip rendering its floating panel
         if (panelId === 'generator') return null;
-        
+
         const objectLink =
           panelRegistry.getLink(panelId) || parseObjectPanelId(panelId);
         if (objectLink) {
@@ -322,9 +340,13 @@ export const GameUI: React.FC = () => {
             onClose={() => togglePanel(panelId)}
             label={panelConfig.label}
           >
-            <Suspense fallback={<div className="panel-skeleton">Loading panel...</div>}>
+            <Suspense
+              fallback={<div className="panel-skeleton">Loading panel...</div>}
+            >
               <ContextPanel
-                activePanel={panelId as Parameters<typeof ContextPanel>[0]['activePanel']}
+                activePanel={
+                  panelId as Parameters<typeof ContextPanel>[0]['activePanel']
+                }
                 onPanelChange={() => {}}
                 expanded={true}
                 onToggleExpanded={() => {}}
@@ -335,10 +357,7 @@ export const GameUI: React.FC = () => {
         );
       })}
 
-      <GeneratorOverlay
-        isOpen={isGeneratorOpen}
-        onClose={closeGenerator}
-      >
+      <GeneratorOverlay isOpen={isGeneratorOpen} onClose={closeGenerator}>
         <ErrorBoundary name="Generator Panel">
           <Suspense
             fallback={

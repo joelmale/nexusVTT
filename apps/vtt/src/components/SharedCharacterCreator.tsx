@@ -1,136 +1,258 @@
-import React, { useCallback, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   CharacterCreator,
   createdCharacterToNexus,
-  createDraftStorageKey,
-  saveDraftToStorage,
-  loadDraftFromStorage,
-  clearDraftFromStorage,
   type CharacterCreationResult,
   type CreationMode,
-  type CreationDraft,
+  type Edition,
 } from '@nexus/character-creator';
 import '@nexus/character-creator/styles.css';
 import type { Character } from '@nexus/character-contracts';
-import { useCharacterCreation } from '@/stores/characterStore';
-import { useTheme } from '@/stores/gameStore';
+import { useCreatorRecovery } from '@/hooks/useCreatorRecovery';
+import { handoffSavedCharacter } from '@/services/characterHandoff';
+import { creatorDefaultMode } from '@/services/creatorCapabilities';
 import { getRulesCatalogVersion } from '@/services/rulesCatalogClient';
-
-/**
- * Explicit theme boundary between the VTT's theme setting and the creator's
- * own palette. The creator never reads VTT tokens and the VTT never inherits
- * the creator's; the only thing that crosses is this resolved name.
- */
-const resolveCreatorTheme = (theme: 'auto' | 'dark' | 'light'): string => {
-  if (theme === 'light') return 'light';
-  if (theme === 'dark') return 'dark-colorful';
-  const prefersLight =
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-color-scheme: light)').matches;
-  return prefersLight ? 'light' : 'dark-colorful';
-};
+import { storageWorkerClient } from '@/services/storageWorkerClient';
+import { useCharacterStore } from '@/stores/characterStore';
+import { useGameStore, useTheme } from '@/stores/gameStore';
+import { toast } from '@/utils/notifications';
+import styles from './SharedCharacterCreator.module.css';
 
 interface SharedCharacterCreatorProps {
   playerId: string;
-  onComplete: (characterId: string, character?: Character) => void;
+  onComplete: (
+    characterId: string,
+    character?: Character,
+  ) => void | Promise<void>;
   onCancel: () => void;
-  /** Kept for launch-context parity; the shared creator is always modal. */
   isModal?: boolean;
-  /**
-   * Which door opens first. Defaults to the guided flow — a player arriving at
-   * "I need to build a character" should not have to meet point-buy first.
-   */
   initialMode?: CreationMode;
 }
 
-/**
- * Nexus VTT's host binding for the shared character creator.
- *
- * The creator owns the rules and the UI; this component owns everything the
- * creator deliberately does not: ownership, account persistence, local cache
- * and the VTT's completion/cancellation contract.
- *
- * Errors thrown here propagate back into the wizard, which shows them inline
- * and stays open with the player's answers intact.
- */
-function getSessionTabId(): string {
-  if (typeof window === 'undefined' || !window.sessionStorage) {
-    return 'default-tab';
-  }
-  let id = window.sessionStorage.getItem('nexus_tab_id');
-  if (!id) {
-    id = Math.random().toString(36).substring(2, 9);
-    window.sessionStorage.setItem('nexus_tab_id', id);
-  }
-  return id;
-}
+const repository = {
+  getCreatorDraft: async (key: string) => {
+    const stored = await storageWorkerClient.getCreatorDraft(key);
+    if (stored) return stored;
+    // Import the previous browser-local envelope without deleting its original.
+    try {
+      const legacyPlayer = decodeURIComponent(key.split(':')[1] || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '');
+      const value = localStorage.getItem(`nexus_draft_vtt_${legacyPlayer}`);
+      return value
+        ? { id: key, value, revision: 0, clientTabId: 'legacy-import' }
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  },
+  saveCreatorDraft:
+    storageWorkerClient.saveCreatorDraft.bind(storageWorkerClient),
+  deleteCreatorDraft: async (key: string, revision: number) => {
+    await storageWorkerClient.deleteCreatorDraft(key, revision);
+    try {
+      const legacyPlayer = decodeURIComponent(key.split(':')[1] || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '');
+      localStorage.removeItem(`nexus_draft_vtt_${legacyPlayer}`);
+    } catch {
+      /* Worker-backed removal is authoritative. */
+    }
+  },
+};
 
-export const SharedCharacterCreator: React.FC<SharedCharacterCreatorProps> = ({
+export const SharedCharacterCreator: React.FC<SharedCharacterCreatorProps> = (
+  props,
+) => {
+  const room = useGameStore((state) => state.session?.roomCode ?? 'standalone');
+  return (
+    <PlayerCharacterCreator
+      key={`${props.playerId}:${room}`}
+      {...props}
+      recoveryKey={`vtt:${encodeURIComponent(props.playerId)}:${encodeURIComponent(room)}:creation`}
+    />
+  );
+};
+
+const PlayerCharacterCreator: React.FC<
+  SharedCharacterCreatorProps & { recoveryKey: string }
+> = ({
   playerId,
   onComplete,
   onCancel,
-  initialMode = 'guided',
+  initialMode = creatorDefaultMode(),
+  recoveryKey,
 }) => {
-  const { saveCreatedCharacter } = useCharacterCreation();
   const theme = useTheme();
+  const recovery = useCreatorRecovery(repository, recoveryKey);
+  const [edition, setEdition] = useState<Edition>();
+  const [actionError, setActionError] = useState<string>();
+  const completionInFlight = useRef<Promise<void> | undefined>(undefined);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const submission = useRef<
+    { attemptId: string; character: Character; savedId?: string } | undefined
+  >(undefined);
+  const showGate =
+    recovery.phase !== 'ready' || (!recovery.initialDraft && !edition);
 
-  const storageKey = createDraftStorageKey('vtt', playerId);
-  const [clientTabId] = useState(getSessionTabId);
+  useEffect(() => {
+    if (showGate && dialog.current && !dialog.current.open)
+      dialog.current.showModal();
+  }, [showGate]);
 
-  const [initialDraft, setInitialDraft] = useState<CreationDraft | undefined>(() => {
-    const loaded = loadDraftFromStorage(storageKey, { clientTabId: getSessionTabId() });
-    return loaded?.record.draft;
-  });
+  const complete = (input: CharacterCreationResult) => {
+    if (completionInFlight.current) return completionInFlight.current;
+    const operation = (async () => {
+      await recovery.flush();
+      const result = await recovery.freezeCompletion(input);
+      const attemptId = result.creationAttemptId || result.character.id;
+      if (!submission.current || submission.current.attemptId !== attemptId) {
+        const character = createdCharacterToNexus(result.character, {
+          playerId,
+        });
+        character.rulesCatalogVersion = await getRulesCatalogVersion();
+        submission.current = { attemptId, character };
+      }
+      const attempt = submission.current;
+      if (!attempt.savedId) {
+        attempt.savedId = await useCharacterStore
+          .getState()
+          .saveCreatedCharacter(attempt.character, {
+            creationAttemptId: attemptId,
+            draftRevision: result.draftRevision || 1,
+          });
+        attempt.character =
+          useCharacterStore.getState().getCharacter(attempt.savedId) ||
+          attempt.character;
+      }
+      const outcome = await handoffSavedCharacter(attempt.character);
+      await recovery.discard();
+      toast.success(outcome.message, { duration: 12000 });
+      await onComplete(attempt.savedId, attempt.character);
+    })().finally(() => {
+      completionInFlight.current = undefined;
+    });
+    completionInFlight.current = operation;
+    return operation;
+  };
 
-  const handleDraftChange = useCallback(
-    (draft: CreationDraft) => {
-      saveDraftToStorage(storageKey, draft, { clientTabId });
-    },
-    [storageKey, clientTabId],
-  );
+  if (showGate)
+    return (
+      <dialog
+        ref={dialog}
+        className={styles.recovery}
+        onCancel={onCancel}
+        aria-labelledby="creator-recovery-title"
+      >
+        <h2 id="creator-recovery-title">Create your character</h2>
+        {recovery.phase === 'loading' ? (
+          <p role="status">Loading saved work…</p>
+        ) : recovery.phase !== 'ready' ? (
+          <>
+            <p>
+              {actionError ||
+                recovery.error ||
+                (recovery.recovery?.status === 'ok'
+                  ? 'A draft is saved for this player in this browser. Resume it, or export a copy before starting again.'
+                  : 'This build cannot open the saved draft. Its original data is retained; export a recovery copy before discarding.')}
+            </p>
+            <div className={styles.actions}>
+              {recovery.recovery?.status === 'ok' &&
+                recovery.recovery.record.pendingCompletion && (
+                  <button
+                    onClick={() => {
+                      const record = recovery.recovery;
+                      if (
+                        record?.status === 'ok' &&
+                        record.record.pendingCompletion
+                      )
+                        void complete(record.record.pendingCompletion).catch(
+                          (error: unknown) =>
+                            setActionError(
+                              error instanceof Error
+                                ? error.message
+                                : 'Could not confirm the prior save.',
+                            ),
+                        );
+                    }}
+                  >
+                    Retry previous save
+                  </button>
+                )}
+              {recovery.recovery?.status === 'ok' &&
+                !recovery.recovery.record.pendingCompletion && (
+                  <button onClick={recovery.resume}>Resume creation</button>
+                )}
+              <button onClick={recovery.exportDraft}>
+                Export recovery copy
+              </button>
+              <button onClick={() => void recovery.discard()}>
+                Discard draft and start new
+              </button>
+              <button onClick={() => void recovery.reload()}>
+                Retry loading
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p>
+              Use the rules edition agreed with your DM. Existing characters are
+              not converted.
+            </p>
+            <div className={styles.actions}>
+              <button onClick={() => setEdition('2014')}>Use 2014 rules</button>
+              <button onClick={() => setEdition('2024')}>Use 2024 rules</button>
+            </div>
+          </>
+        )}
+        <button onClick={onCancel}>Close</button>
+      </dialog>
+    );
 
-  const handleDraftDiscard = useCallback(() => {
-    clearDraftFromStorage(storageKey);
-    setInitialDraft(undefined);
-  }, [storageKey]);
-
-  const handleComplete = useCallback(
-    async (result: CharacterCreationResult) => {
-      // One conversion implementation, shared with the Forge JSON import path.
-      const character = createdCharacterToNexus(result.character, {
-        playerId,
-      });
-
-      // Record which published rules catalog was live at creation time (host
-      // responsibility -- the creator package owns no persistence). Never
-      // blocks on Codex: bundled SRD content is always sufficient to create
-      // a character, so a slow/offline catalog degrades to `null` here.
-      character.rulesCatalogVersion = await getRulesCatalogVersion();
-
-      const characterId = await saveCreatedCharacter(character);
-      // Clear durable draft on successful save
-      clearDraftFromStorage(storageKey);
-      onComplete(characterId, character);
-    },
-    [playerId, saveCreatedCharacter, onComplete, storageKey],
-  );
-
+  const creatorTheme =
+    theme === 'light'
+      ? 'light'
+      : theme === 'dark'
+        ? 'dark-colorful'
+        : typeof matchMedia === 'function' &&
+            matchMedia('(prefers-color-scheme: light)').matches
+          ? 'light'
+          : 'dark-colorful';
   return (
-    // `edition` is intentionally omitted: the creator falls back to its own
-    // configured default (2024, the current ruleset), matching Forge. The VTT
-    // has no ruleset picker yet, so hard-coding one here would silently force
-    // players onto a ruleset they did not choose.
-    <CharacterCreator
-      isOpen
-      initialMode={initialMode}
-      initialDraft={initialDraft}
-      onDraftChange={handleDraftChange}
-      onDraftDiscard={handleDraftDiscard}
-      allowModeSwitch
-      theme={resolveCreatorTheme(theme)}
-      onCancel={onCancel}
-      onComplete={handleComplete}
-    />
+    <>
+      {(recovery.error || actionError) && (
+        <div className={styles.alert} role="alert">
+          {recovery.error || actionError}
+          <button onClick={recovery.exportDraft}>Export current work</button>
+          <button onClick={() => void recovery.reload()}>
+            Review stored draft
+          </button>
+        </div>
+      )}
+      <CharacterCreator
+        isOpen
+        edition={recovery.initialDraft?.edition || edition}
+        theme={creatorTheme}
+        initialMode={recovery.initialPresentation?.mode || initialMode}
+        initialDraft={recovery.initialDraft}
+        initialPresentation={recovery.initialPresentation}
+        onDraftChange={recovery.onDraftChange}
+        onPresentationChange={recovery.onPresentationChange}
+        onDraftDiscard={() => void recovery.discard()}
+        allowModeSwitch
+        onCancel={() => {
+          void recovery
+            .flush()
+            .then(onCancel)
+            .catch((caught: unknown) =>
+              setActionError(
+                caught instanceof Error ? caught.message : 'Draft save failed.',
+              ),
+            );
+        }}
+        onComplete={complete}
+      />
+    </>
   );
 };

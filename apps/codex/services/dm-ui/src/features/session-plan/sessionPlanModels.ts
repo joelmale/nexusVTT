@@ -22,6 +22,11 @@ export interface CampaignFolder {
 }
 
 export interface SessionStepViewModel {
+  objectId?: string;
+  sceneTemplateId?: string;
+  mapId?: string;
+  mapAssetId?: string;
+  mapImagePath?: string;
   id: string;
   command: string;
   title: string;
@@ -30,6 +35,8 @@ export interface SessionStepViewModel {
   /** 'main' = sequential spine beat; 'parallel' = always-available thread */
   track: 'main' | 'parallel';
   body?: string;
+  /** Player-facing contents of the linked handout, separate from DM run notes. */
+  handoutBody?: string;
   referenceLabel?: string;
   /**
    * Authored `encounter` prep object a "Deploy encounter" step runs. Without
@@ -66,6 +73,9 @@ export interface ChecklistViewModel {
 }
 
 export interface SessionPlanViewModel {
+  sessionId?: string;
+  planId?: string;
+  authoring?: import('@/demo/ashes-of-veyra/types').SessionPlan;
   campaignDescription?: string;
   campaignTitle: string;
   title: string;

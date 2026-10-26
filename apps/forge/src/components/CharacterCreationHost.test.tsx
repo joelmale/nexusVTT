@@ -76,7 +76,10 @@ describe('Forge character creation host', () => {
     await user.click(screen.getByRole('button'));
 
     await waitFor(() => expect(addCharacter).toHaveBeenCalledTimes(1));
-    expect(addCharacter).toHaveBeenCalledWith(builtCharacter);
+    expect(addCharacter).toHaveBeenCalledWith({
+      ...builtCharacter,
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    });
     expect(loadCharacters).toHaveBeenCalledTimes(1);
     expect(onClosed).toHaveBeenCalledTimes(1);
   });
@@ -87,7 +90,10 @@ describe('Forge character creation host', () => {
     const onClosed = vi.fn();
 
     render(
-      <ForgeHost loadCharacters={vi.fn(async () => undefined)} onClosed={onClosed} />,
+      <ForgeHost
+        loadCharacters={vi.fn(async () => undefined)}
+        onClosed={onClosed}
+      />,
     );
     await user.click(screen.getByRole('button'));
 
@@ -105,7 +111,10 @@ describe('Forge character creation host', () => {
     );
 
     render(
-      <ForgeHost loadCharacters={vi.fn(async () => undefined)} onClosed={vi.fn()} />,
+      <ForgeHost
+        loadCharacters={vi.fn(async () => undefined)}
+        onClosed={vi.fn()}
+      />,
     );
     const button = screen.getByRole('button');
 

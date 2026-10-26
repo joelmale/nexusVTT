@@ -82,7 +82,9 @@ describe('CampaignActorRepository', () => {
     it('returns list of campaign actors', async () => {
       pool.query.mockResolvedValueOnce({ rows: [mockActorRow] } as QueryResult);
 
-      const actors = await repository.getActorsByCampaign(mockActorRow.campaignId);
+      const actors = await repository.getActorsByCampaign(
+        mockActorRow.campaignId,
+      );
       expect(actors).toHaveLength(1);
       expect(actors[0].name).toBe('Valeros');
     });
@@ -90,7 +92,9 @@ describe('CampaignActorRepository', () => {
     it('returns list of session actors', async () => {
       pool.query.mockResolvedValueOnce({ rows: [mockActorRow] } as QueryResult);
 
-      const actors = await repository.getActorsBySession(mockActorRow.activeSessionId!);
+      const actors = await repository.getActorsBySession(
+        mockActorRow.activeSessionId!,
+      );
       expect(actors).toHaveLength(1);
     });
   });
@@ -150,7 +154,7 @@ describe('CampaignActorRepository', () => {
 
       expect(created.name).toBe('Valeros');
       expect(pool.query).toHaveBeenCalledWith(
-        expect.stringContaining('$1, "campaignId"'),
+        expect.stringContaining('id, "campaignId"'),
         expect.arrayContaining(['custom-actor-id']),
       );
     });

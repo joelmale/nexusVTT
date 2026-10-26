@@ -25,3 +25,10 @@ export interface StorageStats {
   totalSize: number;
   averageSize: number;
 }
+/** Host-owned creation recovery data, persisted by the storage worker. */
+export interface StoredCreatorDraft {
+  id: string;
+  value: string;
+  revision: number;
+  clientTabId: string;
+}

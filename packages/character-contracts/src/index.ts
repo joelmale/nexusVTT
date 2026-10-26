@@ -113,6 +113,21 @@ export interface Spellcasting {
   spellChoicesByLevel?: Record<number, string>;
 }
 
+export interface CharacterCastingSource {
+  id: string;
+  sourceType: 'class' | 'subclass' | 'species' | 'feat';
+  sourceSlug: string;
+  ability: AbilityKey;
+  cantrips: string[];
+  knownSpells: string[];
+  preparedSpells: string[];
+  freeUses?: number;
+  ritual?: boolean;
+  allowClassSlots?: boolean;
+  atWill?: boolean;
+  ritualOnly?: boolean;
+}
+
 export interface InventoryItem {
   equipmentSlug: string;
   name?: string;
@@ -274,6 +289,7 @@ export interface PersonalityData {
 }
 
 export interface Character {
+  castingSources?: CharacterCastingSource[];
   id: string;
   name: string;
   race?: string;
@@ -360,7 +376,10 @@ export interface Character {
   backgroundFeat?: string;
   originFeat?: string;
   /** Per-feat follow-up choices, e.g. Elemental Adept damage type. */
-  featChoices?: Record<string, Record<string, string | number | boolean | string[]>>;
+  featChoices?: Record<
+    string,
+    Record<string, string | number | boolean | string[]>
+  >;
   /** Derived feat bonuses and toggles. */
   featEffects?: Record<string, unknown>;
   /** Record of level-up choices. */
@@ -505,7 +524,9 @@ export function calculatePassivePerception(
 
   let bonus = wisdomModifier;
   if (perceptionSkill.proficient) {
-    bonus += perceptionSkill.expertise ? proficiencyBonus * 2 : proficiencyBonus;
+    bonus += perceptionSkill.expertise
+      ? proficiencyBonus * 2
+      : proficiencyBonus;
   }
 
   return 10 + bonus;
@@ -558,7 +579,14 @@ export function createEmptyCharacter(playerId: string): Character {
     initiative: 0,
     abilities,
     skills,
-    savingThrowProficiencies: { STR: false, DEX: false, CON: false, INT: false, WIS: false, CHA: false },
+    savingThrowProficiencies: {
+      STR: false,
+      DEX: false,
+      CON: false,
+      INT: false,
+      WIS: false,
+      CHA: false,
+    },
     languages: ['Common'],
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -747,7 +775,10 @@ export interface ForgeCharacter {
   actionSurgeUsed?: number;
   backgroundFeat?: string;
   originFeat?: string;
-  featChoices?: Record<string, Record<string, string | number | boolean | string[]>>;
+  featChoices?: Record<
+    string,
+    Record<string, string | number | boolean | string[]>
+  >;
   featEffects?: Record<string, unknown>;
   levelHistory?: unknown[];
   equippedArmor?: string;

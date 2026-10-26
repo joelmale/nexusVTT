@@ -63,6 +63,42 @@ class FakeServer {
         : undefined;
       this.calls.push({ method, path, body });
 
+      const authoring = path.match(
+        /^\/api\/campaigns\/([^/]+)\/prep\/sessions\/([^/]+)\/authoring$/,
+      );
+      if (authoring && method === 'PUT') {
+        const session = body?.session as Record<string, unknown>;
+        const plan = body?.plan as Record<string, unknown>;
+        const priorSession = this.objects.get(authoring[2]);
+        const priorPlan = this.objects.get(String(plan.id));
+        if (
+          this.bump409 ||
+          priorSession?.currentRevision !== body?.expectedSessionRevision ||
+          priorPlan?.currentRevision !== body?.expectedPlanRevision
+        )
+          return json({ error: 'Campaign object revision conflict' }, 409);
+        if (this.failTitles.has(String(session.title)))
+          return json({ error: 'boom' }, 422);
+        const save = (
+          data: Record<string, unknown>,
+          kind: string,
+        ): StoredObject => ({
+          id: String(data.id),
+          campaignId: authoring[1],
+          kind,
+          title: String(data.title),
+          status: 'draft',
+          currentRevision: Number(data.revision),
+          data,
+        });
+        this.objects.set(String(plan.id), save(plan, 'session-plan'));
+        this.objects.set(String(session.id), save(session, 'session'));
+        return json({
+          session: stripData(this.objects.get(String(session.id))!),
+          plan: stripData(this.objects.get(String(plan.id))!),
+        });
+      }
+
       if (path === '/api/campaigns' && method === 'POST') {
         const id = crypto.randomUUID();
         const created = {
@@ -203,6 +239,70 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('load + mapping round-trip', () => {
+  it('commits and reloads the complete linked authoring plan without embedding a second copy', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const plan = structuredClone(
+      getFixtureBundle('ashes-of-veyra')!.sessions.find(
+        (session) => session.plan,
+      )!.plan!,
+    );
+    plan.notes = ['A distinctive private scratchpad'];
+    plan.playerFacingSummary = 'Meet at dawn';
+    const result = await store.addItem('session', {
+      title: 'Saved plan',
+      number: 1,
+      plan,
+    });
+    expect(result.ok).toBe(true);
+    const fresh = await createServerBundleStore(CAMPAIGN).load();
+    expect(fresh.sessions).toHaveLength(1);
+    expect(fresh.sessions[0].id).toBe(result.id);
+    expect(fresh.sessions[0].plan).toMatchObject({
+      notes: plan.notes,
+      steps: plan.steps,
+      readiness: plan.readiness,
+      attachments: plan.attachments,
+      playerFacingSummary: plan.playerFacingSummary,
+    });
+    const sessionData = server.objects.get(result.id!)!.data;
+    const fields = (
+      sessionData.content as {
+        value: { nexusStudio: { fields: Record<string, unknown> } };
+      }
+    ).value.nexusStudio.fields;
+    expect(fields.plan).toBeUndefined();
+    expect(fields.planId).toBe(fresh.sessions[0].planId);
+    const renamed = await createServerBundleStore(CAMPAIGN);
+    await renamed.load();
+    expect(
+      (
+        await renamed.updateItem('session', result.id!, {
+          title: 'Renamed',
+          plan: { ...plan, notes: ['Changed'] },
+        })
+      ).ok,
+    ).toBe(true);
+    const after = await createServerBundleStore(CAMPAIGN).load();
+    expect(after.sessions).toHaveLength(1);
+    expect(after.sessions[0].planId).toBe(fresh.sessions[0].planId);
+    expect(after.sessions[0].plan?.notes).toEqual(['Changed']);
+  });
+
+  it('does not commit either side of a rejected authoring save', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    server.failTitles.add('Rejected session');
+    const plan = getFixtureBundle('ashes-of-veyra')!.sessions.find(
+      (session) => session.plan,
+    )!.plan!;
+    const result = await store.addItem('session', {
+      title: 'Rejected session',
+      plan,
+    });
+    expect(result).toMatchObject({ ok: false, error: 'boom' });
+    expect(server.objects.size).toBe(0);
+  });
   it('starts empty and marks the bundle as server sourced', async () => {
     const store = createServerBundleStore(CAMPAIGN);
     const bundle = await store.load();
@@ -383,6 +483,45 @@ describe('load + mapping round-trip', () => {
     expect(server.calls.some((call) => call.path.endsWith('/st-1'))).toBe(
       false,
     );
+  });
+
+  it('restores a location map association from canonical pin references after reload', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const location = await store.addItem('location', {
+      name: 'Linked docks',
+      type: 'settlement',
+    });
+    expect(location.ok).toBe(true);
+    const map = await store.addItem('campaign-map', {
+      title: 'Docks map',
+      imageAssetRef: { target: 'asset', assetId: 'uploaded-map' },
+      dimensions: { width: 640, height: 480 },
+      layers: [],
+      pins: [
+        {
+          id: 'dock-pin',
+          label: 'Docks',
+          x: 0.5,
+          y: 0.5,
+          layerIds: [],
+          linkedObjectRefs: [
+            {
+              target: 'campaign-object',
+              campaignId: CAMPAIGN.id,
+              id: location.id,
+              revision: 1,
+            },
+          ],
+        },
+      ],
+    });
+    expect(map.ok).toBe(true);
+    const reloaded = await createServerBundleStore(CAMPAIGN).load();
+    expect(
+      reloaded.locations.find((entry) => entry.id === location.id)?.mapId,
+    ).toBe(map.id);
+    expect(reloaded.pins[0].locationId).toBe(location.id);
   });
 
   it('round-trips a campaign-map with layers and pins', async () => {

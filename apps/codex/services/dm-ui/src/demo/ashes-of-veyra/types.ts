@@ -102,9 +102,12 @@ export interface CampaignSession {
   handoutIds: FixtureId[];
   linkedIds?: FixtureId[];
   plan?: SessionPlan;
+  planId?: string;
 }
 
 export interface SessionPlan {
+  version?: 1;
+  defaultVisibility?: 'shared' | 'dm-only';
   revision: number;
   lastEdited: string;
   estimatedMinutes: number;
@@ -139,6 +142,8 @@ export interface SessionPlanStep {
   visibility: 'shared' | 'dm-only';
   objectId?: FixtureId;
   body?: string;
+  sceneTemplateId?: string;
+  mapId?: string;
 }
 
 export interface NpcCombatSummary {
@@ -211,11 +216,7 @@ export interface QuestObjective {
 }
 
 export type EncounterKind =
-  | 'combat'
-  | 'social'
-  | 'combat-hazard'
-  | 'combat-exploration'
-  | 'trap';
+  'combat' | 'social' | 'combat-hazard' | 'combat-exploration' | 'trap';
 
 export type TrapComplexity = 'simple' | 'complex' | 'puzzle';
 

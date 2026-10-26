@@ -1,8 +1,15 @@
 import { CreationDraft, DraftIssue } from '../types/draft';
-import { getAllSpecies, loadClasses, BACKGROUNDS } from './dataService';
+import {
+  getAllSpecies,
+  loadClasses,
+  BACKGROUNDS,
+  ALL_SKILLS,
+  loadSpells,
+} from './dataService';
 
 export interface CatalogValidationOptions {
   strictEntitlements?: boolean;
+  allowedSources?: string[];
 }
 
 /**
@@ -28,10 +35,91 @@ const CLASS_SKILL_COUNTS: Record<string, number> = {
  */
 export function resolveCatalogEntitlements(
   draft: CreationDraft,
-  _options: CatalogValidationOptions = {}
+  _options: CatalogValidationOptions = {},
 ): DraftIssue[] {
   const issues: DraftIssue[] = [];
   const edition = draft.edition;
+  const normalize = (value: string) =>
+    value.replace(/[^a-z]/gi, '').toLowerCase();
+  const error = (
+    id: string,
+    group: DraftIssue['group'],
+    message: string,
+    step = 4,
+  ) =>
+    issues.push({
+      id,
+      group,
+      message,
+      step,
+      severity: 'error',
+      repairTarget: `${group}-selection`,
+    });
+  if (
+    _options.strictEntitlements &&
+    !(_options.allowedSources ?? draft.allowedSources)
+  )
+    error(
+      'MISSING_SOURCE_POLICY',
+      'finalization',
+      'This game requires an explicit allowed content source list.',
+    );
+  const scores = Object.values(draft.rawAbilityScores);
+  if (
+    scores.length !== 6 ||
+    scores.some((value) => !Number.isInteger(value) || value < 1 || value > 20)
+  )
+    error(
+      'INVALID_BASE_SCORES',
+      'abilities',
+      'Each ability must be an integer from 1 to 20.',
+    );
+  if (
+    draft.abilityMethod === 'standard' &&
+    [...scores].sort((a, b) => a - b).join() !== '8,10,12,13,14,15'
+  )
+    error(
+      'INVALID_STANDARD_ARRAY',
+      'abilities',
+      'Assign each standard array score exactly once.',
+    );
+  if (draft.abilityMethod === 'point-buy') {
+    const costs: Record<number, number> = {
+      8: 0,
+      9: 1,
+      10: 2,
+      11: 3,
+      12: 4,
+      13: 5,
+      14: 7,
+      15: 9,
+    };
+    if (
+      scores.some((value) => costs[value] === undefined) ||
+      scores.reduce((sum, value) => sum + (costs[value] ?? 100), 0) > 27
+    )
+      error(
+        'INVALID_POINT_BUY',
+        'abilities',
+        'Use scores from 8 to 15 within the 27 point budget.',
+      );
+  }
+  if (
+    Object.entries(draft.abilityBonuses.bonuses).some(
+      ([key, value]) =>
+        !Number.isInteger(value) ||
+        (value || 0) < 0 ||
+        (draft.rawAbilityScores[key as keyof typeof draft.rawAbilityScores] ||
+          0) +
+          (value || 0) >
+          20,
+    )
+  )
+    error(
+      'INVALID_ABILITY_BONUS',
+      'abilities',
+      'Ability increases must be whole numbers and cannot raise a score above 20.',
+    );
 
   // 1. Validate Species
   if (!draft.speciesSlug) {
@@ -46,7 +134,8 @@ export function resolveCatalogEntitlements(
   } else {
     const speciesList = getAllSpecies(edition);
     const matchedSpecies = speciesList.find(
-      s => s.slug === draft.speciesSlug || s.slug === `${draft.speciesSlug}-2024`
+      (s) =>
+        s.slug === draft.speciesSlug || s.slug === `${draft.speciesSlug}-2024`,
     );
     if (!matchedSpecies) {
       issues.push({
@@ -73,7 +162,7 @@ export function resolveCatalogEntitlements(
     });
   } else {
     const classList = loadClasses(edition);
-    matchedClass = classList.find(c => c.slug === draft.classSlug);
+    matchedClass = classList.find((c) => c.slug === draft.classSlug);
     if (!matchedClass) {
       issues.push({
         id: 'INVALID_CLASS_FOR_EDITION',
@@ -100,10 +189,11 @@ export function resolveCatalogEntitlements(
   } else {
     const bgSlugToMatch = draft.backgroundSlug;
     matchedBg = BACKGROUNDS.find(
-      bg =>
-        bg.slug === bgSlugToMatch ||
-        bg.slug === `${bgSlugToMatch}-2024` ||
-        bg.name.toLowerCase() === bgSlugToMatch.toLowerCase()
+      (bg) =>
+        bg.edition === edition &&
+        (bg.slug === bgSlugToMatch ||
+          bg.slug === `${bgSlugToMatch}-${edition}` ||
+          bg.name.toLowerCase() === bgSlugToMatch.toLowerCase()),
     );
     if (!matchedBg) {
       issues.push({
@@ -121,31 +211,56 @@ export function resolveCatalogEntitlements(
   if (edition === '2024') {
     const method = draft.abilityBonuses.method;
     const bonuses = draft.abilityBonuses.bonuses;
-    const bonusValues = Object.values(bonuses).filter((v): v is number => typeof v === 'number' && v > 0);
+    const bonusValues = Object.values(bonuses).filter(
+      (v): v is number => typeof v === 'number' && v > 0,
+    );
     const sum = bonusValues.reduce((a, b) => a + b, 0);
+    const allowed = matchedBg?.abilityScores?.from || [];
+    if (
+      Object.entries(bonuses).some(
+        ([ability, amount]) =>
+          amount && !allowed.includes(ability as keyof typeof bonuses),
+      )
+    )
+      issues.push({
+        id: 'INVALID_BACKGROUND_BONUS_TARGET',
+        step: 4,
+        group: 'abilities',
+        severity: 'error',
+        message: 'Choose ability increases from your background abilities.',
+        repairTarget: 'background-asi',
+      });
 
+    if (!method)
+      error(
+        'MISSING_BACKGROUND_BONUSES',
+        'abilities',
+        'Choose background ability increases.',
+      );
     if (method === '2/1') {
       const hasTwo = bonusValues.includes(2);
-      const hasOne = bonusValues.filter(v => v === 1).length === 1;
+      const hasOne = bonusValues.filter((v) => v === 1).length === 1;
       if (!hasTwo || !hasOne || sum !== 3) {
         issues.push({
           id: 'INVALID_2_1_BONUS_ALLOCATION',
           step: 4,
           group: 'abilities',
           severity: 'error',
-          message: 'The +2 / +1 method requires exactly one +2 bonus and one +1 bonus to different abilities.',
+          message:
+            'The +2 / +1 method requires exactly one +2 bonus and one +1 bonus to different abilities.',
           repairTarget: 'background-asi',
         });
       }
     } else if (method === '1/1/1') {
-      const onesCount = bonusValues.filter(v => v === 1).length;
+      const onesCount = bonusValues.filter((v) => v === 1).length;
       if (onesCount !== 3 || sum !== 3) {
         issues.push({
           id: 'INVALID_1_1_1_BONUS_ALLOCATION',
           step: 4,
           group: 'abilities',
           severity: 'error',
-          message: 'The +1 / +1 / +1 method requires exactly three +1 bonuses to different abilities.',
+          message:
+            'The +1 / +1 / +1 method requires exactly three +1 bonuses to different abilities.',
           repairTarget: 'background-asi',
         });
       }
@@ -155,7 +270,32 @@ export function resolveCatalogEntitlements(
   // 5. Skills & Duplicate Replacement Rule
   if (matchedClass) {
     const requiredSkillCount = CLASS_SKILL_COUNTS[matchedClass.slug] || 2;
-    const selectedSkillCount = draft.skills.length;
+    const selectedSkillCount = new Set(draft.skills.map(normalize)).size;
+    if (
+      draft.skills.some(
+        (skill) =>
+          !ALL_SKILLS.some(
+            (allowed) => normalize(allowed) === normalize(skill),
+          ),
+      )
+    )
+      error('UNKNOWN_SKILL', 'class', 'Choose known skills.');
+    const pool = matchedClass.skill_proficiencies.map(normalize);
+    if (draft.skills.some((skill) => !pool.includes(normalize(skill))))
+      error(
+        'INVALID_CLASS_SKILL',
+        'class',
+        'Choose skills from your class list.',
+      );
+    if (
+      selectedSkillCount > requiredSkillCount ||
+      selectedSkillCount !== draft.skills.length
+    )
+      error(
+        'INVALID_CLASS_SKILL_COUNT',
+        'class',
+        `Choose ${requiredSkillCount} different class skills.`,
+      );
 
     if (selectedSkillCount < requiredSkillCount) {
       issues.push({
@@ -169,16 +309,18 @@ export function resolveCatalogEntitlements(
     }
 
     // Check duplicate between background skills and class skills
-    const bgSkills = (matchedBg?.skill_proficiencies || []).map(s => s.toLowerCase());
-    const classSkills = draft.skills.map(s => s.toLowerCase());
-    const duplicates = classSkills.filter(s => bgSkills.includes(s));
+    const bgSkills = (matchedBg?.skill_proficiencies || []).map((s) =>
+      s.toLowerCase(),
+    );
+    const classSkills = draft.skills.map((s) => s.toLowerCase());
+    const duplicates = classSkills.filter((s) => bgSkills.includes(s));
 
     if (duplicates.length > 0) {
       issues.push({
         id: 'DUPLICATE_SKILL_GRANT',
         step: 5,
         group: 'class',
-        severity: 'warning',
+        severity: 'error',
         message: `Skills [${duplicates.join(', ')}] are already granted by background. The rules permit choosing any other skill to replace duplicates.`,
         repairTarget: 'skills-replacement',
       });
@@ -204,12 +346,110 @@ export function resolveCatalogEntitlements(
         id: 'INCOMPLETE_ROGUE_EXPERTISE',
         step: 6,
         group: 'class',
-        severity: 'warning',
-        message: 'Rogue receives Expertise in two skills or one skill and Thieves Tools at level 1.',
+        severity: 'error',
+        message:
+          'Rogue receives Expertise in two skills or one skill and Thieves Tools at level 1.',
         repairTarget: 'expertise-selection',
       });
     }
   }
 
+  const proficient = [
+    ...draft.skills,
+    ...(matchedBg?.skill_proficiencies || []),
+  ].map(normalize);
+  if (
+    draft.expertise?.some(
+      (skill) =>
+        !proficient.includes(normalize(skill)) &&
+        !(edition === '2014' && normalize(skill) === 'thievestools'),
+    )
+  )
+    error(
+      'INVALID_EXPERTISE',
+      'class',
+      'Choose Expertise only in proficient skills.',
+    );
+  if (
+    draft.loadout.items.some(
+      (item) => !Number.isInteger(item.quantity) || item.quantity < 1,
+    )
+  )
+    error(
+      'INVALID_EQUIPMENT_QUANTITY',
+      'equipment',
+      'Equipment quantities must be positive integers.',
+    );
+  if (
+    Object.values(draft.loadout.currency).some(
+      (value) => !Number.isInteger(value) || value < 0,
+    )
+  )
+    error(
+      'INVALID_CURRENCY',
+      'equipment',
+      'Coin quantities must be nonnegative integers.',
+    );
+  const equipped = draft.loadout.items.filter((item) => item.equipped);
+  if (
+    equipped.filter((item) => item.slot === 'armor').length > 1 ||
+    equipped.filter((item) => item.slot === 'shield').length > 1 ||
+    (equipped.some((item) => item.slot === 'two_handed') &&
+      equipped.some(
+        (item) => item.slot === 'shield' || item.slot === 'main_hand',
+      ))
+  )
+    error(
+      'CONFLICTING_EQUIPPED_ITEMS',
+      'equipment',
+      'Choose a compatible set of equipped armor and weapons.',
+    );
+  const allowedSources = _options.allowedSources || draft.allowedSources;
+  if (
+    allowedSources &&
+    matchedClass &&
+    !allowedSources.includes(matchedClass.source)
+  )
+    error(
+      'DISALLOWED_CLASS_SOURCE',
+      'class',
+      'Your game does not permit this class source.',
+    );
+  if (allowedSources) {
+    if (matchedBg?.source && !allowedSources.includes(matchedBg.source))
+      error(
+        'DISALLOWED_BACKGROUND_SOURCE',
+        'background',
+        'Your game does not permit this background source.',
+      );
+    const species = getAllSpecies(edition).find(
+      (entry) =>
+        entry.slug === draft.speciesSlug ||
+        entry.slug === `${draft.speciesSlug}-2024`,
+    );
+    if (species && !allowedSources.includes(species.source))
+      error(
+        'DISALLOWED_SPECIES_SOURCE',
+        'species',
+        'Your game does not permit this species source.',
+      );
+    const catalog = loadSpells(edition);
+    const selected = [
+      ...draft.spells.cantrips,
+      ...draft.spells.knownOrBook,
+      ...draft.spells.prepared,
+    ];
+    if (
+      selected.some((slug) => {
+        const spell = catalog.find((entry) => entry.slug === slug);
+        return spell && !allowedSources.includes(`SRD ${spell.source}`);
+      })
+    )
+      error(
+        'DISALLOWED_SPELL_SOURCE',
+        'spells',
+        'Your game does not permit one or more selected spell sources.',
+      );
+  }
   return issues;
 }

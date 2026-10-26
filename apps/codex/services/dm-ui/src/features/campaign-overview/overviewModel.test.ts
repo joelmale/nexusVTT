@@ -26,17 +26,22 @@ describe('buildOverviewModel', () => {
     (_slug, bundle) => {
       const model = buildOverviewModel(bundle);
 
-      expect(model.nextSession).not.toBeNull();
-      expect(model.nextSession?.facts).toHaveLength(4);
+      if (bundle.sessions.some((session) => session.status !== 'complete')) {
+        expect(model.nextSession).not.toBeNull();
+        expect(model.nextSession?.facts).toHaveLength(4);
+      } else {
+        expect(model.nextSession).toBeNull();
+      }
       for (const { record } of model.nextSession?.facts ?? []) {
         expect(resolveEntity(bundle, record.id)?.href).toBe(record.href);
       }
 
       // Data parity: every example fills every dashboard panel.
       for (const panel of model.panels) {
-        expect(panel.records.length, `${panel.id} panel`).toBeGreaterThanOrEqual(
-          panel.id === 'party' ? 1 : 4,
-        );
+        expect(
+          panel.records.length,
+          `${panel.id} panel`,
+        ).toBeGreaterThanOrEqual(panel.id === 'party' ? 1 : 4);
         if (panel.id === 'party') continue;
         for (const record of panel.records) {
           expect(record.href, record.id).toBeTruthy();
@@ -215,9 +220,7 @@ describe('buildOverviewModel', () => {
     expect(model.nextSession?.scheduledLoot[0].title).toBe('Sunblade of Veyra');
 
     expect(model.nextSession?.secrets.length).toBeGreaterThanOrEqual(1);
-    expect(
-      model.nextSession?.secrets.some((s) => s.id === 'sec-1'),
-    ).toBe(true);
+    expect(model.nextSession?.secrets.some((s) => s.id === 'sec-1')).toBe(true);
 
     expect(model.nextSession?.npcs.length).toBeGreaterThan(0);
     expect(model.nextSession?.encounters.length).toBeGreaterThan(0);

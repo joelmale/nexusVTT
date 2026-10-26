@@ -183,6 +183,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
           className="action-btn"
           onClick={handleViewSheet}
           title="View Character Sheet"
+          aria-label="View Character Sheet"
         >
           📋
         </button>
@@ -196,6 +197,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
             })
           }
           title="Open in Panel / Popout"
+          aria-label="Open in Panel / Popout"
         >
           🗗
         </button>
@@ -204,6 +206,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
             className="action-btn"
             onClick={handleFocusToken}
             title="Focus on Token"
+            aria-label="Focus on Token"
           >
             🎯
           </button>
@@ -213,6 +216,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
             className="action-btn"
             onClick={handleAddToCombat}
             title="Add to Combat"
+            aria-label="Add to Combat"
           >
             ➕
           </button>

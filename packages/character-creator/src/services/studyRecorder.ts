@@ -12,6 +12,8 @@ export type StudyEventType =
   | 'validation_error'
   | 'draft_resumed'
   | 'draft_saved'
+  | 'character_saved'
+  | 'session_accepted'
   | 'handoff_completed';
 
 export interface StudyEvent {
@@ -35,13 +37,11 @@ export interface StudySessionMetrics {
 class StudyRecorder {
   private events: StudyEvent[] = [];
   private sessionStartTime: number = Date.now();
-  private lastStepStartTime: number = Date.now();
-  private currentStep: string = 'start';
 
   public recordEvent(
     type: StudyEventType,
     step?: number | string,
-    metadata?: Record<string, string | number | boolean>
+    metadata?: Record<string, string | number | boolean>,
   ): StudyEvent {
     const now = Date.now();
     const event: StudyEvent = {
@@ -53,11 +53,6 @@ class StudyRecorder {
     };
 
     this.events.push(event);
-
-    if (type === 'step_transition' && step !== undefined) {
-      this.lastStepStartTime = now;
-      this.currentStep = String(step);
-    }
 
     return event;
   }
@@ -99,14 +94,19 @@ class StudyRecorder {
           validationErrorsCount++;
           break;
         case 'handoff_completed':
-        case 'draft_saved':
+        case 'character_saved':
           completed = true;
+          totalControlActions++;
+          break;
+        case 'draft_saved':
+        case 'session_accepted':
           totalControlActions++;
           break;
         case 'step_transition':
           totalControlActions++;
           const duration = evt.timestamp - lastTimestamp;
-          stepDurationsMs[activeStep] = (stepDurationsMs[activeStep] || 0) + duration;
+          stepDurationsMs[activeStep] =
+            (stepDurationsMs[activeStep] || 0) + duration;
           activeStep = String(evt.step ?? 'unknown');
           lastTimestamp = evt.timestamp;
           break;
@@ -129,8 +129,6 @@ class StudyRecorder {
   public reset(): void {
     this.events = [];
     this.sessionStartTime = Date.now();
-    this.lastStepStartTime = Date.now();
-    this.currentStep = 'start';
   }
 }
 

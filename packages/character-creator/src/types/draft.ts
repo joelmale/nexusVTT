@@ -39,7 +39,14 @@ export interface ResolvedLoadout {
 export interface DraftIssue {
   id: string;
   step: number;
-  group: 'species' | 'class' | 'background' | 'abilities' | 'spells' | 'equipment' | 'finalization';
+  group:
+    | 'species'
+    | 'class'
+    | 'background'
+    | 'abilities'
+    | 'spells'
+    | 'equipment'
+    | 'finalization';
   severity: 'error' | 'warning' | 'info';
   message: string;
   repairTarget?: string;
@@ -51,6 +58,12 @@ export interface DraftIssue {
  */
 export interface CreationDraft {
   draftVersion: 1;
+  /** Additive v1 fields; old drafts acquire these when adapted. */
+  revision?: number;
+  attemptId?: string;
+  /** Complete legacy answers, including high-level and optional choices. */
+  creationData?: CharacterCreationData;
+  allowedSources?: string[];
   draftId: string;
   characterId: string;
   edition: '2014' | '2024';
@@ -111,9 +124,19 @@ export interface CreationDraft {
  */
 export interface DraftEvaluationResult {
   draft: CreationDraft;
-  calculatedCharacter: Character;
+  /** Missing while required catalog choices cannot be evaluated. */
+  calculatedCharacter?: Character;
   issues: DraftIssue[];
   isValid: boolean;
   evaluatedAt: string;
   evaluatorVersion: string;
+  draftRevision?: number;
+  draftFingerprint?: string;
+}
+
+export interface CreatorPresentation {
+  mode: 'guided' | 'full';
+  guidedFlow?: 'four-screen' | 'quiz';
+  step?: number;
+  positions?: { full?: number; fourScreen?: number; quiz?: number };
 }

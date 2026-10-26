@@ -27,6 +27,11 @@ const sidebars: SidebarsConfig = {
         'integrations/campaign-studio-session-planner-plan',
         'integrations/forge-vtt-object-integration-plan',
         'integrations/character-creation-implementation-plan',
+        {
+          type: 'doc',
+          id: 'integrations/character-creation-review',
+          label: 'Creator and Studio repair plan',
+        },
         'integrations/NEXUSCODEX_INTEGRATION',
         'integrations/INTEGRATED_SETUP',
       ],

@@ -94,6 +94,153 @@ describeIntegration('Campaign Studio Publish Integration Smoke Test', () => {
     expect(tableNames.has('session_plan_activations')).toBe(true);
   });
 
+  it('atomically saves linked authoring, replays uncertain saves, and preserves a published revision while editing', async () => {
+    const user = await dbService.users.createLocalUser(
+      `authoring-${randomUUID()}@nexusvtt.test`,
+      'SafePassword123!',
+      'Authoring DM',
+    );
+    const campaign = await dbService.createCampaign(
+      user.id,
+      'Authoring transaction',
+    );
+    const sessionId = randomUUID();
+    const planId = randomUUID();
+    const now = new Date().toISOString();
+    const authoring = {
+      version: 1,
+      revision: 1,
+      lastEdited: now,
+      estimatedMinutes: 10,
+      readiness: [{ id: 'check', label: 'Read the clue', complete: false }],
+      dependencies: [],
+      notes: ['Private scratchpad'],
+      playerFacingSummary: 'Meet at dawn',
+      attachments: [],
+      defaultVisibility: 'dm-only',
+      steps: [
+        {
+          id: 'beat',
+          order: 1,
+          kind: 'note',
+          track: 'main',
+          title: 'Opening',
+          durationMinutes: 10,
+          visibility: 'dm-only',
+          body: 'A distinctive clue',
+        },
+      ],
+    };
+    const session = {
+      id: sessionId,
+      campaignId: campaign.id,
+      schemaVersion: 1,
+      revision: 1,
+      kind: 'session',
+      title: 'Opening night',
+      visibility: 'dm-only',
+      content: {
+        format: 'lexical',
+        schemaVersion: 1,
+        value: {
+          root: { type: 'root', children: [] },
+          nexusStudio: { v: 1, fields: { number: 1, planId } },
+        },
+      },
+      links: [],
+      tags: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const plan = {
+      id: planId,
+      sessionId,
+      campaignId: campaign.id,
+      schemaVersion: 1,
+      revision: 1,
+      title: 'Opening night',
+      status: 'draft',
+      dependencies: [],
+      authoring,
+      steps: [
+        {
+          id: randomUUID(),
+          title: 'Opening',
+          type: 'reminder',
+          text: 'A distinctive clue',
+          estimatedMinutes: 10,
+          visibility: 'dm-only',
+          track: 'main',
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const request = {
+      campaignId: campaign.id,
+      sessionId,
+      session,
+      plan,
+      principalId: user.id,
+      requestId: randomUUID(),
+    };
+    const saved = await dbService.campaignPrep.saveSessionAuthoring(request);
+    expect(saved.session.currentRevision).toBe(1);
+    expect(saved.plan.currentRevision).toBe(1);
+    const replay = await dbService.campaignPrep.saveSessionAuthoring(request);
+    expect(replay.plan.currentRevision).toBe(1);
+    const hydrated = await dbService.campaignPrep.getRevision(planId, 1);
+    expect((hydrated!.data as { authoring: unknown }).authoring).toEqual(
+      authoring,
+    );
+    const published = await publishingService.publish({
+      campaignId: campaign.id,
+      planId,
+      expectedRevision: 1,
+      principalId: user.id,
+      requestId: randomUUID(),
+    });
+    expect(published.published).toBe(true);
+    const frozen = await dbService.campaignPrep.getRevision(planId, 2);
+    const changed = {
+      ...plan,
+      revision: 3,
+      authoring: { ...authoring, notes: ['Changed scratchpad'] },
+    };
+    await dbService.campaignPrep.saveSessionAuthoring({
+      ...request,
+      session: { ...session, revision: 2 },
+      plan: changed,
+      expectedSessionRevision: 1,
+      expectedPlanRevision: 2,
+      requestId: randomUUID(),
+    });
+    expect((await dbService.campaignPrep.getRevision(planId, 2))!.data).toEqual(
+      frozen!.data,
+    );
+    expect(
+      (await dbService.campaignPrep.getRevision(planId, 3))!.data,
+    ).toMatchObject({
+      authoring: { notes: ['Changed scratchpad'] },
+      status: 'draft',
+    });
+    await expect(
+      dbService.campaignPrep.saveSessionAuthoring({
+        ...request,
+        session: { ...session, revision: 100 },
+        plan: { ...changed, revision: 4 },
+        expectedSessionRevision: 99,
+        expectedPlanRevision: 3,
+        requestId: randomUUID(),
+      }),
+    ).rejects.toThrow('no longer at revision');
+    expect(
+      (await dbService.campaignPrep.getObject(campaign.id, planId))!
+        .currentRevision,
+    ).toBe(3);
+    expect(await dbService.campaignPrep.getRevision(planId, 4)).toBeNull();
+  });
+
   it('3 through 12: publishes, republishes, advances, and restarts a run', async () => {
     // Step 3: Create test user without production shortcuts
     const userEmail = `smoke-dm-${Date.now()}@nexusvtt.test`;

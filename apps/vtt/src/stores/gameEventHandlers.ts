@@ -70,7 +70,9 @@ export const eventHandlers: Record<string, EventHandler> = {
           state.sceneState.scenes[sceneIndex].placedTokens[existingTokenIndex] =
             eventData.token;
         } else {
-          state.sceneState.scenes[sceneIndex].placedTokens.push(eventData.token);
+          state.sceneState.scenes[sceneIndex].placedTokens.push(
+            eventData.token,
+          );
         }
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
@@ -901,6 +903,10 @@ export const eventHandlers: Record<string, EventHandler> = {
       .catch((error) => {
         console.warn('Failed to record revealed handout:', error);
       });
+  },
+  'actor/state-changed': () => {
+    // Spellbook views reload committed actor state from PostgreSQL. This
+    // notification does not mutate the room's canonical game-state snapshot.
   },
   'player/intent-result': (_state, data) => {
     void import('@/services/playerIntentClient')

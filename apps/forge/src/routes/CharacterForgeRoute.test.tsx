@@ -21,12 +21,8 @@ interface MockWizardProps {
   onComplete: (result: CharacterCreationResult) => Promise<void> | void;
 }
 
-vi.mock('@nexus/character-creator', () => ({
-  CharacterCreationWizard: ({
-    isOpen,
-    onCancel,
-    onComplete,
-  }: MockWizardProps) =>
+vi.mock('../components/ForgeCharacterCreator', () => ({
+  ForgeCharacterCreator: ({ isOpen, onCancel, onComplete }: MockWizardProps) =>
     isOpen ? (
       <div role="dialog" aria-label="Character creation wizard">
         <button

@@ -562,6 +562,8 @@ describe('DomainCommandService', () => {
 
       mockDb.commandReceipts.getReceipt.mockResolvedValueOnce({
         result: cachedReceipt,
+        principalId: 'user-1',
+        scopeId: command.campaignId,
         payloadHash: actualHash,
       });
 
@@ -577,6 +579,8 @@ describe('DomainCommandService', () => {
     it('throws error when commandId is reused with a different payload', async () => {
       mockDb.commandReceipts.getReceipt.mockResolvedValueOnce({
         result: {},
+        principalId: 'user-1',
+        scopeId: command.campaignId,
         payloadHash: 'completely-different-hash',
       });
 
@@ -606,6 +610,34 @@ describe('DomainCommandService', () => {
         hiddenFromPlayers: false,
       },
     };
+
+    it('rejects a missing pinned encounter instead of inventing a creature or loading a newer revision', async () => {
+      mockDb.libraryObjects.getRevision.mockResolvedValue(null);
+      await expect(
+        service.execute(deployCommand, { principalId: 'dm-1', isDm: true }),
+      ).rejects.toThrow('encounter template revision is unavailable');
+      expect(mockDb.libraryObjects.getObjectById).not.toHaveBeenCalled();
+      expect(mockDb.campaignActors.createActor).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing pinned monster without creating actors', async () => {
+      mockDb.libraryObjects.getRevision
+        .mockResolvedValueOnce({
+          data: {
+            groups: [
+              {
+                monsterRef: { kind: 'monster', id: 'missing', revision: 1 },
+                count: 1,
+              },
+            ],
+          },
+        })
+        .mockResolvedValueOnce(null);
+      await expect(
+        service.execute(deployCommand, { principalId: 'dm-1', isDm: true }),
+      ).rejects.toThrow('pinned monster revision is unavailable');
+      expect(mockDb.campaignActors.createActor).not.toHaveBeenCalled();
+    });
 
     it('spawns isolated multi-copy monster actors and creates encounter run', async () => {
       mockDb.libraryObjects.getRevision.mockResolvedValueOnce({
@@ -685,7 +717,11 @@ describe('DomainCommandService', () => {
                 groups: [
                   {
                     id: 'grp-1',
-                    monsterRef: { kind: 'monster', id: 'm-goblin', revision: 1 },
+                    monsterRef: {
+                      kind: 'monster',
+                      id: 'm-goblin',
+                      revision: 1,
+                    },
                     count: 1,
                     faction: 'hostile',
                     customName: 'Goblin',
@@ -1022,6 +1058,14 @@ describe('DomainCommandService', () => {
   });
 
   describe('CastSpell', () => {
+    beforeEach(() => {
+      mockDb.libraryObjects.getObjectById.mockResolvedValue({
+        id: '55555555-5555-4555-8555-555555555555',
+        kind: 'spell',
+        campaignId: mockActor.campaignId,
+        currentRevision: 1,
+      });
+    });
     const actorCaster = {
       ...mockActor,
       spellcastingProfiles: [
@@ -1096,7 +1140,13 @@ describe('DomainCommandService', () => {
         data: {
           id: '55555555-5555-4555-8555-555555555555',
           kind: 'spell',
-          ruleset: { system: 'dnd5e', edition: '2024' },
+          ruleset: {
+            system: 'dnd5e',
+            edition: '2024',
+            contentPackId: 'srd-5.2.1',
+            contentRevision: '1',
+            rulesRevision: '2024',
+          },
           slug: 'shield',
           name: 'Shield',
           level: 1,
@@ -1171,7 +1221,13 @@ describe('DomainCommandService', () => {
         data: {
           id: '55555555-5555-4555-8555-555555555555',
           kind: 'spell',
-          ruleset: { system: 'dnd5e', edition: '2024' },
+          ruleset: {
+            system: 'dnd5e',
+            edition: '2024',
+            contentPackId: 'srd-5.2.1',
+            contentRevision: '1',
+            rulesRevision: '2024',
+          },
           slug: 'hold-person',
           name: 'Hold Person',
           level: 1,
@@ -1246,7 +1302,13 @@ describe('DomainCommandService', () => {
         data: {
           id: '55555555-5555-4555-8555-555555555555',
           kind: 'spell',
-          ruleset: { system: 'dnd5e', edition: '2024' },
+          ruleset: {
+            system: 'dnd5e',
+            edition: '2024',
+            contentPackId: 'srd-5.2.1',
+            contentRevision: '1',
+            rulesRevision: '2024',
+          },
           slug: 'shield',
           name: 'Shield',
           level: 1,

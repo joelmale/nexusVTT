@@ -4,10 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getFixtureBundle } from '@/demo/fixture-registry';
-import {
-  SectionContext,
-  type SectionContextValue,
-} from './SectionContext';
+import { SectionContext, type SectionContextValue } from './SectionContext';
 import { UseInNextSessionButton } from './UseInNextSessionButton';
 
 const baseBundle = getFixtureBundle('ashes-of-veyra', 'test')!;
@@ -16,7 +13,8 @@ function renderWithContext({
   bundle = baseBundle,
   editable = true,
   updateItem = vi.fn().mockResolvedValue({ ok: true }),
-  kind = 'npc' as 'npc' | 'location' | 'encounter' | 'quest' | 'item' | 'secret',
+  kind = 'npc' as
+    'npc' | 'location' | 'encounter' | 'quest' | 'item' | 'secret',
   id = 'npc-1',
   size = 'md' as const,
 }: {
@@ -57,8 +55,38 @@ function renderWithContext({
 }
 
 describe('UseInNextSessionButton', () => {
+  it('offers no historical session when every session is complete', () => {
+    renderWithContext({
+      bundle: {
+        ...baseBundle,
+        sessions: baseBundle.sessions.map((session) => ({
+          ...session,
+          status: 'complete',
+        })),
+      },
+    });
+    expect(
+      screen.getByRole('button', { name: /No sessions found/ }),
+    ).toBeDisabled();
+  });
+
+  it('shows a returned save failure and preserves the unlinked state', async () => {
+    const updateItem = vi.fn().mockResolvedValue({
+      ok: false,
+      conflict: true,
+      error: 'Changed elsewhere. Reload and retry.',
+    });
+    const { user } = renderWithContext({ updateItem });
+    await user.click(screen.getByRole('button', { name: /Add to Session/ }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Changed elsewhere');
+    expect(
+      screen.getByRole('button', { name: /Add to Session/ }),
+    ).toHaveAttribute('aria-pressed', 'false');
+  });
   it('renders "Use in next session" when entity is not yet linked', () => {
-    const nextSession = baseBundle.sessions[0];
+    const nextSession = baseBundle.sessions.find(
+      (item) => item.status !== 'complete',
+    )!;
     const unlinkedNpcId = 'unlinked-npc-999';
 
     renderWithContext({
@@ -89,7 +117,9 @@ describe('UseInNextSessionButton', () => {
   });
 
   it('toggles adding an NPC to the next session when clicked', async () => {
-    const nextSession = baseBundle.sessions[0];
+    const nextSession = baseBundle.sessions.find(
+      (item) => item.status !== 'complete',
+    )!;
     const updateItem = vi.fn().mockResolvedValue({ ok: true });
 
     const { user } = renderWithContext({
@@ -97,7 +127,10 @@ describe('UseInNextSessionButton', () => {
         ...baseBundle,
         campaign: {
           ...baseBundle.campaign,
-          nextSession: { ...baseBundle.campaign.nextSession, sessionId: nextSession.id },
+          nextSession: {
+            ...baseBundle.campaign.nextSession,
+            sessionId: nextSession.id,
+          },
         },
         sessions: [
           {
@@ -120,7 +153,9 @@ describe('UseInNextSessionButton', () => {
   });
 
   it('renders "In next session" when linked, and clicking removes it', async () => {
-    const nextSession = baseBundle.sessions[0];
+    const nextSession = baseBundle.sessions.find(
+      (item) => item.status !== 'complete',
+    )!;
     const updateItem = vi.fn().mockResolvedValue({ ok: true });
 
     const { user } = renderWithContext({
@@ -128,7 +163,10 @@ describe('UseInNextSessionButton', () => {
         ...baseBundle,
         campaign: {
           ...baseBundle.campaign,
-          nextSession: { ...baseBundle.campaign.nextSession, sessionId: nextSession.id },
+          nextSession: {
+            ...baseBundle.campaign.nextSession,
+            sessionId: nextSession.id,
+          },
         },
         sessions: [
           {
@@ -154,7 +192,9 @@ describe('UseInNextSessionButton', () => {
   });
 
   it('handles item linking via item.sessionId update', async () => {
-    const nextSession = baseBundle.sessions[0];
+    const nextSession = baseBundle.sessions.find(
+      (item) => item.status !== 'complete',
+    )!;
     const updateItem = vi.fn().mockResolvedValue({ ok: true });
 
     const { user } = renderWithContext({
@@ -162,7 +202,10 @@ describe('UseInNextSessionButton', () => {
         ...baseBundle,
         campaign: {
           ...baseBundle.campaign,
-          nextSession: { ...baseBundle.campaign.nextSession, sessionId: nextSession.id },
+          nextSession: {
+            ...baseBundle.campaign.nextSession,
+            sessionId: nextSession.id,
+          },
         },
         items: [
           {
@@ -195,14 +238,19 @@ describe('UseInNextSessionButton', () => {
   });
 
   it('shows read-only badge in non-editable mode when linked', () => {
-    const nextSession = baseBundle.sessions[0];
+    const nextSession = baseBundle.sessions.find(
+      (item) => item.status !== 'complete',
+    )!;
 
     renderWithContext({
       bundle: {
         ...baseBundle,
         campaign: {
           ...baseBundle.campaign,
-          nextSession: { ...baseBundle.campaign.nextSession, sessionId: nextSession.id },
+          nextSession: {
+            ...baseBundle.campaign.nextSession,
+            sessionId: nextSession.id,
+          },
         },
         sessions: [
           {
@@ -221,14 +269,19 @@ describe('UseInNextSessionButton', () => {
   });
 
   it('renders disabled "Use in next session" in read-only mode when entity is not linked', () => {
-    const nextSession = baseBundle.sessions[0];
+    const nextSession = baseBundle.sessions.find(
+      (item) => item.status !== 'complete',
+    )!;
 
     renderWithContext({
       bundle: {
         ...baseBundle,
         campaign: {
           ...baseBundle.campaign,
-          nextSession: { ...baseBundle.campaign.nextSession, sessionId: nextSession.id },
+          nextSession: {
+            ...baseBundle.campaign.nextSession,
+            sessionId: nextSession.id,
+          },
         },
         sessions: [
           {
@@ -242,21 +295,26 @@ describe('UseInNextSessionButton', () => {
       editable: false,
     });
 
-    const button = screen.getByRole('button', { name: /Example campaign is read-only/ });
+    const button = screen.getByRole('button', {
+      name: /Example campaign is read-only/,
+    });
     expect(button).toBeInTheDocument();
     expect(button).toBeDisabled();
     expect(button).toHaveTextContent('Use in next session');
   });
 
   it('resolves fallback session from currentSessionId when campaign.nextSession is not curated', () => {
-    const session = baseBundle.sessions[0];
+    const session = baseBundle.sessions.find(
+      (item) => item.status !== 'complete',
+    )!;
 
     renderWithContext({
       bundle: {
         ...baseBundle,
         campaign: {
           ...baseBundle.campaign,
-          nextSession: undefined as unknown as typeof baseBundle.campaign.nextSession,
+          nextSession:
+            undefined as unknown as typeof baseBundle.campaign.nextSession,
           currentSessionId: session.id,
         },
         sessions: [

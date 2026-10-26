@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getFixtureBundle } from '@/demo/fixture-registry';
-import {
-  buildOneShotModel,
-  formatDuration,
-} from './oneShotModel';
+import { buildOneShotModel, formatDuration } from './oneShotModel';
 
 describe('oneShotModel', () => {
   it('formats durations in hours and minutes', () => {
@@ -36,6 +33,7 @@ describe('oneShotModel', () => {
       sessions: [
         {
           ...baseBundle.sessions[0],
+          status: 'planned' as const,
           plan: {
             ...baseBundle.sessions[0].plan!,
             steps: [],
@@ -65,6 +63,7 @@ describe('oneShotModel', () => {
       sessions: [
         {
           ...baseBundle.sessions[0],
+          status: 'planned' as const,
           plan: {
             ...baseBundle.sessions[0].plan!,
             steps: [
@@ -92,6 +91,7 @@ describe('oneShotModel', () => {
       sessions: [
         {
           ...baseBundle.sessions[0],
+          status: 'planned' as const,
           plan: {
             ...baseBundle.sessions[0].plan!,
             steps: [
@@ -129,6 +129,7 @@ describe('oneShotModel', () => {
       sessions: [
         {
           ...baseBundle.sessions[0],
+          status: 'planned' as const,
           plan: {
             ...baseBundle.sessions[0].plan!,
             steps: [
@@ -178,7 +179,13 @@ describe('oneShotModel', () => {
     const baseBundle = getFixtureBundle('ashes-of-veyra')!;
     const makeSteps = (sceneCount: number) => {
       const steps = [
-        { id: 'hook', order: 1, title: 'Hook', kind: 'hook', durationMinutes: 20 },
+        {
+          id: 'hook',
+          order: 1,
+          title: 'Hook',
+          kind: 'hook',
+          durationMinutes: 20,
+        },
       ];
       for (let i = 1; i <= sceneCount; i++) {
         steps.push({
@@ -205,6 +212,7 @@ describe('oneShotModel', () => {
       sessions: [
         {
           ...baseBundle.sessions[0],
+          status: 'planned' as const,
           plan: { ...baseBundle.sessions[0].plan!, steps: makeSteps(2) },
         },
       ],
@@ -217,6 +225,7 @@ describe('oneShotModel', () => {
       sessions: [
         {
           ...baseBundle.sessions[0],
+          status: 'planned' as const,
           plan: { ...baseBundle.sessions[0].plan!, steps: makeSteps(4) },
         },
       ],
@@ -229,6 +238,7 @@ describe('oneShotModel', () => {
       sessions: [
         {
           ...baseBundle.sessions[0],
+          status: 'planned' as const,
           plan: { ...baseBundle.sessions[0].plan!, steps: makeSteps(6) },
         },
       ],
@@ -244,10 +254,17 @@ describe('oneShotModel', () => {
         sessions: [
           {
             ...baseBundle.sessions[0],
+            status: 'planned' as const,
             plan: {
               ...baseBundle.sessions[0].plan!,
               steps: [
-                { id: 'h', order: 1, title: 'H', kind: 'h', durationMinutes: 20 },
+                {
+                  id: 'h',
+                  order: 1,
+                  title: 'H',
+                  kind: 'h',
+                  durationMinutes: 20,
+                },
                 {
                   id: 's',
                   order: 2,
@@ -255,8 +272,20 @@ describe('oneShotModel', () => {
                   kind: 's',
                   durationMinutes: Math.max(0, totalMinutes - 95),
                 },
-                { id: 'c', order: 3, title: 'C', kind: 'c', durationMinutes: 60 },
-                { id: 'r', order: 4, title: 'Reward Resolution', kind: 'r', durationMinutes: 15 },
+                {
+                  id: 'c',
+                  order: 3,
+                  title: 'C',
+                  kind: 'c',
+                  durationMinutes: 60,
+                },
+                {
+                  id: 'r',
+                  order: 4,
+                  title: 'Reward Resolution',
+                  kind: 'r',
+                  durationMinutes: 15,
+                },
               ],
             },
           },
@@ -285,7 +314,10 @@ describe('oneShotModel', () => {
     const model = buildOneShotModel(baseBundle);
 
     expect(model.segments.length).toBeGreaterThanOrEqual(3);
-    const sumPercentage = model.segments.reduce((acc, s) => acc + s.percentage, 0);
+    const sumPercentage = model.segments.reduce(
+      (acc, s) => acc + s.percentage,
+      0,
+    );
     expect(Math.round(sumPercentage)).toBe(100);
   });
 });

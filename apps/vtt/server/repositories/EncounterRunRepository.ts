@@ -30,7 +30,7 @@ export class EncounterRunRepository extends BaseRepository {
     client?: PoolClient,
   ): Promise<EncounterRunRecord> {
     const executor = this.getExecutor(client);
-    const idClause = run.id ? '$1, ' : '';
+    const idClause = run.id ? 'id, ' : '';
     const valuesClause = run.id
       ? '$1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10::jsonb'
       : '$1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9::jsonb';

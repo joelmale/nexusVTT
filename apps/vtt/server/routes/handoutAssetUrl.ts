@@ -1,10 +1,10 @@
 /**
- * Resolves a revealed handout's asset id to a browser-loadable image path so
+ * Resolves a revealed handout's asset id to a browser-loadable image or text path so
  * Simple Player Mode can show the handout itself, not just its title.
  *
  * The asset service's per-user listing is public and content-addressed image
  * paths are served from the origin root, so players can load the returned
- * path directly. Anything that isn't an image, or any lookup failure,
+ * path directly. Unsupported formats, or any lookup failure,
  * resolves to undefined and the reveal falls back to a title-only toast.
  */
 
@@ -13,7 +13,7 @@ export type HandoutUrlResolver = (
   assetId: string,
 ) => Promise<string | undefined>;
 
-const IMAGE_PATH = /\.(png|jpe?g|webp|gif|svg)$/i;
+const HANDOUT_PATH = /\.(png|jpe?g|webp|gif|svg|txt)$/i;
 const SAFE_USER_ID = /^[a-zA-Z0-9-]+$/;
 const LOOKUP_TIMEOUT_MS = 1500;
 
@@ -36,7 +36,7 @@ export function createHandoutUrlResolver(
       const listing = (await response.json()) as AssetListing;
       const asset = listing.assets?.find((entry) => entry.id === assetId);
       const fullImage = asset?.fullImage;
-      if (typeof fullImage !== 'string' || !IMAGE_PATH.test(fullImage)) {
+      if (typeof fullImage !== 'string' || !HANDOUT_PATH.test(fullImage)) {
         return undefined;
       }
       return `/${fullImage.replace(/^\/+/, '')}`;

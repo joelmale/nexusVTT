@@ -3,6 +3,45 @@ import { evaluateCastEligibility } from '../src';
 import type { CampaignActor, SpellDefinition } from '@nexus/game-contracts';
 
 describe('D&D 5e Cast Eligibility Evaluator', () => {
+  it('casts at-will grants without charging resources and rejects upcasting or invalid rituals', () => {
+    const actor = structuredClone(mockActor);
+    const profile = {
+      ...actor.spellcastingProfiles[0],
+      profileId: 'at-will',
+      resourcePoolId: 'free',
+      preparationMode: 'innate' as const,
+      knownSpellSlugs: ['hold-person'],
+      preparedSpellSlugs: ['hold-person'],
+    };
+    actor.spellcastingProfiles.push(profile);
+    actor.resourcePools.free = {
+      id: 'free',
+      name: 'At will',
+      poolType: 'at-will',
+      resetOn: 'long-rest',
+    };
+    const request = {
+      actor,
+      spell: mockSpell,
+      profileId: profile.profileId,
+      castAtLevel: 2,
+    };
+    expect(evaluateCastEligibility(request)).toMatchObject({
+      canCast: true,
+      poolIdToCharge: undefined,
+    });
+    expect(
+      evaluateCastEligibility({ ...request, castAtLevel: 3 }).canCast,
+    ).toBe(false);
+    profile.ritualOnly = true;
+    expect(evaluateCastEligibility(request).canCast).toBe(false);
+    expect(
+      evaluateCastEligibility({
+        ...request,
+        spell: { ...mockSpell, ritual: true },
+      }).canCast,
+    ).toBe(true);
+  });
   const mockSpell: SpellDefinition = {
     id: '22222222-2222-4222-8222-222222222222',
     kind: 'spell',
@@ -86,6 +125,7 @@ describe('D&D 5e Cast Eligibility Evaluator', () => {
         id: 'pact-slots',
         name: 'Pact Magic',
         poolType: 'pact',
+        slots: { 2: { total: 2, current: 2 } },
         current: 2,
         max: 2,
         resetOn: 'short-rest',
@@ -167,7 +207,9 @@ describe('D&D 5e Cast Eligibility Evaluator', () => {
     });
 
     expect(result.canCast).toBe(false);
-    expect(result.reasons[0]).toContain("not have spellcasting profile 'non-existent-profile'");
+    expect(result.reasons[0]).toContain(
+      "not have spellcasting profile 'non-existent-profile'",
+    );
   });
 
   it('casts cantrips without slot expenditure and without concentration warning when non-concentration', () => {
@@ -235,7 +277,9 @@ describe('D&D 5e Cast Eligibility Evaluator', () => {
     });
 
     expect(result.canCast).toBe(false);
-    expect(result.reasons[0]).toContain("Associated resource pool 'missing-pool' not found");
+    expect(result.reasons[0]).toContain(
+      "Associated resource pool 'missing-pool' not found",
+    );
   });
 
   it('rejects casting when spell slots for that level are exhausted', () => {
@@ -259,7 +303,57 @@ describe('D&D 5e Cast Eligibility Evaluator', () => {
     });
 
     expect(result.canCast).toBe(false);
-    expect(result.reasons[0]).toContain('Cannot cast a level 2 spell at slot level 1');
+    expect(result.reasons[0]).toContain(
+      'Cannot cast a level 2 spell at slot level 1',
+    );
+  });
+
+  it('rejects unknown cantrips and cantrip upcasting', () => {
+    const cantrip = { ...mockSpell, slug: 'fire-bolt', level: 0 };
+    expect(
+      evaluateCastEligibility({
+        actor: mockActor,
+        spell: cantrip,
+        profileId: 'wiz-1',
+        castAtLevel: 0,
+      }).canCast,
+    ).toBe(true);
+    expect(
+      evaluateCastEligibility({
+        actor: mockActor,
+        spell: { ...cantrip, slug: 'unknown' },
+        profileId: 'wiz-1',
+        castAtLevel: 0,
+      }).canCast,
+    ).toBe(false);
+    expect(
+      evaluateCastEligibility({
+        actor: mockActor,
+        spell: cantrip,
+        profileId: 'wiz-1',
+        castAtLevel: 1,
+      }).canCast,
+    ).toBe(false);
+  });
+  it('rejects arbitrary pact upcasting and unknown innate grants', () => {
+    expect(
+      evaluateCastEligibility({
+        actor: mockActor,
+        spell: mockSpell,
+        profileId: 'lock-1',
+        castAtLevel: 3,
+      }).canCast,
+    ).toBe(false);
+    const actor = structuredClone(mockActor);
+    actor.spellcastingProfiles[0].preparationMode = 'innate';
+    expect(
+      evaluateCastEligibility({
+        actor,
+        spell: { ...mockSpell, slug: 'unknown' },
+        profileId: 'wiz-1',
+        castAtLevel: 2,
+      }).canCast,
+    ).toBe(false);
   });
 
   it('rejects casting an unprepared spell', () => {

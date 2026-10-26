@@ -30,7 +30,9 @@ export function MoodProvider({
   campaignMood,
   isEditable = false,
 }: MoodProviderProps) {
-  const [localMood, setLocalMood] = useState<CampaignMood | null>(() => loadLocalMood());
+  const [localMood, setLocalMood] = useState<CampaignMood | null>(() =>
+    loadLocalMood(),
+  );
   const [isMoodPickerOpen, setIsMoodPickerOpen] = useState(false);
 
   const currentMood = useMemo(
@@ -52,11 +54,7 @@ export function MoodProvider({
       applyMoodToDocument(nextMood);
 
       if (persistToCampaign && isEditable && campaignId) {
-        try {
-          await updateCampaign(campaignId, { mood: nextMood });
-        } catch (err) {
-          console.error('Failed to persist mood to campaign:', err);
-        }
+        await updateCampaign(campaignId, { mood: nextMood });
       }
     },
     [campaignId, isEditable],

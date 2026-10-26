@@ -11,10 +11,16 @@ import type {
   CharacterCreationData,
   Edition,
 } from '../types/dnd';
-import type { CreationDraft } from '../types/draft';
+import type { CreationDraft, CreatorPresentation } from '../types/draft';
 import type { FirstTurnGuidance } from '../services/recommendationService';
 
-export type { CreatedCharacter, CharacterCreationData, Edition, CreationDraft, FirstTurnGuidance };
+export type {
+  CreatedCharacter,
+  CharacterCreationData,
+  Edition,
+  CreationDraft,
+  FirstTurnGuidance,
+};
 
 /**
  * The value handed to `onComplete` when a player finishes the wizard.
@@ -30,6 +36,9 @@ export interface CharacterCreationResult {
   edition: Edition;
   createdAt: string;
   combatGuidance?: FirstTurnGuidance;
+  creationAttemptId?: string;
+  draftId?: string;
+  draftRevision?: number;
 }
 
 /**
@@ -61,6 +70,8 @@ export interface CharacterCreatorProps {
   allowModeSwitch?: boolean;
   /** Initial draft to resume from (CC-501). */
   initialDraft?: CreationDraft;
+  initialPresentation?: CreatorPresentation;
+  onPresentationChange?: (presentation: CreatorPresentation) => void;
   /** Callback fired whenever the current draft updates (CC-501). */
   onDraftChange?: (draft: CreationDraft) => void;
   /** Callback fired when the player discards or resets a draft (CC-501). */

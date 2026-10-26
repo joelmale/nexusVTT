@@ -46,6 +46,75 @@ const model: SessionPlanViewModel = {
 };
 
 describe('SessionPlan', () => {
+  it('commits edited prose and per-step visibility instead of changing only the DOM', async () => {
+    const user = userEvent.setup();
+    const onStepsChange = vi.fn();
+    render(
+      <SessionPlan
+        model={model}
+        onCapability={vi.fn()}
+        onStepsChange={onStepsChange}
+      />,
+    );
+    const editor = screen.getByRole('textbox', { name: 'Session step notes' });
+    await user.clear(editor);
+    await user.type(editor, 'New private instructions');
+    expect(onStepsChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ body: 'New private instructions' }),
+    ]);
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: /Visibility for/ }),
+      'dm-only',
+    );
+    expect(onStepsChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({
+        visibility: 'dm-only',
+        body: 'New private instructions',
+      }),
+    ]);
+  });
+
+  it('blocks ordinary activation while a published plan has dirty changes', () => {
+    render(
+      <SessionPlan
+        model={model}
+        onCapability={vi.fn()}
+        publishState="published"
+        persistedRevision={3}
+        isDirty
+      />,
+    );
+    for (const button of screen.getAllByRole('button', { name: 'Play in VTT' }))
+      expect(button).toBeDisabled();
+  });
+
+  it('commits readiness and scratchpad changes to authoring', async () => {
+    const user = userEvent.setup();
+    const onAuthoringChange = vi.fn();
+    render(
+      <SessionPlan
+        model={model}
+        onCapability={vi.fn()}
+        onAuthoringChange={onAuthoringChange}
+      />,
+    );
+    await user.click(screen.getByRole('checkbox', { name: 'Summary written' }));
+    expect(onAuthoringChange).toHaveBeenCalledWith({
+      readiness: [
+        model.checklist[0],
+        { ...model.checklist[1], complete: true },
+      ],
+    });
+    await user.click(screen.getByRole('tab', { name: 'Session Notes' }));
+    await user.clear(screen.getByRole('textbox', { name: 'Session Notes' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Session Notes' }),
+      'Remember the clue',
+    );
+    expect(onAuthoringChange).toHaveBeenLastCalledWith({
+      notes: ['Remember the clue'],
+    });
+  });
   it('adds an in-memory step and exposes future commands through one callback', async () => {
     const user = userEvent.setup();
     const onCapability = vi.fn();

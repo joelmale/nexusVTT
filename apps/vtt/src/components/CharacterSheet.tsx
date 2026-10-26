@@ -5,6 +5,7 @@ import { commandClient } from '@/services/commandClient';
 import { calculatePassivePerception } from '@nexus/character-contracts';
 import type { Character, AbilityKey } from '@nexus/character-contracts';
 import { formatModifier, savingThrowBonus } from '@/utils/characterRolls';
+import { SpellbookPanel } from '@/components/Panels/SpellbookPanel';
 
 const formatSlug = (slug: string): string =>
   slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -71,7 +72,11 @@ const AbilityScore: React.FC<AbilityScoreProps> = ({
           checked={isProficient}
           onChange={(e) =>
             !readonly &&
-            updateSavingThrowProficiency(character.id, ability, e.target.checked)
+            updateSavingThrowProficiency(
+              character.id,
+              ability,
+              e.target.checked,
+            )
           }
           disabled={readonly}
           aria-label={`${name} saving throw proficiency`}
@@ -105,11 +110,7 @@ const SkillsList: React.FC<{ character: Character; readonly?: boolean }> = ({
                 checked={skill.proficient}
                 onChange={(e) =>
                   !readonly &&
-                  updateSkillProficiency(
-                    character.id,
-                    name,
-                    e.target.checked,
-                  )
+                  updateSkillProficiency(character.id, name, e.target.checked)
                 }
                 disabled={readonly}
               />
@@ -263,7 +264,9 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
                   {item.equipped ? 'Unequip' : 'Equip'}
                 </button>
                 <button
-                  onClick={() => removeEquipment(character.id, item.equipmentSlug)}
+                  onClick={() =>
+                    removeEquipment(character.id, item.equipmentSlug)
+                  }
                   className="remove-equipment-btn"
                 >
                   ❌
@@ -337,11 +340,7 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
             );
           }
         } else if (field === 'temporary') {
-          updateCharacterHP(
-            character.id,
-            character.hitPoints,
-            value,
-          );
+          updateCharacterHP(character.id, character.hitPoints, value);
         } else {
           updateCharacter(character.id, {
             maxHitPoints: value,
@@ -516,7 +515,9 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
             className="hp-fill"
             style={{
               width: `${
-                (character.hitPoints / (character.maxHitPoints || character.hitPoints || 1)) * 100
+                (character.hitPoints /
+                  (character.maxHitPoints || character.hitPoints || 1)) *
+                100
               }%`,
             }}
           />
@@ -620,25 +621,16 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
         )}
 
         {activeTab === 'spells' && (
-          <div className="spells-tab">
-            <div className="placeholder-content">
-              <h4>Spellcasting</h4>
-              <p>Spell management will be implemented in future updates.</p>
-              {character.spellcasting && (
-                <div className="spellcasting-info">
-                  <p>
-                    Spellcasting Type: {character.spellcasting.spellcastingType}
-                  </p>
-                  <p>Spellcasting Ability: {character.spellcasting.ability}</p>
-                  <p>Spell Save DC: {character.spellcasting.spellSaveDC}</p>
-                  <p>
-                    Spell Attack Bonus: +
-                    {character.spellcasting.spellAttackBonus}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <SpellbookPanel
+            link={{
+              kind: 'spellbook',
+              id: character.id,
+              title: character.name,
+            }}
+            readonly={readonly}
+            onClose={() => setActiveTab('stats')}
+            isPopout={false}
+          />
         )}
 
         {activeTab === 'notes' && (
@@ -651,13 +643,10 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
                   <textarea
                     value={character.featuresAndTraits?.personality || ''}
                     onChange={(e) =>
-                      handleBasicInfoChange(
-                        'featuresAndTraits',
-                        {
-                          ...(character.featuresAndTraits || {}),
-                          personality: e.target.value,
-                        },
-                      )
+                      handleBasicInfoChange('featuresAndTraits', {
+                        ...(character.featuresAndTraits || {}),
+                        personality: e.target.value,
+                      })
                     }
                     rows={2}
                     className="personality-input"
@@ -669,13 +658,10 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
                   <textarea
                     value={character.featuresAndTraits?.ideals || ''}
                     onChange={(e) =>
-                      handleBasicInfoChange(
-                        'featuresAndTraits',
-                        {
-                          ...(character.featuresAndTraits || {}),
-                          ideals: e.target.value,
-                        },
-                      )
+                      handleBasicInfoChange('featuresAndTraits', {
+                        ...(character.featuresAndTraits || {}),
+                        ideals: e.target.value,
+                      })
                     }
                     rows={2}
                     className="personality-input"
@@ -687,13 +673,10 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
                   <textarea
                     value={character.featuresAndTraits?.bonds || ''}
                     onChange={(e) =>
-                      handleBasicInfoChange(
-                        'featuresAndTraits',
-                        {
-                          ...(character.featuresAndTraits || {}),
-                          bonds: e.target.value,
-                        },
-                      )
+                      handleBasicInfoChange('featuresAndTraits', {
+                        ...(character.featuresAndTraits || {}),
+                        bonds: e.target.value,
+                      })
                     }
                     rows={2}
                     className="personality-input"
@@ -705,13 +688,10 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
                   <textarea
                     value={character.featuresAndTraits?.flaws || ''}
                     onChange={(e) =>
-                      handleBasicInfoChange(
-                        'featuresAndTraits',
-                        {
-                          ...(character.featuresAndTraits || {}),
-                          flaws: e.target.value,
-                        },
-                      )
+                      handleBasicInfoChange('featuresAndTraits', {
+                        ...(character.featuresAndTraits || {}),
+                        flaws: e.target.value,
+                      })
                     }
                     rows={2}
                     className="personality-input"

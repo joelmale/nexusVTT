@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { useCapabilityNotice } from '@/features/capability-notice';
@@ -44,7 +44,7 @@ function buildPlanPatchFromSteps(
     'Share handout': 'handout',
     'Decision point': 'choice',
     'Closing beat': 'closing',
-    'Reminder': 'note',
+    Reminder: 'note',
   };
 
   const planSteps: SessionPlanStep[] = steps.map((s, idx) => ({
@@ -56,7 +56,9 @@ function buildPlanPatchFromSteps(
     durationMinutes: s.durationMinutes,
     visibility: s.visibility,
     body: s.body,
-    objectId: s.encounterId,
+    objectId: s.objectId || s.encounterId,
+    sceneTemplateId: s.sceneTemplateId,
+    mapId: s.mapId,
   }));
 
   const estimatedMinutes = planSteps.reduce(
@@ -78,6 +80,7 @@ function buildPlanPatchFromSteps(
     notes: existingPlan?.notes ?? [],
     playerFacingSummary: existingPlan?.playerFacingSummary ?? '',
     attachments: existingPlan?.attachments ?? [],
+    defaultVisibility: existingPlan?.defaultVisibility ?? 'dm-only',
   };
 }
 
@@ -95,6 +98,13 @@ function SessionPlanContent({
   >('idle');
   const [publishMessage, setPublishMessage] = useState<string>();
   const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const draftRef = useRef<CampaignSessionPlan>(
+    model.authoring ?? buildPlanPatchFromSteps(model.steps),
+  );
+  const editRevision = useRef(0);
+  const [planId, setPlanId] = useState(model.planId);
+  const activationRequest = useRef<string | undefined>(undefined);
   const [activateState, setActivateState] = useState<
     'idle' | 'activating' | 'activated' | 'error'
   >('idle');
@@ -115,8 +125,13 @@ function SessionPlanContent({
         const status = await fetchSessionPlanStatus({
           campaignId,
           planTitle: model.title,
+          ...(store?.editable && model.sessionId
+            ? { sessionId: model.sessionId, planId: model.planId }
+            : {}),
         });
         if (!mounted) return;
+        if (editRevision.current > 0) return;
+        setPlanId(status.planId);
         if (status.published && status.revision) {
           setPersistedRevision(status.revision);
           setPublishState('published');
@@ -136,13 +151,24 @@ function SessionPlanContent({
     return () => {
       mounted = false;
     };
-  }, [campaignId, canPublish, model.campaignTitle, model.title]);
+  }, [
+    campaignId,
+    canPublish,
+    model.campaignTitle,
+    model.title,
+    model.planId,
+    model.sessionId,
+    store?.editable,
+  ]);
 
   function createPublishInput(
     steps: SessionStepViewModel[],
   ): PublishSessionPlanInput {
     return {
       campaignId,
+      planId,
+      ...(store?.editable ? { sessionId: model.sessionId } : {}),
+      authoring: draftRef.current,
       campaignDescription: activeModel.campaignDescription,
       campaignTitle: activeModel.campaignTitle,
       planTitle: activeModel.title,
@@ -153,24 +179,28 @@ function SessionPlanContent({
   }
 
   async function publishPlan(steps: SessionStepViewModel[]) {
+    const publishingEdit = editRevision.current;
     setPublishState('publishing');
     setPublishMessage(
       'Saving the campaign objects and validating dependencies.',
     );
     try {
-      const result = await publishSessionPlan(createPublishInput(steps));
-      setPublishState('published');
-      setIsDirty(false);
+      const observed = store?.editable ? await saveDraft() : undefined;
+      const result = await publishSessionPlan({
+        ...createPublishInput(steps),
+        ...(observed
+          ? { planId: observed.planId, revision: observed.revision! }
+          : {}),
+      });
+      const unchanged = editRevision.current === publishingEdit;
+      setPublishState(unchanged ? 'published' : 'idle');
+      setIsDirty(!unchanged);
       setPersistedRevision(result.plan.revision);
+      setPlanId(result.plan.id);
       setPublishMessage(
         `Published revision ${result.plan.revision} to Nexus VTT.`,
       );
-      if (store?.editable && sessionId) {
-        const session = store.bundle.sessions.find((s) => s.id === sessionId);
-        const updatedPlan = buildPlanPatchFromSteps(steps, session?.plan);
-        updatedPlan.revision = result.plan.revision;
-        await store.updateItem('session', sessionId, { plan: updatedPlan });
-      }
+      if (store?.editable) await store.reload();
     } catch (error) {
       setPublishState('error');
       setPublishMessage(
@@ -182,6 +212,12 @@ function SessionPlanContent({
   }
 
   async function activatePlan(steps: SessionStepViewModel[]) {
+    if (isDirty || isSaving || publishState !== 'published') {
+      setPublishMessage(
+        'Save and publish your changes before playing this plan.',
+      );
+      return;
+    }
     const isRestart = activateState === 'activated';
     setActivateState('activating');
     setPublishMessage(
@@ -190,7 +226,11 @@ function SessionPlanContent({
         : 'Activating plan in Nexus VTT...',
     );
     try {
-      const result = await activateSessionPlan(createPublishInput(steps));
+      activationRequest.current ??= crypto.randomUUID();
+      const result = await activateSessionPlan({
+        ...createPublishInput(steps),
+        activationRequestId: activationRequest.current,
+      });
       setActivateState('activated');
       if (result.plan?.revision) {
         setPersistedRevision(result.plan.revision);
@@ -200,12 +240,7 @@ function SessionPlanContent({
           ? `Run restarted for session ${result.activation.sessionId}. Step 1 is ready in VTT.`
           : `Plan activated for session ${result.activation.sessionId}! Step 1 is ready in VTT.`,
       );
-      if (store?.editable && sessionId && result.plan?.revision) {
-        const session = store.bundle.sessions.find((s) => s.id === sessionId);
-        const updatedPlan = buildPlanPatchFromSteps(steps, session?.plan);
-        updatedPlan.revision = result.plan.revision;
-        await store.updateItem('session', sessionId, { plan: updatedPlan });
-      }
+      activationRequest.current = undefined;
     } catch (error) {
       setActivateState('error');
       setPublishMessage(
@@ -225,17 +260,59 @@ function SessionPlanContent({
   }
 
   function markDirty() {
+    editRevision.current += 1;
     setIsDirty(true);
     setPublishState('idle');
     setPublishMessage('You have unpublished changes.');
   }
 
-  async function handleStepsChange(newSteps: SessionStepViewModel[]) {
+  function handleStepsChange(newSteps: SessionStepViewModel[]) {
+    draftRef.current = buildPlanPatchFromSteps(newSteps, draftRef.current);
     markDirty();
-    if (store?.editable && sessionId) {
-      const session = store.bundle.sessions.find((s) => s.id === sessionId);
-      const updatedPlan = buildPlanPatchFromSteps(newSteps, session?.plan);
-      await store.updateItem('session', sessionId, { plan: updatedPlan });
+  }
+
+  function handleAuthoringChange(patch: Partial<CampaignSessionPlan>) {
+    draftRef.current = { ...draftRef.current, ...patch };
+    markDirty();
+  }
+
+  async function saveDraft() {
+    if (!store?.editable)
+      throw new Error('This campaign is read-only. Clone it to save changes.');
+    const snapshot = structuredClone(draftRef.current);
+    const observedEdit = editRevision.current;
+    setIsSaving(true);
+    try {
+      const result = await store.updateItem('session', sessionId, {
+        plan: snapshot,
+      });
+      if (!result.ok)
+        throw new Error(
+          result.error ||
+            'The draft could not be saved. Your edits are still available.',
+        );
+      const status = await fetchSessionPlanStatus({
+        campaignId,
+        sessionId,
+        planTitle: model.title,
+      });
+      setPlanId(status.planId);
+      if (status.revision) setPersistedRevision(status.revision);
+      if (editRevision.current === observedEdit) {
+        setIsDirty(false);
+        setPublishMessage('Draft saved. Publish it before playing in VTT.');
+      }
+      return status;
+    } catch (error) {
+      setPublishMessage(
+        error instanceof Error
+          ? error.message
+          : 'The draft could not be saved.',
+      );
+      setPublishState('error');
+      throw error;
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -243,6 +320,7 @@ function SessionPlanContent({
     <SessionPlan
       activateState={activateState}
       isDirty={isDirty}
+      isSaving={isSaving}
       model={activeModel}
       onActivate={canPublish ? activatePlan : undefined}
       onBeginDraft={beginDraft}
@@ -250,6 +328,14 @@ function SessionPlanContent({
       onDirty={markDirty}
       onPublish={canPublish ? publishPlan : undefined}
       onStepsChange={handleStepsChange}
+      onAuthoringChange={handleAuthoringChange}
+      onSaveDraft={
+        store?.editable
+          ? () => {
+              void saveDraft().catch(() => undefined);
+            }
+          : undefined
+      }
       persistedRevision={persistedRevision}
       publishMessage={publishMessage}
       publishState={publishState}
@@ -280,7 +366,9 @@ function SessionPlanPage() {
   return (
     <SessionPlanContent
       campaignId={bundle.campaignId}
-      canPublish={bundle.features.publishSessionPlans}
+      canPublish={
+        store?.editable === true || bundle.features.publishSessionPlans
+      }
       key={`${bundle.slug}/${sessionId}`}
       model={model}
       sessionId={sessionId}

@@ -207,6 +207,23 @@ describe('campaign prep routes', () => {
     expect(missing.status).toBe(404);
   });
 
+  it('loads a pinned revision and rejects invalid or missing revisions', async () => {
+    campaignPrep.getObject.mockResolvedValue({
+      id: PLAN_ID,
+      currentRevision: 3,
+    });
+    campaignPrep.getRevision.mockResolvedValue({
+      objectId: PLAN_ID,
+      revision: 1,
+    });
+    const path = `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects/${PLAN_ID}`;
+    expect((await fetch(`${path}?revision=1`)).status).toBe(200);
+    expect(campaignPrep.getRevision).toHaveBeenCalledWith(PLAN_ID, 1);
+    expect((await fetch(`${path}?revision=0`)).status).toBe(400);
+    campaignPrep.getRevision.mockResolvedValue(null);
+    expect((await fetch(`${path}?revision=2`)).status).toBe(404);
+  });
+
   it('loads revision history for an object', async () => {
     campaignPrep.getObject.mockResolvedValue({ id: PLAN_ID });
     campaignPrep.listRevisions.mockResolvedValue([

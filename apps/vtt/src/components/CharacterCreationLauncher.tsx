@@ -18,14 +18,20 @@ export const CharacterCreationProvider: React.FC<{
   const [launcher, setLauncher] = useState<{
     playerId: string;
     context: 'fullpage' | 'modal';
-    onComplete: (characterId: string, character?: Character) => void;
+    onComplete: (
+      characterId: string,
+      character?: Character,
+    ) => void | Promise<void>;
     onCancel?: () => void;
   } | null>(null);
 
   const startCharacterCreation = (
     playerId: string,
     context: 'fullpage' | 'modal' = 'modal',
-    onComplete: (characterId: string, character?: Character) => void,
+    onComplete: (
+      characterId: string,
+      character?: Character,
+    ) => void | Promise<void>,
     onCancel?: () => void,
   ) => {
     // The creator ships its own scoped stylesheet inside the lazy chunk, so
@@ -46,8 +52,8 @@ export const CharacterCreationProvider: React.FC<{
     <CharacterCreationLauncher
       playerId={launcher.playerId}
       context={launcher.context}
-      onComplete={(characterId, character) => {
-        launcher.onComplete(characterId, character);
+      onComplete={async (characterId, character) => {
+        await launcher.onComplete(characterId, character);
         closeLauncher();
       }}
       onCancel={() => {
@@ -74,7 +80,10 @@ export const CharacterCreationProvider: React.FC<{
 
 interface CharacterCreationLauncherProps {
   playerId: string;
-  onComplete: (characterId: string, character?: Character) => void;
+  onComplete: (
+    characterId: string,
+    character?: Character,
+  ) => void | Promise<void>;
   context: 'fullpage' | 'modal';
   onCancel?: () => void;
 }
@@ -89,9 +98,9 @@ export const CharacterCreationLauncher: React.FC<
 > = ({ playerId, onComplete, context, onCancel }) => {
   const [isActive, setIsActive] = useState(true);
 
-  const handleComplete = (characterId: string, character?: Character) => {
+  const handleComplete = async (characterId: string, character?: Character) => {
+    await onComplete(characterId, character);
     setIsActive(false);
-    onComplete(characterId, character);
   };
 
   const handleCancel = () => {

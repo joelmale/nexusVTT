@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSession, useIsHost } from '@/stores/gameStore';
+import { useSession, useIsHost, useGameStore } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { webSocketService } from '@/services/websocket';
@@ -67,7 +67,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 {character.class || 'Adventurer'}
               </span>
               <span className="character-hp">
-                {character.hitPoints}/{character.maxHitPoints ?? character.hitPoints} HP
+                {character.hitPoints}/
+                {character.maxHitPoints ?? character.hitPoints} HP
               </span>
             </div>
           ))}
@@ -120,14 +121,7 @@ export const PlayerPanel: React.FC = () => {
 
   const players = session?.players ?? [];
 
-  // Determine the current user based on whether they are a host or player
-  let currentUserId: string | undefined;
-  if (isHost) {
-    currentUserId = players.find((p) => p.type === 'host')?.id;
-  } else {
-    // For non-hosts, find the first player (this works better for tests)
-    currentUserId = players.find((p) => p.type === 'player')?.id;
-  }
+  const currentUserId = useGameStore((state) => state.user.id);
 
   // Filter characters for the current user
   const myCharacters = currentUserId
@@ -168,8 +162,13 @@ export const PlayerPanel: React.FC = () => {
     setShowImportModal(true);
   };
 
-  const handleImportComplete = (result: { successful: number; failed: number }) => {
-    console.log(`✅ Import complete: ${result.successful} successful, ${result.failed} failed`);
+  const handleImportComplete = (result: {
+    successful: number;
+    failed: number;
+  }) => {
+    console.log(
+      `✅ Import complete: ${result.successful} successful, ${result.failed} failed`,
+    );
     // Characters are automatically added to the store, so they'll appear in the UI
   };
 
@@ -286,12 +285,14 @@ export const PlayerPanel: React.FC = () => {
                 <div className="character-info">
                   <div className="character-name">{character.name}</div>
                   <div className="character-details">
-                    Level {character.level} {character.race || character.species}{' '}
+                    Level {character.level}{' '}
+                    {character.race || character.species}{' '}
                     {character.class || 'Adventurer'}
                   </div>
                   <div className="character-stats">
                     HP: {character.hitPoints}/
-                    {character.maxHitPoints ?? character.hitPoints} | AC: {character.armorClass}
+                    {character.maxHitPoints ?? character.hitPoints} | AC:{' '}
+                    {character.armorClass}
                   </div>
                 </div>
                 <div className="character-actions">

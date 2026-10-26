@@ -49,7 +49,8 @@
     "personality_traits": [],
     "ideals": [],
     "bonds": [],
-    "flaws": []
+    "flaws": [],
+    "source": "PHB 2024"
   },
   {
     "slug": "charlatan-2024",
@@ -81,7 +82,8 @@
     "personality_traits": [],
     "ideals": [],
     "bonds": [],
-    "flaws": []
+    "flaws": [],
+    "source": "PHB 2024"
   },
   {
     "slug": "criminal-2024",
@@ -137,7 +139,8 @@
         "label": "B",
         "gold": 50
       }
-    ]
+    ],
+    "source": "PHB 2024"
   },
   {
     "slug": "entertainer-2024",
@@ -170,7 +173,8 @@
     "personality_traits": [],
     "ideals": [],
     "bonds": [],
-    "flaws": []
+    "flaws": [],
+    "source": "PHB 2024"
   },
   {
     "slug": "guild-artisan-2024",
@@ -203,7 +207,8 @@
     "personality_traits": [],
     "ideals": [],
     "bonds": [],
-    "flaws": []
+    "flaws": [],
+    "source": "Legacy background adapted to 2024"
   },
   {
     "slug": "hermit-2024",
@@ -238,7 +243,8 @@
     "personality_traits": [],
     "ideals": [],
     "bonds": [],
-    "flaws": []
+    "flaws": [],
+    "source": "PHB 2024"
   },
   {
     "slug": "noble-2024",
@@ -271,7 +277,8 @@
     "personality_traits": [],
     "ideals": [],
     "bonds": [],
-    "flaws": []
+    "flaws": [],
+    "source": "PHB 2024"
   },
   {
     "slug": "outlander-2024",
@@ -304,7 +311,8 @@
     "personality_traits": [],
     "ideals": [],
     "bonds": [],
-    "flaws": []
+    "flaws": [],
+    "source": "Legacy background adapted to 2024"
   },
   {
     "slug": "sage-2024",
@@ -356,7 +364,8 @@
         "label": "B",
         "gold": 50
       }
-    ]
+    ],
+    "source": "PHB 2024"
   },
   {
     "slug": "sailor-2024",
@@ -389,7 +398,8 @@
     "personality_traits": [],
     "ideals": [],
     "bonds": [],
-    "flaws": []
+    "flaws": [],
+    "source": "PHB 2024"
   },
   {
     "slug": "soldier-2024",
@@ -445,7 +455,8 @@
         "label": "B",
         "gold": 50
       }
-    ]
+    ],
+    "source": "PHB 2024"
   },
   {
     "slug": "wayfarer-2024",
@@ -479,7 +490,8 @@
     "personality_traits": [],
     "ideals": [],
     "bonds": [],
-    "flaws": []
+    "flaws": [],
+    "source": "PHB 2024"
   },
   {
     "slug": "acolyte-2014",
@@ -516,7 +528,8 @@
     ],
     "flaws": [
       "I judge others harshly, and myself even more severely."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "charlatan-2014",
@@ -551,7 +564,8 @@
     ],
     "flaws": [
       "I cannot resist a pretty face."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "criminal-2014",
@@ -585,7 +599,8 @@
     ],
     "flaws": [
       "When I see something valuable, I can think of nothing else but how to steal it."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "entertainer-2014",
@@ -619,7 +634,8 @@
     ],
     "flaws": [
       "A scandal once almost ruined my reputation, and I am terrified of facing another."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "folk-hero-2014",
@@ -655,7 +671,8 @@
     ],
     "flaws": [
       "The tyrant who rules my land will stop at nothing to see me killed."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "guild-artisan-2014",
@@ -692,7 +709,8 @@
     ],
     "flaws": [
       "I am horribly jealous of anyone who can outshine my handiwork."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "hermit-2014",
@@ -730,7 +748,8 @@
     ],
     "flaws": [
       "Now that I have returned to the world, I enjoy its pleasures a little too much."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "noble-2014",
@@ -767,7 +786,8 @@
     ],
     "flaws": [
       "I secretly believe that everyone is beneath me."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "outlander-2014",
@@ -805,7 +825,8 @@
     ],
     "flaws": [
       "I am too enamored of ale, wine, and other intoxicants."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "sage-2014",
@@ -842,7 +863,8 @@
     ],
     "flaws": [
       "I speak without really thinking through my words, invariably insulting others."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "sailor-2014",
@@ -878,7 +900,8 @@
     ],
     "flaws": [
       "My pride will probably lead to my destruction."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "soldier-2014",
@@ -914,7 +937,8 @@
     ],
     "flaws": [
       "The monstrous enemy we faced in battle still leaves me quivering with fear."
-    ]
+    ],
+    "source": "PHB 2014"
   },
   {
     "slug": "urchin-2014",
@@ -951,6 +975,7 @@
     ],
     "flaws": [
       "Gold seems like a lot of money to me, and I will do just about anything for more of it."
-    ]
+    ],
+    "source": "PHB 2014"
   }
 ]

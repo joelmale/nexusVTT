@@ -78,6 +78,7 @@ WORKDIR /workspace
 
 COPY package.json package-lock.json ./
 COPY apps/forge/package.json ./apps/forge/package.json
+COPY packages/rules-5e/package.json ./packages/rules-5e/package.json
 COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
 COPY packages/game-contracts/package.json ./packages/game-contracts/package.json
 COPY packages/character-creator/package.json ./packages/character-creator/package.json
@@ -87,6 +88,7 @@ COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependen
 
 RUN npm ci \
     --workspace=nexus-forge \
+    --workspace=@nexus/rules-5e \
     --workspace=@nexus/character-contracts \
     --workspace=@nexus/game-contracts \
     --workspace=@nexus/character-creator \

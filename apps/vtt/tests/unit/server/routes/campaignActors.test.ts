@@ -11,6 +11,8 @@ interface AppContext {
   resolveHandoutUrl: ReturnType<typeof vi.fn>;
   server: Server;
   db: {
+    getCampaignById: ReturnType<typeof vi.fn>;
+    isUserAuthorizedForCampaign: ReturnType<typeof vi.fn>;
     campaignActors: {
       getActorsByCampaign: ReturnType<typeof vi.fn>;
       getActorById: ReturnType<typeof vi.fn>;
@@ -18,13 +20,27 @@ interface AppContext {
     domainCommands: {
       execute: ReturnType<typeof vi.fn>;
     };
+    encounterRuns: { getRunById: ReturnType<typeof vi.fn> };
   };
 }
 
-async function startApp(): Promise<AppContext> {
+async function startApp(
+  options: {
+    authenticated?: boolean;
+    dmId?: string;
+    authorized?: boolean;
+  } = {},
+): Promise<AppContext> {
   const broadcastToRoom = vi.fn();
   const resolveHandoutUrl = vi.fn().mockResolvedValue(undefined);
   const db = {
+    getCampaignById: vi.fn().mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      dmId: options.dmId ?? 'test-user-1',
+    }),
+    isUserAuthorizedForCampaign: vi
+      .fn()
+      .mockResolvedValue(options.authorized ?? false),
     campaignActors: {
       getActorsByCampaign: vi.fn(),
       getActorById: vi.fn(),
@@ -32,16 +48,16 @@ async function startApp(): Promise<AppContext> {
     domainCommands: {
       execute: vi.fn(),
     },
+    encounterRuns: { getRunById: vi.fn() },
   };
 
   const app: Express = express();
   app.use(express.json());
 
   app.use((req, _res, next) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (req as any).isAuthenticated = () => true;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (req as any).user = { id: 'test-user-1' };
+    req.isAuthenticated = (() =>
+      options.authenticated !== false) as typeof req.isAuthenticated;
+    req.user = { id: 'test-user-1' } as Express.User;
     next();
   });
 
@@ -85,6 +101,81 @@ describe('campaignActors routes', () => {
   const validCampaignId = '11111111-1111-4111-8111-111111111111';
   const validActorId = '22222222-2222-4222-8222-222222222222';
   const validCommandId = '33333333-3333-4333-8333-333333333333';
+
+  it('rejects unauthenticated actor reads', async () => {
+    ctx = await startApp({ authenticated: false });
+    const response = await fetch(
+      `${ctx.baseUrl}/api/campaigns/${validCampaignId}/actors`,
+    );
+    expect(response.status).toBe(401);
+    expect(ctx.db.campaignActors.getActorsByCampaign).not.toHaveBeenCalled();
+  });
+  it('reads only this campaign encounter and its actual participant actors', async () => {
+    ctx = await startApp();
+    ctx.db.encounterRuns.getRunById.mockResolvedValue({
+      id: 'run',
+      campaignId: validCampaignId,
+      participants: [{ actorId: validActorId }],
+    });
+    ctx.db.campaignActors.getActorsByCampaign.mockResolvedValue([
+      { id: validActorId },
+      { id: 'unrelated' },
+    ]);
+    const path = `${ctx.baseUrl}/api/campaigns/${validCampaignId}/encounters/run`;
+    const response = await fetch(path);
+    expect(response.status).toBe(200);
+    expect((await response.json()).actors).toEqual([{ id: validActorId }]);
+    ctx.db.encounterRuns.getRunById.mockResolvedValue({ campaignId: 'other' });
+    expect((await fetch(path)).status).toBe(404);
+  });
+  it('keeps prepared encounter details private from other campaign members', async () => {
+    ctx = await startApp({ dmId: 'other-dm', authorized: true });
+    const response = await fetch(
+      `${ctx.baseUrl}/api/campaigns/${validCampaignId}/encounters/run`,
+    );
+    expect(response.status).toBe(403);
+    expect(ctx.db.encounterRuns.getRunById).not.toHaveBeenCalled();
+  });
+
+  it('rejects campaign access without persisted membership', async () => {
+    ctx = await startApp({ dmId: 'another-user', authorized: false });
+    const response = await fetch(
+      `${ctx.baseUrl}/api/campaigns/${validCampaignId}/actors`,
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it('derives player authority from the session instead of granting DM authority', async () => {
+    ctx = await startApp({ dmId: 'another-user', authorized: true });
+    ctx.db.domainCommands.execute.mockResolvedValue({
+      receipt: { result: { success: true } },
+    });
+    const command: DomainCommand = {
+      commandId: validCommandId,
+      campaignId: validCampaignId,
+      issuerUserId: 'test-user-1',
+      protocolVersion: '1.0',
+      timestamp: new Date().toISOString(),
+      payload: { type: 'HealActor', targetActorId: validActorId, amount: 1 },
+    };
+    const response = await fetch(`${ctx.baseUrl}/api/commands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(command),
+    });
+    expect(response.status).toBe(200);
+    expect(ctx.db.domainCommands.execute).toHaveBeenCalledWith(
+      expect.objectContaining(command),
+      expect.objectContaining({ principalId: 'test-user-1', isDm: false }),
+    );
+    const forged = await fetch(`${ctx.baseUrl}/api/commands`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...command, issuerUserId: 'another-user' }),
+    });
+    expect(forged.status).toBe(403);
+    expect(ctx.db.domainCommands.execute).toHaveBeenCalledOnce();
+  });
 
   describe('GET /api/campaigns/:campaignId/actors', () => {
     it('returns actors list for campaign', async () => {
@@ -302,7 +393,10 @@ describe('campaignActors routes', () => {
         `${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-room-id': 'ROOM42' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-room-id': 'ROOM42',
+          },
           body: JSON.stringify({
             commandId: validCommandId,
             protocolVersion: '1.0',

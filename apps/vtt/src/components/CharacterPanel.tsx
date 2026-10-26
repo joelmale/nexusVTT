@@ -7,7 +7,6 @@ import { CharacterImportModal } from './CharacterImportModal';
 import { CharacterClaimModal } from './simple-player/CharacterClaimModal';
 import { CharacterCreationContext } from './CharacterCreationContext';
 import { sendPlayerIntent } from '@/services/playerIntentClient';
-import type { SubmittedCharacter } from '../../shared/events/playerIntent';
 import './CharacterPanel.css';
 
 type FilterType = 'all' | 'in-combat' | 'not-in-combat' | 'has-token';
@@ -40,19 +39,9 @@ export const CharacterPanel: React.FC = () => {
 
   const handleStartCreate = () => {
     if (!startCharacterCreation) return;
-    startCharacterCreation(
-      user.id,
-      'modal',
-      async (characterId, character) => {
-        if (character && !isHost) {
-          await sendPlayerIntent({
-            kind: 'submit-character',
-            character: character as unknown as SubmittedCharacter,
-          });
-        }
-        useCharacterStore.getState().setActiveCharacter(characterId);
-      },
-    );
+    startCharacterCreation(user.id, 'modal', (characterId) => {
+      useCharacterStore.getState().setActiveCharacter(characterId);
+    });
   };
 
   // Session players' characters, plus (for the DM) unclaimed party

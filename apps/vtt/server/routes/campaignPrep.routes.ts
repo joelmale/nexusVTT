@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import { campaignEntrySchema, sessionPlanSchema } from '@nexus/game-contracts';
 
 import type { DatabaseService } from '../database.js';
 import {
@@ -222,6 +223,53 @@ export function createCampaignPrepRouter({
     }
   });
 
+  router.put(
+    '/campaigns/:campaignId/prep/sessions/:sessionId/authoring',
+    async (req, res) => {
+      const body = req.body as Record<string, unknown>;
+      const session = campaignEntrySchema.safeParse(body.session);
+      const plan = sessionPlanSchema.safeParse(body.plan);
+      const sessionId = routeParameter(req.params.sessionId);
+      if (
+        !isUuid(sessionId) ||
+        !isUuid(body.requestId) ||
+        !session.success ||
+        !plan.success ||
+        (body.expectedSessionRevision !== undefined &&
+          !isExpectedRevision(body.expectedSessionRevision)) ||
+        (body.expectedPlanRevision !== undefined &&
+          !isExpectedRevision(body.expectedPlanRevision))
+      ) {
+        return res.status(422).json({
+          error:
+            'A valid session, authoring plan, request ID and observed revisions are required.',
+        });
+      }
+      try {
+        const result = await db.campaignPrep.saveSessionAuthoring({
+          campaignId: routeParameter(req.params.campaignId),
+          sessionId,
+          session: session.data,
+          plan: plan.data,
+          expectedSessionRevision: body.expectedSessionRevision as
+            number | undefined,
+          expectedPlanRevision: body.expectedPlanRevision as number | undefined,
+          principalId: sessionUserId(req) ?? '',
+          requestId: body.requestId,
+        });
+        return res.json(result);
+      } catch (error) {
+        if (error instanceof CampaignPrepRevisionConflictError)
+          return handleAuthoringError(error, res);
+        console.error('Failed to save session authoring:', error);
+        return res.status(422).json({
+          error:
+            'The session plan could not be saved. Check its identity and revision, then retry.',
+        });
+      }
+    },
+  );
+
   router.post('/campaigns/:campaignId/prep/objects', async (req, res) => {
     const body = req.body as {
       data?: unknown;
@@ -306,13 +354,21 @@ export function createCampaignPrepRouter({
         if (!object) {
           return res.status(404).json({ error: 'Campaign object not found' });
         }
+        const requestedRevision =
+          req.query.revision === undefined
+            ? object.currentRevision
+            : Number(req.query.revision);
+        if (!Number.isSafeInteger(requestedRevision) || requestedRevision < 1)
+          return res
+            .status(400)
+            .json({ error: 'revision must be a positive integer' });
         const revision = await db.campaignPrep.getRevision(
           object.id,
-          object.currentRevision,
+          requestedRevision,
         );
         if (!revision) {
           return res
-            .status(500)
+            .status(404)
             .json({ error: 'Campaign object revision is missing' });
         }
         return res.json({ object, revision });
@@ -346,26 +402,23 @@ export function createCampaignPrepRouter({
     },
   );
 
-  router.get(
-    '/campaigns/:campaignId/prep/pins',
-    async (req, res) => {
-      try {
-        const campaignId = routeParameter(req.params.campaignId);
-        const userId = sessionUserId(req);
-        if (!userId) {
-          return res.status(401).json({ error: 'Unauthorized' });
-        }
-        const pinnedObjectIds = await db.campaignPrep.listPinnedObjectIds(
-          userId,
-          campaignId,
-        );
-        return res.json({ pinnedObjectIds });
-      } catch (error) {
-        console.error('Failed to list pinned objects:', error);
-        return res.status(500).json({ error: 'Failed to list pinned objects' });
+  router.get('/campaigns/:campaignId/prep/pins', async (req, res) => {
+    try {
+      const campaignId = routeParameter(req.params.campaignId);
+      const userId = sessionUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
       }
-    },
-  );
+      const pinnedObjectIds = await db.campaignPrep.listPinnedObjectIds(
+        userId,
+        campaignId,
+      );
+      return res.json({ pinnedObjectIds });
+    } catch (error) {
+      console.error('Failed to list pinned objects:', error);
+      return res.status(500).json({ error: 'Failed to list pinned objects' });
+    }
+  });
 
   router.post(
     '/campaigns/:campaignId/prep/objects/:objectId/pin',

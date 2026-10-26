@@ -49,7 +49,10 @@ describe('CampaignRepository', () => {
       };
       pool.query.mockResolvedValueOnce({ rows: [mockRecord] } as QueryResult);
 
-      const result = await repository.createCampaign('user-2', 'Lost Mine of Phandelver');
+      const result = await repository.createCampaign(
+        'user-2',
+        'Lost Mine of Phandelver',
+      );
 
       expect(pool.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO campaigns'),
@@ -60,6 +63,25 @@ describe('CampaignRepository', () => {
   });
 
   describe('getCampaignsByUser', () => {
+    it('saves creation metadata and keeps update omissions distinct from null', async () => {
+      pool.query.mockResolvedValueOnce({ rows: [{ id: 'c1' }] });
+      await repository.createCampaign('owner', 'One-shot', undefined, {
+        edition: '2014',
+        mode: 'one-shot',
+        mood: 'arcane-night',
+      });
+      expect(pool.query).toHaveBeenLastCalledWith(
+        expect.stringContaining('INSERT INTO campaigns'),
+        ['One-shot', null, 'owner', '2014', 'one-shot', 'arcane-night'],
+      );
+      pool.query.mockResolvedValueOnce({ rows: [] });
+      await repository.updateCampaign('c1', { mood: null, mode: 'one-shot' });
+      expect(pool.query).toHaveBeenLastCalledWith(
+        expect.stringContaining('"mood" = $1, "mode" = $2'),
+        [null, 'one-shot', 'c1'],
+      );
+    });
+
     it('fetches all campaigns owned by a user', async () => {
       const mockCampaigns = [{ id: 'camp-1', name: 'Campaign 1' }];
       pool.query.mockResolvedValueOnce({ rows: mockCampaigns } as QueryResult);
@@ -95,7 +117,10 @@ describe('CampaignRepository', () => {
     it('returns false if the campaign does not exist', async () => {
       pool.query.mockResolvedValueOnce({ rows: [] } as QueryResult); // getCampaignById
 
-      const isAuth = await repository.isUserAuthorizedForCampaign('user-1', 'camp-missing');
+      const isAuth = await repository.isUserAuthorizedForCampaign(
+        'user-1',
+        'camp-missing',
+      );
       expect(isAuth).toBe(false);
     });
 
@@ -104,7 +129,10 @@ describe('CampaignRepository', () => {
         rows: [{ id: 'camp-1', dmId: 'dm-user-id' }],
       } as QueryResult); // getCampaignById
 
-      const isAuth = await repository.isUserAuthorizedForCampaign('dm-user-id', 'camp-1');
+      const isAuth = await repository.isUserAuthorizedForCampaign(
+        'dm-user-id',
+        'camp-1',
+      );
       expect(isAuth).toBe(true);
       expect(pool.query).toHaveBeenCalledTimes(1); // No secondary query needed
     });
@@ -116,7 +144,10 @@ describe('CampaignRepository', () => {
         } as QueryResult) // getCampaignById
         .mockResolvedValueOnce({ rowCount: 1 } as QueryResult); // session auth query
 
-      const isAuth = await repository.isUserAuthorizedForCampaign('player-1', 'camp-1');
+      const isAuth = await repository.isUserAuthorizedForCampaign(
+        'player-1',
+        'camp-1',
+      );
       expect(isAuth).toBe(true);
       expect(pool.query).toHaveBeenCalledTimes(2);
     });
@@ -128,14 +159,20 @@ describe('CampaignRepository', () => {
         } as QueryResult)
         .mockResolvedValueOnce({ rowCount: 0 } as QueryResult);
 
-      const isAuth = await repository.isUserAuthorizedForCampaign('random-user', 'camp-1');
+      const isAuth = await repository.isUserAuthorizedForCampaign(
+        'random-user',
+        'camp-1',
+      );
       expect(isAuth).toBe(false);
     });
 
     it('returns false if a database error is thrown during authorization check', async () => {
       pool.query.mockRejectedValueOnce(new Error('DB connection lost'));
 
-      const isAuth = await repository.isUserAuthorizedForCampaign('user-1', 'camp-1');
+      const isAuth = await repository.isUserAuthorizedForCampaign(
+        'user-1',
+        'camp-1',
+      );
       expect(isAuth).toBe(false);
     });
   });
@@ -151,7 +188,9 @@ describe('CampaignRepository', () => {
       });
 
       expect(pool.query).toHaveBeenCalledWith(
-        expect.stringMatching(/UPDATE campaigns SET.*"name" = \$1.*"scenes" = \$2.*"lastRoomCode" = \$3.*WHERE id = \$4/),
+        expect.stringMatching(
+          /UPDATE campaigns SET.*"name" = \$1.*"scenes" = \$2.*"lastRoomCode" = \$3.*WHERE id = \$4/,
+        ),
         ['New Name', JSON.stringify([{ id: 'scene-1' }]), 'XYZW', 'camp-1'],
       );
     });

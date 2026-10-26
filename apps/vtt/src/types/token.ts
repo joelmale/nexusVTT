@@ -59,6 +59,8 @@ export interface Token {
 
 export interface PlacedToken {
   id: string;
+  /** Canonical scene snapshot fallback for campaign actors and late joiners. */
+  baseToken?: Token;
   tokenId: string; // Reference to the base Token
   characterId?: string; // Links to Character.id from characterStore
   sceneId: string;

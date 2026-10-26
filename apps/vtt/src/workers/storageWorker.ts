@@ -6,10 +6,87 @@
  */
 
 import { expose } from 'comlink';
-import type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
+import type {
+  DungeonMapDB,
+  GameStateDB,
+  StorageStats,
+  StoredCreatorDraft,
+} from '@/types/storage';
 import { openNexusDB, DB_NAME, DB_VERSION, STORES } from '@/services/nexusDb';
 
 class StorageWorkerAPI {
+  async getCreatorDraft(id: string): Promise<StoredCreatorDraft | undefined> {
+    await this.ensureInit();
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
+      const request = this.db
+        .transaction(STORES.CHARACTER_DRAFTS.name)
+        .objectStore(STORES.CHARACTER_DRAFTS.name)
+        .get(id);
+      request.onsuccess = () =>
+        resolve(request.result as StoredCreatorDraft | undefined);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async saveCreatorDraft(
+    draft: StoredCreatorDraft,
+    expectedRevision: number,
+  ): Promise<void> {
+    return this.writeCreatorDraft(draft.id, expectedRevision, draft);
+  }
+
+  async deleteCreatorDraft(
+    id: string,
+    expectedRevision: number,
+  ): Promise<void> {
+    return this.writeCreatorDraft(id, expectedRevision);
+  }
+
+  private async writeCreatorDraft(
+    id: string,
+    expectedRevision: number,
+    draft?: StoredCreatorDraft,
+  ): Promise<void> {
+    await this.ensureInit();
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
+      const transaction = this.db.transaction(
+        STORES.CHARACTER_DRAFTS.name,
+        'readwrite',
+      );
+      const store = transaction.objectStore(STORES.CHARACTER_DRAFTS.name);
+      let conflict = false;
+      const request = store.get(id);
+      request.onsuccess = () => {
+        const current = request.result as StoredCreatorDraft | undefined;
+        if ((current?.revision ?? 0) !== expectedRevision) {
+          conflict = true;
+          transaction.abort();
+          return;
+        }
+        if (draft) store.put({ ...draft, revision: expectedRevision + 1 });
+        else store.delete(id);
+      };
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () =>
+        reject(
+          new Error(
+            conflict
+              ? 'Draft changed in another tab. Reopen to review it before continuing.'
+              : 'Draft storage transaction failed.',
+          ),
+        );
+    });
+  }
+
   private db: IDBDatabase | null = null;
   private readonly DB_NAME = DB_NAME;
   private readonly DB_VERSION = DB_VERSION;

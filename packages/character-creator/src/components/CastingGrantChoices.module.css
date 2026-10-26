@@ -1,0 +1,23 @@
+.grants {
+  display: grid;
+  gap: var(--spacing-4, 1rem);
+}
+.grant {
+  display: grid;
+  gap: var(--spacing-2, 0.5rem);
+  padding: var(--spacing-4, 1rem);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  background: var(--surface-secondary);
+}
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2, 0.5rem);
+}
+.options {
+  display: grid;
+  gap: var(--spacing-2, 0.5rem);
+  max-height: 12rem;
+  overflow: auto;
+}

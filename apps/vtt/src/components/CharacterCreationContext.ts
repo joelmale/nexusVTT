@@ -6,7 +6,10 @@ export interface CharacterCreationContextType {
   startCharacterCreation: (
     playerId: string,
     context: 'fullpage' | 'modal',
-    onComplete: (characterId: string, character?: Character) => void,
+    onComplete: (
+      characterId: string,
+      character?: Character,
+    ) => void | Promise<void>,
     onCancel?: () => void,
   ) => void;
   LauncherComponent: React.ReactNode;

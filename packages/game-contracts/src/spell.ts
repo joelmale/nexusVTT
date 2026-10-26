@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { authoredMetadataSchema, definitionRefSchema, rulesetRefSchema } from './identity.js';
+import {
+  authoredMetadataSchema,
+  definitionRefSchema,
+  rulesetRefSchema,
+} from './identity.js';
 
 export const spellSchoolSchema = z.enum([
   'abjuration',
@@ -69,7 +73,7 @@ export type SpellCollection = z.infer<typeof spellCollectionSchema>;
 export const resourcePoolSchema = z.object({
   id: z.string(),
   name: z.string(),
-  poolType: z.enum(['slots', 'pact', 'points', 'uses']),
+  poolType: z.enum(['slots', 'pact', 'points', 'uses', 'at-will']),
   slots: z
     .record(
       z.string(), // '1'..'9'
@@ -104,6 +108,7 @@ export const spellcastingProfileSchema = z.object({
   spellSaveDC: z.number().int().positive(),
   spellAttackBonus: z.number().int(),
   isRitualCaster: z.boolean().default(false),
+  ritualOnly: z.boolean().optional(),
   preparationMode: z.enum(['prepared', 'known', 'innate', 'always_prepared']),
   preparationLimit: z.number().int().nonnegative().optional(),
   resourcePoolId: z.string(), // Links to an actor resource pool

@@ -22,13 +22,12 @@ import {
 export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
   const { character } = props;
 
-
-
   return (
     <div className="paper-sheet-layout bg-[#f5ebd2] p-6 space-y-4 max-w-[1400px] mx-auto">
       {/* Character Action Header */}
       <CharacterHeader
         character={character}
+        onEdit={props.onEdit}
         onClose={props.onClose}
         onDelete={props.onDelete}
         onShortRest={props.onShortRest}
@@ -43,13 +42,19 @@ export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
         <div className="grid grid-cols-12 gap-3">
           {/* Character Name - Large */}
           <div className="col-span-3">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">Character Name</div>
-            <div className="text-2xl font-cinzel font-bold text-[#1e140a]">{character.name}</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">
+              Character Name
+            </div>
+            <div className="text-2xl font-cinzel font-bold text-[#1e140a]">
+              {character.name}
+            </div>
           </div>
 
           {/* Class & Level */}
           <div className="col-span-2">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">Class & Level</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">
+              Class & Level
+            </div>
             <div className="text-lg font-eb-garamond font-semibold text-[#1e140a]">
               {character.class} {character.level}
             </div>
@@ -57,25 +62,39 @@ export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
 
           {/* Background */}
           <div className="col-span-2">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">Background</div>
-            <div className="text-lg font-eb-garamond font-semibold text-[#1e140a]">{character.background}</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">
+              Background
+            </div>
+            <div className="text-lg font-eb-garamond font-semibold text-[#1e140a]">
+              {character.background}
+            </div>
           </div>
 
           {/* Species */}
           <div className="col-span-2">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">Species</div>
-            <div className="text-lg font-eb-garamond font-semibold text-[#1e140a]">{character.species}</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">
+              Species
+            </div>
+            <div className="text-lg font-eb-garamond font-semibold text-[#1e140a]">
+              {character.species}
+            </div>
           </div>
 
           {/* Alignment */}
           <div className="col-span-2">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">Alignment</div>
-            <div className="text-lg font-eb-garamond font-semibold text-[#1e140a]">{character.alignment}</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">
+              Alignment
+            </div>
+            <div className="text-lg font-eb-garamond font-semibold text-[#1e140a]">
+              {character.alignment}
+            </div>
           </div>
 
           {/* Experience Points */}
           <div className="col-span-1">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">XP</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-1">
+              XP
+            </div>
             <div className="text-lg font-eb-garamond font-semibold text-[#1e140a]">
               {character.experiencePoints || 0}
             </div>
@@ -103,19 +122,27 @@ export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
                 >
                   {character.inspiration && '✓'}
                 </button>
-                <span className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide">Inspiration</span>
+                <span className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide">
+                  Inspiration
+                </span>
               </div>
             </div>
             <div className="text-center py-2 bg-[#f5ebd2] rounded-sm border border-[#1e140a]/20">
-              <div className="text-xs text-[#3d2817] font-cinzel font-bold uppercase mb-1 tracking-wide">Proficiency Bonus</div>
-              <div className="text-2xl font-cinzel font-bold text-[#8b4513]">+{character.proficiencyBonus}</div>
+              <div className="text-xs text-[#3d2817] font-cinzel font-bold uppercase mb-1 tracking-wide">
+                Proficiency Bonus
+              </div>
+              <div className="text-2xl font-cinzel font-bold text-[#8b4513]">
+                +{character.proficiencyBonus}
+              </div>
             </div>
           </div>
 
           {/* Passive Perception */}
           <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-3 shadow-md">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide">Passive Wisdom (Perception)</span>
+              <span className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide">
+                Passive Wisdom (Perception)
+              </span>
               <span className="text-2xl font-cinzel font-bold text-[#8b4513]">
                 {10 + (character.skills.Perception?.value || 0)}
               </span>
@@ -186,11 +213,11 @@ export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
           {/* Spellcasting Section (if character is a spellcaster) */}
           {character.spellcasting && (
             <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-4 shadow-md">
-            <SpellcastingSection
-              character={character}
-              onUpdateCharacter={props.onUpdateCharacter}
-              onSpellPreparation={() => {}}
-            />
+              <SpellcastingSection
+                character={character}
+                onUpdateCharacter={props.onUpdateCharacter}
+                onSpellPreparation={() => {}}
+              />
             </div>
           )}
 
@@ -219,7 +246,9 @@ export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
         <div className="col-span-4 space-y-4">
           {/* Personality Traits */}
           <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-3 shadow-md">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">Personality Traits</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">
+              Personality Traits
+            </div>
             <div className="min-h-[60px] p-2 bg-[#f5ebd2] rounded-sm border border-[#1e140a]/20 text-sm homemade-apple-regular text-[#3d2817] whitespace-pre-wrap">
               {character.featuresAndTraits?.personality || 'Not set'}
             </div>
@@ -227,7 +256,9 @@ export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
 
           {/* Ideals */}
           <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-3 shadow-md">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">Ideals</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">
+              Ideals
+            </div>
             <div className="min-h-[50px] p-2 bg-[#f5ebd2] rounded-sm border border-[#1e140a]/20 text-sm homemade-apple-regular text-[#3d2817] whitespace-pre-wrap">
               {character.featuresAndTraits?.ideals || 'Not set'}
             </div>
@@ -235,7 +266,9 @@ export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
 
           {/* Bonds */}
           <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-3 shadow-md">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">Bonds</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">
+              Bonds
+            </div>
             <div className="min-h-[50px] p-2 bg-[#f5ebd2] rounded-sm border border-[#1e140a]/20 text-sm homemade-apple-regular text-[#3d2817] whitespace-pre-wrap">
               {character.featuresAndTraits?.bonds || 'Not set'}
             </div>
@@ -243,7 +276,9 @@ export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
 
           {/* Flaws */}
           <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-3 shadow-md">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">Flaws</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">
+              Flaws
+            </div>
             <div className="min-h-[50px] p-2 bg-[#f5ebd2] rounded-sm border border-[#1e140a]/20 text-sm homemade-apple-regular text-[#3d2817] whitespace-pre-wrap">
               {character.featuresAndTraits?.flaws || 'Not set'}
             </div>
@@ -251,35 +286,54 @@ export const PaperSheetLayout: React.FC<CharacterSheetProps> = (props) => {
 
           {/* Species Traits */}
           <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-3 shadow-md">
-            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">Species Traits</div>
+            <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">
+              Species Traits
+            </div>
             <div className="min-h-[60px] p-2 bg-[#f5ebd2] rounded-sm border border-[#1e140a]/20 text-sm space-y-1">
-              {character.featuresAndTraits?.speciesTraits && character.featuresAndTraits.speciesTraits.length > 0 ? (
-                character.featuresAndTraits.speciesTraits.map((trait, index) => (
-                  <div key={index} className="homemade-apple-regular text-[#3d2817] text-xs leading-tight">
-                    • {trait}
-                  </div>
-                ))
+              {character.featuresAndTraits?.speciesTraits &&
+              character.featuresAndTraits.speciesTraits.length > 0 ? (
+                character.featuresAndTraits.speciesTraits.map(
+                  (trait, index) => (
+                    <div
+                      key={index}
+                      className="homemade-apple-regular text-[#3d2817] text-xs leading-tight"
+                    >
+                      • {trait}
+                    </div>
+                  ),
+                )
               ) : (
-                <div className="homemade-apple-regular text-[#3d2817]/50 italic">No species traits</div>
+                <div className="homemade-apple-regular text-[#3d2817]/50 italic">
+                  No species traits
+                </div>
               )}
             </div>
-            </div>
+          </div>
 
-           {/* Musical Instrument Proficiencies */}
-           {character.featuresAndTraits?.musicalInstrumentProficiencies && character.featuresAndTraits.musicalInstrumentProficiencies.length > 0 && (
-             <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-3 shadow-md">
-               <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">Musical Instruments</div>
-               <div className="min-h-[40px] p-2 bg-[#f5ebd2] rounded-sm border border-[#1e140a]/20 text-sm space-y-1">
-                 {character.featuresAndTraits.musicalInstrumentProficiencies.map((instrument, index) => (
-                   <div key={index} className="homemade-apple-regular text-[#3d2817] text-xs leading-tight">
-                     • {instrument}
-                   </div>
-                 ))}
-               </div>
-             </div>
-           )}
+          {/* Musical Instrument Proficiencies */}
+          {character.featuresAndTraits?.musicalInstrumentProficiencies &&
+            character.featuresAndTraits.musicalInstrumentProficiencies.length >
+              0 && (
+              <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-3 shadow-md">
+                <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-2">
+                  Musical Instruments
+                </div>
+                <div className="min-h-[40px] p-2 bg-[#f5ebd2] rounded-sm border border-[#1e140a]/20 text-sm space-y-1">
+                  {character.featuresAndTraits.musicalInstrumentProficiencies.map(
+                    (instrument, index) => (
+                      <div
+                        key={index}
+                        className="homemade-apple-regular text-[#3d2817] text-xs leading-tight"
+                      >
+                        • {instrument}
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
 
-           {/* Proficiencies & Languages */}
+          {/* Proficiencies & Languages */}
           <div className="bg-[#fcf6e3] border-2 border-[#1e140a] rounded-sm p-4 shadow-md">
             <div className="text-xs font-cinzel font-bold text-[#3d2817] uppercase tracking-wide mb-3 pb-2 border-b border-[#1e140a]/20">
               Other Proficiencies & Languages

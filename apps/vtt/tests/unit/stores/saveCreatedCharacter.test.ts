@@ -36,7 +36,13 @@ describe('characterStore.saveCreatedCharacter', () => {
     saveCharacter.mockClear();
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => ({ ok: true, json: async () => ({}) })),
+      vi.fn(async (_url: string, options: RequestInit) => {
+        const body = JSON.parse(options.body as string);
+        return {
+          ok: true,
+          json: async () => ({ id: body.data.id, data: body.data }),
+        };
+      }),
     );
   });
 
@@ -47,7 +53,9 @@ describe('characterStore.saveCreatedCharacter', () => {
   it('saves to the account, the store and the local cache', async () => {
     const character = makeCharacter();
 
-    const id = await useCharacterStore.getState().saveCreatedCharacter(character);
+    const id = await useCharacterStore
+      .getState()
+      .saveCreatedCharacter(character);
 
     expect(id).toBe(character.id);
     expect(fetch).toHaveBeenCalledWith(
@@ -60,6 +68,31 @@ describe('characterStore.saveCreatedCharacter', () => {
     expect(stored[0].name).toBe('Bren Halloway');
     expect(useCharacterStore.getState().activeCharacterId).toBe(character.id);
     expect(saveCharacter).toHaveBeenCalledTimes(1);
+  });
+
+  it('adopts the server canonical identity and sends stable operation metadata', async () => {
+    const character = makeCharacter();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          id: 'canonical-server-id',
+          data: { ...character, id: 'canonical-server-id' },
+        }),
+      })),
+    );
+    const id = await useCharacterStore
+      .getState()
+      .saveCreatedCharacter(character, {
+        creationAttemptId: 'attempt-1',
+        draftRevision: 2,
+      });
+    expect(id).toBe('canonical-server-id');
+    expect(useCharacterStore.getState().characters[0].id).toBe(id);
+    expect(
+      JSON.parse(vi.mocked(fetch).mock.calls[0][1]?.body as string),
+    ).toMatchObject({ creationAttemptId: 'attempt-1', draftRevision: 2 });
   });
 
   it('assigns ownership from the signed-in user when absent', async () => {

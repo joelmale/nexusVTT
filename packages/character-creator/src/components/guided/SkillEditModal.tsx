@@ -1,3 +1,4 @@
+import { CreatorDialog } from '../CreatorDialog';
 import React, { useState, useMemo } from 'react';
 import { X, Check, Lock } from 'lucide-react';
 import { loadClasses, BACKGROUNDS } from '../../services/dataService';
@@ -25,15 +26,19 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
   currentSkills,
   isOpen,
   onClose,
-  onSave
+  onSave,
 }) => {
   const classData = useMemo(() => {
     const allClasses = loadClasses();
-    return allClasses.find(c => c.slug === classSlug);
+    return allClasses.find((c) => c.slug === classSlug);
   }, [classSlug]);
 
   const backgroundData = useMemo(() => {
-    return BACKGROUNDS.find(bg => bg.name === backgroundSlug);
+    return BACKGROUNDS.find(
+      (bg) =>
+        bg.slug === backgroundSlug ||
+        bg.name.toLowerCase() === backgroundSlug.toLowerCase(),
+    );
   }, [backgroundSlug]);
 
   const availableClassSkills = classData?.skill_proficiencies || [];
@@ -41,17 +46,19 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
   const maxSkills = classData?.num_skill_choices || 2;
 
   // Separate class skills from background skills in current selection
-  const initialClassSkills = currentSkills.filter(skill =>
-    !backgroundSkills.includes(skill) && availableClassSkills.includes(skill)
+  const initialClassSkills = currentSkills.filter(
+    (skill) =>
+      !backgroundSkills.includes(skill) && availableClassSkills.includes(skill),
   );
 
-  const [selectedClassSkills, setSelectedClassSkills] = useState<string[]>(initialClassSkills);
+  const [selectedClassSkills, setSelectedClassSkills] =
+    useState<string[]>(initialClassSkills);
 
   const handleSkillToggle = (skill: string) => {
-    setSelectedClassSkills(prev => {
+    setSelectedClassSkills((prev) => {
       const isSelected = prev.includes(skill);
       if (isSelected) {
-        return prev.filter(s => s !== skill);
+        return prev.filter((s) => s !== skill);
       } else if (prev.length < maxSkills) {
         return [...prev, skill];
       }
@@ -61,26 +68,30 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
 
   const handleSave = () => {
     // Combine class skills and background skills
-    const allSkills = [...new Set([...selectedClassSkills, ...backgroundSkills])];
-    onSave(allSkills);
+    onSave(selectedClassSkills);
     onClose();
   };
 
   const getSkillInfo = (skillName: string) => {
-    return (skillsData as Skill[]).find(s => s.name === skillName);
+    return (skillsData as Skill[]).find((s) => s.name === skillName);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4">
+    <CreatorDialog
+      label="Edit Skills"
+      onClose={onClose}
+      className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4"
+    >
       <div className="bg-theme-secondary rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-theme-secondary">
           <div>
             <h2 className="text-xl font-bold text-white">Edit Skills</h2>
             <p className="text-sm text-theme-muted">
-              Choose {maxSkills} skill{maxSkills !== 1 ? 's' : ''} from your class proficiencies
+              Choose {maxSkills} skill{maxSkills !== 1 ? 's' : ''} from your
+              class proficiencies
             </p>
           </div>
           <button
@@ -99,7 +110,8 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
               Class Skills Selected ({selectedClassSkills.length}/{maxSkills})
             </h3>
             <p className="text-sm text-theme-muted">
-              Select {maxSkills} skill proficienc{maxSkills !== 1 ? 'ies' : 'y'} from your {classData?.name} class options
+              Select {maxSkills} skill proficienc{maxSkills !== 1 ? 'ies' : 'y'}{' '}
+              from your {classData?.name} class options
             </p>
           </div>
 
@@ -111,7 +123,7 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
                 <Lock className="w-4 h-4" />
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {backgroundSkills.map(skill => {
+                {backgroundSkills.map((skill) => {
                   const skillInfo = getSkillInfo(skill);
                   return (
                     <div
@@ -121,12 +133,16 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <h4 className="font-semibold text-white">{skill}</h4>
-                          <p className="text-xs text-theme-muted">{skillInfo?.ability || 'Unknown'}</p>
+                          <p className="text-xs text-theme-muted">
+                            {skillInfo?.ability || 'Unknown'}
+                          </p>
                         </div>
                         <Lock className="w-5 h-5 text-accent-green-light flex-shrink-0" />
                       </div>
                       {skillInfo && (
-                        <p className="text-xs text-theme-muted mt-2">{skillInfo.description}</p>
+                        <p className="text-xs text-theme-muted mt-2">
+                          {skillInfo.description}
+                        </p>
                       )}
                     </div>
                   );
@@ -141,7 +157,7 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
               Class Skills (Choose {maxSkills})
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {availableClassSkills.map(skill => {
+              {availableClassSkills.map((skill) => {
                 const isSelected = selectedClassSkills.includes(skill);
                 const isBackgroundSkill = backgroundSkills.includes(skill);
                 const skillInfo = getSkillInfo(skill);
@@ -149,30 +165,43 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
                 return (
                   <button
                     key={skill}
-                    onClick={() => !isBackgroundSkill && handleSkillToggle(skill)}
-                    disabled={isBackgroundSkill || (!isSelected && selectedClassSkills.length >= maxSkills)}
+                    onClick={() =>
+                      !isBackgroundSkill && handleSkillToggle(skill)
+                    }
+                    disabled={
+                      isBackgroundSkill ||
+                      (!isSelected && selectedClassSkills.length >= maxSkills)
+                    }
                     className={`p-4 rounded-lg border-2 transition-all text-left ${
                       isBackgroundSkill
                         ? 'bg-theme-tertiary/50 border-theme-primary opacity-50 cursor-not-allowed'
                         : isSelected
-                        ? 'bg-accent-purple-darker border-accent-purple shadow-md'
-                        : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
+                          ? 'bg-accent-purple-darker border-accent-purple shadow-md'
+                          : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <h4 className="font-semibold text-white flex items-center gap-2">
                           {skill}
-                          {isBackgroundSkill && <span className="text-xs text-accent-green-light">(from background)</span>}
+                          {isBackgroundSkill && (
+                            <span className="text-xs text-accent-green-light">
+                              (from background)
+                            </span>
+                          )}
                         </h4>
-                        <p className="text-xs text-theme-muted">{skillInfo?.ability || 'Unknown'}</p>
+                        <p className="text-xs text-theme-muted">
+                          {skillInfo?.ability || 'Unknown'}
+                        </p>
                       </div>
                       {isSelected && !isBackgroundSkill && (
                         <Check className="w-5 h-5 text-accent-purple-light flex-shrink-0" />
                       )}
                     </div>
                     {skillInfo && (
-                      <p className="text-xs text-theme-muted mt-2">{skillInfo.description}</p>
+                      <p className="text-xs text-theme-muted mt-2">
+                        {skillInfo.description}
+                      </p>
                     )}
                   </button>
                 );
@@ -199,11 +228,13 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
             }`}
           >
             <Check className="w-5 h-5" />
-            Save Skills {selectedClassSkills.length !== maxSkills && `(${selectedClassSkills.length}/${maxSkills})`}
+            Save Skills{' '}
+            {selectedClassSkills.length !== maxSkills &&
+              `(${selectedClassSkills.length}/${maxSkills})`}
           </button>
         </div>
       </div>
-    </div>
+    </CreatorDialog>
   );
 };
 

@@ -44,6 +44,13 @@ export interface CampaignRecord {
   updatedAt: Date;
 }
 
+export interface CampaignMetadata {
+  edition?: '2014' | '2024';
+  mode?: 'campaign' | 'one-shot';
+  mood?:
+    'parchment' | 'grimdark' | 'feywild' | 'arcane-night' | 'dark-mode' | null;
+}
+
 export interface CharacterRecord {
   id: string;
   name: string;
@@ -250,4 +257,3 @@ export abstract class BaseRepository {
     return client ?? this.pool;
   }
 }
-

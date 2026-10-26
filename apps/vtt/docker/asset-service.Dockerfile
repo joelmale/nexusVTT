@@ -35,8 +35,9 @@ COPY apps/vtt/scripts/ensure-library-assets.cjs ./apps/vtt/scripts/ensure-librar
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
-    mkdir -p /workspace/static-assets/assets /workspace/static-assets/users /workspace/assets-data && \
-    chown -R nodejs:nodejs /workspace
+    mkdir -p /workspace/static-assets/assets /workspace/static-assets/users /workspace/assets-data \
+      /app/static-assets/assets /app/static-assets/users /app/assets-data && \
+    chown -R nodejs:nodejs /workspace /app/static-assets /app/assets-data
 
 USER nodejs
 WORKDIR /workspace

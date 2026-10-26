@@ -284,14 +284,6 @@ describe('publishSessionPlan', () => {
           track: 'main',
           visibility: 'dm-only',
         },
-        {
-          command: 'Deploy encounter',
-          durationMinutes: 5,
-          id: 'legacy-step',
-          title: 'Unlinked fight',
-          track: 'main',
-          visibility: 'dm-only',
-        },
       ],
     });
 
@@ -301,8 +293,7 @@ describe('publishSessionPlan', () => {
       type: 'deploy-encounter',
       encounterRef: { kind: 'encounter', id: ENCOUNTER_ID, revision: 4 },
     });
-    // Without an authored encounter the step still publishes as a reminder.
-    expect(steps[1]).toMatchObject({ type: 'reminder' });
+    expect(steps).toHaveLength(1);
     expect(createdPlan).toMatchObject({
       dependencies: [
         {
@@ -507,7 +498,8 @@ describe('fetchSessionPlanStatus', () => {
           durationMinutes: 0,
           id: 'handout-step',
           title: 'Handout Map',
-          body: 'Follow the trail to @[Sunken Spire](ref:loc-2).',
+          body: 'DM ONLY: introduce this map after the ambush.',
+          handoutBody: 'Follow the trail to @[Sunken Spire](ref:loc-2).',
           track: 'main',
           visibility: 'shared',
         },
@@ -565,12 +557,14 @@ describe('fetchSessionPlanStatus', () => {
         if (path === '/api/user/dm-1/upload') {
           const form = requestInit?.body as FormData;
           const file = form.get('file') as Blob;
-          capturedHandoutBlobText = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsText(file);
-          });
+          capturedHandoutBlobText = await new Promise<string>(
+            (resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsText(file);
+            },
+          );
           return json({
             asset: { id: 'handout-asset', name: 'Handout Map' },
           });
@@ -612,7 +606,10 @@ describe('fetchSessionPlanStatus', () => {
 
     expect(capturedHandoutBlobText).toBe('Follow the trail to Sunken Spire.');
 
-    const steps = publishedPlan?.steps as Array<{ type: string; text?: string }>;
+    const steps = publishedPlan?.steps as Array<{
+      type: string;
+      text?: string;
+    }>;
     const reminderStep = steps.find((s) => s.type === 'reminder');
     expect(reminderStep?.text).toBe('Remember that Veyra is watching.');
   });
@@ -684,6 +681,7 @@ describe('activateSessionPlan', () => {
           durationMinutes: 10,
           id: 'scene-step',
           title: 'Glass Harbor Port',
+          sceneTemplateId: 'scene-123',
           track: 'main',
           visibility: 'shared',
         },
@@ -839,10 +837,18 @@ describe('map image upload', () => {
   it('allows what the asset service allows and says why otherwise', () => {
     expect(mapImageProblem({ type: 'image/png', size: 1000 })).toBeUndefined();
     expect(mapImageProblem({ type: 'image/jpeg', size: 1000 })).toBeUndefined();
-    expect(mapImageProblem({ type: 'image/webp', size: MAP_IMAGE_MAX_BYTES })).toBeUndefined();
-    expect(mapImageProblem({ type: 'image/gif', size: 10 })).toMatch(/PNG, JPEG or WebP/);
-    expect(mapImageProblem({ type: 'image/svg+xml', size: 10 })).toMatch(/PNG, JPEG or WebP/);
-    expect(mapImageProblem({ type: 'image/png', size: MAP_IMAGE_MAX_BYTES + 1 })).toMatch(/5 MB/);
+    expect(
+      mapImageProblem({ type: 'image/webp', size: MAP_IMAGE_MAX_BYTES }),
+    ).toBeUndefined();
+    expect(mapImageProblem({ type: 'image/gif', size: 10 })).toMatch(
+      /PNG, JPEG or WebP/,
+    );
+    expect(mapImageProblem({ type: 'image/svg+xml', size: 10 })).toMatch(
+      /PNG, JPEG or WebP/,
+    );
+    expect(
+      mapImageProblem({ type: 'image/png', size: MAP_IMAGE_MAX_BYTES + 1 }),
+    ).toMatch(/5 MB/);
   });
 
   it('uploads to the signed-in user as a maps asset and returns its real id and path', async () => {

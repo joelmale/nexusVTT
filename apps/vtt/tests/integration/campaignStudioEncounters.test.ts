@@ -36,226 +36,278 @@ const ASH_HOUND = {
   abilities: [13, 15, 12, 6, 12, 7],
 };
 
-describeIntegration('Campaign Studio kinds, mentions and encounters (Postgres)', () => {
-  let pool: Pool;
-  let db: DatabaseService;
-  let authoring: CampaignPrepAuthoringService;
-  let materializer: EncounterMaterializer;
-  let userId: string;
-  let campaignId: string;
+describeIntegration(
+  'Campaign Studio kinds, mentions and encounters (Postgres)',
+  () => {
+    let pool: Pool;
+    let db: DatabaseService;
+    let authoring: CampaignPrepAuthoringService;
+    let materializer: EncounterMaterializer;
+    let userId: string;
+    let campaignId: string;
 
-  const entry = (
-    kind: string,
-    title: string,
-    fields: Record<string, unknown> = {},
-    links: unknown[] = [],
-    id: string = randomUUID(),
-  ) => ({
-    id,
-    campaignId,
-    schemaVersion: 1,
-    revision: 1,
-    kind,
-    title,
-    visibility: 'dm-only',
-    content: {
-      format: 'lexical',
+    const entry = (
+      kind: string,
+      title: string,
+      fields: Record<string, unknown> = {},
+      links: unknown[] = [],
+      id: string = randomUUID(),
+    ) => ({
+      id,
+      campaignId,
       schemaVersion: 1,
-      value: { nexusStudio: { v: 1, fields } },
-    },
-    links,
-    tags: [],
-    createdAt: TIMESTAMP,
-    updatedAt: TIMESTAMP,
-  });
-
-  const create = (kind: string, data: ReturnType<typeof entry>) =>
-    authoring.create({
-      campaignId,
-      kind: kind as never,
-      data,
-      principalId: userId,
-      requestId: randomUUID(),
-    });
-
-  beforeAll(async () => {
-    assertTestDatabase();
-    const connectionString = process.env.DATABASE_URL!;
-    pool = new Pool({ connectionString });
-    db = createDatabaseService({ connectionString });
-    await db.initialize();
-    await runStartupMigrations(pool);
-    authoring = new CampaignPrepAuthoringService(db.campaignPrep);
-    materializer = new EncounterMaterializer({
-      campaignPrep: db.campaignPrep,
-      libraryObjects: db.libraryObjects,
-    });
-
-    const user = await db.users.createLocalUser(
-      `kinds-dm-${Date.now()}@nexusvtt.test`,
-      'SafePassword123!',
-      'Kinds Test DM',
-    );
-    userId = user.id;
-    campaignId = (
-      await db.createCampaign(userId, 'Kinds campaign', 'integration')
-    ).id;
-  });
-
-  afterAll(async () => {
-    if (pool && db) {
-      await db.close();
-      await pool.end();
-    }
-  });
-
-  it('accepts every new object kind after the startup migrations run', async () => {
-    for (const kind of [
-      'session',
-      'act',
-      'encounter',
-      'party-member',
-      'homebrew-monster',
-    ]) {
-      const result = await create(kind, entry(kind, `A ${kind}`));
-      expect(result.object.kind).toBe(kind);
-    }
-    const listed = await db.campaignPrep.listObjects(campaignId, {});
-    expect(new Set(listed.map((object) => object.kind))).toEqual(
-      new Set(['session', 'act', 'encounter', 'party-member', 'homebrew-monster']),
-    );
-  });
-
-  it('rejects an unknown kind at the database, not only in the API', async () => {
-    await expect(
-      pool.query(
-        `INSERT INTO campaign_objects (id, "campaignId", kind, title)
-         VALUES ($1, $2, 'bogus', 'x')`,
-        [randomUUID(), campaignId],
-      ),
-    ).rejects.toThrow(/campaign_objects_kind_check/);
-  });
-
-  it('records mention links and answers "what links here"', async () => {
-    const npc = await create('npc', entry('npc', 'Mira'));
-    const npcRef = {
-      target: 'campaign-object' as const,
-      campaignId,
-      id: npc.data.id,
       revision: 1,
-    };
-    const note = await create(
-      'note',
-      entry('note', 'Prep', { body: 'Ask Mira' }, [npcRef]),
-    );
+      kind,
+      title,
+      visibility: 'dm-only',
+      content: {
+        format: 'lexical',
+        schemaVersion: 1,
+        value: { nexusStudio: { v: 1, fields } },
+      },
+      links,
+      tags: [],
+      createdAt: TIMESTAMP,
+      updatedAt: TIMESTAMP,
+    });
 
-    const backlinks = await db.campaignPrep.getBacklinks(npcRef);
-    expect(backlinks.map((link) => link.sourceObjectId)).toEqual([
-      note.data.id,
-    ]);
-  });
-
-  it('materializes an authored encounter into library definitions, idempotently', async () => {
-    const encounterId = randomUUID();
-    await create(
-      'encounter',
-      entry(
-        'encounter',
-        'Dock ambush',
-        {
-          composition: [
-            { name: 'Goblin', count: 3, monsterKey: 'srd:goblin', cr: '1/4' },
-            { name: 'Ash Hound', count: 1, monsterKey: 'srd:ash-hound', cr: '1/2' },
-          ],
-        },
-        [],
-        encounterId,
-      ),
-    );
-    const run = (monsters: unknown[] = [GOBLIN, ASH_HOUND]) =>
-      materializer.materialize({
+    const create = (kind: string, data: ReturnType<typeof entry>) =>
+      authoring.create({
         campaignId,
-        objectId: encounterId,
+        kind: kind as never,
+        data,
         principalId: userId,
-        monsters,
+        requestId: randomUUID(),
       });
 
-    const first = await run();
-    expect(first).toMatchObject({
-      encounterRef: { kind: 'encounter', id: encounterId, revision: 1 },
-      monsterCount: 2,
-      created: true,
+    beforeAll(async () => {
+      assertTestDatabase();
+      const connectionString = process.env.DATABASE_URL!;
+      pool = new Pool({ connectionString });
+      db = createDatabaseService({ connectionString });
+      await db.initialize();
+      await runStartupMigrations(pool);
+      authoring = new CampaignPrepAuthoringService(db.campaignPrep);
+      materializer = new EncounterMaterializer({
+        campaignPrep: db.campaignPrep,
+        libraryObjects: db.libraryObjects,
+      });
+
+      const user = await db.users.createLocalUser(
+        `kinds-dm-${Date.now()}@nexusvtt.test`,
+        'SafePassword123!',
+        'Kinds Test DM',
+      );
+      userId = user.id;
+      campaignId = (
+        await db.createCampaign(userId, 'Kinds campaign', 'integration')
+      ).id;
     });
 
-    // Stored in the tables the DeployEncounter command reads.
-    const encounter = await db.libraryObjects.getObjectById(encounterId);
-    expect(encounter).toMatchObject({
-      kind: 'encounter',
-      campaignId,
-      ownerId: userId,
-    });
-    const revision = await db.libraryObjects.getRevision(encounterId, 1);
-    const groups = (
-      revision!.data as { groups: { count: number; monsterRef: { id: string } }[] }
-    ).groups;
-    expect(groups.map((group) => group.count)).toEqual([3, 1]);
-    const goblinRevision = await db.libraryObjects.getRevision(
-      groups[0].monsterRef.id,
-      1,
-    );
-    expect(goblinRevision!.data).toMatchObject({
-      name: 'Goblin',
-      hitPoints: { average: 7 },
-      armorClass: [{ value: 15 }],
-      speed: { walk: 30 },
+    afterAll(async () => {
+      if (pool && db) {
+        await db.close();
+        await pool.end();
+      }
     });
 
-    // jsonb does not keep key order; re-running must still add no revision.
-    const again = await run();
-    expect(again.encounterRef).toEqual(first.encounterRef);
-    expect(
-      (await db.libraryObjects.getObjectById(encounterId))!.currentRevision,
-    ).toBe(1);
-
-    // A changed stat block produces a new pinned revision.
-    const changed = await run([{ ...GOBLIN, hp: 12 }, ASH_HOUND]);
-    expect(changed.encounterRef.revision).toBe(2);
-    const goblin = await db.libraryObjects.getObjectById(groups[0].monsterRef.id);
-    expect(goblin!.currentRevision).toBe(2);
-
-    // Unlinked monster fails with descriptive error
-    const unlinkedId = randomUUID();
-    await create(
-      'encounter',
-      entry(
+    it('accepts every new object kind after the startup migrations run', async () => {
+      for (const kind of [
+        'session',
+        'act',
         'encounter',
-        'Unlinked encounter',
-        {
-          composition: [{ name: 'Mystery Beast', count: 1 }],
-        },
-        [],
-        unlinkedId,
-      ),
-    );
-    await expect(
-      materializer.materialize({
-        campaignId,
-        objectId: unlinkedId,
-        principalId: userId,
-        monsters: [GOBLIN, ASH_HOUND],
-      }),
-    ).rejects.toThrow(/Link these monsters to the catalog/);
-  });
+        'party-member',
+        'homebrew-monster',
+      ]) {
+        const result = await create(kind, entry(kind, `A ${kind}`));
+        expect(result.object.kind).toBe(kind);
+      }
+      const listed = await db.campaignPrep.listObjects(campaignId, {});
+      expect(new Set(listed.map((object) => object.kind))).toEqual(
+        new Set([
+          'session',
+          'act',
+          'encounter',
+          'party-member',
+          'homebrew-monster',
+        ]),
+      );
+    });
 
-  it('refuses to materialize something that is not an encounter', async () => {
-    const npc = await create('npc', entry('npc', 'Not an encounter'));
-    await expect(
-      materializer.materialize({
+    it('rejects an unknown kind at the database, not only in the API', async () => {
+      await expect(
+        pool.query(
+          `INSERT INTO campaign_objects (id, "campaignId", kind, title)
+         VALUES ($1, $2, 'bogus', 'x')`,
+          [randomUUID(), campaignId],
+        ),
+      ).rejects.toThrow(/campaign_objects_kind_check/);
+    });
+
+    it('records mention links and answers "what links here"', async () => {
+      const npc = await create('npc', entry('npc', 'Mira'));
+      const npcRef = {
+        target: 'campaign-object' as const,
         campaignId,
-        objectId: npc.data.id,
+        id: npc.data.id,
+        revision: 1,
+      };
+      const note = await create(
+        'note',
+        entry('note', 'Prep', { body: 'Ask Mira' }, [npcRef]),
+      );
+
+      const backlinks = await db.campaignPrep.getBacklinks(npcRef);
+      expect(backlinks.map((link) => link.sourceObjectId)).toEqual([
+        note.data.id,
+      ]);
+    });
+
+    it('materializes an authored encounter into library definitions, idempotently', async () => {
+      const encounterId = randomUUID();
+      await create(
+        'encounter',
+        entry(
+          'encounter',
+          'Dock ambush',
+          {
+            composition: [
+              { name: 'Goblin', count: 3, monsterKey: 'srd:goblin', cr: '1/4' },
+              {
+                name: 'Ash Hound',
+                count: 1,
+                monsterKey: 'srd:ash-hound',
+                cr: '1/2',
+              },
+            ],
+          },
+          [],
+          encounterId,
+        ),
+      );
+      const run = (monsters: unknown[] = [GOBLIN, ASH_HOUND]) =>
+        materializer.materialize({
+          campaignId,
+          objectId: encounterId,
+          principalId: userId,
+          monsters,
+        });
+
+      const first = await run();
+      expect(first).toMatchObject({
+        encounterRef: { kind: 'encounter', id: encounterId, revision: 1 },
+        monsterCount: 2,
+        created: true,
+      });
+
+      // Stored in the tables the DeployEncounter command reads.
+      const encounter = await db.libraryObjects.getObjectById(encounterId);
+      expect(encounter).toMatchObject({
+        kind: 'encounter',
+        campaignId,
+        ownerId: userId,
+      });
+      const revision = await db.libraryObjects.getRevision(encounterId, 1);
+      const groups = (
+        revision!.data as {
+          groups: { count: number; monsterRef: { id: string } }[];
+        }
+      ).groups;
+      expect(groups.map((group) => group.count)).toEqual([3, 1]);
+      const goblinRevision = await db.libraryObjects.getRevision(
+        groups[0].monsterRef.id,
+        1,
+      );
+      expect(goblinRevision!.data).toMatchObject({
+        name: 'Goblin',
+        hitPoints: { average: 7 },
+        armorClass: [{ value: 15 }],
+        speed: { walk: 30 },
+      });
+
+      const deployCommand = {
+        commandId: randomUUID(),
+        protocolVersion: '1.0' as const,
+        campaignId,
+        issuerUserId: userId,
+        timestamp: TIMESTAMP,
+        payload: {
+          type: 'DeployEncounter' as const,
+          templateRef: first.encounterRef,
+          sceneId: randomUUID(),
+          anchorPosition: { x: 0, y: 0 },
+          hiddenFromPlayers: false,
+        },
+      };
+      const deployed = await db.domainCommands.execute(deployCommand, {
         principalId: userId,
-        monsters: [GOBLIN],
-      }),
-    ).rejects.toMatchObject({ code: 'not-an-encounter' });
-  });
-});
+        isDm: true,
+      });
+      expect(deployed.receipt.result.success).toBe(true);
+      const actors = await db.campaignActors.getActorsByCampaign(campaignId);
+      expect(actors).toHaveLength(4);
+      expect(new Set(actors.map((actor) => actor.id)).size).toBe(4);
+      expect(
+        (
+          await db.domainCommands.execute(deployCommand, {
+            principalId: userId,
+            isDm: true,
+          })
+        ).duplicate,
+      ).toBe(true);
+      expect(
+        await db.campaignActors.getActorsByCampaign(campaignId),
+      ).toHaveLength(4);
+
+      // jsonb does not keep key order; re-running must still add no revision.
+      const again = await run();
+      expect(again.encounterRef).toEqual(first.encounterRef);
+      expect(
+        (await db.libraryObjects.getObjectById(encounterId))!.currentRevision,
+      ).toBe(1);
+
+      // A changed stat block produces a new pinned revision.
+      const changed = await run([{ ...GOBLIN, hp: 12 }, ASH_HOUND]);
+      expect(changed.encounterRef.revision).toBe(2);
+      const goblin = await db.libraryObjects.getObjectById(
+        groups[0].monsterRef.id,
+      );
+      expect(goblin!.currentRevision).toBe(2);
+
+      // Unlinked monster fails with descriptive error
+      const unlinkedId = randomUUID();
+      await create(
+        'encounter',
+        entry(
+          'encounter',
+          'Unlinked encounter',
+          {
+            composition: [{ name: 'Mystery Beast', count: 1 }],
+          },
+          [],
+          unlinkedId,
+        ),
+      );
+      await expect(
+        materializer.materialize({
+          campaignId,
+          objectId: unlinkedId,
+          principalId: userId,
+          monsters: [GOBLIN, ASH_HOUND],
+        }),
+      ).rejects.toThrow(/Link these monsters to the catalog/);
+    });
+
+    it('refuses to materialize something that is not an encounter', async () => {
+      const npc = await create('npc', entry('npc', 'Not an encounter'));
+      await expect(
+        materializer.materialize({
+          campaignId,
+          objectId: npc.data.id,
+          principalId: userId,
+          monsters: [GOBLIN],
+        }),
+      ).rejects.toMatchObject({ code: 'not-an-encounter' });
+    });
+  },
+);

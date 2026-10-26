@@ -119,6 +119,9 @@ export async function createCampaign(
         ...(input.description?.trim()
           ? { description: input.description.trim() }
           : {}),
+        ...(input.edition ? { edition: input.edition } : {}),
+        ...(input.mode ? { mode: input.mode } : {}),
+        ...(input.mood ? { mood: input.mood } : {}),
       }),
       method: 'POST',
     }),
@@ -127,11 +130,12 @@ export async function createCampaign(
 
 export async function updateCampaign(
   id: string,
-  updates: Partial<Pick<CampaignSummary, 'name' | 'description' | 'edition' | 'mode' | 'mood'>>,
+  updates: Partial<
+    Pick<CampaignSummary, 'name' | 'description' | 'edition' | 'mode' | 'mood'>
+  >,
 ): Promise<void> {
   await campaignRequest(`/api/campaigns/${encodeURIComponent(id)}`, {
     body: JSON.stringify(updates),
-    method: 'PATCH',
+    method: 'PUT',
   });
 }
-

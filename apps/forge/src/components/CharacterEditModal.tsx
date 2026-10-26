@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Character } from '../types/dnd';
 import { CharacterEditForm } from './CharacterEditForm';
@@ -7,15 +7,16 @@ interface CharacterEditModalProps {
   character: Character;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (character: Character) => void;
+  onSave: (character: Character) => void | Promise<void>;
 }
 
 export const CharacterEditModal: React.FC<CharacterEditModalProps> = ({
   character,
   isOpen,
   onClose,
-  onSave
+  onSave,
 }) => {
+  const [error, setError] = useState<string>();
   if (!isOpen) return null;
 
   return (
@@ -36,11 +37,20 @@ export const CharacterEditModal: React.FC<CharacterEditModalProps> = ({
 
         {/* Modal Content */}
         <div className="max-h-[calc(90vh-80px)] overflow-y-auto">
+          {error && <p role="alert">{error}</p>}
           <CharacterEditForm
             character={character}
             onSave={(updatedCharacter) => {
-              onSave(updatedCharacter);
-              onClose();
+              setError(undefined);
+              void Promise.resolve(onSave(updatedCharacter))
+                .then(onClose)
+                .catch((caught: unknown) => {
+                  setError(
+                    caught instanceof Error
+                      ? caught.message
+                      : 'Character could not be saved. Your edits are still open.',
+                  );
+                });
             }}
             onCancel={onClose}
             isCreating={false}

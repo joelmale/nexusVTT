@@ -74,11 +74,8 @@ async function expectSingleInitiativeEntry(
 }
 
 async function submitActiveSceneName(page: Page, name: string): Promise<void> {
-  const field = page
-    .locator('.scene-panel__field')
-    .filter({ has: page.getByText('Scene Name', { exact: true }) });
-  await field.locator('.scene-panel__field-display').click();
-  const input = field.locator('input[type="text"]');
+  await page.getByRole('tab', { name: 'General', exact: true }).click();
+  const input = page.getByRole('textbox', { name: 'Scene name', exact: true });
   await input.fill(name);
   await input.press('Enter');
 }
@@ -270,9 +267,7 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     // and result record on both clients without a local+server duplicate.
     await openPanel(hostPage, 'Dice');
     await openPanel(playerPage, 'Dice');
-    await hostPage
-      .getByPlaceholder('2d8 + 1d6 + 3')
-      .fill(diceExpression);
+    await hostPage.getByPlaceholder('2d8 + 1d6 + 3').fill(diceExpression);
     await hostPage.getByRole('button', { name: 'Roll Pool' }).click();
     await expect(diceRoll(hostPage, diceExpression)).toHaveCount(1);
     await expect(diceRoll(playerPage, diceExpression)).toHaveCount(1);
@@ -395,9 +390,7 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await hostPage.getByTitle('Send message (Enter)').click();
     await expect(chatMessage(hostPage, replayChatText)).toHaveCount(1);
     await openPanel(hostPage, 'Dice');
-    await hostPage
-      .getByPlaceholder('2d8 + 1d6 + 3')
-      .fill(replayDiceExpression);
+    await hostPage.getByPlaceholder('2d8 + 1d6 + 3').fill(replayDiceExpression);
     await hostPage.getByRole('button', { name: 'Roll Pool' }).click();
     await expect(diceRoll(hostPage, replayDiceExpression)).toHaveCount(1);
     await closePanel(hostPage, 'Dice');

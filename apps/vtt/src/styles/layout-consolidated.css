@@ -1183,7 +1183,6 @@
   .modal-backdrop {
     padding: var(--spacing-2);
   }
-
 }
 
 /* ============================================================================
@@ -1529,7 +1528,7 @@ html[data-theme='light'] .type-filter-select option {
 /* Desktop Onboarding Banner */
 .desktop-onboarding-banner {
   position: absolute;
-  top: 1rem;
+  top: var(--spacing-16);
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-panel, 70);
@@ -1552,4 +1551,3 @@ html[data-theme='light'] .type-filter-select option {
   align-items: center;
   gap: 0.5rem;
 }
-

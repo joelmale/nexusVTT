@@ -1,8 +1,85 @@
 import type { PoolClient } from 'pg';
 import { BaseRepository, type CharacterRecord } from './base.js';
 import { sanitizeLog } from '../sanitizeLog.js';
+import {
+  characterCreationPayloadHash,
+  CharacterCreationConflictError,
+} from '../utils/characterCreationIdentity.js';
 
 export class CharacterRepository extends BaseRepository {
+  /** Receipt and character commit together; concurrent retries serialize in PG. */
+  async createCharacterOnce(
+    ownerId: string,
+    name: string,
+    data: unknown,
+    attemptId: string,
+    draftRevision: number,
+  ): Promise<CharacterRecord> {
+    const payloadHash = characterCreationPayloadHash(name, data, draftRevision);
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [JSON.stringify([ownerId, attemptId])],
+      );
+      const receipt = await client.query<{
+        payloadHash: string;
+        characterId: string | null;
+      }>(
+        `SELECT "payloadHash", "characterId" FROM character_creation_attempts
+         WHERE "ownerId" = $1 AND "attemptId" = $2`,
+        [ownerId, attemptId],
+      );
+      const existing = receipt.rows[0];
+      if (existing) {
+        if (existing.payloadHash !== payloadHash)
+          throw new CharacterCreationConflictError();
+        if (!existing.characterId) {
+          throw new CharacterCreationConflictError(
+            'The character from this creation attempt was deleted. Start a new creation to make another character.',
+          );
+        }
+        const character = await this.getCharacterById(
+          existing.characterId,
+          client,
+        );
+        if (!character || character.ownerId !== ownerId) {
+          throw new CharacterCreationConflictError(
+            'The saved character is no longer available.',
+          );
+        }
+        await client.query('COMMIT');
+        return character;
+      }
+
+      const character = await this.createCharacter(ownerId, name, data, client);
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        const canonicalData = {
+          ...(character.data as Record<string, unknown>),
+          id: character.id,
+        };
+        await client.query('UPDATE characters SET data = $1 WHERE id = $2', [
+          JSON.stringify(canonicalData),
+          character.id,
+        ]);
+        character.data = canonicalData;
+      }
+      await client.query(
+        `INSERT INTO character_creation_attempts ("ownerId", "attemptId", "payloadHash", "characterId")
+         VALUES ($1, $2, $3, $4)`,
+        [ownerId, attemptId, payloadHash, character.id],
+      );
+      await client.query('COMMIT');
+      return character;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async recordLegacyId(
     namespace: string,
     legacyId: string,
@@ -59,7 +136,13 @@ export class CharacterRepository extends BaseRepository {
 
     // Reconcile embedded legacy ID if provided and distinct
     if (embeddedId && embeddedId !== created.id) {
-      await this.recordLegacyId('character', embeddedId, created.id, ownerId, client);
+      await this.recordLegacyId(
+        'character',
+        embeddedId,
+        created.id,
+        ownerId,
+        client,
+      );
       const reconciledData = {
         ...(typeof data === 'object' && data ? data : {}),
         id: created.id,
@@ -72,9 +155,7 @@ export class CharacterRepository extends BaseRepository {
       created.data = reconciledData;
     }
 
-    console.log(
-      `🗄️ Character created: ${created.id} for user ${ownerId}`,
-    );
+    console.log(`🗄️ Character created: ${created.id} for user ${ownerId}`);
     return created;
   }
 
@@ -170,9 +251,7 @@ export class CharacterRepository extends BaseRepository {
     client?: PoolClient,
   ): Promise<void> {
     const executor = this.getExecutor(client);
-    await executor.query('DELETE FROM characters WHERE id = $1', [
-      characterId,
-    ]);
+    await executor.query('DELETE FROM characters WHERE id = $1', [characterId]);
 
     console.log(`🗄️ Character deleted: ${sanitizeLog(characterId)}`);
   }

@@ -1,0 +1,10 @@
+.nameControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2, 0.5rem);
+  margin-bottom: var(--spacing-2, 0.5rem);
+}
+.nameControls input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}

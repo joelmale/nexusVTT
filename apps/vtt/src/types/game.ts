@@ -212,6 +212,7 @@ export interface UserSettings {
 // Scene Management Types
 export interface Scene {
   id: string;
+  sourceTemplateRef?: { id: string; revision: number };
   name: string;
   description: string;
   roomCode: string; // Links scene to specific game room

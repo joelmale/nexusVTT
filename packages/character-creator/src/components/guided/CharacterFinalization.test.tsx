@@ -13,13 +13,15 @@ const mockProfile: CharacterProfile = {
   description: 'Heavy armor and resolute defense.',
   recommendedClasses: [{ class: 'fighter', reason: 'Resolute defense' }],
   recommendedRaces: [{ race: 'human', reason: 'Adaptable' }],
-  recommendedBackgrounds: [{ background: 'soldier', reason: 'Military training' }],
+  recommendedBackgrounds: [
+    { background: 'soldier', reason: 'Military training' },
+  ],
   keyStats: ['STR', 'CON'],
   finalQuestion: 'What drives your courage?',
 };
 
 describe('CharacterFinalization', () => {
-  it('defaults alignment to True Neutral and submits it on creation', () => {
+  it('retains the canonical draft alignment and submits it on creation', () => {
     const handleCreate = vi.fn();
     const handleBack = vi.fn();
 
@@ -35,15 +37,20 @@ describe('CharacterFinalization', () => {
       />,
     );
 
-    // Verify 'True Neutral' has active styling and description is visible
+    // Every alignment remains selectable; opening this view does not relabel the draft.
     expect(screen.getByText('Balance and pragmatism')).toBeInTheDocument();
 
-    const createButton = screen.getByRole('button', { name: /create character/i });
+    const createButton = screen.getByRole('button', {
+      name: /create character/i,
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Character name' }), {
+      target: { value: 'A named hero' },
+    });
     fireEvent.click(createButton);
 
     expect(handleCreate).toHaveBeenCalledTimes(1);
     const submittedData = handleCreate.mock.calls[0][0];
-    expect(submittedData.alignment).toBe('True Neutral');
+    expect(submittedData.alignment).toBe('Neutral Good');
   });
 
   it('allows changing alignment when a different option is clicked', () => {
@@ -67,7 +74,12 @@ describe('CharacterFinalization', () => {
     expect(cgButton).not.toBeNull();
     fireEvent.click(cgButton!);
 
-    const createButton = screen.getByRole('button', { name: /create character/i });
+    const createButton = screen.getByRole('button', {
+      name: /create character/i,
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Character name' }), {
+      target: { value: 'Another hero' },
+    });
     fireEvent.click(createButton);
 
     expect(handleCreate).toHaveBeenCalledTimes(1);
