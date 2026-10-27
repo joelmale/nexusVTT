@@ -19,6 +19,11 @@ export default defineConfig({
         __dirname,
         '../../packages/character-creator/dist/creator.css',
       ),
+      // Narrow imports keep panels off the full rules-data barrel.
+      '@nexus/character-creator/components': path.resolve(
+        __dirname,
+        '../../packages/character-creator/src/components',
+      ),
       '@nexus/character-creator': path.resolve(
         __dirname,
         '../../packages/character-creator/src/index.ts',

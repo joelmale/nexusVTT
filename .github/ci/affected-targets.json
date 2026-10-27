@@ -203,11 +203,11 @@
         "name": "doc-websocket",
         "directory": "apps/codex/services/doc-websocket",
         "language": "typescript",
-        "testPolicy": "none",
+        "testPolicy": "unit",
         "validation": {
           "profile": "node",
           "prisma": true,
-          "test": false,
+          "test": true,
           "lint": false,
           "build": true
         }

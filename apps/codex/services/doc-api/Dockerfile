@@ -40,11 +40,10 @@ RUN npm ci \
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-# zod 4 is not the version the repo root hoists (other workspaces still use
-# zod 3), so it installs into each workspace's own node_modules. Copying only
-# /app/node_modules silently drops it.
+# zod is hoisted to the root; packages that could not hoist (for example
+# @types/node) install into the workspace's own node_modules, which copying
+# only /app/node_modules silently drops.
 COPY --from=deps /app/apps/codex/services/doc-api/node_modules ./apps/codex/services/doc-api/node_modules
-COPY --from=deps /app/packages/document-contracts/node_modules ./packages/document-contracts/node_modules
 COPY --from=deps /app/packages/rules-contracts/node_modules ./packages/rules-contracts/node_modules
 COPY package.json package-lock.json ./
 COPY apps/codex/services/doc-api/package.json ./apps/codex/services/doc-api/
@@ -71,9 +70,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copy necessary files
 COPY --from=builder /app/node_modules ./node_modules
-# zod 4 is not the version the repo root hoists (other workspaces still use
-# zod 3), so it installs into each workspace's own node_modules. Copying only
-# /app/node_modules silently drops it.
+# zod is hoisted to the root; packages that could not hoist (for example
+# @types/node) install into the workspace's own node_modules, which copying
+# only /app/node_modules silently drops.
 COPY --from=builder /app/apps/codex/services/doc-api/node_modules ./apps/codex/services/doc-api/node_modules
 COPY --from=builder /app/packages/rules-contracts/node_modules ./packages/rules-contracts/node_modules
 COPY --from=builder /app/apps/codex/services/doc-api/dist ./apps/codex/services/doc-api/dist
