@@ -6,8 +6,8 @@ import { z } from 'zod';
 
 // Merge duplicates request schema
 const MergeDuplicatesSchema = z.object({
-  keepDocumentId: z.string().uuid(),
-  deleteDocumentIds: z.array(z.string().uuid()).min(1),
+  keepDocumentId: z.guid(),
+  deleteDocumentIds: z.array(z.guid()).min(1),
   mergeTags: z.boolean().optional().default(true),
   mergeCampaigns: z.boolean().optional().default(true),
   mergeCollections: z.boolean().optional().default(true),

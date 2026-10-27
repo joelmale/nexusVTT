@@ -222,8 +222,8 @@ const monsterFields = {
       cha: z.number().int().min(1).max(30),
     })
     .strict(),
-  savingThrows: z.record(AbilitySchema, z.number().int()).default({}),
-  skills: z.record(SkillSchema, z.number().int()).default({}),
+  savingThrows: z.partialRecord(AbilitySchema, z.number().int()).default({}),
+  skills: z.partialRecord(SkillSchema, z.number().int()).default({}),
   damageVulnerabilities: z.array(DamageDefenseSchema).default([]),
   damageResistances: z.array(DamageDefenseSchema).default([]),
   damageImmunities: z.array(DamageDefenseSchema).default([]),

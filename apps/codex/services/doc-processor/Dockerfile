@@ -109,6 +109,8 @@ COPY --from=builder --chown=worker:nodejs /app/package.json ./package.json
 # Workspace dependency, symlinked from node_modules/@nexus/document-contracts.
 COPY --from=builder --chown=worker:nodejs /app/packages/document-contracts/package.json ./packages/document-contracts/package.json
 COPY --from=builder --chown=worker:nodejs /app/packages/document-contracts/dist ./packages/document-contracts/dist
+# Its zod 4 install is nested (the root hoists zod 3 for other workspaces).
+COPY --from=builder --chown=worker:nodejs /app/packages/document-contracts/node_modules ./packages/document-contracts/node_modules
 
 USER worker
 WORKDIR /app/apps/codex/services/doc-processor

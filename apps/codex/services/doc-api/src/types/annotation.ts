@@ -15,9 +15,9 @@ export type Position = z.infer<typeof PositionSchema>;
 
 // Document annotation schema
 export const DocumentAnnotationSchema = z.object({
-  id: z.string().uuid(),
-  documentId: z.string().uuid(),
-  referenceId: z.string().uuid().nullable(),
+  id: z.guid(),
+  documentId: z.guid(),
+  referenceId: z.guid().nullable(),
   userId: z.string(),
   campaignId: z.string().nullable(),
   pageNumber: z.number().int().positive(),
@@ -33,8 +33,8 @@ export type DocumentAnnotation = z.infer<typeof DocumentAnnotationSchema>;
 
 // Create annotation input
 export const CreateAnnotationSchema = z.object({
-  documentId: z.string().uuid(),
-  referenceId: z.string().uuid().optional(),
+  documentId: z.guid(),
+  referenceId: z.guid().optional(),
   userId: z.string(),
   campaignId: z.string().optional(),
   pageNumber: z.number().int().positive(),
@@ -57,7 +57,7 @@ export type UpdateAnnotationInput = z.infer<typeof UpdateAnnotationSchema>;
 
 // Query parameters for listing annotations
 export const ListAnnotationsQuerySchema = z.object({
-  documentId: z.string().uuid().optional(),
+  documentId: z.guid().optional(),
   userId: z.string().optional(),
   campaignId: z.string().optional(),
   pageNumber: z.number().int().positive().optional(),

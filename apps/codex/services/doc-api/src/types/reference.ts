@@ -7,7 +7,7 @@ const TextSelectionSchema = z.object({
 });
 
 export const CreateReferenceSchema = z.object({
-  documentId: z.string().uuid(),
+  documentId: z.guid(),
   userId: z.string(),
   campaignId: z.string().optional(),
   pageNumber: z.number().int().positive().optional(),
@@ -31,7 +31,7 @@ export const UpdateReferenceSchema = z.object({
 });
 
 export const ListReferencesQuerySchema = z.object({
-  documentId: z.string().uuid().optional(),
+  documentId: z.guid().optional(),
   userId: z.string().optional(),
   campaignId: z.string().optional(),
   skip: z.string().optional().default('0').transform(Number),

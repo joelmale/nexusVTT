@@ -29,7 +29,7 @@ export interface RulesAdminRoutesOptions {
   requireServiceToken?: boolean;
 }
 
-const IdParams = z.object({ id: z.string().uuid() });
+const IdParams = z.object({ id: z.guid() });
 const RevisionParams = IdParams.extend({ revisionNumber: z.coerce.number().int().min(1) });
 const PreviewQuery = z.object({ revision: z.coerce.number().int().min(1).optional() }).strict();
 const DiffQuery = z

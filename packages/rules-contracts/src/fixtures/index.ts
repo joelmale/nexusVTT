@@ -411,6 +411,6 @@ export const invalidRulesFixtures: InvalidRulesFixture[] = [
   { name: '2014 monster with 2024 initiative', entityType: 'monster', ruleset: '2014', data: withChanges(goblin2014, { initiative: { modifier: 2, score: 12 } }), expectedPath: '' },
   { name: 'wrong proficiency bonus', entityType: 'monster', ruleset: '2014', data: withChanges(lich2014, { proficiencyBonus: 2 }), expectedPath: 'proficiencyBonus' },
   { name: 'unknown condition immunity', entityType: 'monster', ruleset: '2024', data: withChanges(swarmOfRats2024, { conditionImmunities: ['bored'] }), expectedPath: 'conditionImmunities.0' },
-  { name: 'unknown skill', entityType: 'monster', ruleset: '2014', data: withChanges(goblin2014, { skills: { juggling: 2 } }), expectedPath: 'skills.juggling' },
+  { name: 'unknown skill', entityType: 'monster', ruleset: '2014', data: withChanges(goblin2014, { skills: { juggling: 2 } }), expectedPath: 'skills' },
   { name: 'swarm member larger than swarm', entityType: 'monster', ruleset: '2024', data: withChanges(swarmOfRats2024, { swarmOf: 'large' }), expectedPath: 'swarmOf' },
 ];

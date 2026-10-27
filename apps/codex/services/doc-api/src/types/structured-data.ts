@@ -6,13 +6,13 @@ export type StructuredDataType = z.infer<typeof StructuredDataTypeSchema>;
 
 // Structured data schema
 export const StructuredDataSchema = z.object({
-  id: z.string().uuid(),
-  documentId: z.string().uuid(),
+  id: z.guid(),
+  documentId: z.guid(),
   type: StructuredDataTypeSchema,
   pageNumber: z.number().int().positive().nullable(),
   section: z.string().nullable(),
   name: z.string(),
-  data: z.record(z.unknown()), // JSON object
+  data: z.record(z.string(), z.unknown()), // JSON object
   searchText: z.string(),
   searchIndex: z.string().nullable(),
   createdAt: z.date(),
@@ -22,7 +22,7 @@ export type StructuredData = z.infer<typeof StructuredDataSchema>;
 
 // Query parameters for listing structured data
 export const ListStructuredDataQuerySchema = z.object({
-  documentId: z.string().uuid().optional(),
+  documentId: z.guid().optional(),
   type: StructuredDataTypeSchema.optional(),
   name: z.string().optional(),
   search: z.string().optional(),

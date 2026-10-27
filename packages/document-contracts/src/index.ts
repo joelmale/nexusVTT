@@ -31,7 +31,7 @@ export const CreateDocumentSchema = z.object({
   collections: z.array(z.string()).optional().default([]),
   campaigns: z.array(z.string()).optional().default([]),
   isPublic: z.boolean().optional().default(false),
-  metadata: z.record(z.unknown()).optional().default({}),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
   fileSize: z.number().int().positive(),
   fileName: z.string().min(1),
 });
@@ -45,7 +45,7 @@ export const UpdateDocumentSchema = z.object({
   collections: z.array(z.string()).optional(),
   campaigns: z.array(z.string()).optional(),
   isPublic: z.boolean().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const ListDocumentsQuerySchema = z.object({

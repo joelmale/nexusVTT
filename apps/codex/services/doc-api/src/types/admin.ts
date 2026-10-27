@@ -29,7 +29,7 @@ export const AdminStatsSchema = z.object({
   processingCount: z.number(),
   failedCount: z.number(),
   totalStorageBytes: z.number(),
-  documentsByType: z.record(z.number()),
+  documentsByType: z.record(z.string(), z.number()),
   recentUploads: z.array(z.object({
     id: z.string(),
     title: z.string(),

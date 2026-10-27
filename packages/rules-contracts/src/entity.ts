@@ -54,17 +54,21 @@ export function parseRulesEntityData<T extends RulesEntityType>(
   ruleset: Ruleset,
   data: unknown,
 ): RulesDataParseResult<T> {
-  const schema = RULES_DATA_SCHEMAS[entityType] as unknown as z.ZodType<
-    RulesEntityDataMap[T],
-    z.ZodTypeDef,
-    unknown
-  >;
-  const result = schema.safeParse(data);
+  const schema = RULES_DATA_SCHEMAS[entityType] as unknown as z.ZodType<RulesEntityDataMap[T], unknown>;
+  // zod 4 words a missing field as "Invalid input: expected X, received
+  // undefined"; the admin form shows these messages verbatim, so keep the
+  // short wording zod 3 used.
+  const result = schema.safeParse(data, {
+    error: (issue) =>
+      issue.code === 'invalid_type' && issue.input === undefined ? 'Required' : undefined,
+  });
   if (!result.success) {
     return {
       success: false,
       issues: result.error.issues.map((issue) => ({
-        path: issue.path,
+        path: issue.path.map((segment) =>
+          typeof segment === 'symbol' ? String(segment) : segment,
+        ),
         code: issue.code,
         message: issue.message,
       })),
@@ -326,7 +330,7 @@ export const CatalogRemovedEntitySchema = z.object({
   ruleset: RulesetSchema,
   slug: z.string(),
   catalogVersion: z.number(),
-}) satisfies z.ZodType<CatalogRemovedEntity, z.ZodTypeDef, unknown>;
+}) satisfies z.ZodType<CatalogRemovedEntity, unknown>;
 
 export const CatalogSkippedEntitySchema = z.object({
   id: z.string(),
@@ -335,14 +339,14 @@ export const CatalogSkippedEntitySchema = z.object({
   slug: z.string(),
   revisionId: z.string(),
   reason: z.string(),
-}) satisfies z.ZodType<CatalogSkippedEntity, z.ZodTypeDef, unknown>;
+}) satisfies z.ZodType<CatalogSkippedEntity, unknown>;
 
 export const CatalogManifestSchema = z.object({
   catalogVersion: z.number(),
   publishedAt: z.string().nullable(),
   etag: z.string(),
   counts: z.record(z.string(), z.record(z.string(), z.number())),
-}) satisfies z.ZodType<CatalogManifest, z.ZodTypeDef, unknown>;
+}) satisfies z.ZodType<CatalogManifest, unknown>;
 
 export const CatalogEntitiesResponseSchema = z.object({
   catalogVersion: z.number(),

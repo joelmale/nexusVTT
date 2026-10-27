@@ -110,7 +110,7 @@ export async function annotationRoutes(fastify: FastifyInstance) {
         fastify.log.error(error);
 
         if (error.name === 'ZodError') {
-          return reply.status(400).send({ error: 'Invalid input', details: error.errors });
+          return reply.status(400).send({ error: 'Invalid input', details: error.issues });
         }
 
         return reply.status(500).send({ error: 'Failed to create annotation' });
@@ -206,7 +206,7 @@ export async function annotationRoutes(fastify: FastifyInstance) {
         fastify.log.error(error);
 
         if (error.name === 'ZodError') {
-          return reply.status(400).send({ error: 'Invalid input', details: error.errors });
+          return reply.status(400).send({ error: 'Invalid input', details: error.issues });
         }
 
         return reply.status(500).send({ error: 'Failed to update annotation' });
