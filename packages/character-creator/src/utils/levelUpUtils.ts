@@ -502,12 +502,17 @@ export function applyLevelUp(
       updatedCharacter.selectedFeats = [];
     }
     updatedCharacter.selectedFeats.push(choices.featChosen);
+    if (choices.featChoices)
+      updatedCharacter.featChoices = {
+        ...updatedCharacter.featChoices,
+        ...choices.featChoices,
+      };
 
     // Process feat-granted abilities and spells
     applyFeatEffects(
       updatedCharacter,
       choices.featChosen,
-      character.featChoices,
+      updatedCharacter.featChoices,
     );
   }
   applyClassCapstone(
@@ -762,6 +767,20 @@ export function getAverageHPGain(hitDie: string, conModifier: number): number {
   return Math.max(1, average + conModifier); // Minimum 1 HP
 }
 
+/** Resolve an explicit feat spell choice against the edition's catalog. */
+function chosenFeatSpell(
+  edition: Character['edition'],
+  value: unknown,
+  level: number,
+  eligible: (spell: AppSpell) => boolean,
+): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const spell = loadSpells(edition).find((entry) => entry.slug === value);
+  return spell && spell.level === level && eligible(spell)
+    ? spell.slug
+    : undefined;
+}
+
 /**
  * Apply effects granted by a feat to the character
  */
@@ -780,243 +799,230 @@ function applyFeatEffects(
     character.featEffects = {};
   }
 
-  // Initialize featGrantedSpells array if it doesn't exist and feat grants spells
-  if (!character.spellcasting) {
-    // Some feats might grant spells to non-spellcasters, but for now we'll assume they need spellcasting
-    // Initialize spellcasting for feats that grant spells to non-casters
-    if (
-      [
-        'drow-high-magic',
-        'fey-touched',
-        'shadow-touched',
-        'wood-elf-magic',
-        'metallic-dragon-adept',
-        'telekinetic',
-        'telepathic',
-      ].includes(featSlug)
-    ) {
-      character.spellcasting = {
-        ability: 'CHA' as const,
-        spellSaveDC:
-          8 +
-          character.proficiencyBonus +
-          Math.floor((character.abilities.CHA.score - 10) / 2),
-        spellAttackBonus:
-          character.proficiencyBonus +
-          Math.floor((character.abilities.CHA.score - 10) / 2),
-        cantripsKnown: [],
-        spellcastingType: 'known' as const,
-        cantripChoicesByLevel: {},
-        spellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // No spell slots for feat-granted spells
-        usedSpellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        featGrantedSpells: [],
-      };
-    } else {
-      return;
-    }
+  // Feats that grant spells give non-casters a slotless spellcasting block.
+  const featCastingAbility: Partial<Record<string, 'INT' | 'WIS' | 'CHA'>> = {
+    'drow-high-magic': 'CHA',
+    'fey-touched': 'CHA',
+    'shadow-touched': 'CHA',
+    'wood-elf-magic': 'WIS',
+    'metallic-dragon-adept': 'CHA',
+    telekinetic: 'CHA',
+    telepathic: 'CHA',
+    'artificer-initiate': 'INT',
+    'spell-sniper': 'INT',
+  };
+  const grantsSpells = featSlug in featCastingAbility;
+  if (!character.spellcasting && grantsSpells) {
+    const ability = featCastingAbility[featSlug]!;
+    const modifier = Math.floor((character.abilities[ability].score - 10) / 2);
+    character.spellcasting = {
+      ability,
+      spellSaveDC: 8 + character.proficiencyBonus + modifier,
+      spellAttackBonus: character.proficiencyBonus + modifier,
+      cantripsKnown: [],
+      spellcastingType: 'known' as const,
+      cantripChoicesByLevel: {},
+      spellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // No spell slots for feat-granted spells
+      usedSpellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      featGrantedSpells: [],
+    };
   }
 
-  if (!character.spellcasting.featGrantedSpells) {
+  if (character.spellcasting && !character.spellcasting.featGrantedSpells) {
     character.spellcasting.featGrantedSpells = [];
   }
 
   // Process feats that grant spells
-  switch (featSlug) {
-    case 'drow-high-magic':
-      // Detect Magic - at will
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'detect-magic',
-        spellcastingAbility: 'CHA',
-        rechargeType: 'at-will',
-        featSlug: 'drow-high-magic',
-      });
+  const featSpells = character.spellcasting?.featGrantedSpells ?? [];
+  if (character.spellcasting && grantsSpells)
+    switch (featSlug) {
+      case 'drow-high-magic':
+        // Detect Magic - at will
+        featSpells.push({
+          spellSlug: 'detect-magic',
+          spellcastingAbility: 'CHA',
+          rechargeType: 'at-will',
+          featSlug: 'drow-high-magic',
+        });
 
-      // Levitate - 1 per long rest
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'levitate',
-        spellcastingAbility: 'CHA',
-        usesPerDay: 1,
-        rechargeType: 'long-rest',
-        featSlug: 'drow-high-magic',
-      });
+        // Levitate - 1 per long rest
+        featSpells.push({
+          spellSlug: 'levitate',
+          spellcastingAbility: 'CHA',
+          usesPerDay: 1,
+          rechargeType: 'long-rest',
+          featSlug: 'drow-high-magic',
+        });
 
-      // Dispel Magic - 1 per long rest
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'dispel-magic',
-        spellcastingAbility: 'CHA',
-        usesPerDay: 1,
-        rechargeType: 'long-rest',
-        featSlug: 'drow-high-magic',
-      });
-      break;
+        // Dispel Magic - 1 per long rest
+        featSpells.push({
+          spellSlug: 'dispel-magic',
+          spellcastingAbility: 'CHA',
+          usesPerDay: 1,
+          rechargeType: 'long-rest',
+          featSlug: 'drow-high-magic',
+        });
+        break;
 
-    case 'fey-touched':
-      // Misty Step - 1 per long rest
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'misty-step',
-        spellcastingAbility: 'CHA', // Uses the ability increased by this feat
-        usesPerDay: 1,
-        rechargeType: 'long-rest',
-        featSlug: 'fey-touched',
-      });
+      case 'fey-touched':
+        // Misty Step - 1 per long rest
+        featSpells.push({
+          spellSlug: 'misty-step',
+          spellcastingAbility: 'CHA', // Uses the ability increased by this feat
+          usesPerDay: 1,
+          rechargeType: 'long-rest',
+          featSlug: 'fey-touched',
+        });
 
-      // Grant one 1st-level divination/enchantment spell (1/LR) - default to Charm Person
-      // In a full implementation, this would require player choice between divination/enchantment spells
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'charm-person', // Enchantment spell
-        spellcastingAbility: 'CHA',
-        usesPerDay: 1,
-        rechargeType: 'long-rest',
-        featSlug: 'fey-touched',
-      });
-      break;
+        // The player picks one 1st-level divination or enchantment spell; with
+        // no valid choice recorded nothing is granted.
+        {
+          const spell = chosenFeatSpell(
+            character.edition,
+            featChoices?.['fey-touched']?.spell,
+            1,
+            (entry) =>
+              ['divination', 'enchantment'].includes(
+                entry.school.toLowerCase(),
+              ),
+          );
+          if (spell)
+            featSpells.push({
+              spellSlug: spell,
+              spellcastingAbility: 'CHA',
+              usesPerDay: 1,
+              rechargeType: 'long-rest',
+              featSlug: 'fey-touched',
+            });
+        }
+        break;
 
-    case 'shadow-touched':
-      // Invisibility - 1 per short rest
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'invisibility',
-        spellcastingAbility: 'CHA', // Uses the ability increased by this feat
-        usesPerDay: 1,
-        rechargeType: 'short-rest',
-        featSlug: 'shadow-touched',
-      });
-      break;
+      case 'shadow-touched':
+        // Invisibility - 1 per short rest
+        featSpells.push({
+          spellSlug: 'invisibility',
+          spellcastingAbility: 'CHA', // Uses the ability increased by this feat
+          usesPerDay: 1,
+          rechargeType: 'short-rest',
+          featSlug: 'shadow-touched',
+        });
+        break;
 
-    case 'wood-elf-magic':
-      // Longstrider - 1 per long rest
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'longstrider',
-        spellcastingAbility: 'WIS',
-        usesPerDay: 1,
-        rechargeType: 'long-rest',
-        featSlug: 'wood-elf-magic',
-      });
+      case 'wood-elf-magic':
+        // Longstrider - 1 per long rest
+        featSpells.push({
+          spellSlug: 'longstrider',
+          spellcastingAbility: 'WIS',
+          usesPerDay: 1,
+          rechargeType: 'long-rest',
+          featSlug: 'wood-elf-magic',
+        });
 
-      // Pass Without Trace - 1 per long rest
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'pass-without-trace',
-        spellcastingAbility: 'WIS',
-        usesPerDay: 1,
-        rechargeType: 'long-rest',
-        featSlug: 'wood-elf-magic',
-      });
-      break;
+        // Pass Without Trace - 1 per long rest
+        featSpells.push({
+          spellSlug: 'pass-without-trace',
+          spellcastingAbility: 'WIS',
+          usesPerDay: 1,
+          rechargeType: 'long-rest',
+          featSlug: 'wood-elf-magic',
+        });
+        break;
 
-    case 'metallic-dragon-adept':
-      // Cure Wounds - 1 per long rest
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'cure-wounds',
-        spellcastingAbility: 'CHA', // Uses the ability increased by this feat
-        usesPerDay: 1,
-        rechargeType: 'long-rest',
-        featSlug: 'metallic-dragon-adept',
-      });
-      break;
+      case 'metallic-dragon-adept':
+        // Cure Wounds - 1 per long rest
+        featSpells.push({
+          spellSlug: 'cure-wounds',
+          spellcastingAbility: 'CHA', // Uses the ability increased by this feat
+          usesPerDay: 1,
+          rechargeType: 'long-rest',
+          featSlug: 'metallic-dragon-adept',
+        });
+        break;
 
-    case 'artificer-initiate':
-      // This feat grants player choice of cantrip and 1st-level spell
-      // For now, we'll grant a default artificer cantrip and spell
-      // In a full implementation, this would require additional UI for spell selection
-      if (!character.spellcasting) {
-        character.spellcasting = {
-          ability: 'INT' as const,
-          spellSaveDC:
-            8 +
-            character.proficiencyBonus +
-            Math.floor((character.abilities.INT.score - 10) / 2),
-          spellAttackBonus:
-            character.proficiencyBonus +
-            Math.floor((character.abilities.INT.score - 10) / 2),
-          cantripsKnown: [],
-          spellcastingType: 'known' as const,
-          cantripChoicesByLevel: {},
-          spellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          usedSpellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          featGrantedSpells: [],
-        };
-      }
+      case 'artificer-initiate':
+        // Cantrip and 1st-level spell come from the player's explicit choices.
+        {
+          const choices = featChoices?.['artificer-initiate'];
+          const cantrip = chosenFeatSpell(
+            character.edition,
+            choices?.cantrip,
+            0,
+            (entry) => entry.classes.includes('artificer'),
+          );
+          if (cantrip)
+            featSpells.push({
+              spellSlug: cantrip,
+              spellcastingAbility: 'INT',
+              rechargeType: 'at-will',
+              featSlug: 'artificer-initiate',
+            });
+          const spell = chosenFeatSpell(
+            character.edition,
+            choices?.spell,
+            1,
+            (entry) => entry.classes.includes('artificer'),
+          );
+          if (spell)
+            featSpells.push({
+              spellSlug: spell,
+              spellcastingAbility: 'INT',
+              usesPerDay: 1,
+              rechargeType: 'long-rest',
+              featSlug: 'artificer-initiate',
+            });
+        }
+        break;
 
-      // Grant Mending cantrip (artificer staple)
-      character.spellcasting.featGrantedSpells!.push({
-        spellSlug: 'mending',
-        spellcastingAbility: 'INT',
-        rechargeType: 'at-will',
-        featSlug: 'artificer-initiate',
-      });
+      case 'spell-sniper':
+        // The attack cantrip comes from the player's explicit choice.
+        {
+          const cantrip = chosenFeatSpell(
+            character.edition,
+            featChoices?.['spell-sniper']?.cantrip,
+            0,
+            (entry) => /spell attack/i.test(entry.description),
+          );
+          if (cantrip)
+            featSpells.push({
+              spellSlug: cantrip,
+              spellcastingAbility: 'INT',
+              rechargeType: 'at-will',
+              featSlug: 'spell-sniper',
+            });
+        }
 
-      // Grant one 1st-level artificer spell (1/LR) - default to Identify
-      character.spellcasting.featGrantedSpells!.push({
-        spellSlug: 'identify',
-        spellcastingAbility: 'INT',
-        usesPerDay: 1,
-        rechargeType: 'long-rest',
-        featSlug: 'artificer-initiate',
-      });
-      break;
+        // Apply spell sniper effects
+        character.featEffects!.spellSniper = true;
+        break;
 
-    case 'spell-sniper':
-      // This feat grants player choice of one attack cantrip
-      // For now, we'll grant Fire Bolt as a default
-      // In a full implementation, this would require additional UI for cantrip selection
-      if (!character.spellcasting) {
-        character.spellcasting = {
-          ability: 'INT' as const,
-          spellSaveDC:
-            8 +
-            character.proficiencyBonus +
-            Math.floor((character.abilities.INT.score - 10) / 2),
-          spellAttackBonus:
-            character.proficiencyBonus +
-            Math.floor((character.abilities.INT.score - 10) / 2),
-          cantripsKnown: [],
-          spellcastingType: 'known' as const,
-          cantripChoicesByLevel: {},
-          spellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          usedSpellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          featGrantedSpells: [],
-        };
-      }
+      case 'telekinetic':
+        // Mage Hand cantrip (enhanced)
+        featSpells.push({
+          spellSlug: 'mage-hand',
+          spellcastingAbility: 'CHA', // Uses the ability increased by this feat
+          rechargeType: 'at-will',
+          featSlug: 'telekinetic',
+        });
+        break;
 
-      // Grant Fire Bolt cantrip (attack cantrip)
-      character.spellcasting.featGrantedSpells!.push({
-        spellSlug: 'fire-bolt',
-        spellcastingAbility: 'INT',
-        rechargeType: 'at-will',
-        featSlug: 'spell-sniper',
-      });
+      case 'telepathic':
+        // Detect Thoughts - 1 per long rest
+        featSpells.push({
+          spellSlug: 'detect-thoughts',
+          spellcastingAbility: 'CHA', // Uses the ability increased by this feat
+          usesPerDay: 1,
+          rechargeType: 'long-rest',
+          featSlug: 'telepathic',
+        });
+        break;
 
-      // Apply spell sniper effects
-      character.featEffects!.spellSniper = true;
-      break;
+      // Add more feat spell processing logic here as needed
 
-    case 'telekinetic':
-      // Mage Hand cantrip (enhanced)
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'mage-hand',
-        spellcastingAbility: 'CHA', // Uses the ability increased by this feat
-        rechargeType: 'at-will',
-        featSlug: 'telekinetic',
-      });
-      break;
-
-    case 'telepathic':
-      // Detect Thoughts - 1 per long rest
-      character.spellcasting.featGrantedSpells.push({
-        spellSlug: 'detect-thoughts',
-        spellcastingAbility: 'CHA', // Uses the ability increased by this feat
-        usesPerDay: 1,
-        rechargeType: 'long-rest',
-        featSlug: 'telepathic',
-      });
-      break;
-
-    // Add more feat spell processing logic here as needed
-
-    // Add more feats as needed
-    default:
-      // No special effects for this feat
-      break;
-  }
+      // Add more feats as needed
+      default:
+        // No special effects for this feat
+        break;
+    }
 
   // Handle non-spell feat effects
   switch (featSlug) {

@@ -1063,6 +1063,9 @@ export interface LevelUpChoices {
   /** Feat chosen (if taking feat instead of ASI) */
   featChosen?: string;
 
+  /** Explicit choices for the chosen feat (spells, damage types, ...) */
+  featChoices?: Record<string, FeatChoiceMap>;
+
   /** Subclass chosen */
   subclassChosen?: string;
 

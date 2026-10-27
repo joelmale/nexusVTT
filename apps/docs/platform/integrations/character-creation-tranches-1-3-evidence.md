@@ -222,7 +222,13 @@ timeouts or assertions. Neither failed attempt is recorded as a pass.
    cross-path equivalence for derived AC, movement, proficiencies and casting.
    Expertise and the covered spell-learning/free-casting choices are applied;
    remaining mastery/invocation and other class choice application is still open.
-   Replace legacy hardcoded feat-spell defaults with validated explicit choices.
+   Level-up Fey Touched and Artificer Initiate spells now come only from explicit,
+   catalog-validated `featChoices` (no invented Charm Person/Identify/Mending
+   defaults), and feat-granted spells no longer skip non-casters. The Artificer
+   catalog has no spells yet, so Artificer Initiate grants nothing until T-01
+   source work lands. Remaining legacy fixed-spell feats (for example Drow High
+   Magic and Wood Elf Magic) are fixed by their rules text; confirm that per
+   feat, and add choice UI for the new `featChoices` keys.
 4. Connect promised invocation effects to actual sheet/casting actions; saved
    mechanics metadata alone does not establish attack/damage/range automation.
 5. Finish remaining higher-level real-host journeys.

@@ -91,4 +91,50 @@ describe('level-up preservation and boundaries', () => {
     character.abilities.STR.score = original.abilities.STR.score;
     expect(character).toEqual(original);
   });
+
+  describe('feat spell grants use explicit choices', () => {
+    const levelWithFeat = (
+      featChosen: string,
+      featChoices?: Record<string, Record<string, string>>,
+    ) => {
+      const character = calculateCharacterStats({
+        ...REFERENCE_BUILDS.F24.creationData,
+        level: 3,
+      });
+      return applyLevelUp(character, calculateLevelUpData(character)!, {
+        featChosen,
+        featChoices,
+      });
+    };
+    const granted = (character: ReturnType<typeof levelWithFeat>) =>
+      (character.spellcasting?.featGrantedSpells ?? []).map(
+        (entry) => entry.spellSlug,
+      );
+
+    it('grants no invented defaults when nothing was chosen', () => {
+      expect(granted(levelWithFeat('artificer-initiate'))).toEqual([]);
+      expect(granted(levelWithFeat('fey-touched'))).toEqual(['misty-step']);
+    });
+    it('grants the chosen Fey Touched and Spell Sniper spells', () => {
+      expect(
+        granted(
+          levelWithFeat('fey-touched', { 'fey-touched': { spell: 'shield' } }),
+        ),
+      ).toEqual(['misty-step']);
+      expect(
+        granted(
+          levelWithFeat('fey-touched', {
+            'fey-touched': { spell: 'charm-person' },
+          }),
+        ),
+      ).toEqual(['misty-step', 'charm-person']);
+      expect(
+        granted(
+          levelWithFeat('artificer-initiate', {
+            'artificer-initiate': { cantrip: 'mending', spell: 'identify' },
+          }),
+        ),
+      ).toEqual([]);
+    });
+  });
 });
