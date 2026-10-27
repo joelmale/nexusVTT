@@ -59,7 +59,7 @@ export enum OutgoingEventType {
 
 // Event payload schemas
 export const SessionCreatePayloadSchema = z.object({
-  documentId: z.string().uuid(),
+  documentId: z.guid(),
   campaignId: z.string(),
   roomCode: z.string(),
   presenter: z.string(),
@@ -73,16 +73,16 @@ export const SessionCreatePayloadSchema = z.object({
 });
 
 export const SessionJoinPayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
   userId: z.string(),
 });
 
 export const SessionLeavePayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
 });
 
 export const SessionUpdateSettingsPayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
   syncSettings: z.object({
     syncScroll: z.boolean().optional(),
     syncPage: z.boolean().optional(),
@@ -91,23 +91,23 @@ export const SessionUpdateSettingsPayloadSchema = z.object({
 });
 
 export const PageChangePayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
   page: z.number().int().positive(),
 });
 
 export const ScrollSyncPayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
   position: z.number(),
 });
 
 export const PushPagePayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
   page: z.number().int().positive(),
 });
 
 export const PushReferencePayloadSchema = z.object({
-  sessionId: z.string().uuid(),
-  referenceId: z.string().uuid(),
+  sessionId: z.guid(),
+  referenceId: z.guid(),
 });
 
 export const VttEntitySchema = z.object({
@@ -117,13 +117,13 @@ export const VttEntitySchema = z.object({
   system: z.string(),
   data: z.unknown(),
   source: z.object({
-    documentId: z.string().uuid(),
-    entityId: z.string().uuid(),
+    documentId: z.guid(),
+    entityId: z.guid(),
   }),
 });
 
 export const VttRegisterPayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
   userId: z.string(),
   vtt: z.object({
     name: z.string(),
@@ -132,22 +132,22 @@ export const VttRegisterPayloadSchema = z.object({
 });
 
 export const VttEntityPushPayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
   userId: z.string(),
   entity: VttEntitySchema,
 });
 
 export const VttStateUpdatePayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
   userId: z.string(),
   status: z.string(),
 });
 
 export const AnnotationCreatePayloadSchema = z.object({
-  sessionId: z.string().uuid(),
+  sessionId: z.guid(),
   annotation: z.object({
-    documentId: z.string().uuid(),
-    referenceId: z.string().uuid().optional(),
+    documentId: z.guid(),
+    referenceId: z.guid().optional(),
     userId: z.string(),
     campaignId: z.string().optional(),
     pageNumber: z.number().int().positive(),
@@ -165,8 +165,8 @@ export const AnnotationCreatePayloadSchema = z.object({
 });
 
 export const AnnotationUpdatePayloadSchema = z.object({
-  sessionId: z.string().uuid(),
-  annotationId: z.string().uuid(),
+  sessionId: z.guid(),
+  annotationId: z.guid(),
   updates: z.object({
     content: z.string().optional(),
     color: z.string().optional(),
@@ -181,8 +181,8 @@ export const AnnotationUpdatePayloadSchema = z.object({
 });
 
 export const AnnotationDeletePayloadSchema = z.object({
-  sessionId: z.string().uuid(),
-  annotationId: z.string().uuid(),
+  sessionId: z.guid(),
+  annotationId: z.guid(),
 });
 
 // Generic WebSocket message structure

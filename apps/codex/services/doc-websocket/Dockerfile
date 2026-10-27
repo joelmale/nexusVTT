@@ -29,7 +29,11 @@ FROM node:26.11.1-alpine
 # npm's own bundled undici/brace-expansion carry High advisories (Trivy
 # --ignore-unfixed) that even the latest npm release still ships. Swap in patched
 # copies of the same major so the scanned runtime image is clean.
-RUN set -e; cd /tmp; N=/usr/local/lib/node_modules/npm/node_modules; \
+# APK_REFRESH keys this layer to the calendar week (CI passes it): Docker keys
+# layers on the command text, so without it a cached layer keeps the undici
+# that was current when it was built.
+ARG APK_REFRESH=unset
+RUN echo "npm patch refresh: $APK_REFRESH"; set -e; cd /tmp; N=/usr/local/lib/node_modules/npm/node_modules; \
     for spec in undici@^6.28.1 brace-expansion@^5.0.11; do \
       n=${spec%@*}; npm pack "$spec" --silent >/dev/null; \
       rm -rf "$N/$n"; mkdir "$N/$n"; tar -xzf "$n"-*.tgz -C "$N/$n" --strip-components=1; \
@@ -46,6 +50,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/apps/codex/services/doc-websocket/package.json ./apps/codex/services/doc-websocket/package.json
 COPY --from=builder /app/apps/codex/services/doc-websocket/dist ./apps/codex/services/doc-websocket/dist
+# zod 4 installs into the workspace's own node_modules (the root hoists zod 3
+# for other workspaces); copying only /app/node_modules silently drops it.
+COPY --from=builder /app/apps/codex/services/doc-websocket/node_modules ./apps/codex/services/doc-websocket/node_modules
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/apps/codex/services/doc-websocket/prisma ./apps/codex/services/doc-websocket/prisma

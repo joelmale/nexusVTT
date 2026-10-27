@@ -7,8 +7,8 @@ export const SyncSettingsSchema = z.object({
 });
 
 export const DocumentSessionSchema = z.object({
-  sessionId: z.string().uuid(),
-  documentId: z.string().uuid(),
+  sessionId: z.guid(),
+  documentId: z.guid(),
   campaignId: z.string(),
   roomCode: z.string(),
   presenter: z.string(), // DM user ID
@@ -26,7 +26,7 @@ export type SyncSettings = z.infer<typeof SyncSettingsSchema>;
 
 // Helper type for creating sessions
 export const CreateSessionSchema = z.object({
-  documentId: z.string().uuid(),
+  documentId: z.guid(),
   campaignId: z.string(),
   roomCode: z.string(),
   presenter: z.string(),

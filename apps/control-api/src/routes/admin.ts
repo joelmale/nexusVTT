@@ -15,7 +15,7 @@ const grantBody = z
 
 const revokeBody = z
   .object({
-    userId: z.string().uuid(),
+    userId: z.guid(),
     role: z.enum(ROLES),
   })
   .strict();

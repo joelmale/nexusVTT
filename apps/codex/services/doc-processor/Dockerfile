@@ -22,7 +22,11 @@ RUN echo "apk refresh: $APK_REFRESH" && apk upgrade --no-cache && apk add --no-c
 # npm's own bundled undici/brace-expansion carry High advisories (Trivy
 # --ignore-unfixed) that even the latest npm release still ships. Swap in patched
 # copies of the same major so the scanned runtime image is clean.
-RUN set -e; cd /tmp; N=/usr/local/lib/node_modules/npm/node_modules; \
+# APK_REFRESH keys this layer to the calendar week (CI passes it): Docker keys
+# layers on the command text, so without it a cached layer keeps the undici
+# that was current when it was built.
+ARG APK_REFRESH=unset
+RUN echo "npm patch refresh: $APK_REFRESH"; set -e; cd /tmp; N=/usr/local/lib/node_modules/npm/node_modules; \
     for spec in undici@^6.28.1 brace-expansion@^5.0.11; do \
       n=${spec%@*}; npm pack "$spec" --silent >/dev/null; \
       rm -rf "$N/$n"; mkdir "$N/$n"; tar -xzf "$n"-*.tgz -C "$N/$n" --strip-components=1; \
