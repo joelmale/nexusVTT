@@ -11,6 +11,7 @@ interface TacticalAction {
   buttonText?: string;
   category: 'offense' | 'defense' | 'mobility' | 'burst';
   isLimited?: boolean;
+  disabled?: boolean;
   usesRemaining?: number;
   maxUses?: number;
   specialUI?: 'bubble-display';

@@ -1,6 +1,6 @@
 import type { CharacterCreationData } from '../types/dnd';
 import { FEAT_DATABASE, loadSpells } from './dataService';
-import type { InvocationDefinition } from './invocations';
+import { invocationTargets, type InvocationDefinition } from './invocations';
 
 // SRD 5.2.1 cantrip descriptions. Use explicit mechanics, not prose matching.
 const ATTACK_CANTRIPS = new Set([
@@ -29,9 +29,33 @@ export function invocationTargetOptions(
   data: CharacterCreationData,
   invocation: InvocationDefinition,
 ): Array<{ id: string; name: string }> {
+  const lessonTargets = invocationTargets(data, 'lessons-of-the-first-ones');
+  const skilledInstances = Array.from({ length: 10 }, (_, index) => ({
+    id: `skilled:lesson-${index + 1}`,
+    name: `Skilled (lesson grant ${index + 1})`,
+  }));
+  const nextSkilled = skilledInstances.find(
+    (entry) => !lessonTargets.includes(entry.id),
+  )?.id;
   if (invocation.choice === 'origin-feat')
-    return FEAT_DATABASE.filter((feat) => feat.category === 'origin').map(
-      (feat) => ({ id: feat.slug, name: feat.name }),
+    return FEAT_DATABASE.filter((feat) => feat.category === 'origin').flatMap(
+      (feat) =>
+        feat.slug === 'skilled'
+          ? [
+              ...skilledInstances.filter(
+                (entry) =>
+                  lessonTargets.includes(entry.id) || entry.id === nextSkilled,
+              ),
+              ...(lessonTargets.includes('skilled')
+                ? [{ id: 'skilled', name: 'Skilled (existing grant)' }]
+                : []),
+            ]
+          : feat.slug === 'magic-initiate'
+            ? ['cleric', 'druid', 'wizard'].map((list) => ({
+                id: `magic-initiate-${list}`,
+                name: `Magic Initiate (${list})`,
+              }))
+            : [{ id: feat.slug, name: feat.name }],
     );
   const known = new Set([
     ...(data.spellSelection?.selectedCantrips ?? []),

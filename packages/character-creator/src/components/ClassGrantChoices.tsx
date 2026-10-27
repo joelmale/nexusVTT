@@ -9,6 +9,9 @@ import {
   selectedInvocationCount,
 } from '../services/invocations';
 import { invocationTargetOptions } from '../services/invocationChoices';
+import { ExpertiseChoices } from './ExpertiseChoices';
+import { LegacyInvocationChoices } from './LegacyInvocationChoices';
+import { classExpertiseCount } from '../services/expertiseChoices';
 
 export function ClassGrantChoices({
   data,
@@ -17,15 +20,18 @@ export function ClassGrantChoices({
   data: CharacterCreationData;
   onChange: (update: Partial<CharacterCreationData>) => void;
 }) {
-  if (data.edition !== '2024') return null;
+  if (data.edition !== '2024')
+    return <><ExpertiseChoices data={data} onChange={onChange} /><LegacyInvocationChoices data={data} onChange={onChange} /></>;
   const count = masteryCount(data);
   const cleric = data.classSlug === 'cleric';
   const druid = data.classSlug === 'druid';
   const warlock = data.classSlug === 'warlock';
-  if (!count && !cleric && !druid && !warlock) return null;
+  if (!count && !cleric && !druid && !warlock && !classExpertiseCount(data))
+    return null;
   return (
     <section className={styles.grants} aria-label="Class grant choices">
       <h3>Class choices</h3>
+      <ExpertiseChoices data={data} onChange={onChange} />
       {warlock && (
         <fieldset>
           <legend>

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ClassResourceControls } from '@nexus/character-creator';
 import type { SpellDefinition } from '@nexus/game-contracts';
 import type { PanelComponentProps } from '@/services/panelRegistry';
 import {
@@ -32,6 +33,7 @@ export const SpellbookPanel: React.FC<
   >({});
   const [levels, setLevels] = useState<Record<string, number>>({});
   const [status, setStatus] = useState<string>();
+  const [hitDiceToSpend, setHitDiceToSpend] = useState(0);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const inFlight = useRef(false);
@@ -138,12 +140,14 @@ export const SpellbookPanel: React.FC<
         );
         await refresh();
       }
+      return !result.uncertain && result.success;
     } catch (caught) {
       setStatus(
         caught instanceof Error
           ? caught.message
           : 'Could not confirm the action. Retry confirmation.',
       );
+      return false;
     } finally {
       inFlight.current = false;
       setPending(false);
@@ -151,6 +155,46 @@ export const SpellbookPanel: React.FC<
   };
 
   const disabled = pending || Boolean(retry) || !canControl;
+  const restControls = actor && (
+    <>
+      <label>
+        Hit dice to spend on a short rest
+        <input
+          type="number"
+          min={0}
+          max={actor.pools['feature:hit-dice']?.current ?? 0}
+          value={hitDiceToSpend}
+          disabled={disabled}
+          onChange={(event) =>
+            setHitDiceToSpend(
+              Math.max(0, Math.floor(Number(event.target.value) || 0)),
+            )
+          }
+        />
+      </label>
+      <div className={styles.restActions}>
+        {(['short', 'long'] as const).map((restType) => (
+          <button
+            key={restType}
+            disabled={disabled}
+            onClick={() => {
+              if (!campaignId) return;
+              const commandId = crypto.randomUUID();
+              void execute(() =>
+                commandClient.restActor(campaignId, actor.id, restType, {
+                  expectedVersion: actor.stateVersion,
+                  commandId,
+                  hitDiceToSpend: restType === 'short' ? hitDiceToSpend : 0,
+                }),
+              );
+            }}
+          >
+            {restType === 'short' ? 'Short Rest' : 'Long Rest'}
+          </button>
+        ))}
+      </div>
+    </>
+  );
   const cast = (spell: SpellDefinition) => {
     if (!actor || !profile || !campaignId) return;
     const pool = actor.pools[profile.resourcePoolId];
@@ -211,6 +255,50 @@ export const SpellbookPanel: React.FC<
               Retry confirmation
             </button>
           )}
+          {actor && (
+            <ClassResourceControls
+              disabled={disabled}
+              resources={Object.values(actor.pools)
+                .filter(
+                  (pool) =>
+                    Boolean(pool.classResourceId) &&
+                    pool.classResourceId !== 'hit-dice',
+                )
+                .map((pool) => ({
+                  id: pool.classResourceId!,
+                  name: pool.name,
+                  description: pool.description ?? '',
+                  manualRecovery: pool.description,
+                  maxUses: pool.max ?? 0,
+                  currentUses: pool.current,
+                  unlimited: pool.unlimited,
+                  active: pool.active,
+                  recovery: pool.recovery,
+                  rechargeType:
+                    pool.resetOn === 'dawn'
+                      ? 'daily'
+                      : pool.resetOn === 'manual'
+                        ? 'none'
+                        : pool.resetOn,
+                }))}
+              onConsume={async (resourceId, amount) => {
+                if (!campaignId) throw new Error('Join a campaign first.');
+                const commandId = crypto.randomUUID();
+                const success = await execute(() =>
+                  commandClient.consumeClassResource(
+                    campaignId,
+                    actor.id,
+                    resourceId,
+                    amount,
+                    { expectedVersion: actor.stateVersion, commandId },
+                  ),
+                );
+                if (!success)
+                  throw new Error('Resource use was not confirmed.');
+              }}
+            />
+          )}
+          {actor && !profile && restControls}
           {!actor || !profile ? (
             <p>
               No casting profile is available. Check admission and character
@@ -377,28 +465,7 @@ export const SpellbookPanel: React.FC<
                   );
                 })}
               </div>
-              <div className={styles.restActions}>
-                {(['short', 'long'] as const).map((restType) => (
-                  <button
-                    key={restType}
-                    disabled={disabled}
-                    onClick={() => {
-                      if (!campaignId) return;
-                      const commandId = crypto.randomUUID();
-                      void execute(() =>
-                        commandClient.restActor(
-                          campaignId,
-                          actor.id,
-                          restType,
-                          { expectedVersion: actor.stateVersion, commandId },
-                        ),
-                      );
-                    }}
-                  >
-                    {restType === 'short' ? 'Short Rest' : 'Long Rest'}
-                  </button>
-                ))}
-              </div>
+              {restControls}
             </>
           )}
         </>

@@ -12,6 +12,90 @@ const campaignId = '11111111-1111-4111-8111-111111111111';
 const ownerId = '22222222-2222-4222-8222-222222222222';
 
 describe('saved character casting projection', () => {
+  it('projects martial resources and actual Hit Dice without requiring a spell profile', () => {
+    const { profiles, pools } = projectCharacterCasting(
+      {
+        classSlug: 'fighter',
+        edition: '2024',
+        level: 4,
+        abilities: { CON: { modifier: 2 } },
+        hitDice: { current: 2, max: 4, dieType: 10 },
+        resources: [
+          {
+            id: 'second-wind',
+            name: 'Second Wind',
+            description: 'Healing',
+            maxUses: 3,
+            currentUses: 1,
+            rechargeType: 'long-rest',
+            recovery: { shortRest: 1, longRest: 'full' },
+          },
+        ],
+      },
+      [],
+    );
+    expect(profiles).toEqual([]);
+    expect(pools['feature:second-wind']).toMatchObject({
+      current: 1,
+      max: 3,
+      classResourceId: 'second-wind',
+      recovery: { shortRest: 1, longRest: 'full' },
+    });
+    expect(pools['feature:hit-dice']).toMatchObject({
+      current: 2,
+      max: 4,
+      hitDieSize: 10,
+      hitDieModifier: 2,
+      recovery: { longRest: 'full' },
+    });
+  });
+
+  it('preserves unknown expenditure and manual resets, and excludes retired counters', () => {
+    const { pools } = projectCharacterCasting(
+      {
+        resources: [
+          {
+            id: 'daily',
+            name: 'Daily',
+            description: '',
+            maxUses: 1,
+            rechargeType: 'daily',
+          },
+          {
+            id: 'retired',
+            name: 'Retired',
+            description: '',
+            maxUses: 1,
+            currentUses: 1,
+            rechargeType: 'long-rest',
+            active: false,
+          },
+        ],
+      },
+      [],
+    );
+    expect(pools['feature:daily'].current).toBeUndefined();
+    expect(pools['feature:daily'].resetOn).toBe('manual');
+    expect(pools['feature:retired']).toBeUndefined();
+  });
+
+  it('rejects duplicate resource IDs or impossible balances instead of manufacturing uses', () => {
+    const tracker = {
+      id: 'rage',
+      name: 'Rage',
+      description: '',
+      maxUses: 2,
+      currentUses: 3,
+      rechargeType: 'long-rest',
+    };
+    expect(() =>
+      projectCharacterCasting({ resources: [tracker] }, []),
+    ).toThrow();
+    tracker.currentUses = 1;
+    expect(() =>
+      projectCharacterCasting({ resources: [tracker, tracker] }, []),
+    ).toThrow();
+  });
   it('projects at-will class grants as usable independent pools without class slot costs', () => {
     const definitions = bundledSpellDefinitions(campaignId, ownerId, '2024');
     const { profiles, pools } = projectCharacterCasting(

@@ -5,7 +5,7 @@ import {
   StoredCreatorDraft,
 } from './IStorageService';
 import { log } from '../../utils/logger';
-import { initializeCharacterResources } from '../../utils/resourceUtils';
+import { reconcileCharacterResources } from '../../utils/resourceUtils';
 
 // --- IndexedDB Configuration ---
 const DB_NAME = 'NexusForge';
@@ -187,7 +187,8 @@ export class IndexedDbAdapter implements IStorageService {
             const characters = getAllRequest.result as Character[];
             characters.forEach((character) => {
               if (!character.resources || character.resources.length === 0) {
-                character.resources = initializeCharacterResources(character);
+                character.resources =
+                  reconcileCharacterResources(character).resources;
                 characterStore.put(character);
               }
             });

@@ -16,16 +16,14 @@ import {
   calculateAbilityModifier,
   calculateProficiencyBonus,
   STANDARD_SKILLS,
-} from '@nexus/character-contracts';
-import type {
-  AbilityKey,
-  AbilityScores,
-  Character as NexusCharacter,
-  EquippedWeapon,
-  ForgeCharacter,
-  InventoryItem,
-  SkillEntry,
-  SkillMap,
+  type AbilityKey,
+  type AbilityScores,
+  type Character as NexusCharacter,
+  type EquippedWeapon,
+  type ForgeCharacter,
+  type InventoryItem,
+  type SkillEntry,
+  type SkillMap,
 } from '@nexus/character-contracts';
 
 import { loadClasses } from '../services/dataService';
@@ -308,7 +306,8 @@ export function toNexusCharacter(
     trinket: created.trinket,
 
     // Resources and combat state
-    resources: created.resources as unknown[] | undefined,
+    resources: created.resources,
+    classMechanics: created.classMechanics,
     secondWindUses: created.secondWindUses,
     actionSurgeUsed: created.actionSurgeUsed,
     deathSaves: created.deathSaves,
@@ -329,6 +328,7 @@ export function toNexusCharacter(
 export function resolveProficientSaves(
   classIdentifier: string | undefined,
   edition?: CreatedCharacter['edition'],
+  level = 1,
 ): string[] | undefined {
   if (!classIdentifier) return undefined;
   const needle = classIdentifier.toLowerCase();
@@ -337,7 +337,19 @@ export function resolveProficientSaves(
       candidate.slug.toLowerCase() === needle ||
       candidate.name.toLowerCase() === needle,
   );
-  return match?.save_throws;
+  if (!match) return undefined;
+  if (match.slug === 'monk' && level >= 14)
+    return ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+  return [
+    ...new Set([
+      ...match.save_throws,
+      ...(match.slug === 'rogue' && level >= 15
+        ? edition === '2024'
+          ? ['WIS', 'CHA']
+          : ['WIS']
+        : []),
+    ]),
+  ];
 }
 
 /**
@@ -355,6 +367,7 @@ export function createdCharacterToNexus(
       resolveProficientSaves(
         created.classSlug || created.class,
         created.edition,
+        created.level,
       ),
   });
 }

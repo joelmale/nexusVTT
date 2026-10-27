@@ -10,8 +10,7 @@ import { recommendedFeatProficiencies } from './featProficiencies';
  * derived from actual granted features.
  */
 
-import type { CreationDraft } from '../types/draft';
-import type { DraftEvaluationResult } from '../types/draft';
+import type { CreationDraft, DraftEvaluationResult } from '../types/draft';
 import type {
   Edition,
   AbilityName,
@@ -381,6 +380,16 @@ export function getRecommendation(
         : 'wood-elf'
       : undefined,
     classSlug: finalClassSlug,
+    subclassSlug:
+      edition === '2014'
+        ? (
+            {
+              cleric: 'life',
+              sorcerer: 'draconic',
+              warlock: 'fiend',
+            } as Record<string, string>
+          )[finalClassSlug]
+        : undefined,
     background: backgroundSlug,
     alignment: 'Neutral Good',
     abilities: { ...abilityScores },

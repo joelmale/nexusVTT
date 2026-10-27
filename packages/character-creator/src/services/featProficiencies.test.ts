@@ -2,12 +2,77 @@ import { describe, expect, it } from 'vitest';
 import { REFERENCE_BUILDS } from '../tests/fixtures/referenceBuilds';
 import { calculateCharacterStats } from '../utils/characterCreationUtils';
 import {
+  creationDataToDraft,
+  draftToCreationData,
+} from '../adapters/draftAdapter';
+import { createdCharacterToNexus } from '../adapters/nexusCharacter';
+import { classGrantErrors } from './classGrantChoices';
+import { featEntitlementErrors } from './featEntitlements';
+import type { CharacterCreationData } from '../types/dnd';
+import {
   featProficiencyErrors,
   featProficiencyGrants,
   recommendedFeatProficiencies,
 } from './featProficiencies';
 
 describe('feat proficiency grants', () => {
+  it('keeps repeated Skilled Lessons under separate durable choice keys without granting proficiencies twice', () => {
+    const data: CharacterCreationData = {
+      ...REFERENCE_BUILDS.WL24.creationData,
+      level: 2,
+      humanOriginFeat: 'alert',
+      eldritchInvocations: ['eldritch-mind', 'lessons-of-the-first-ones'],
+      featChoices: {
+        'invocation:lessons-of-the-first-ones': {
+          targets: ['skilled:lesson-1', 'skilled:lesson-2'],
+        },
+      },
+    };
+    data.featChoices = recommendedFeatProficiencies(data);
+    expect(classGrantErrors(data)).toEqual([]);
+    expect(
+      featProficiencyGrants(data).map((grant) => ({
+        key: grant.choiceKey,
+        count: grant.count,
+      })),
+    ).toEqual([
+      { key: 'skilled:lesson-1', count: 3 },
+      { key: 'skilled:lesson-2', count: 3 },
+    ]);
+    expect(featProficiencyErrors(data)).toEqual([]);
+    const restored = draftToCreationData(creationDataToDraft(data));
+    const character = calculateCharacterStats(restored);
+    expect(featEntitlementErrors(data, character)).toEqual([]);
+    const saved = JSON.parse(
+      JSON.stringify(createdCharacterToNexus(character)),
+    );
+    expect(saved.featChoices).toEqual(data.featChoices);
+    const first = data.featChoices['skilled:lesson-1']
+      .proficiencies as string[];
+    const second = data.featChoices['skilled:lesson-2']
+      .proficiencies as string[];
+    expect(new Set([...first, ...second]).size).toBe(6);
+    expect(
+      featProficiencyErrors({
+        ...data,
+        featChoices: {
+          ...data.featChoices,
+          'skilled:lesson-2': { proficiencies: [first[0], ...second.slice(1)] },
+        },
+      }).length,
+    ).toBeGreaterThan(0);
+    const removed: CharacterCreationData = {
+      ...data,
+      featChoices: {
+        ...data.featChoices,
+        'invocation:lessons-of-the-first-ones': {
+          targets: ['skilled:lesson-1'],
+        },
+      },
+    };
+    expect(featProficiencyGrants(removed)).toHaveLength(1);
+    expect(removed.featChoices?.['skilled:lesson-2']).toBeDefined(); // retained for repair, without applying its removed grant
+  });
   it('keeps two repeatable Skilled grants as six distinct proficiencies', () => {
     const data = {
       ...REFERENCE_BUILDS.F24.creationData,

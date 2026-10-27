@@ -1,10 +1,15 @@
 import { CreationDraft, DraftIssue } from '../types/draft';
+import { isPermittedContentSource } from '../data/contentProvenance';
+import { getSubclassLevel } from '../data/supportManifest';
+import { classExpertiseErrors } from './expertiseChoices';
+import { draftToCreationData } from '../adapters/draftAdapter';
 import {
   getAllSpecies,
   loadClasses,
   BACKGROUNDS,
   ALL_SKILLS,
   loadSpells,
+  getSubclassesByClass,
 } from './dataService';
 
 export interface CatalogValidationOptions {
@@ -175,6 +180,52 @@ export function resolveCatalogEntitlements(
     }
   }
 
+  if (matchedClass?.source.startsWith('Unverified'))
+    error(
+      'UNVERIFIED_CLASS_SOURCE',
+      'class',
+      'This supplemental class needs a verified source and edition revision before creation can complete.',
+    );
+  if (
+    matchedClass &&
+    draft.level >= getSubclassLevel(matchedClass.slug, edition)
+  ) {
+    const subclass = getSubclassesByClass(matchedClass.slug, edition).find(
+      (entry) => entry.slug === draft.subclassSlug,
+    );
+    if (!subclass)
+      error(
+        'MISSING_OR_INVALID_SUBCLASS',
+        'class',
+        'Choose an available subclass for this class and level.',
+      );
+    else if (
+      subclass.supportStatus === 'legacy-compatibility-unverified' ||
+      subclass.source?.startsWith('Unverified')
+    )
+      error(
+        'UNVERIFIED_SUBCLASS_SOURCE',
+        'class',
+        'This subclass requires source or edition-compatibility review. Choose a verified subclass or preserve the existing imported record without recreating it.',
+      );
+    else if (
+      (_options.allowedSources ?? draft.allowedSources) &&
+      subclass.source &&
+      !isPermittedContentSource(
+        'subclass',
+        subclass.slug,
+        edition,
+        subclass.source,
+        (_options.allowedSources ?? draft.allowedSources)!,
+      )
+    )
+      error(
+        'DISALLOWED_SUBCLASS_SOURCE',
+        'class',
+        'Your game does not permit this subclass source.',
+      );
+  }
+
   // 3. Validate Background
   let matchedBg = undefined;
   if (!draft.backgroundSlug) {
@@ -339,37 +390,8 @@ export function resolveCatalogEntitlements(
     });
   }
 
-  // 7. Rogue Expertise requirement
-  if (draft.classSlug === 'rogue') {
-    if (!draft.expertise || draft.expertise.length < 2) {
-      issues.push({
-        id: 'INCOMPLETE_ROGUE_EXPERTISE',
-        step: 6,
-        group: 'class',
-        severity: 'error',
-        message:
-          'Rogue receives Expertise in two skills or one skill and Thieves Tools at level 1.',
-        repairTarget: 'expertise-selection',
-      });
-    }
-  }
-
-  const proficient = [
-    ...draft.skills,
-    ...(matchedBg?.skill_proficiencies || []),
-  ].map(normalize);
-  if (
-    draft.expertise?.some(
-      (skill) =>
-        !proficient.includes(normalize(skill)) &&
-        !(edition === '2014' && normalize(skill) === 'thievestools'),
-    )
-  )
-    error(
-      'INVALID_EXPERTISE',
-      'class',
-      'Choose Expertise only in proficient skills.',
-    );
+  for (const message of classExpertiseErrors(draftToCreationData(draft)))
+    error('INVALID_EXPERTISE', 'class', message);
   if (
     draft.loadout.items.some(
       (item) => !Number.isInteger(item.quantity) || item.quantity < 1,
@@ -408,7 +430,13 @@ export function resolveCatalogEntitlements(
   if (
     allowedSources &&
     matchedClass &&
-    !allowedSources.includes(matchedClass.source)
+    !isPermittedContentSource(
+      'class',
+      matchedClass.slug,
+      edition,
+      matchedClass.source,
+      allowedSources,
+    )
   )
     error(
       'DISALLOWED_CLASS_SOURCE',
@@ -416,7 +444,16 @@ export function resolveCatalogEntitlements(
       'Your game does not permit this class source.',
     );
   if (allowedSources) {
-    if (matchedBg?.source && !allowedSources.includes(matchedBg.source))
+    if (
+      matchedBg?.source &&
+      !isPermittedContentSource(
+        'background',
+        matchedBg.slug,
+        edition,
+        matchedBg.source,
+        allowedSources,
+      )
+    )
       error(
         'DISALLOWED_BACKGROUND_SOURCE',
         'background',
@@ -427,7 +464,19 @@ export function resolveCatalogEntitlements(
         entry.slug === draft.speciesSlug ||
         entry.slug === `${draft.speciesSlug}-2024`,
     );
-    if (species && !allowedSources.includes(species.source))
+    if (
+      species &&
+      !isPermittedContentSource(
+        'species',
+        species.slug,
+        edition,
+        species.source,
+        allowedSources,
+        draft.lineageSlug ??
+          draft.creationData?.variantSlug ??
+          draft.creationData?.selectedSpeciesVariant,
+      )
+    )
       error(
         'DISALLOWED_SPECIES_SOURCE',
         'species',

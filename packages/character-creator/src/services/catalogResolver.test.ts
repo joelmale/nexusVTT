@@ -4,7 +4,7 @@ import { creationDataToDraft } from '../adapters/draftAdapter';
 import { REFERENCE_BUILDS } from '../tests/fixtures/referenceBuilds';
 
 describe('catalogResolver (CC-202)', () => {
-  it('enforces an explicit strict source policy and blocks excluded species', () => {
+  it('requires a strict policy and recognizes verified SRD Human membership', () => {
     const draft = creationDataToDraft(REFERENCE_BUILDS.F24.creationData);
     expect(
       resolveCatalogEntitlements(draft, { strictEntitlements: true }).map(
@@ -13,6 +13,11 @@ describe('catalogResolver (CC-202)', () => {
     ).toContain('MISSING_SOURCE_POLICY');
     expect(
       resolveCatalogEntitlements(draft, { allowedSources: ['SRD 2024'] }).map(
+        (issue) => issue.id,
+      ),
+    ).not.toContain('DISALLOWED_SPECIES_SOURCE');
+    expect(
+      resolveCatalogEntitlements(draft, { allowedSources: ['SRD 2014'] }).map(
         (issue) => issue.id,
       ),
     ).toContain('DISALLOWED_SPECIES_SOURCE');

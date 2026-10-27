@@ -11,7 +11,7 @@ import {
   LevelUpData,
   LevelUpRecord,
   FeatureChoice,
-  grantsASI
+  grantsASI,
 } from '../data/classProgression';
 import { fighter2024Progression } from '../data/progressions/fighter2024';
 import { paladin2024Progression } from '../data/progressions/paladin2024';
@@ -26,15 +26,33 @@ import { cleric2024Progression } from '../data/progressions/cleric2024';
 import { druid2024Progression } from '../data/progressions/druid2024';
 import { warlock2024Progression } from '../data/progressions/warlock2024';
 import { artificer2024Progression } from '../data/progressions/artificer2024';
-import { PROFICIENCY_BONUSES, CANTRIPS_KNOWN_BY_CLASS, loadSpells, loadFeats, type AppSpell } from '../services/dataService';
+import {
+  PROFICIENCY_BONUSES,
+  SKILL_TO_ABILITY,
+  CANTRIPS_KNOWN_BY_CLASS,
+  loadSpells,
+  loadFeats,
+  type AppSpell,
+} from '../services/dataService';
 import { SPELL_LEARNING_RULES } from '../data/spellLearning';
-import { SPELL_SLOTS_BY_CLASS } from '../data/spellSlots';
-import { normalizeSpellSlots } from './spellSlotUtils';
+import { classSpellSlots } from './classSpellSlots';
+import { reconcileCharacterResources } from './resourceUtils';
+import { coreClassProgression } from '../data/progressions/coreSchedules';
+import { classResourceDefinitions } from '../services/classResources';
+import {
+  applyClassCapstone,
+  deriveClassMechanics,
+} from '../services/classMechanics';
 
 /**
  * Get the class progression data for a given class
  */
-export function getClassProgression(classSlug: string, edition: '2014' | '2024' = '2024'): ClassProgression | null {
+export function getClassProgression(
+  classSlug: string,
+  edition: '2014' | '2024' = '2024',
+): ClassProgression | null {
+  const core = coreClassProgression(classSlug, edition);
+  if (core) return core;
   // Implemented class progressions
   if (classSlug === 'barbarian' && edition === '2024') {
     return barbarian2024Progression;
@@ -92,18 +110,44 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
   }
 
   // Get class progression data
-  const progression = getClassProgression(character.class.toLowerCase(), character.edition);
+  const progression = getClassProgression(
+    character.class.toLowerCase(),
+    character.edition,
+  );
   if (!progression) {
     // Fallback for classes without progression data yet
     return createFallbackLevelUpData(character, fromLevel, toLevel);
   }
 
   // Get features for the new level
-  const featuresAtLevel = progression.features.filter(f => f.level === toLevel);
+  const featuresAtLevel = progression.features.filter(
+    (f) => f.level === toLevel,
+  );
+  const priorResources = classResourceDefinitions(character);
+  const resourceChanges = classResourceDefinitions({
+    ...character,
+    level: toLevel,
+  }).filter(
+    (resource) =>
+      !priorResources.some(
+        (prior) =>
+          prior.id === resource.id &&
+          prior.maxUses === resource.maxUses &&
+          JSON.stringify(prior.recovery) === JSON.stringify(resource.recovery),
+      ),
+  );
+  if (resourceChanges.length)
+    featuresAtLevel.push({
+      level: toLevel,
+      name: 'Resource progression',
+      description: 'Class resource capacity or recovery changes.',
+      automatic: true,
+      resources: resourceChanges,
+    });
 
   // Determine if any choices are required
   const choices: FeatureChoice[] = [];
-  featuresAtLevel.forEach(feature => {
+  featuresAtLevel.forEach((feature) => {
     if (!feature.automatic && feature.choices) {
       choices.push(...feature.choices);
     }
@@ -112,7 +156,10 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
   // Calculate HP gain
   const hitDie = progression.hitDie;
   const conModifier = character.abilities.CON.modifier;
-  const averageHpGain = Math.floor(parseInt(hitDie.substring(1)) / 2) + 1 + conModifier;
+  const averageHpGain = Math.max(
+    1,
+    Math.floor(parseInt(hitDie.substring(1)) / 2) + 1 + conModifier,
+  );
 
   // Calculate new proficiency bonus
   const newProficiencyBonus = PROFICIENCY_BONUSES[toLevel - 1];
@@ -124,8 +171,16 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
 
   if (character.spellcasting) {
     const classSlug = character.class.toLowerCase();
-    const currentSlots = normalizeSpellSlots(classSlug, SPELL_SLOTS_BY_CLASS[classSlug]?.[fromLevel]);
-    const nextLevelSlots = normalizeSpellSlots(classSlug, SPELL_SLOTS_BY_CLASS[classSlug]?.[toLevel]);
+    const currentSlots = classSpellSlots(
+      classSlug,
+      character.edition,
+      fromLevel,
+    );
+    const nextLevelSlots = classSpellSlots(
+      classSlug,
+      character.edition,
+      toLevel,
+    );
 
     // Check if spell slots changed
     if (JSON.stringify(currentSlots) !== JSON.stringify(nextLevelSlots)) {
@@ -138,8 +193,14 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
     }
 
     // Check if cantrips known changed
-    const currentCantrips = (CANTRIPS_KNOWN_BY_CLASS as Record<string, Record<string, number>>)[classSlug]?.[fromLevel.toString()] || 0;
-    const nextCantrips = (CANTRIPS_KNOWN_BY_CLASS as Record<string, Record<string, number>>)[classSlug]?.[toLevel.toString()] || 0;
+    const currentCantrips =
+      (CANTRIPS_KNOWN_BY_CLASS as Record<string, Record<string, number>>)[
+        classSlug
+      ]?.[fromLevel.toString()] || 0;
+    const nextCantrips =
+      (CANTRIPS_KNOWN_BY_CLASS as Record<string, Record<string, number>>)[
+        classSlug
+      ]?.[toLevel.toString()] || 0;
     if (nextCantrips > currentCantrips) {
       newCantripsKnown = nextCantrips;
     }
@@ -147,18 +208,29 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
     const learningRules = SPELL_LEARNING_RULES[classSlug];
 
     // For known casters, calculate new spells known
-    if (character.spellcasting.spellcastingType === 'known' && learningRules?.spellsKnown) {
-      const currentSpellsKnown = character.spellcasting.spellsKnown?.length || 0;
+    if (
+      character.spellcasting.spellcastingType === 'known' &&
+      learningRules?.spellsKnown
+    ) {
+      const currentSpellsKnown =
+        character.spellcasting.spellsKnown?.length || 0;
       const expectedSpellsKnown = learningRules.spellsKnown[toLevel - 1] || 0; // Array is 0-indexed
-      const spellsToLearn = Math.max(0, expectedSpellsKnown - currentSpellsKnown);
+      const spellsToLearn = Math.max(
+        0,
+        expectedSpellsKnown - currentSpellsKnown,
+      );
       if (spellsToLearn > 0) {
         newSpellsKnown = spellsToLearn;
       }
     }
 
     // For prepared casters, surface additional prepared slots as spell choices
-    if (character.spellcasting.spellcastingType === 'prepared' && learningRules?.spellsPrepared) {
-      const currentPrepared = character.spellcasting.preparedSpells?.length || 0;
+    if (
+      character.spellcasting.spellcastingType === 'prepared' &&
+      learningRules?.spellsPrepared
+    ) {
+      const currentPrepared =
+        character.spellcasting.preparedSpells?.length || 0;
       const expectedPrepared = learningRules.spellsPrepared[toLevel - 1] || 0;
       const newPreparedSlots = Math.max(0, expectedPrepared - currentPrepared);
       if (newPreparedSlots > 0) {
@@ -171,7 +243,7 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
       choices.push({
         type: 'spells',
         description: `Learn new spells at level ${toLevel}`,
-        count: (newCantripsKnown ? 1 : 0) + (newSpellsKnown || 0)
+        count: (newCantripsKnown ? 1 : 0) + (newSpellsKnown || 0),
       });
     }
   }
@@ -188,7 +260,7 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
     newSpellsKnown,
     features: featuresAtLevel,
     requiresChoices: choices.length > 0,
-    choices
+    choices,
   };
 }
 
@@ -198,29 +270,30 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
 function createFallbackLevelUpData(
   character: Character,
   fromLevel: number,
-  toLevel: number
+  toLevel: number,
 ): LevelUpData {
   const classSlug = character.class.toLowerCase();
 
   // Determine hit die based on class
   const hitDieMap: Record<string, string> = {
-    'barbarian': 'd12',
-    'fighter': 'd10',
-    'paladin': 'd10',
-    'ranger': 'd10',
-    'monk': 'd8',
-    'rogue': 'd8',
-    'bard': 'd8',
-    'cleric': 'd8',
-    'druid': 'd8',
-    'warlock': 'd8',
-    'sorcerer': 'd6',
-    'wizard': 'd6'
+    barbarian: 'd12',
+    fighter: 'd10',
+    paladin: 'd10',
+    ranger: 'd10',
+    monk: 'd8',
+    rogue: 'd8',
+    bard: 'd8',
+    cleric: 'd8',
+    druid: 'd8',
+    warlock: 'd8',
+    sorcerer: 'd6',
+    wizard: 'd6',
   };
   const hitDie = hitDieMap[classSlug] || 'd8';
 
   const conModifier = character.abilities.CON.modifier;
-  const averageHpGain = Math.floor(parseInt(hitDie.substring(1)) / 2) + 1 + conModifier;
+  const averageHpGain =
+    Math.floor(parseInt(hitDie.substring(1)) / 2) + 1 + conModifier;
   const newProficiencyBonus = PROFICIENCY_BONUSES[toLevel - 1];
 
   // Check for ASI/Feat
@@ -229,7 +302,7 @@ function createFallbackLevelUpData(
     choices.push({
       type: 'asi',
       description: 'Increase ability scores or choose a feat',
-      count: 2
+      count: 2,
     });
   }
 
@@ -242,7 +315,7 @@ function createFallbackLevelUpData(
     averageHpGain,
     features: [],
     requiresChoices: choices.length > 0,
-    choices
+    choices,
   };
 }
 
@@ -253,26 +326,28 @@ export function getLevelUpSteps(levelUpData: LevelUpData): string[] {
   const steps: string[] = ['overview', 'hp'];
 
   // Check for ASI/Feat choice
-  const hasASI = levelUpData.choices.some(c => c.type === 'asi');
-  const hasFeat = levelUpData.choices.some(c => c.type === 'feat');
+  const hasASI = levelUpData.choices.some((c) => c.type === 'asi');
+  const hasFeat = levelUpData.choices.some((c) => c.type === 'feat');
   if (hasASI || hasFeat) {
     steps.push('asi-feat');
   }
 
   // Check for subclass choice
-  const hasSubclass = levelUpData.choices.some(c => c.type === 'subclass');
+  const hasSubclass = levelUpData.choices.some((c) => c.type === 'subclass');
   if (hasSubclass) {
     steps.push('subclass');
   }
 
   // Check for spell choices - create separate steps for each spell choice
-  const spellChoices = levelUpData.choices.filter(c => c.type === 'spells');
+  const spellChoices = levelUpData.choices.filter((c) => c.type === 'spells');
   spellChoices.forEach((_choice, index) => {
     steps.push(`spells-${index}`);
   });
 
   // Check for fighting style
-  const hasFightingStyle = levelUpData.choices.some(c => c.type === 'fighting-style');
+  const hasFightingStyle = levelUpData.choices.some(
+    (c) => c.type === 'fighting-style',
+  );
   if (hasFightingStyle) {
     steps.push('fighting-style');
   }
@@ -293,20 +368,93 @@ export function getLevelUpSteps(levelUpData: LevelUpData): string[] {
 export function applyLevelUp(
   character: Character,
   levelUpData: LevelUpData,
-  choices: LevelUpChoices
+  choices: LevelUpChoices,
 ): Character {
-  const updatedCharacter = { ...character };
+  if (
+    levelUpData.fromLevel !== character.level ||
+    levelUpData.toLevel !== character.level + 1 ||
+    levelUpData.toLevel > 20
+  )
+    throw new Error(
+      'Level-up data must advance the current character by exactly one level.',
+    );
+  const updatedCharacter = structuredClone(character);
+
+  if (choices.asiChoices?.length) {
+    const allowed = getClassProgression(
+      character.classSlug || character.class.toLowerCase(),
+      character.edition,
+    )?.asiLevels.includes(levelUpData.toLevel);
+    const increases = new Map<string, number>();
+    for (const choice of choices.asiChoices) {
+      if (
+        !Object.prototype.hasOwnProperty.call(
+          character.abilities,
+          choice.ability,
+        ) ||
+        !Number.isInteger(choice.increase) ||
+        choice.increase < 1 ||
+        choice.increase > 2
+      )
+        throw new Error('Invalid ability score increase.');
+      increases.set(
+        choice.ability,
+        (increases.get(choice.ability) ?? 0) + choice.increase,
+      );
+    }
+    if (
+      !allowed ||
+      choices.featChosen ||
+      [...increases.values()].reduce((sum, value) => sum + value, 0) !== 2 ||
+      [...increases].some(
+        ([ability, increase]) =>
+          character.abilities[ability as keyof Character['abilities']].score +
+            increase >
+          20,
+      )
+    )
+      throw new Error(
+        'Ability score increases require an ASI level, exactly two points, and a maximum score of 20.',
+      );
+  }
 
   // Apply level increase
   updatedCharacter.level = levelUpData.toLevel;
 
   // Apply HP increase
-  let hpGain = choices.hpGained || 0;
+  const dieSize = Number(levelUpData.hitDie.slice(1));
+  if (
+    choices.hpRoll !== undefined &&
+    (!Number.isSafeInteger(choices.hpRoll) ||
+      choices.hpRoll < 1 ||
+      choices.hpRoll > dieSize)
+  )
+    throw new Error('Hit point roll is outside the class hit die.');
+  let hpGain = choices.hpGained ?? levelUpData.averageHpGain;
+  if (
+    !Number.isSafeInteger(hpGain) ||
+    hpGain < 1 ||
+    hpGain > Math.max(1, dieSize + character.abilities.CON.modifier)
+  )
+    throw new Error('Invalid hit point increase.');
+  if (
+    choices.hpRoll !== undefined &&
+    hpGain !== Math.max(1, choices.hpRoll + character.abilities.CON.modifier)
+  )
+    throw new Error('Hit point increase does not match the recorded roll.');
 
   // Apply Tough feat bonus (+2 HP per level)
   if (updatedCharacter.selectedFeats?.includes('tough')) {
     hpGain += 2;
   }
+  const classSlug = character.classSlug || character.class.toLowerCase();
+  const subclass = choices.subclassChosen ?? character.subclass;
+  if (
+    classSlug === 'sorcerer' &&
+    subclass === 'draconic' &&
+    levelUpData.toLevel >= (character.edition === '2024' ? 3 : 1)
+  )
+    hpGain += character.subclass === 'draconic' ? 1 : levelUpData.toLevel;
 
   updatedCharacter.maxHitPoints += hpGain;
   updatedCharacter.hitPoints += hpGain; // Also increase current HP
@@ -320,11 +468,11 @@ export function applyLevelUp(
 
   // Apply ASI choices
   if (choices.asiChoices) {
-    choices.asiChoices.forEach(choice => {
+    choices.asiChoices.forEach((choice) => {
       const ability = choice.ability as keyof Character['abilities'];
       updatedCharacter.abilities[ability].score += choice.increase;
       updatedCharacter.abilities[ability].modifier = Math.floor(
-        (updatedCharacter.abilities[ability].score - 10) / 2
+        (updatedCharacter.abilities[ability].score - 10) / 2,
       );
     });
   }
@@ -336,8 +484,55 @@ export function applyLevelUp(
     }
     updatedCharacter.selectedFeats.push(choices.featChosen);
 
-  // Process feat-granted abilities and spells
-  applyFeatEffects(updatedCharacter, choices.featChosen, character.featChoices);
+    // Process feat-granted abilities and spells
+    applyFeatEffects(
+      updatedCharacter,
+      choices.featChosen,
+      character.featChoices,
+    );
+  }
+  applyClassCapstone(
+    updatedCharacter.abilities,
+    updatedCharacter.classSlug || updatedCharacter.class.toLowerCase(),
+    updatedCharacter.edition,
+    updatedCharacter.level,
+  );
+  const conDelta =
+    updatedCharacter.abilities.CON.modifier - character.abilities.CON.modifier;
+  updatedCharacter.maxHitPoints += conDelta * updatedCharacter.level;
+  updatedCharacter.hitPoints += conDelta * updatedCharacter.level;
+
+  for (const [name, skill] of Object.entries(updatedCharacter.skills)) {
+    const ability = SKILL_TO_ABILITY[name as keyof Character['skills']];
+    if (!ability) continue;
+    const proficiency = skill.proficient ? (skill.expertise ? 2 : 1) : 0;
+    const jackBefore =
+      !skill.proficient && classSlug === 'bard' && character.level >= 2
+        ? Math.floor(character.proficiencyBonus / 2)
+        : 0;
+    const jackAfter =
+      !skill.proficient && classSlug === 'bard' && updatedCharacter.level >= 2
+        ? Math.floor(updatedCharacter.proficiencyBonus / 2)
+        : 0;
+    skill.value +=
+      updatedCharacter.abilities[ability].modifier -
+      character.abilities[ability].modifier +
+      proficiency *
+        (updatedCharacter.proficiencyBonus - character.proficiencyBonus) +
+      jackAfter -
+      jackBefore;
+  }
+  updatedCharacter.initiative +=
+    updatedCharacter.abilities.DEX.modifier - character.abilities.DEX.modifier;
+  if (updatedCharacter.spellcasting && character.spellcasting) {
+    const ability = updatedCharacter.spellcasting.ability;
+    const delta =
+      updatedCharacter.abilities[ability].modifier -
+      character.abilities[ability].modifier +
+      updatedCharacter.proficiencyBonus -
+      character.proficiencyBonus;
+    updatedCharacter.spellcasting.spellAttackBonus += delta;
+    updatedCharacter.spellcasting.spellSaveDC += delta;
   }
 
   // Apply subclass
@@ -353,23 +548,38 @@ export function applyLevelUp(
   // Apply spell slot increases
   if (levelUpData.newSpellSlots && updatedCharacter.spellcasting) {
     const classSlug = character.class.toLowerCase();
-    const newSlots = normalizeSpellSlots(classSlug, SPELL_SLOTS_BY_CLASS[classSlug]?.[levelUpData.toLevel]);
+    const newSlots = classSpellSlots(
+      classSlug,
+      character.edition,
+      levelUpData.toLevel,
+    );
+    newSlots[0] = updatedCharacter.spellcasting.cantripsKnown.length;
     updatedCharacter.spellcasting.spellSlots = newSlots;
-    updatedCharacter.spellcasting.usedSpellSlots = new Array(newSlots.length).fill(0);
+    const pactSpent =
+      character.spellcasting?.usedSpellSlots
+        ?.slice(1)
+        .reduce((sum, count) => sum + count, 0) ?? 0;
+    updatedCharacter.spellcasting.usedSpellSlots = newSlots.map((max, level) =>
+      classSlug === 'warlock'
+        ? level > 0 && max > 0
+          ? Math.min(max, pactSpent)
+          : 0
+        : (character.spellcasting?.usedSpellSlots?.[level] ?? 0),
+    );
   }
 
   // Apply spells learned
   if (choices.spellsLearned && updatedCharacter.spellcasting) {
     // Load spell data to separate cantrips from leveled spells
-      const allSpells: AppSpell[] = loadSpells();
-      const cantrips = choices.spellsLearned.filter((spellSlug: string) => {
-        const spell = allSpells.find((s: AppSpell) => s.slug === spellSlug);
-        return spell && spell.level === 0;
-      });
-      const leveledSpells = choices.spellsLearned.filter((spellSlug: string) => {
-        const spell = allSpells.find((s: AppSpell) => s.slug === spellSlug);
-        return spell && spell.level > 0;
-      });
+    const allSpells: AppSpell[] = loadSpells();
+    const cantrips = choices.spellsLearned.filter((spellSlug: string) => {
+      const spell = allSpells.find((s: AppSpell) => s.slug === spellSlug);
+      return spell && spell.level === 0;
+    });
+    const leveledSpells = choices.spellsLearned.filter((spellSlug: string) => {
+      const spell = allSpells.find((s: AppSpell) => s.slug === spellSlug);
+      return spell && spell.level > 0;
+    });
 
     // Add cantrips to cantripsKnown
     if (cantrips.length > 0) {
@@ -397,43 +607,33 @@ export function applyLevelUp(
 
   // Apply automatic features to class features list
   levelUpData.features
-    .filter(f => f.automatic)
-    .forEach(feature => {
-      if (!updatedCharacter.featuresAndTraits.classFeatures.includes(feature.name)) {
+    .filter((f) => f.automatic)
+    .forEach((feature) => {
+      if (
+        !updatedCharacter.featuresAndTraits.classFeatures.includes(feature.name)
+      ) {
         updatedCharacter.featuresAndTraits.classFeatures.push(feature.name);
       }
     });
 
-  // Update resources (Second Wind, Action Surge, etc.)
-  levelUpData.features.forEach(feature => {
-    if (feature.resources) {
-      if (!updatedCharacter.resources) {
-        updatedCharacter.resources = [];
-      }
-
-      feature.resources.forEach(newResource => {
-        // Find existing resource or add new one
-        const existingIndex = updatedCharacter.resources!.findIndex(
-          r => r.id === newResource.id
-        );
-
-        if (existingIndex >= 0) {
-          // Update existing resource (e.g., increase max uses)
-          updatedCharacter.resources![existingIndex] = {
-            ...updatedCharacter.resources![existingIndex],
-            maxUses: newResource.maxUses,
-            currentUses: newResource.maxUses // Reset to max on level-up
-          };
-        } else {
-          // Add new resource
-          updatedCharacter.resources!.push({
-            ...newResource,
-            currentUses: newResource.maxUses
-          });
-        }
-      });
-    }
-  });
+  // A level increase is not a rest. Preserve expenditure while gaining only
+  // genuinely new resources at full capacity.
+  updatedCharacter.resources = reconcileCharacterResources(
+    updatedCharacter,
+    character.level,
+  ).resources;
+  updatedCharacter.classMechanics = deriveClassMechanics(
+    {
+      classSlug:
+        updatedCharacter.classSlug || updatedCharacter.class.toLowerCase(),
+      edition: updatedCharacter.edition,
+      level: updatedCharacter.level,
+      subclassSlug: updatedCharacter.subclass,
+      eldritchInvocations: updatedCharacter.eldritchInvocations,
+      featChoices: updatedCharacter.featChoices,
+    },
+    updatedCharacter.abilities,
+  );
 
   // Record level-up in history
   const levelUpRecord: LevelUpRecord = {
@@ -446,7 +646,9 @@ export function applyLevelUp(
     subclassChosen: choices.subclassChosen,
     spellsLearned: choices.spellsLearned,
     fightingStyleChosen: choices.fightingStyleChosen,
-    featuresGained: levelUpData.features.filter(f => f.automatic).map(f => f.name)
+    featuresGained: levelUpData.features
+      .filter((f) => f.automatic)
+      .map((f) => f.name),
   };
 
   if (!updatedCharacter.levelHistory) {
@@ -481,9 +683,13 @@ export function getAverageHPGain(hitDie: string, conModifier: number): number {
 /**
  * Apply effects granted by a feat to the character
  */
-function applyFeatEffects(character: Character, featSlug: string, featChoices?: Character['featChoices']): void {
+function applyFeatEffects(
+  character: Character,
+  featSlug: string,
+  featChoices?: Character['featChoices'],
+): void {
   const feats = loadFeats();
-  const feat = feats.find(f => f.slug === featSlug);
+  const feat = feats.find((f) => f.slug === featSlug);
 
   if (!feat) return;
 
@@ -496,17 +702,32 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
   if (!character.spellcasting) {
     // Some feats might grant spells to non-spellcasters, but for now we'll assume they need spellcasting
     // Initialize spellcasting for feats that grant spells to non-casters
-    if (['drow-high-magic', 'fey-touched', 'shadow-touched', 'wood-elf-magic', 'metallic-dragon-adept', 'telekinetic', 'telepathic'].includes(featSlug)) {
+    if (
+      [
+        'drow-high-magic',
+        'fey-touched',
+        'shadow-touched',
+        'wood-elf-magic',
+        'metallic-dragon-adept',
+        'telekinetic',
+        'telepathic',
+      ].includes(featSlug)
+    ) {
       character.spellcasting = {
         ability: 'CHA' as const,
-        spellSaveDC: 8 + character.proficiencyBonus + Math.floor((character.abilities.CHA.score - 10) / 2),
-        spellAttackBonus: character.proficiencyBonus + Math.floor((character.abilities.CHA.score - 10) / 2),
+        spellSaveDC:
+          8 +
+          character.proficiencyBonus +
+          Math.floor((character.abilities.CHA.score - 10) / 2),
+        spellAttackBonus:
+          character.proficiencyBonus +
+          Math.floor((character.abilities.CHA.score - 10) / 2),
         cantripsKnown: [],
         spellcastingType: 'known' as const,
         cantripChoicesByLevel: {},
         spellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // No spell slots for feat-granted spells
         usedSpellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        featGrantedSpells: []
+        featGrantedSpells: [],
       };
     } else {
       return;
@@ -525,7 +746,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellSlug: 'detect-magic',
         spellcastingAbility: 'CHA',
         rechargeType: 'at-will',
-        featSlug: 'drow-high-magic'
+        featSlug: 'drow-high-magic',
       });
 
       // Levitate - 1 per long rest
@@ -534,7 +755,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'CHA',
         usesPerDay: 1,
         rechargeType: 'long-rest',
-        featSlug: 'drow-high-magic'
+        featSlug: 'drow-high-magic',
       });
 
       // Dispel Magic - 1 per long rest
@@ -543,7 +764,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'CHA',
         usesPerDay: 1,
         rechargeType: 'long-rest',
-        featSlug: 'drow-high-magic'
+        featSlug: 'drow-high-magic',
       });
       break;
 
@@ -554,7 +775,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'CHA', // Uses the ability increased by this feat
         usesPerDay: 1,
         rechargeType: 'long-rest',
-        featSlug: 'fey-touched'
+        featSlug: 'fey-touched',
       });
 
       // Grant one 1st-level divination/enchantment spell (1/LR) - default to Charm Person
@@ -564,7 +785,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'CHA',
         usesPerDay: 1,
         rechargeType: 'long-rest',
-        featSlug: 'fey-touched'
+        featSlug: 'fey-touched',
       });
       break;
 
@@ -575,7 +796,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'CHA', // Uses the ability increased by this feat
         usesPerDay: 1,
         rechargeType: 'short-rest',
-        featSlug: 'shadow-touched'
+        featSlug: 'shadow-touched',
       });
       break;
 
@@ -586,7 +807,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'WIS',
         usesPerDay: 1,
         rechargeType: 'long-rest',
-        featSlug: 'wood-elf-magic'
+        featSlug: 'wood-elf-magic',
       });
 
       // Pass Without Trace - 1 per long rest
@@ -595,7 +816,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'WIS',
         usesPerDay: 1,
         rechargeType: 'long-rest',
-        featSlug: 'wood-elf-magic'
+        featSlug: 'wood-elf-magic',
       });
       break;
 
@@ -606,7 +827,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'CHA', // Uses the ability increased by this feat
         usesPerDay: 1,
         rechargeType: 'long-rest',
-        featSlug: 'metallic-dragon-adept'
+        featSlug: 'metallic-dragon-adept',
       });
       break;
 
@@ -617,14 +838,19 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
       if (!character.spellcasting) {
         character.spellcasting = {
           ability: 'INT' as const,
-          spellSaveDC: 8 + character.proficiencyBonus + Math.floor((character.abilities.INT.score - 10) / 2),
-          spellAttackBonus: character.proficiencyBonus + Math.floor((character.abilities.INT.score - 10) / 2),
+          spellSaveDC:
+            8 +
+            character.proficiencyBonus +
+            Math.floor((character.abilities.INT.score - 10) / 2),
+          spellAttackBonus:
+            character.proficiencyBonus +
+            Math.floor((character.abilities.INT.score - 10) / 2),
           cantripsKnown: [],
           spellcastingType: 'known' as const,
           cantripChoicesByLevel: {},
           spellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           usedSpellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          featGrantedSpells: []
+          featGrantedSpells: [],
         };
       }
 
@@ -633,7 +859,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellSlug: 'mending',
         spellcastingAbility: 'INT',
         rechargeType: 'at-will',
-        featSlug: 'artificer-initiate'
+        featSlug: 'artificer-initiate',
       });
 
       // Grant one 1st-level artificer spell (1/LR) - default to Identify
@@ -642,7 +868,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'INT',
         usesPerDay: 1,
         rechargeType: 'long-rest',
-        featSlug: 'artificer-initiate'
+        featSlug: 'artificer-initiate',
       });
       break;
 
@@ -653,14 +879,19 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
       if (!character.spellcasting) {
         character.spellcasting = {
           ability: 'INT' as const,
-          spellSaveDC: 8 + character.proficiencyBonus + Math.floor((character.abilities.INT.score - 10) / 2),
-          spellAttackBonus: character.proficiencyBonus + Math.floor((character.abilities.INT.score - 10) / 2),
+          spellSaveDC:
+            8 +
+            character.proficiencyBonus +
+            Math.floor((character.abilities.INT.score - 10) / 2),
+          spellAttackBonus:
+            character.proficiencyBonus +
+            Math.floor((character.abilities.INT.score - 10) / 2),
           cantripsKnown: [],
           spellcastingType: 'known' as const,
           cantripChoicesByLevel: {},
           spellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           usedSpellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          featGrantedSpells: []
+          featGrantedSpells: [],
         };
       }
 
@@ -669,7 +900,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellSlug: 'fire-bolt',
         spellcastingAbility: 'INT',
         rechargeType: 'at-will',
-        featSlug: 'spell-sniper'
+        featSlug: 'spell-sniper',
       });
 
       // Apply spell sniper effects
@@ -682,7 +913,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellSlug: 'mage-hand',
         spellcastingAbility: 'CHA', // Uses the ability increased by this feat
         rechargeType: 'at-will',
-        featSlug: 'telekinetic'
+        featSlug: 'telekinetic',
       });
       break;
 
@@ -693,7 +924,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         spellcastingAbility: 'CHA', // Uses the ability increased by this feat
         usesPerDay: 1,
         rechargeType: 'long-rest',
-        featSlug: 'telepathic'
+        featSlug: 'telepathic',
       });
       break;
 
@@ -711,7 +942,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
     case 'lucky':
       character.featEffects!.luckPoints = {
         current: 3,
-        max: 3
+        max: 3,
       };
       // Add luck points as a resource
       if (!character.resources) {
@@ -722,7 +953,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         name: 'Luck Points',
         description: 'Reroll d20s or force rerolls against you',
         maxUses: 3,
-        rechargeType: 'long-rest'
+        rechargeType: 'long-rest',
       });
       break;
 
@@ -748,7 +979,8 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
 
     // Defensive Feats
     case 'alert':
-      character.featEffects!.initiativeBonus = (character.featEffects!.initiativeBonus || 0) + 5;
+      character.featEffects!.initiativeBonus =
+        (character.featEffects!.initiativeBonus || 0) + 5;
       character.featEffects!.cantBeSurprised = true;
       character.featEffects!.noAdvantageFromUnseen = true;
       // Apply initiative bonus immediately
@@ -802,8 +1034,11 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         character.featEffects!.ignoredResistances = [];
       }
       const choiceValue = featChoices?.[featSlug]?.damageType;
-      const chosenDamageType = typeof choiceValue === 'string' ? choiceValue : 'fire'; // Default to fire if no choice made
-      if (!character.featEffects!.ignoredResistances.includes(chosenDamageType)) {
+      const chosenDamageType =
+        typeof choiceValue === 'string' ? choiceValue : 'fire'; // Default to fire if no choice made
+      if (
+        !character.featEffects!.ignoredResistances.includes(chosenDamageType)
+      ) {
         character.featEffects!.ignoredResistances.push(chosenDamageType);
       }
       break;
@@ -832,7 +1067,9 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
     case 'heavy-armor-master':
       // +1 STR and damage reduction while wearing heavy armor
       character.abilities.STR.score += 1;
-      character.abilities.STR.modifier = Math.floor((character.abilities.STR.score - 10) / 2);
+      character.abilities.STR.modifier = Math.floor(
+        (character.abilities.STR.score - 10) / 2,
+      );
       // Damage reduction handled in damage calculations
       break;
 
@@ -849,17 +1086,20 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         if (!character.resources) {
           character.resources = [];
         }
-        const existingSorceryPoints = character.resources.find(r => r.id === 'sorcery-points');
+        const existingSorceryPoints = character.resources.find(
+          (r) => r.id === 'sorcery-points',
+        );
         if (existingSorceryPoints) {
           existingSorceryPoints.maxUses += 2;
-          existingSorceryPoints.currentUses = (existingSorceryPoints.currentUses || 0) + 2;
+          existingSorceryPoints.currentUses =
+            (existingSorceryPoints.currentUses || 0) + 2;
         } else {
           character.resources.push({
             id: 'sorcery-points',
             name: 'Sorcery Points',
             description: 'Points for Metamagic options',
             maxUses: 2,
-            rechargeType: 'long-rest'
+            rechargeType: 'long-rest',
           });
         }
       }
@@ -882,7 +1122,9 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
       // Heavy armor proficiency - handled during feat selection
       // +1 STR
       character.abilities.STR.score += 1;
-      character.abilities.STR.modifier = Math.floor((character.abilities.STR.score - 10) / 2);
+      character.abilities.STR.modifier = Math.floor(
+        (character.abilities.STR.score - 10) / 2,
+      );
       break;
 
     case 'moderately-armored':
@@ -890,7 +1132,9 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
       // +1 STR or DEX
       // Default to STR for now - would need player choice
       character.abilities.STR.score += 1;
-      character.abilities.STR.modifier = Math.floor((character.abilities.STR.score - 10) / 2);
+      character.abilities.STR.modifier = Math.floor(
+        (character.abilities.STR.score - 10) / 2,
+      );
       break;
 
     case 'lightly-armored':
@@ -898,13 +1142,17 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
       // +1 STR or DEX
       // Default to DEX for now - would need player choice
       character.abilities.DEX.score += 1;
-      character.abilities.DEX.modifier = Math.floor((character.abilities.DEX.score - 10) / 2);
+      character.abilities.DEX.modifier = Math.floor(
+        (character.abilities.DEX.score - 10) / 2,
+      );
       break;
 
     case 'medium-armor-master':
       // Medium armor Dex bonus (+1 Dex) - handled in AC calculations
       character.abilities.DEX.score += 1;
-      character.abilities.DEX.modifier = Math.floor((character.abilities.DEX.score - 10) / 2);
+      character.abilities.DEX.modifier = Math.floor(
+        (character.abilities.DEX.score - 10) / 2,
+      );
       break;
 
     // Skill Feats
@@ -947,7 +1195,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         name: 'Second Chance',
         description: 'Force creature to reroll attack',
         maxUses: 1,
-        rechargeType: 'short-rest'
+        rechargeType: 'short-rest',
       });
       break;
 
@@ -1025,7 +1273,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         damageType: 'fire', // Default - would need player choice
         damageDice: '3d6',
         saveType: 'DEX',
-        range: '15-foot cone'
+        range: '15-foot cone',
       };
       break;
 
@@ -1035,7 +1283,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         damageType: 'force', // Default - would need player choice
         damageDice: '2d6',
         saveType: 'DEX',
-        range: '10-foot cone'
+        range: '10-foot cone',
       };
       break;
 
@@ -1045,7 +1293,7 @@ function applyFeatEffects(character: Character, featSlug: string, featChoices?: 
         damageType: 'healing', // Special case for healing
         damageDice: '2d6',
         saveType: 'none',
-        range: '10-foot cone'
+        range: '10-foot cone',
       };
       break;
 
@@ -1104,7 +1352,7 @@ export function canLevelUp(character: Character): boolean {
 export function getHighLevelChoices(
   classSlug: string,
   edition: '2014' | '2024',
-  targetLevel: number
+  targetLevel: number,
 ): LevelUpData[] {
   const progression = getClassProgression(classSlug, edition);
   if (!progression) {
@@ -1120,8 +1368,8 @@ export function getHighLevelChoices(
       class: classSlug,
       edition,
       abilities: {
-        CON: { score: 10, modifier: 0 }
-      }
+        CON: { score: 10, modifier: 0 },
+      },
     } as Character;
 
     const levelUpData = calculateLevelUpData(mockCharacter);

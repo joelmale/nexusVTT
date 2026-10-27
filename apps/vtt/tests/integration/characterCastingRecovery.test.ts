@@ -57,6 +57,105 @@ runIntegration('saved character admission and casting recovery', () => {
     };
   }
 
+  it('commits resource retries once and serializes competing uses against the same actor version', async () => {
+    const character = await db.createCharacterOnce(
+      ownerId,
+      'Resource fighter',
+      {
+        edition: '2024',
+        classSlug: 'fighter',
+        level: 4,
+        hitPoints: 20,
+        maxHitPoints: 36,
+        abilities: { CON: { modifier: 2 } },
+        hitDice: { current: 2, max: 4, dieType: 10 },
+        resources: [
+          {
+            id: 'second-wind',
+            name: 'Second Wind',
+            description: '',
+            maxUses: 3,
+            currentUses: 2,
+            rechargeType: 'long-rest',
+            recovery: { shortRest: 1, longRest: 'full' },
+          },
+        ],
+      },
+      randomUUID(),
+      1,
+    );
+    await db.domainCommands.execute(
+      command({
+        type: 'AdmitCharacter',
+        characterDefinitionRef: {
+          kind: 'character',
+          id: character.id,
+          revision: 1,
+        },
+        initialControllerUserIds: [ownerId],
+      }),
+      { principalId: ownerId },
+    );
+    const actor = (
+      await db.campaignActors.getActorsByCampaign(campaignId)
+    ).find(
+      (entry) => (entry.sourceRef as { id?: string })?.id === character.id,
+    )!;
+    expect(actor).toBeDefined();
+    const use = {
+      ...command({
+        type: 'ConsumeClassResource',
+        actorId: actor.id,
+        resourceId: 'second-wind',
+        amount: 1,
+      }),
+      expectedActorVersions: { [actor.id]: actor.stateVersion },
+    };
+    const retries = await Promise.all([
+      db.domainCommands.execute(use, { principalId: ownerId }),
+      db.domainCommands.execute(use, { principalId: ownerId }),
+    ]);
+    expect(retries.filter((result) => result.duplicate)).toHaveLength(1);
+    let saved = (await db.campaignActors.getActorById(actor.id))!;
+    expect(saved.resourcePools?.['feature:second-wind'].current).toBe(1);
+    const competing = {
+      ...use,
+      commandId: randomUUID(),
+      expectedActorVersions: { [actor.id]: saved.stateVersion },
+    };
+    const attempts = await Promise.allSettled([
+      db.domainCommands.execute(competing, { principalId: ownerId }),
+      db.domainCommands.execute(
+        { ...competing, commandId: randomUUID() },
+        { principalId: ownerId },
+      ),
+    ]);
+    expect(
+      attempts.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    saved = (await db.campaignActors.getActorById(actor.id))!;
+    expect(saved.resourcePools?.['feature:second-wind'].current).toBe(0);
+    const rest = {
+      ...command({ type: 'RestActor', actorId: actor.id, restType: 'short' }),
+      expectedActorVersions: { [actor.id]: saved.stateVersion },
+    };
+    await db.domainCommands.execute(rest, { principalId: ownerId });
+    saved = (await db.campaignActors.getActorById(actor.id))!;
+    expect(saved.resourcePools?.['feature:second-wind'].current).toBe(1);
+    expect(saved.resourcePools?.['feature:hit-dice'].current).toBe(2);
+    await db.domainCommands.execute(
+      {
+        ...command({ type: 'RestActor', actorId: actor.id, restType: 'long' }),
+        expectedActorVersions: { [actor.id]: saved.stateVersion },
+      },
+      { principalId: ownerId },
+    );
+    saved = (await db.campaignActors.getActorById(actor.id))!;
+    expect(saved.resourcePools?.['feature:second-wind'].current).toBe(3);
+    expect(saved.resourcePools?.['feature:hit-dice'].current).toBe(4);
+    expect(saved.currentHp).toBe(36);
+  });
+
   it('admits saved HP and resources once, commits a concurrent cast retry once, rejects unknown revisions and restores slots', async () => {
     const character = await db.createCharacterOnce(
       ownerId,
@@ -99,7 +198,11 @@ runIntegration('saved character admission and casting recovery', () => {
         { principalId: ownerId },
       ),
     ]);
-    const actors = await db.campaignActors.getActorsByCampaign(campaignId);
+    const actors = (
+      await db.campaignActors.getActorsByCampaign(campaignId)
+    ).filter(
+      (entry) => (entry.sourceRef as { id?: string })?.id === character.id,
+    );
     expect(actors).toHaveLength(1);
     const actor = actors[0];
     expect(actor.currentHp).toBe(0);

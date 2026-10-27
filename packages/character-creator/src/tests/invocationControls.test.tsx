@@ -151,10 +151,15 @@ describe('higher-level invocation choices', () => {
     const group = screen.getByRole('group', {
       name: /Lessons of the First Ones: choose/,
     });
-    fireEvent.click(within(group).getByRole('checkbox', { name: 'Skilled' }));
+    fireEvent.click(
+      within(group).getByRole('checkbox', { name: 'Skilled (lesson grant 1)' }),
+    );
+    fireEvent.click(
+      within(group).getByRole('checkbox', { name: 'Skilled (lesson grant 2)' }),
+    );
     expect(
       latest!.featChoices?.['invocation:lessons-of-the-first-ones']?.targets,
-    ).toEqual(['skilled']);
+    ).toEqual(['skilled:lesson-1', 'skilled:lesson-2']);
     unmount();
     const legacy = render(
       <ClassGrantChoices

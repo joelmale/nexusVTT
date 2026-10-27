@@ -2,7 +2,8 @@ import type { Character, CharacterCreationData } from '../types/dnd';
 import { FEAT_DATABASE } from './dataService';
 import { humanOriginFeat } from './originChoices';
 import { featProficiencyErrors } from './featProficiencies';
-import { invocationFeatGrants } from './invocations';
+import { invocationFeatGrants, lessonFeatSlug } from './invocations';
+import { isPermittedContentSource } from '../data/contentProvenance';
 import {
   calculateFeatAvailability,
   getFeatAvailability,
@@ -48,7 +49,11 @@ export function featEntitlementErrors(
       `This class and level grant ${available} feats through Ability Score Improvement choices. Keep background, species and Variant Human grants separate.`,
     );
   for (const slug of new Set(selected)) {
-    const feat = FEAT_DATABASE.find((entry) => entry.slug === slug);
+    const canonicalSlug = lessonFeatSlug(slug).replace(
+      /^magic-initiate-(cleric|druid|wizard)$/,
+      'magic-initiate',
+    );
+    const feat = FEAT_DATABASE.find((entry) => entry.slug === canonicalSlug);
     if (!feat) {
       errors.push(`Feat '${slug}' is unavailable. Choose a catalog feat.`);
       continue;
@@ -111,7 +116,16 @@ export function featEntitlementErrors(
     )
       errors.push(`${feat.name} requires spellcasting.`);
     const source = `${feat.source} ${data.edition === '2024' && feat.category === 'origin' ? '2024' : feat.year}`;
-    if (allowedSources && !allowedSources.includes(source))
+    if (
+      allowedSources &&
+      !isPermittedContentSource(
+        'feat',
+        feat.slug,
+        data.edition,
+        source,
+        allowedSources,
+      )
+    )
       errors.push(
         `Your game does not permit ${feat.name}'s source (${source}).`,
       );

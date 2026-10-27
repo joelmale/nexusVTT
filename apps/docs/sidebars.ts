@@ -33,6 +33,7 @@ const sidebars: SidebarsConfig = {
           label: 'Creator and Studio repair plan',
         },
         'integrations/character-creation-validation-plan',
+        'integrations/character-creation-remaining-tranches',
         'integrations/character-creation-validation-evidence',
         'integrations/character-creation-manual-acceptance',
         'integrations/NEXUSCODEX_INTEGRATION',

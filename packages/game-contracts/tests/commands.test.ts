@@ -8,6 +8,16 @@ import {
 import { mockApplyDamageCommand, mockCommandReceipt } from './fixtures';
 
 describe('Domain Commands & Receipts', () => {
+  it('validates class resource consumption at the command boundary', () => {
+    const command = { ...mockApplyDamageCommand, payload: {
+      type: 'ConsumeClassResource', actorId: '77777777-7777-4777-8777-777777777777', resourceId: 'second-wind', amount: 1,
+    } };
+    expect(domainCommandSchema.parse(command).payload.type).toBe('ConsumeClassResource');
+    for (const amount of [-1, 0, 1.5, 1001, NaN])
+      expect(domainCommandSchema.safeParse({ ...command, payload: { ...command.payload, amount } }).success).toBe(false);
+    for (const resourceId of ['', 'x'.repeat(129)])
+      expect(domainCommandSchema.safeParse({ ...command, payload: { ...command.payload, resourceId } }).success).toBe(false);
+  });
   it('validates a complete ApplyDamage command envelope', () => {
     const parsed = domainCommandSchema.parse(mockApplyDamageCommand);
     expect(parsed.commandId).toBe(mockApplyDamageCommand.commandId);

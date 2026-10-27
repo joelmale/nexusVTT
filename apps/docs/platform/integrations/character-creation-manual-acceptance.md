@@ -11,9 +11,12 @@ Report results against the [execution ledger](character-creation-validation-evid
 
 ## Candidate and device setup
 
+**DM** owns independent rules review, accessibility review and the shared test
+environment. No reviewer approval or actual device pass is recorded yet.
+
 The maintainer must supply an accessible **test URL and exact candidate build ID**
-before execution. The current changes are local and uncommitted; an older deployed
-version cannot validate them. Use disposable test accounts, a disposable campaign,
+before execution. Publishing the repairs does not establish that they are deployed;
+an older deployed version cannot validate them. Use disposable test accounts, a disposable campaign,
 and synthetic character names. Confirm that the URL opens on each physical device.
 `localhost` on a phone refers to that phone, not the Windows development computer.
 Do not use production campaign data for these tests.

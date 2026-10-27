@@ -1,10 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import crypto from 'crypto';
 import type { PoolClient } from 'pg';
 import { DomainCommandService } from '../../../../server/commands/DomainCommandService.js';
 import type { DatabaseService } from '../../../../server/database.js';
 import type { DomainCommand } from '@nexus/game-contracts';
 
 describe('DomainCommandService', () => {
+  afterEach(() => vi.restoreAllMocks());
   let service: DomainCommandService;
   let mockDb: {
     commandReceipts: {
@@ -1402,7 +1404,137 @@ describe('DomainCommandService', () => {
     });
   });
 
+  describe('ConsumeClassResource', () => {
+    const resourceActor = {
+      ...mockActor,
+      resourcePools: {
+        'feature:second-wind': {
+          id: 'feature:second-wind',
+          classResourceId: 'second-wind',
+          name: 'Second Wind',
+          poolType: 'uses',
+          max: 2,
+          current: 1,
+          resetOn: 'long-rest',
+          recovery: { shortRest: 1, longRest: 'full' },
+        },
+      },
+    };
+    const command = (): DomainCommand => ({
+      commandId: crypto.randomUUID(),
+      protocolVersion: '1.0',
+      campaignId: mockActor.campaignId,
+      issuerUserId: 'user-1',
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: { [mockActor.id]: 1 },
+      payload: {
+        type: 'ConsumeClassResource',
+        actorId: mockActor.id,
+        resourceId: 'second-wind',
+        amount: 1,
+      },
+    });
+    it('charges a resource under the actor lock and stores a receipt in the transaction', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValue(resourceActor);
+      mockDb.campaignActors.updateActorState.mockResolvedValue({
+        status: 'updated',
+        actor: { ...resourceActor, stateVersion: 2 },
+      });
+      const result = await service.execute(command(), {
+        principalId: 'user-1',
+        isDm: false,
+      });
+      expect(result.receipt.result.success).toBe(true);
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        mockActor.id,
+        {
+          expectedVersion: 1,
+          resourcePools: expect.objectContaining({
+            'feature:second-wind': expect.objectContaining({ current: 0 }),
+          }),
+        },
+        mockClient,
+      );
+      expect(resourceActor.resourcePools['feature:second-wind'].current).toBe(
+        1,
+      );
+      expect(mockDb.commandReceipts.saveReceipt).toHaveBeenCalledOnce();
+    });
+    it.each(['missing', 'stale', 'empty', 'unknown', 'unauthorized'] as const)(
+      'rejects %s without storing a mutation',
+      async (kind) => {
+        const actor = structuredClone(resourceActor);
+        if (kind === 'empty')
+          actor.resourcePools['feature:second-wind'].current = 0;
+        mockDb.campaignActors.lockActorForUpdate.mockResolvedValue(actor);
+        const request = command();
+        if (kind === 'missing') request.expectedActorVersions = {};
+        if (kind === 'stale') request.expectedActorVersions = { [actor.id]: 0 };
+        if (
+          kind === 'unknown' &&
+          request.payload.type === 'ConsumeClassResource'
+        )
+          request.payload.resourceId = 'absent';
+        await expect(
+          service.execute(request, {
+            principalId: kind === 'unauthorized' ? 'other-user' : 'user-1',
+            isDm: false,
+          }),
+        ).rejects.toThrow();
+        expect(mockDb.campaignActors.updateActorState).not.toHaveBeenCalled();
+      },
+    );
+    it('applies revised partial recovery without replenishing unrelated daily counters', async () => {
+      const actor = structuredClone(resourceActor);
+      actor.resourcePools['feature:second-wind'].current = 0;
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValue(actor);
+      mockDb.campaignActors.updateActorState.mockResolvedValue({
+        status: 'updated',
+        actor: { ...actor, stateVersion: 2 },
+      });
+      const request = command();
+      request.payload = {
+        type: 'RestActor',
+        actorId: actor.id,
+        restType: 'short',
+        hitDiceToSpend: 0,
+      };
+      await service.execute(request, { principalId: 'user-1', isDm: false });
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        actor.id,
+        expect.objectContaining({
+          resourcePools: expect.objectContaining({
+            'feature:second-wind': expect.objectContaining({ current: 1 }),
+          }),
+        }),
+        mockClient,
+      );
+    });
+  });
+
   describe('RestActor', () => {
+    it.each([-1, 0.5, 21, Number.MAX_SAFE_INTEGER, NaN])(
+      'rejects invalid or excessive Hit Dice before rolling (%s)',
+      async (hitDiceToSpend) => {
+        const command: DomainCommand = {
+          commandId: '55555555-5555-4555-8555-555555555555',
+          protocolVersion: '1.0',
+          campaignId: mockActor.campaignId,
+          issuerUserId: 'user-1',
+          timestamp: new Date().toISOString(),
+          payload: {
+            type: 'RestActor',
+            actorId: mockActor.id,
+            restType: 'short',
+            hitDiceToSpend,
+          },
+        };
+        await expect(
+          service.execute(command, { principalId: 'user-1' }),
+        ).rejects.toThrow('twenty Hit Dice');
+        expect(mockDb.campaignActors.updateActorState).not.toHaveBeenCalled();
+      },
+    );
     const restedActor = {
       ...mockActor,
       currentHp: 10,
@@ -1411,6 +1543,18 @@ describe('DomainCommandService', () => {
       conditions: ['unconscious'],
       deathSaves: { successes: 1, failures: 2 },
       resourcePools: {
+        'feature:hit-dice': {
+          id: 'feature:hit-dice',
+          name: 'Hit Dice',
+          classResourceId: 'hit-dice',
+          poolType: 'uses',
+          max: 3,
+          current: 2,
+          resetOn: 'long-rest',
+          hitDieSize: 10,
+          hitDieModifier: 2,
+          recovery: { longRest: 'full' },
+        },
         'pool-pact': {
           current: 0,
           max: 2,
@@ -1425,6 +1569,7 @@ describe('DomainCommandService', () => {
     };
 
     it('performs short rest: resets short-rest pools and applies hit dice healing', async () => {
+      vi.spyOn(crypto, 'randomInt').mockImplementation(() => 4);
       mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
         restedActor,
       );
@@ -1458,7 +1603,7 @@ describe('DomainCommandService', () => {
         mockActor.id,
         expect.objectContaining({
           expectedVersion: 1,
-          currentHp: 16, // 10 + 6
+          currentHp: 16, // Rolled 4 + CON 2; never approximated from maximum HP.
           resourcePools: expect.objectContaining({
             'pool-pact': expect.objectContaining({ current: 2 }),
             'pool-long': expect.objectContaining({ current: 1 }), // unchanged

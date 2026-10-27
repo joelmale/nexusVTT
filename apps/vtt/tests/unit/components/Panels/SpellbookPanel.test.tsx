@@ -19,6 +19,7 @@ vi.mock('@/services/commandClient', () => ({
     applyPreparationPlan: vi.fn(),
     endConcentration: vi.fn(),
     restActor: vi.fn(),
+    consumeClassResource: vi.fn(),
   },
 }));
 const spell = {
@@ -85,6 +86,96 @@ beforeEach(() => {
 });
 
 describe('canonical character spellbook', () => {
+  it('lets a martial actor spend its server resource using the current version and refreshes the saved balance', async () => {
+    const fighter: SpellbookActor = {
+      ...actor,
+      profiles: [],
+      pools: {
+        'feature:second-wind': {
+          id: 'feature:second-wind',
+          name: 'Second Wind',
+          poolType: 'uses',
+          classResourceId: 'second-wind',
+          max: 2,
+          current: 2,
+          resetOn: 'long-rest',
+          recovery: { shortRest: 1, longRest: 'full' },
+        },
+      },
+    };
+    vi.mocked(loadActorSpellbook)
+      .mockResolvedValueOnce({ actor: fighter, spells: [] })
+      .mockResolvedValue({
+        actor: {
+          ...fighter,
+          stateVersion: 8,
+          pools: {
+            'feature:second-wind': {
+              ...fighter.pools['feature:second-wind'],
+              current: 1,
+            },
+          },
+        },
+        spells: [],
+      });
+    vi.mocked(commandClient.consumeClassResource).mockResolvedValue({
+      success: true,
+    });
+    renderPanel();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Use Second Wind' }),
+    );
+    await waitFor(() =>
+      expect(commandClient.consumeClassResource).toHaveBeenCalledWith(
+        'campaign',
+        'canonical-actor',
+        'second-wind',
+        1,
+        expect.objectContaining({
+          expectedVersion: 7,
+          commandId: expect.any(String),
+        }),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByText('1 / 2 remaining')).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('button', { name: /short rest/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the prior resource balance visible when the command is rejected', async () => {
+    vi.mocked(loadActorSpellbook).mockResolvedValue({
+      actor: {
+        ...actor,
+        profiles: [],
+        pools: {
+          'feature:rage': {
+            id: 'feature:rage',
+            name: 'Rage',
+            poolType: 'uses',
+            classResourceId: 'rage',
+            max: 2,
+            current: 1,
+            resetOn: 'long-rest',
+          },
+        },
+      },
+      spells: [],
+    });
+    vi.mocked(commandClient.consumeClassResource).mockRejectedValue(
+      new Error('Version changed'),
+    );
+    renderPanel();
+    fireEvent.click(await screen.findByRole('button', { name: 'Use Rage' }));
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Resource use could not be saved/),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByText('1 / 2 remaining')).toBeInTheDocument();
+  });
   it('uses actual profile and definition references and refreshes committed slots', async () => {
     vi.mocked(loadActorSpellbook)
       .mockResolvedValueOnce({ actor, spells: [spell] })

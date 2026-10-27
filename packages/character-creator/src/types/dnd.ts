@@ -258,6 +258,7 @@ export interface Character {
 
   // Level progression and resource tracking
   resources?: ResourceTracker[]; // Trackable class resources (Second Wind, Action Surge, etc.)
+  classMechanics?: import('../services/classMechanics').DerivedClassMechanics;
   levelHistory?: LevelUpRecord[]; // Record of all level-ups and choices made
 
   // Feat effects and bonuses
@@ -459,6 +460,7 @@ export interface Feature {
 }
 
 export interface Subclass {
+  supportStatus?: 'verified-core' | 'legacy-compatibility-unverified';
   slug: string;
   name: string;
   class: string; // Parent class slug

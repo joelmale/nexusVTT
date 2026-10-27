@@ -59,7 +59,7 @@ import {
   deleteCharacter,
   updateCharacter,
 } from './services/dbService';
-import { resetResources } from './utils/resourceUtils';
+import { applyCharacterRest } from './utils/resourceUtils';
 import { APP_VERSION } from './version';
 // REFACTORED: Language utilities moved to languageUtils.ts for the wizard
 // Still used here in main App for character sheet display - can be removed once main app is refactored
@@ -570,17 +570,12 @@ const App: React.FC = () => {
       const restChanges = calculateRestChanges(character);
 
       // Execute rest logic FIRST
-      let updatedCharacter = { ...character };
+      const updatedCharacter = applyCharacterRest(character, 'long-rest');
       updatedCharacter.hitPoints = character.maxHitPoints;
-      updatedCharacter.hitDice = {
-        ...updatedCharacter.hitDice,
-        current: updatedCharacter.hitDice.max,
-      };
       // Reset Action Surge uses (legacy field)
       updatedCharacter.actionSurgeUsed = 0;
 
       // Reset all resources that recharge on long rest
-      updatedCharacter = resetResources(updatedCharacter, 'long-rest');
 
       // Restore spell slots
       if (updatedCharacter.spellcasting) {
@@ -615,20 +610,15 @@ const App: React.FC = () => {
       const character = characters.find((c) => c.id === characterId);
       if (!character) return;
 
-      if (character.hitDice.current <= 0) {
-        setRollResult({ text: 'No hit dice remaining!', value: null });
-        return;
-      }
-
       const diceToSpendStr = prompt(
         `How many hit dice to spend? (Available: ${character.hitDice.current}/${character.hitDice.max})`,
       );
-      if (!diceToSpendStr) return;
+      if (diceToSpendStr === null) return;
 
-      const diceToSpend = parseInt(diceToSpendStr, 10);
+      const diceToSpend = Number(diceToSpendStr);
       if (
-        isNaN(diceToSpend) ||
-        diceToSpend <= 0 ||
+        !Number.isSafeInteger(diceToSpend) ||
+        diceToSpend < 0 ||
         diceToSpend > character.hitDice.current
       ) {
         setRollResult({ text: 'Invalid number of hit dice.', value: null });
@@ -654,7 +644,7 @@ const App: React.FC = () => {
         character.hitPoints + hpRecovered,
       );
       const updatedCharacter = {
-        ...character,
+        ...applyCharacterRest(character, 'short-rest'),
         hitPoints: newHP,
         hitDice: {
           ...character.hitDice,
@@ -802,8 +792,9 @@ const App: React.FC = () => {
             c.id === updatedCharacter.id ? updatedCharacter : c,
           ),
         );
+        return true;
       } catch {
-        // Error updating character
+        return false;
       }
     },
     [],

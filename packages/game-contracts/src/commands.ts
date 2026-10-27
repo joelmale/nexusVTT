@@ -114,6 +114,16 @@ export const restActorPayloadSchema = z.object({
 });
 export type RestActorPayload = z.infer<typeof restActorPayloadSchema>;
 
+export const consumeClassResourcePayloadSchema = z.object({
+  type: z.literal('ConsumeClassResource'),
+  actorId: z.string().uuid(),
+  resourceId: z.string().min(1).max(128),
+  amount: z.number().int().positive().max(1000).default(1),
+});
+export type ConsumeClassResourcePayload = z.infer<
+  typeof consumeClassResourcePayloadSchema
+>;
+
 export const transferItemPayloadSchema = z.object({
   type: z.literal('TransferItem'),
   sourceActorId: z.string().uuid().optional(),
@@ -166,6 +176,7 @@ export const domainCommandPayloadSchema = z.discriminatedUnion('type', [
   castSpellPayloadSchema,
   endConcentrationPayloadSchema,
   restActorPayloadSchema,
+  consumeClassResourcePayloadSchema,
   transferItemPayloadSchema,
   activateSessionPlanPayloadSchema,
   advanceSessionPlanStepPayloadSchema,

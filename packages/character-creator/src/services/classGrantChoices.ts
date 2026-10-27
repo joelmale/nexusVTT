@@ -8,6 +8,7 @@ import {
   selectedInvocationCount,
 } from './invocations';
 import { invocationTargetOptions } from './invocationChoices';
+import { legacyInvocationErrors } from './legacyInvocations';
 
 export const masteryCount = (
   data: Pick<CharacterCreationData, 'edition' | 'classSlug'> & {
@@ -59,7 +60,7 @@ export function masteryOptions(
 }
 
 export function classGrantErrors(data: CharacterCreationData): string[] {
-  if (data.edition !== '2024') return [];
+  if (data.edition !== '2024') return legacyInvocationErrors(data);
   const errors: string[] = [];
   if (data.classSlug === 'warlock') {
     const choices = data.eldritchInvocations ?? [];
@@ -108,9 +109,35 @@ export function classGrantErrors(data: CharacterCreationData): string[] {
               choice.featSlug ? [choice.featSlug] : [],
             ),
           ];
-          if (targets.some((target) => otherFeats.includes(target)))
+          const backgroundMagicList =
+            background?.originFeat === 'magic-initiate'
+              ? background.slug.startsWith('acolyte')
+                ? 'cleric'
+                : 'wizard'
+              : undefined;
+          const otherMagicLists = [
+            backgroundMagicList,
+            ...otherFeats
+              .filter((feat) => feat?.startsWith('magic-initiate'))
+              .map(
+                (feat) =>
+                  feat?.match(/^magic-initiate-(cleric|druid|wizard)$/)?.[1] ??
+                  data.featChoices?.['magic-initiate']?.spellList,
+              ),
+          ];
+          if (
+            targets.some((target) =>
+              target.startsWith('magic-initiate-')
+                ? otherMagicLists.includes(
+                    target.replace('magic-initiate-', ''),
+                  )
+                : target === 'skilled' || target.startsWith('skilled:lesson-')
+                  ? false
+                  : otherFeats.includes(target),
+            )
+          )
             errors.push(
-              'Lessons of the First Ones requires a different Origin feat; repeated Magic Initiate spell-list choices need separate grants and are not supported here.',
+              'Lessons of the First Ones requires a different Origin feat or a different Magic Initiate spell list.',
             );
         }
       }

@@ -2,7 +2,7 @@ import equipment from '../data/equipment.json';
 import type { CharacterCreationData } from '../types/dnd';
 import { ALL_SKILLS, BACKGROUNDS, loadClasses } from './dataService';
 import { humanOriginFeat, skillId } from './originChoices';
-import { invocationFeatGrants } from './invocations';
+import { invocationFeatGrants, isSkilledLesson } from './invocations';
 
 const CHOICE_FEATS = ['skilled', 'crafter', 'musician'] as const;
 export function featProficiencyGrants(data: CharacterCreationData) {
@@ -22,7 +22,7 @@ export function featProficiencyGrants(data: CharacterCreationData) {
     origin,
     human,
     data.variantFeat,
-    ...invocationFeatGrants(data),
+    ...invocationFeatGrants(data).filter((id) => !isSkilledLesson(id)),
     ...new Set(
       [
         ...(data.selectedFeats ?? []),
@@ -46,8 +46,17 @@ export function featProficiencyGrants(data: CharacterCreationData) {
     data.speciesSkillProficiency ?? '',
     data.variantSkillProficiency ?? '',
   ].map(skillId);
-  return CHOICE_FEATS.flatMap((feat) => {
-    const count = feats.filter((entry) => entry === feat).length * 3;
+  const grants = [
+    ...CHOICE_FEATS.map((feat) => ({
+      feat,
+      choiceKey: feat as string,
+      count: feats.filter((entry) => entry === feat).length * 3,
+    })),
+    ...invocationFeatGrants(data)
+      .filter(isSkilledLesson)
+      .map((choiceKey) => ({ feat: 'skilled' as const, choiceKey, count: 3 })),
+  ];
+  return grants.flatMap(({ feat, choiceKey, count }) => {
     if (!count) return [];
     const tools = equipment
       .filter((entry) =>
@@ -68,9 +77,9 @@ export function featProficiencyGrants(data: CharacterCreationData) {
       ...(feat === 'skilled' ? ALL_SKILLS : []),
       ...tools,
     ].filter((name) => !alreadyKnown.includes(skillId(name)));
-    const raw = data.featChoices?.[feat]?.proficiencies;
+    const raw = data.featChoices?.[choiceKey]?.proficiencies;
     const selected = Array.isArray(raw) ? raw : [];
-    return [{ feat, count, options, selected }];
+    return [{ feat, choiceKey, count, options, selected }];
   });
 }
 
@@ -105,8 +114,8 @@ export function recommendedFeatProficiencies(data: CharacterCreationData) {
       ? grant.selected
       : grant.options.filter((name) => !seen.has(name)).slice(0, grant.count);
     choices.forEach((name) => seen.add(name));
-    featChoices[grant.feat] = {
-      ...featChoices[grant.feat],
+    featChoices[grant.choiceKey] = {
+      ...featChoices[grant.choiceKey],
       proficiencies: choices,
     };
   }

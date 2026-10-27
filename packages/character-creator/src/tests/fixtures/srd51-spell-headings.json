@@ -1,0 +1,1284 @@
+{
+  "revision": "SRD 5.1",
+  "source": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf",
+  "pdfSha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0",
+  "scope": "Spell names and printed page locators extracted from primary-source description headings; does not certify levels, class membership, descriptions or effects. Independent DM review pending.",
+  "spells": [
+    {
+      "name": "Acid Arrow",
+      "page": 114
+    },
+    {
+      "name": "Acid Splash",
+      "page": 114
+    },
+    {
+      "name": "Aid",
+      "page": 114
+    },
+    {
+      "name": "Alarm",
+      "page": 114
+    },
+    {
+      "name": "Alter Self",
+      "page": 114
+    },
+    {
+      "name": "Animal Friendship",
+      "page": 115
+    },
+    {
+      "name": "Animal Messenger",
+      "page": 115
+    },
+    {
+      "name": "Animal Shapes",
+      "page": 115
+    },
+    {
+      "name": "Animate Dead",
+      "page": 115
+    },
+    {
+      "name": "Animate Objects",
+      "page": 116
+    },
+    {
+      "name": "Antilife Shell",
+      "page": 116
+    },
+    {
+      "name": "Antimagic Field",
+      "page": 117
+    },
+    {
+      "name": "Antipathy/Sympathy",
+      "page": 117
+    },
+    {
+      "name": "Arcane Eye",
+      "page": 118
+    },
+    {
+      "name": "Arcane Hand",
+      "page": 118
+    },
+    {
+      "name": "Arcane Lock",
+      "page": 118
+    },
+    {
+      "name": "Arcane Sword",
+      "page": 119
+    },
+    {
+      "name": "Arcanist\u2019s Magic Aura",
+      "page": 119
+    },
+    {
+      "name": "Astral Projection",
+      "page": 119
+    },
+    {
+      "name": "Augury",
+      "page": 120
+    },
+    {
+      "name": "Awaken",
+      "page": 120
+    },
+    {
+      "name": "Bane",
+      "page": 120
+    },
+    {
+      "name": "Banishment",
+      "page": 120
+    },
+    {
+      "name": "Barkskin",
+      "page": 121
+    },
+    {
+      "name": "Beacon of Hope",
+      "page": 121
+    },
+    {
+      "name": "Bestow Curse",
+      "page": 121
+    },
+    {
+      "name": "Black Tentacles",
+      "page": 121
+    },
+    {
+      "name": "Blade Barrier",
+      "page": 122
+    },
+    {
+      "name": "Bless",
+      "page": 122
+    },
+    {
+      "name": "Blight",
+      "page": 122
+    },
+    {
+      "name": "Blindness/Deafness",
+      "page": 122
+    },
+    {
+      "name": "Blink",
+      "page": 122
+    },
+    {
+      "name": "Blur",
+      "page": 123
+    },
+    {
+      "name": "Branding Smite",
+      "page": 123
+    },
+    {
+      "name": "Burning Hands",
+      "page": 123
+    },
+    {
+      "name": "Call Lightning",
+      "page": 123
+    },
+    {
+      "name": "Calm Emotions",
+      "page": 123
+    },
+    {
+      "name": "Chain Lightning",
+      "page": 124
+    },
+    {
+      "name": "Charm Person",
+      "page": 124
+    },
+    {
+      "name": "Chill Touch",
+      "page": 124
+    },
+    {
+      "name": "Circle of Death",
+      "page": 124
+    },
+    {
+      "name": "Clairvoyance",
+      "page": 124
+    },
+    {
+      "name": "Clone",
+      "page": 125
+    },
+    {
+      "name": "Cloudkill",
+      "page": 125
+    },
+    {
+      "name": "Color Spray",
+      "page": 125
+    },
+    {
+      "name": "Command",
+      "page": 125
+    },
+    {
+      "name": "Commune",
+      "page": 126
+    },
+    {
+      "name": "Commune with Nature",
+      "page": 126
+    },
+    {
+      "name": "Comprehend Languages",
+      "page": 126
+    },
+    {
+      "name": "Compulsion",
+      "page": 126
+    },
+    {
+      "name": "Cone of Cold",
+      "page": 127
+    },
+    {
+      "name": "Confusion",
+      "page": 127
+    },
+    {
+      "name": "Conjure Animals",
+      "page": 127
+    },
+    {
+      "name": "Conjure Celestial",
+      "page": 127
+    },
+    {
+      "name": "Conjure Elemental",
+      "page": 128
+    },
+    {
+      "name": "Conjure Fey",
+      "page": 128
+    },
+    {
+      "name": "Conjure Minor Elementals",
+      "page": 128
+    },
+    {
+      "name": "Conjure Woodland Beings",
+      "page": 129
+    },
+    {
+      "name": "Contact Other Plane",
+      "page": 129
+    },
+    {
+      "name": "Contagion",
+      "page": 129
+    },
+    {
+      "name": "Contingency",
+      "page": 130
+    },
+    {
+      "name": "Continual Flame",
+      "page": 130
+    },
+    {
+      "name": "Control Water",
+      "page": 130
+    },
+    {
+      "name": "Control Weather",
+      "page": 131
+    },
+    {
+      "name": "Counterspell",
+      "page": 131
+    },
+    {
+      "name": "Create Food and Water",
+      "page": 131
+    },
+    {
+      "name": "Create or Destroy Water",
+      "page": 132
+    },
+    {
+      "name": "Create Undead",
+      "page": 132
+    },
+    {
+      "name": "Creation",
+      "page": 132
+    },
+    {
+      "name": "Cure Wounds",
+      "page": 132
+    },
+    {
+      "name": "Dancing Lights",
+      "page": 133
+    },
+    {
+      "name": "Darkness",
+      "page": 133
+    },
+    {
+      "name": "Darkvision",
+      "page": 133
+    },
+    {
+      "name": "Daylight",
+      "page": 133
+    },
+    {
+      "name": "Death Ward",
+      "page": 133
+    },
+    {
+      "name": "Delayed Blast Fireball",
+      "page": 133
+    },
+    {
+      "name": "Demiplane",
+      "page": 134
+    },
+    {
+      "name": "Detect Evil and Good",
+      "page": 134
+    },
+    {
+      "name": "Detect Magic",
+      "page": 134
+    },
+    {
+      "name": "Detect Poison and Disease",
+      "page": 134
+    },
+    {
+      "name": "Detect Thoughts",
+      "page": 135
+    },
+    {
+      "name": "Dimension Door",
+      "page": 135
+    },
+    {
+      "name": "Disguise Self",
+      "page": 135
+    },
+    {
+      "name": "Disintegrate",
+      "page": 135
+    },
+    {
+      "name": "Dispel Evil and Good",
+      "page": 136
+    },
+    {
+      "name": "Dispel Magic",
+      "page": 136
+    },
+    {
+      "name": "Divination",
+      "page": 136
+    },
+    {
+      "name": "Divine Favor",
+      "page": 136
+    },
+    {
+      "name": "Divine Word",
+      "page": 137
+    },
+    {
+      "name": "Dominate Beast",
+      "page": 137
+    },
+    {
+      "name": "Dominate Monster",
+      "page": 137
+    },
+    {
+      "name": "Dominate Person",
+      "page": 138
+    },
+    {
+      "name": "Dream",
+      "page": 138
+    },
+    {
+      "name": "Druidcraft",
+      "page": 138
+    },
+    {
+      "name": "Earthquake",
+      "page": 139
+    },
+    {
+      "name": "Eldritch Blast",
+      "page": 139
+    },
+    {
+      "name": "Enhance Ability",
+      "page": 139
+    },
+    {
+      "name": "Enlarge/Reduce",
+      "page": 140
+    },
+    {
+      "name": "Entangle",
+      "page": 140
+    },
+    {
+      "name": "Enthrall",
+      "page": 140
+    },
+    {
+      "name": "Etherealness",
+      "page": 140
+    },
+    {
+      "name": "Expeditious Retreat",
+      "page": 141
+    },
+    {
+      "name": "Eyebite",
+      "page": 141
+    },
+    {
+      "name": "Fabricate",
+      "page": 141
+    },
+    {
+      "name": "Faerie Fire",
+      "page": 141
+    },
+    {
+      "name": "Faithful Hound",
+      "page": 142
+    },
+    {
+      "name": "False Life",
+      "page": 142
+    },
+    {
+      "name": "Fear",
+      "page": 142
+    },
+    {
+      "name": "Feather Fall",
+      "page": 142
+    },
+    {
+      "name": "Feeblemind",
+      "page": 142
+    },
+    {
+      "name": "Find Familiar",
+      "page": 143
+    },
+    {
+      "name": "Find Steed",
+      "page": 143
+    },
+    {
+      "name": "Find the Path",
+      "page": 143
+    },
+    {
+      "name": "Find Traps",
+      "page": 144
+    },
+    {
+      "name": "Finger of Death",
+      "page": 144
+    },
+    {
+      "name": "Fireball",
+      "page": 144
+    },
+    {
+      "name": "Fire Bolt",
+      "page": 144
+    },
+    {
+      "name": "Fire Shield",
+      "page": 144
+    },
+    {
+      "name": "Fire Storm",
+      "page": 145
+    },
+    {
+      "name": "Flame Blade",
+      "page": 145
+    },
+    {
+      "name": "Flame Strike",
+      "page": 145
+    },
+    {
+      "name": "Flaming Sphere",
+      "page": 145
+    },
+    {
+      "name": "Flesh to Stone",
+      "page": 145
+    },
+    {
+      "name": "Floating Disk",
+      "page": 146
+    },
+    {
+      "name": "Fly",
+      "page": 146
+    },
+    {
+      "name": "Fog Cloud",
+      "page": 146
+    },
+    {
+      "name": "Forbiddance",
+      "page": 146
+    },
+    {
+      "name": "Forcecage",
+      "page": 147
+    },
+    {
+      "name": "Foresight",
+      "page": 147
+    },
+    {
+      "name": "Freedom of Movement",
+      "page": 147
+    },
+    {
+      "name": "Freezing Sphere",
+      "page": 147
+    },
+    {
+      "name": "Gaseous Form",
+      "page": 148
+    },
+    {
+      "name": "Gate",
+      "page": 148
+    },
+    {
+      "name": "Geas",
+      "page": 148
+    },
+    {
+      "name": "Gentle Repose",
+      "page": 148
+    },
+    {
+      "name": "Giant Insect",
+      "page": 149
+    },
+    {
+      "name": "Glibness",
+      "page": 149
+    },
+    {
+      "name": "Globe of Invulnerability",
+      "page": 149
+    },
+    {
+      "name": "Glyph of Warding",
+      "page": 149
+    },
+    {
+      "name": "Goodberry",
+      "page": 150
+    },
+    {
+      "name": "Grease",
+      "page": 150
+    },
+    {
+      "name": "Greater Invisibility",
+      "page": 150
+    },
+    {
+      "name": "Greater Restoration",
+      "page": 150
+    },
+    {
+      "name": "Guardian of Faith",
+      "page": 150
+    },
+    {
+      "name": "Guards and Wards",
+      "page": 151
+    },
+    {
+      "name": "Guidance",
+      "page": 151
+    },
+    {
+      "name": "Guiding Bolt",
+      "page": 151
+    },
+    {
+      "name": "Gust of Wind",
+      "page": 152
+    },
+    {
+      "name": "Hallow",
+      "page": 152
+    },
+    {
+      "name": "Hallucinatory Terrain",
+      "page": 152
+    },
+    {
+      "name": "Harm",
+      "page": 153
+    },
+    {
+      "name": "Haste",
+      "page": 153
+    },
+    {
+      "name": "Heal",
+      "page": 153
+    },
+    {
+      "name": "Healing Word",
+      "page": 153
+    },
+    {
+      "name": "Heat Metal",
+      "page": 153
+    },
+    {
+      "name": "Hellish Rebuke",
+      "page": 154
+    },
+    {
+      "name": "Heroes\u2019 Feast",
+      "page": 154
+    },
+    {
+      "name": "Heroism",
+      "page": 154
+    },
+    {
+      "name": "Hideous Laughter",
+      "page": 154
+    },
+    {
+      "name": "Hold Monster",
+      "page": 154
+    },
+    {
+      "name": "Hold Person",
+      "page": 154
+    },
+    {
+      "name": "Holy Aura",
+      "page": 155
+    },
+    {
+      "name": "Hunter\u2019s Mark",
+      "page": 155
+    },
+    {
+      "name": "Hypnotic Pattern",
+      "page": 155
+    },
+    {
+      "name": "Ice Storm",
+      "page": 155
+    },
+    {
+      "name": "Identify",
+      "page": 155
+    },
+    {
+      "name": "Illusory Script",
+      "page": 156
+    },
+    {
+      "name": "Imprisonment",
+      "page": 156
+    },
+    {
+      "name": "Incendiary Cloud",
+      "page": 157
+    },
+    {
+      "name": "Inflict Wounds",
+      "page": 157
+    },
+    {
+      "name": "Insect Plague",
+      "page": 157
+    },
+    {
+      "name": "Instant Summons",
+      "page": 157
+    },
+    {
+      "name": "Invisibility",
+      "page": 157
+    },
+    {
+      "name": "Irresistible Dance",
+      "page": 158
+    },
+    {
+      "name": "Jump",
+      "page": 158
+    },
+    {
+      "name": "Knock",
+      "page": 158
+    },
+    {
+      "name": "Legend Lore",
+      "page": 158
+    },
+    {
+      "name": "Lesser Restoration",
+      "page": 158
+    },
+    {
+      "name": "Levitate",
+      "page": 158
+    },
+    {
+      "name": "Light",
+      "page": 159
+    },
+    {
+      "name": "Lightning Bolt",
+      "page": 159
+    },
+    {
+      "name": "Locate Animals or Plants",
+      "page": 159
+    },
+    {
+      "name": "Locate Creature",
+      "page": 159
+    },
+    {
+      "name": "Locate Object",
+      "page": 159
+    },
+    {
+      "name": "Longstrider",
+      "page": 160
+    },
+    {
+      "name": "Mage Armor",
+      "page": 160
+    },
+    {
+      "name": "Mage Hand",
+      "page": 160
+    },
+    {
+      "name": "Magic Circle",
+      "page": 160
+    },
+    {
+      "name": "Magic Jar",
+      "page": 160
+    },
+    {
+      "name": "Magic Missile",
+      "page": 161
+    },
+    {
+      "name": "Magic Mouth",
+      "page": 161
+    },
+    {
+      "name": "Magic Weapon",
+      "page": 161
+    },
+    {
+      "name": "Magnificent Mansion",
+      "page": 162
+    },
+    {
+      "name": "Major Image",
+      "page": 162
+    },
+    {
+      "name": "Mass Cure Wounds",
+      "page": 162
+    },
+    {
+      "name": "Mass Heal",
+      "page": 163
+    },
+    {
+      "name": "Mass Healing Word",
+      "page": 163
+    },
+    {
+      "name": "Mass Suggestion",
+      "page": 163
+    },
+    {
+      "name": "Maze",
+      "page": 163
+    },
+    {
+      "name": "Meld into Stone",
+      "page": 163
+    },
+    {
+      "name": "Mending",
+      "page": 164
+    },
+    {
+      "name": "Message",
+      "page": 164
+    },
+    {
+      "name": "Meteor Swarm",
+      "page": 164
+    },
+    {
+      "name": "Mind Blank",
+      "page": 164
+    },
+    {
+      "name": "Minor Illusion",
+      "page": 164
+    },
+    {
+      "name": "Mirage Arcane",
+      "page": 165
+    },
+    {
+      "name": "Mirror Image",
+      "page": 165
+    },
+    {
+      "name": "Mislead",
+      "page": 165
+    },
+    {
+      "name": "Misty Step",
+      "page": 165
+    },
+    {
+      "name": "Modify Memory",
+      "page": 166
+    },
+    {
+      "name": "Moonbeam",
+      "page": 166
+    },
+    {
+      "name": "Move Earth",
+      "page": 166
+    },
+    {
+      "name": "Nondetection",
+      "page": 167
+    },
+    {
+      "name": "Pass without Trace",
+      "page": 167
+    },
+    {
+      "name": "Passwall",
+      "page": 167
+    },
+    {
+      "name": "Phantasmal Killer",
+      "page": 167
+    },
+    {
+      "name": "Phantom Steed",
+      "page": 167
+    },
+    {
+      "name": "Planar Ally",
+      "page": 168
+    },
+    {
+      "name": "Planar Binding",
+      "page": 168
+    },
+    {
+      "name": "Plane Shift",
+      "page": 168
+    },
+    {
+      "name": "Plant Growth",
+      "page": 169
+    },
+    {
+      "name": "Poison Spray",
+      "page": 169
+    },
+    {
+      "name": "Polymorph",
+      "page": 169
+    },
+    {
+      "name": "Power Word Kill",
+      "page": 170
+    },
+    {
+      "name": "Power Word Stun",
+      "page": 170
+    },
+    {
+      "name": "Prayer of Healing",
+      "page": 170
+    },
+    {
+      "name": "Prestidigitation",
+      "page": 170
+    },
+    {
+      "name": "Prismatic Spray",
+      "page": 170
+    },
+    {
+      "name": "Prismatic Wall",
+      "page": 171
+    },
+    {
+      "name": "Private Sanctum",
+      "page": 171
+    },
+    {
+      "name": "Produce Flame",
+      "page": 172
+    },
+    {
+      "name": "Programmed Illusion",
+      "page": 172
+    },
+    {
+      "name": "Project Image",
+      "page": 172
+    },
+    {
+      "name": "Protection from Energy",
+      "page": 173
+    },
+    {
+      "name": "Protection from Evil and Good",
+      "page": 173
+    },
+    {
+      "name": "Protection from Poison",
+      "page": 173
+    },
+    {
+      "name": "Purify Food and Drink",
+      "page": 173
+    },
+    {
+      "name": "Raise Dead",
+      "page": 173
+    },
+    {
+      "name": "Ray of Enfeeblement",
+      "page": 174
+    },
+    {
+      "name": "Ray of Frost",
+      "page": 174
+    },
+    {
+      "name": "Regenerate",
+      "page": 174
+    },
+    {
+      "name": "Reincarnate",
+      "page": 174
+    },
+    {
+      "name": "Remove Curse",
+      "page": 174
+    },
+    {
+      "name": "Resilient Sphere",
+      "page": 175
+    },
+    {
+      "name": "Resistance",
+      "page": 175
+    },
+    {
+      "name": "Resurrection",
+      "page": 175
+    },
+    {
+      "name": "Reverse Gravity",
+      "page": 175
+    },
+    {
+      "name": "Revivify",
+      "page": 175
+    },
+    {
+      "name": "Rope Trick",
+      "page": 176
+    },
+    {
+      "name": "Sacred Flame",
+      "page": 176
+    },
+    {
+      "name": "Sanctuary",
+      "page": 176
+    },
+    {
+      "name": "Scorching Ray",
+      "page": 176
+    },
+    {
+      "name": "Scrying",
+      "page": 176
+    },
+    {
+      "name": "Secret Chest",
+      "page": 177
+    },
+    {
+      "name": "See Invisibility",
+      "page": 177
+    },
+    {
+      "name": "Seeming",
+      "page": 177
+    },
+    {
+      "name": "Sending",
+      "page": 177
+    },
+    {
+      "name": "Sequester",
+      "page": 178
+    },
+    {
+      "name": "Shapechange",
+      "page": 178
+    },
+    {
+      "name": "Shatter",
+      "page": 178
+    },
+    {
+      "name": "Shield",
+      "page": 179
+    },
+    {
+      "name": "Shield of Faith",
+      "page": 179
+    },
+    {
+      "name": "Shillelagh",
+      "page": 179
+    },
+    {
+      "name": "Shocking Grasp",
+      "page": 179
+    },
+    {
+      "name": "Silence",
+      "page": 179
+    },
+    {
+      "name": "Silent Image",
+      "page": 179
+    },
+    {
+      "name": "Simulacrum",
+      "page": 180
+    },
+    {
+      "name": "Sleep",
+      "page": 180
+    },
+    {
+      "name": "Sleet Storm",
+      "page": 180
+    },
+    {
+      "name": "Slow",
+      "page": 180
+    },
+    {
+      "name": "Spare the Dying",
+      "page": 181
+    },
+    {
+      "name": "Speak with Animals",
+      "page": 181
+    },
+    {
+      "name": "Speak with Dead",
+      "page": 181
+    },
+    {
+      "name": "Speak with Plants",
+      "page": 181
+    },
+    {
+      "name": "Spider Climb",
+      "page": 182
+    },
+    {
+      "name": "Spike Growth",
+      "page": 182
+    },
+    {
+      "name": "Spirit Guardians",
+      "page": 182
+    },
+    {
+      "name": "Spiritual Weapon",
+      "page": 182
+    },
+    {
+      "name": "Stinking Cloud",
+      "page": 182
+    },
+    {
+      "name": "Stone Shape",
+      "page": 183
+    },
+    {
+      "name": "Stoneskin",
+      "page": 183
+    },
+    {
+      "name": "Storm of Vengeance",
+      "page": 183
+    },
+    {
+      "name": "Suggestion",
+      "page": 183
+    },
+    {
+      "name": "Sunbeam",
+      "page": 184
+    },
+    {
+      "name": "Sunburst",
+      "page": 184
+    },
+    {
+      "name": "Symbol",
+      "page": 184
+    },
+    {
+      "name": "Telekinesis",
+      "page": 185
+    },
+    {
+      "name": "Telepathic Bond",
+      "page": 185
+    },
+    {
+      "name": "Teleport",
+      "page": 185
+    },
+    {
+      "name": "Teleportation Circle",
+      "page": 186
+    },
+    {
+      "name": "Thaumaturgy",
+      "page": 187
+    },
+    {
+      "name": "Thunderwave",
+      "page": 187
+    },
+    {
+      "name": "Time Stop",
+      "page": 187
+    },
+    {
+      "name": "Tiny Hut",
+      "page": 187
+    },
+    {
+      "name": "Tongues",
+      "page": 187
+    },
+    {
+      "name": "Transport via Plants",
+      "page": 188
+    },
+    {
+      "name": "Tree Stride",
+      "page": 188
+    },
+    {
+      "name": "True Polymorph",
+      "page": 188
+    },
+    {
+      "name": "True Resurrection",
+      "page": 189
+    },
+    {
+      "name": "True Seeing",
+      "page": 189
+    },
+    {
+      "name": "True Strike",
+      "page": 189
+    },
+    {
+      "name": "Unseen Servant",
+      "page": 189
+    },
+    {
+      "name": "Vampiric Touch",
+      "page": 189
+    },
+    {
+      "name": "Vicious Mockery",
+      "page": 189
+    },
+    {
+      "name": "Wall of Fire",
+      "page": 190
+    },
+    {
+      "name": "Wall of Force",
+      "page": 190
+    },
+    {
+      "name": "Wall of Ice",
+      "page": 190
+    },
+    {
+      "name": "Wall of Stone",
+      "page": 190
+    },
+    {
+      "name": "Wall of Thorns",
+      "page": 191
+    },
+    {
+      "name": "Warding Bond",
+      "page": 191
+    },
+    {
+      "name": "Water Breathing",
+      "page": 191
+    },
+    {
+      "name": "Water Walk",
+      "page": 191
+    },
+    {
+      "name": "Web",
+      "page": 192
+    },
+    {
+      "name": "Weird",
+      "page": 192
+    },
+    {
+      "name": "Wind Walk",
+      "page": 192
+    },
+    {
+      "name": "Wind Wall",
+      "page": 192
+    },
+    {
+      "name": "Wish",
+      "page": 193
+    },
+    {
+      "name": "Word of Recall",
+      "page": 193
+    },
+    {
+      "name": "Zone of Truth",
+      "page": 193
+    }
+  ]
+}

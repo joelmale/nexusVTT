@@ -10,7 +10,11 @@ export interface CharacterSheetProps {
   setRollResult: (result: {
     text: string;
     value: number | null;
-    details?: Array<{ value: number; kept: boolean; critical?: 'success' | 'failure' }>
+    details?: Array<{
+      value: number;
+      kept: boolean;
+      critical?: 'success' | 'failure';
+    }>;
   }) => void;
   onDiceRoll: (roll: DiceRoll) => void;
   onToggleInspiration: (characterId: string) => void;
@@ -19,12 +23,20 @@ export interface CharacterSheetProps {
   onShortRest: (characterId: string) => void;
   onLevelUp: (characterId: string) => void;
   onLevelDown: (characterId: string) => void;
-  onUpdateCharacter: (character: Character) => void;
+  onUpdateCharacter: (character: Character) => void | Promise<boolean>;
   onEquipArmor: (characterId: string, armorSlug: string) => void;
   onEquipWeapon: (characterId: string, weaponSlug: string) => void;
   onUnequipItem: (characterId: string, itemSlug: string) => void;
-  onAddItem: (characterId: string, equipmentSlug: string, quantity?: number) => void;
-  onRemoveItem: (characterId: string, equipmentSlug: string, quantity?: number) => void;
+  onAddItem: (
+    characterId: string,
+    equipmentSlug: string,
+    quantity?: number,
+  ) => void;
+  onRemoveItem: (
+    characterId: string,
+    equipmentSlug: string,
+    quantity?: number,
+  ) => void;
   setEquipmentModal: (item: Equipment | null) => void;
   onOpenDiceTray?: () => void;
 }
@@ -81,7 +93,6 @@ export interface CharacterListProps {
   onCharacterView: (id: string) => void;
   onCharacterDelete: (id: string) => void;
 }
-
 
 // Import/Export Controls Props
 export interface ImportExportControlsProps {

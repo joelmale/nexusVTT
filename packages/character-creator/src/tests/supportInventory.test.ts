@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CERTIFIED_SUPPORT_MANIFEST } from '../data/supportManifest';
+import {
+  CERTIFIED_SUPPORT_MANIFEST,
+  getClassSupportScopes,
+} from '../data/supportManifest';
 import { loadClasses } from '../services/dataService';
 import { getRecommendation } from '../services/recommendationService';
 import {
@@ -29,6 +32,20 @@ const CLASSES = [
 ];
 
 describe('advertised creator support inventory', () => {
+  it('reports blocked Artificer creation independently of preservation and certification', () => {
+    const scopes = getClassSupportScopes();
+    expect(scopes).toHaveLength(26);
+    for (const scope of scopes.filter(
+      (entry) => entry.classSlug === 'artificer',
+    ))
+      expect(scope).toMatchObject({
+        creation: 'blocked-unverified-source',
+        laterLevelCreation: 'blocked-unverified-source',
+        levelUp: 'unverified',
+        importedPreservation: 'awaiting-acceptance',
+        certified: false,
+      });
+  });
   it.each(['2014', '2024'] as const)(
     'inventories every selectable %s class without claiming certification',
     (edition) => {
@@ -50,7 +67,9 @@ describe('advertised creator support inventory', () => {
       expect(
         loadClasses(edition).find((entry) => entry.slug === 'artificer')
           ?.source,
-      ).toBe(`Unverified supplemental ${edition}`);
+      ).toBe(
+        `Unverified ${edition === '2024' ? 'Eberron: Forge of the Artificer' : "Tasha's Cauldron of Everything"}`,
+      );
     },
   );
   for (const edition of ['2014', '2024'] as const) {
@@ -58,6 +77,13 @@ describe('advertised creator support inventory', () => {
       `%s ${edition} produces a valid recommended draft and lossless saved selections`,
       (classSlug) => {
         const recommendation = getRecommendation({ classSlug, edition });
+        if (classSlug === 'artificer') {
+          expect(
+            recommendation.evaluation.issues.map((issue) => issue.id),
+          ).toContain('UNVERIFIED_CLASS_SOURCE');
+          expect(recommendation.evaluation.isValid).toBe(false);
+          return;
+        }
         expect(
           recommendation.evaluation.issues.filter(
             (issue) => issue.severity === 'error',

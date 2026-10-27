@@ -53,16 +53,29 @@ test('two clients cast a saved character, retry a committed command and reconnec
     await expect(hostPage).toHaveURL(/\/lobby\/game\/[A-Z0-9]{4}$/);
     const roomCode = new URL(hostPage.url()).pathname.split('/').at(-1)!;
     const name = 'Recovery wizard';
-    const character = { ...fixtures.W24.character, id: randomUUID(), name };
+    const character = {
+      ...fixtures.W24.character,
+      id: randomUUID(),
+      name,
+      resources: [
+        {
+          id: 'arcane-recovery',
+          name: 'Arcane Recovery',
+          description: 'Choose slot recovery explicitly.',
+          maxUses: 1,
+          currentUses: 1,
+          rechargeType: 'long-rest' as const,
+          recovery: { longRest: 'full' as const },
+        },
+      ],
+    };
     await openPanel(hostPage, 'Characters');
     await hostPage.getByRole('button', { name: /Import/ }).click();
-    await hostPage
-      .locator('input[type="file"][accept=".json"]')
-      .setInputFiles({
-        name: 'wizard.json',
-        mimeType: 'application/json',
-        buffer: Buffer.from(JSON.stringify(character)),
-      });
+    await hostPage.locator('input[type="file"][accept=".json"]').setInputFiles({
+      name: 'wizard.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(character)),
+    });
     await hostPage.getByRole('button', { name: 'Import 1 Character' }).click();
     const card = hostPage.locator('.character-card').filter({ hasText: name });
     await expect(card).toBeVisible();
@@ -94,6 +107,15 @@ test('two clients cast a saved character, retry a committed command and reconnec
       hostBook.getByText('Level 1: 2 / 2', { exact: true }),
     ).toBeVisible();
     const castIds: string[] = [];
+    await playerBook
+      .getByRole('button', { name: 'Use Arcane Recovery', exact: true })
+      .click();
+    await expect(
+      playerBook.getByText('0 / 1 remaining', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      hostBook.getByText('0 / 1 remaining', { exact: true }),
+    ).toBeVisible();
     let dropCommittedResponse = true;
     await playerPage.route('**/api/campaigns/*/commands', async (route) => {
       const body = route.request().postDataJSON() as {
@@ -148,6 +170,9 @@ test('two clients cast a saved character, retry a committed command and reconnec
       .click();
     await playerPage.getByRole('tab', { name: 'Spells', exact: true }).click();
     await expect(
+      playerBook.getByText('0 / 1 remaining', { exact: true }),
+    ).toBeVisible();
+    await expect(
       playerBook.getByText('Level 1: 0 / 2', { exact: true }),
     ).toBeVisible();
     await expect(
@@ -165,18 +190,37 @@ test('two clients cast a saved character, retry a committed command and reconnec
     await expect(
       hostBook.getByText('Level 1: 2 / 2', { exact: true }),
     ).toBeVisible();
-    await playerBook.getByRole('button', {name: 'Apply preparation', exact: true}).click();
-    await expect(playerBook.getByRole('button', {name: 'Cast Sleep', exact: true})).toBeEnabled();
-    await playerBook.getByRole('button', {name: 'Cast Sleep', exact: true}).click();
+    await expect(
+      playerBook.getByText('1 / 1 remaining', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      hostBook.getByText('1 / 1 remaining', { exact: true }),
+    ).toBeVisible();
+    await playerBook
+      .getByRole('button', { name: 'Apply preparation', exact: true })
+      .click();
+    await expect(
+      playerBook.getByRole('button', { name: 'Cast Sleep', exact: true }),
+    ).toBeEnabled();
+    await playerBook
+      .getByRole('button', { name: 'Cast Sleep', exact: true })
+      .click();
     await expect(playerBook).toContainText('Concentrating on Sleep');
     await expect(hostBook).toContainText('Concentrating on Sleep');
-    await playerBook.getByRole('button', {name: 'End concentration', exact: true}).click();
+    await playerBook
+      .getByRole('button', { name: 'End concentration', exact: true })
+      .click();
     await expect(playerBook).not.toContainText('Concentrating on Sleep');
     await expect(hostBook).not.toContainText('Concentrating on Sleep');
-    await playerBook.getByRole('button', {name: 'Short Rest', exact: true}).click();
-    await expect(playerBook.getByText('Level 1: 1 / 2', {exact: true})).toBeVisible();
-    await expect(hostBook.getByText('Level 1: 1 / 2', {exact: true})).toBeVisible();
-
+    await playerBook
+      .getByRole('button', { name: 'Short Rest', exact: true })
+      .click();
+    await expect(
+      playerBook.getByText('Level 1: 1 / 2', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      hostBook.getByText('Level 1: 1 / 2', { exact: true }),
+    ).toBeVisible();
   } finally {
     await host.close();
     await player.close();

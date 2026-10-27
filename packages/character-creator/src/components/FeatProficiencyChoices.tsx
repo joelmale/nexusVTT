@@ -2,6 +2,9 @@ import type { CharacterCreationData } from '../types/dnd';
 import { featProficiencyGrants } from '../services/featProficiencies';
 import styles from './CastingGrantChoices.module.css';
 
+const grantLabel = (key: string) =>
+  key.replace(/^skilled:lesson-/, 'Skilled lesson ');
+
 export function FeatProficiencyChoices({
   data,
   onChange,
@@ -12,13 +15,13 @@ export function FeatProficiencyChoices({
   return (
     <>
       {featProficiencyGrants(data).map((grant) => (
-        <fieldset className={styles.grants} key={grant.feat}>
+        <fieldset className={styles.grants} key={grant.choiceKey}>
           <legend>
-            {grant.feat} proficiencies — choose {grant.count}
+            {grantLabel(grant.choiceKey)} proficiencies — choose {grant.count}
           </legend>
           {Array.from({ length: grant.count }, (_, index) => (
             <label key={index}>
-              {grant.feat} proficiency {index + 1}
+              {grantLabel(grant.choiceKey)} proficiency {index + 1}
               <select
                 value={grant.selected[index] ?? ''}
                 onChange={(event) => {
@@ -32,8 +35,8 @@ export function FeatProficiencyChoices({
                   onChange({
                     featChoices: {
                       ...data.featChoices,
-                      [grant.feat]: {
-                        ...data.featChoices?.[grant.feat],
+                      [grant.choiceKey]: {
+                        ...data.featChoices?.[grant.choiceKey],
                         proficiencies: selected,
                       },
                     },
@@ -41,8 +44,20 @@ export function FeatProficiencyChoices({
                 }}
               >
                 <option value="">Choose a proficiency</option>
-                {grant.options.map((name) => (
-                  <option key={name}>{name}</option>
+                {[
+                  ...new Set([
+                    ...grant.options,
+                    ...grant.selected.filter(Boolean),
+                  ]),
+                ].map((name) => (
+                  <option
+                    key={name}
+                    value={name}
+                    disabled={!grant.options.includes(name)}
+                  >
+                    {name}
+                    {!grant.options.includes(name) ? ' (unavailable)' : ''}
+                  </option>
                 ))}
               </select>
             </label>

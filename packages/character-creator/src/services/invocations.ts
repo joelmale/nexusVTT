@@ -23,7 +23,7 @@ export function invocationCount(level: number): number {
 
 /** Repeatable invocations store their distinct targets in the existing durable choice map. */
 export function invocationTargets(
-  data: CharacterCreationData,
+  data: Pick<CharacterCreationData, 'featChoices'>,
   id: string,
 ): string[] {
   const targets = data.featChoices?.[`invocation:${id}`]?.targets;
@@ -37,6 +37,12 @@ export function invocationFeatGrants(data: CharacterCreationData): string[] {
     ? invocationTargets(data, 'lessons-of-the-first-ones')
     : [];
 }
+
+/** Stable per-instance keys retain separate choices for repeatable Skilled grants. */
+export const isSkilledLesson = (id: string): boolean =>
+  /^skilled:lesson-(?:[1-9]|10)$/.test(id);
+export const lessonFeatSlug = (id: string): string =>
+  isSkilledLesson(id) ? 'skilled' : id;
 
 export function selectedInvocationCount(data: CharacterCreationData): number {
   return (data.eldritchInvocations ?? []).reduce((count, id) => {

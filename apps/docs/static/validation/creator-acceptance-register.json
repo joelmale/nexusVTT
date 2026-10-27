@@ -1,0 +1,677 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "38ba98566372f3d229ad572e10236bb9a16f7a50",
+  "requirementsFile": "apps/docs/platform/integrations/character-creation-review.md",
+  "requirementsSha256": "bed1805f49159b7031c8d6fe541fea15b2b1e7356aebc87593bb3fe1ed6ddae2",
+  "notes": [
+    "Not-run refers to reconciliation against the complete acceptance criterion; prior partial execution remains in the evidence ledger.",
+    "DM owns independent rules review, accessibility review and the shared test environment. Assignment does not record approval; the shared candidate URL and review results remain pending."
+  ],
+  "owners": {
+    "engineering": "Codex",
+    "independentRules": "DM",
+    "accessibility": "DM",
+    "testEnvironment": "DM"
+  },
+  "sourceDecisions": {
+    "artificer": {
+      "requestedScope": "Broad Artificer support using compatible available data; supersedes the earlier Wayfinder-only choice.",
+      "recommendedFoundations": {
+        "2014": "Tasha's Cauldron of Everything (2020)",
+        "2024": "Eberron: Forge of the Artificer (2025)"
+      },
+      "mergePolicy": "Retain source provenance, deduplicate equivalent options, and apply the selected edition foundation when features replace one another. Do not stack Infuse Item with Replicate Magic Item or mix their progression tables.",
+      "sources": [
+        "https://www.dndbeyond.com/posts/908-artificer-101-alchemist-from-tashas-cauldron-of",
+        "https://www.dndbeyond.com/posts/2106-whats-new-with-the-artificer-in-eberron-forge-of"
+      ],
+      "verification": "Foundations selected by Codex under user authorization. Full class, subclass, item-plan and spell tables still require source verification and independent DM acceptance."
+    }
+  },
+  "testEnvironment": {
+    "url": null,
+    "build": null,
+    "status": "blocked",
+    "reason": "A reachable isolated candidate environment has not been assigned."
+  },
+  "devices": [
+    {
+      "setup": "Windows / NVDA / Chrome and Firefox",
+      "status": "not run"
+    },
+    {
+      "setup": "MacBook / VoiceOver / Safari and Edge",
+      "reportedEdgeVersion": "156.0.4314.42",
+      "status": "not run"
+    },
+    {
+      "setup": "iPhone / VoiceOver / Safari",
+      "status": "not run"
+    },
+    {
+      "setup": "iPad / VoiceOver / Safari",
+      "status": "not run"
+    },
+    {
+      "setup": "Android / TalkBack / Chrome",
+      "status": "not run"
+    }
+  ],
+  "cases": [
+    {
+      "id": "CR-01",
+      "title": "Independent complete rules fixtures",
+      "ownerRoles": "RULES + QA",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Correct incomplete/inconsistent six-reference fixtures before using them as oracles. R24 expects WIS 14 from raw WIS 13 with no WIS grant (`CC/tests/fixtures/referenceBuilds.ts:265,294`); Rogue expertise identifiers differ from calculator labels (`:206`; `CC/utils/characterCreationUtils.ts:151`). Some builds omit required origin/species choices or duplicate background skills.",
+      "acceptance": "Every fixture records exact edition/source/version/locator, all choices and independently derived abilities, skills/expertise, saves, attacks, HP/AC, speed, resources, spells, equipment and money. Assert all promised fields, not just HP/AC. A second reviewer approves expectations.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "CR-02",
+      "title": "One complete draft and three presentations",
+      "ownerRoles": "CORE",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Complete the versioned draft/actions and lossless legacy adapters; retain masteries, orders, invocations, feat/species subchoices, casting sources, higher-level inputs and optional text. Allocate identity once and preserve per-choice provenance. Replace separate local customization and mutation of recommendation memos with canonical updates. Evidence: `CC/adapters/draftAdapter.ts:119,165`; `CC/components/CharacterCreator.tsx:69,89`; `CC/components/guided/FourScreenNewcomerFlow.tsx:118,145,835`.",
+      "acceptance": "Full ↔ newcomer ↔ quiz, Back/forward, rename, edition/class/background changes and adapter round-trips retain compatible explicit choices. Invalidated explicit choices have targeted repair messages. Name/alignment changes never rebuild mechanical choices. Quiz answers and presentation position survive independently of derived choices.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "CR-03",
+      "title": "Edition/content policy and complete grants",
+      "ownerRoles": "CORE + RULES",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Resolve choices by edition and content source; validate allowed sources, membership, prerequisites, bonus targets, skill pools/replacements, expertise, origin/species feats, tools/languages, spells and required class subchoices. Validate ability-method invariants: finite scores, exact standard-array multiset, point-buy range/budget, legal bonus targets and final score caps; intentional manual scores follow explicit host/GM policy. Background lookup lacks edition checks (`CC/services/catalogResolver.ts:102`); `strictEntitlements` is not enforced; the 2024 Acolyte recommendation allocates an invalid CON bonus (`CC/services/recommendationService.ts:247`).",
+      "acceptance": "Positive/negative cases cover every advertised grant family, ability method and required subchoice. Unknown/wrong-edition/disallowed content and illegal scores/allocations block completion at a repair target. Equivalent spells granted by different sources retain distinct provenance. Preserve advertised choices while repairing their grants; no silent fallback to another class/species.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "CR-04",
+      "title": "Resolve equipment and currency once",
+      "ownerRoles": "CORE + RULES",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Explicitly represent class/background packages versus gold, purchases, pack contents, ammunition, integer quantities and equipped slots. Version pack contents by edition. Remove background double-grants, ignored input wallets and electrum loss (`CC/utils/characterCreationUtils.ts:170,219,263,472`); replace edition-blind packs (`CC/services/loadoutResolver.ts:9`). Preserve denomination value across every contract, adding compatible fields or an explicit lossless conversion where required.",
+      "acceptance": "Preview → result → Forge reload → VTT conversion have exactly equal inventory, stack quantities, equipped slots and money. Test package A/B combinations, purchases/change, duplicate stacks, empty wallets, all five coins, edition-specific packs, ammunition and conflicting armor/shield/two-handed assignments. Re-evaluation never adds gear or money.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "CR-05",
+      "title": "Correct casting and saved spell fields",
+      "ownerRoles": "CORE + RULES",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Normalize known, spellbook, prepared, always-prepared and source-granted spells without mixing meanings. Repair Wizard `preparedSpells`/`dailyPrepared` mismatch and empty known-caster packages (`CC/utils/spellUtils.ts:442,456`; `CC/services/recommendationService.ts:306`). Correct edition/class preparation and slot tables, level-one caster grants, and actual proficiency passed into attack/DC math. Repair the existing shared preparation helper (`packages/rules-5e/src/preparation.ts:23`) as well as the facade's level + INT formula for both Wizard editions (`CC/services/draftEvaluator.ts:63`).",
+      "acceptance": "Both editions pass membership/level/count/subset/duplicate checks and preserve source grants. Cover low/high INT, 2024 level-one Paladin/Ranger, and progression boundaries. Shared helpers, creator evaluation and saved-sheet preparation agree. Assert actual saved lists, slots, attack/DC and usable sheet actions; six displayed spells alone are not acceptance.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "CR-06",
+      "title": "Correct effects and equipped calculations",
+      "ownerRoles": "CORE + RULES",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Apply sourced ability/skill/feat/style/resource effects once, reusing existing rules implementations. Repair carried gear counting as worn, negative medium-armor DEX treatment and missing unarmored alternatives (`CC/utils/characterCreationUtils.ts:322,335,343`). Verify lineage grants, HP, speed, expertise, passive scores, saves, attacks and class resources/rest recovery.",
+      "acceptance": "Independent cases distinguish carried/equipped armor/shields, armor alternatives, negative DEX, Defense/Archery, Tough, edition-specific Alert, species/lineage benefits and resource counts. No double ability/feat grant; every pending required choice blocks completion. Existing-character HP/resource usage is not reset.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "CR-07",
+      "title": "Make evaluation authoritative at completion",
+      "ownerRoles": "CORE",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Route every live preview/submission through one revision-bound evaluator/finalizer. Reject invalid or stale evaluations, set the stable character ID, and hand the already-evaluated loadout/results to hosts. Current live submission bypasses the facade and generates a new ID (`CC/components/CharacterCreationWizard/hooks/useCreationSubmission.ts:37,42`); facade finalization does not reject invalid evaluations (`CC/services/draftEvaluator.ts:129`).",
+      "acceptance": "The same revision yields identical preview/result/conversion. Any intervening edit invalidates the old evaluation. Invalid/stale results cannot save. Public imports/callbacks still compile, asynchronous errors retain work, and finalization neither recalculates nor duplicates grants. Integrate stable host retries through H-03.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "CR-08",
+      "title": "Complete legal recommendations",
+      "ownerRoles": "CORE + RULES",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Generate deterministic recommendations from actual entitlements, loadout and casting services. Select legal class gear instead of `equipmentChoices: []` (`CC/services/recommendationService.ts:302`). Fill only compatible unchosen/recommended fields, preserve explicit player intent, and explain unavailable combinations.",
+      "acceptance": "Both editions complete “make a Fighter,” “sneaky elf archer,” and caster journeys. Every advertised class has complete required grants, valid skill replacements, equipped starting gear and legal spells. Name changes do not discard edits; class/species/fantasy and compatible custom choices survive regeneration.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "CR-09",
+      "title": "Derive accurate first useful actions",
+      "ownerRoles": "CORE + RULES",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Replace fixed bonuses and generic action promises with guidance from evaluated gear, granted features, spells and resources (`CC/services/guidanceService.ts:24,35,61`). Distinguish movement/action/bonus action/reaction; do not advertise an unearned action or an absent weapon. Emit the guidance through the real result path and use existing host actions.",
+      "acceptance": "Changing weapon, ability, edition, level or spell package changes guidance appropriately. Each suggested action is available on the saved sheet and consumes/replenishes the correct resource. No fixed +5 promise or ordinary movement described as a bonus action. Host reachability is tested in H-08.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "CR-10",
+      "title": "Replace unsupported certification claims with evidence",
+      "ownerRoles": "RULES + QA",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Replace blanket manifest assertions with traceable support status and independent grant/effect coverage (`CC/data/supportManifest.ts`; `CC/tests/supportCertification.test.ts:27`). The named “24-case” suite currently calls converters/services rather than real hosts (`CC/tests/regressionMatrix.test.ts:20`).",
+      "acceptance": "At least one complete independent build per advertised class/edition plus positive/negative grant-family coverage. Execute the six references × guided/full × Forge/VTT, then quiz and Simple Player coverage. Preserve higher-level compatibility and test relevant boundaries without claiming complete multiclass certification from level-one tests. No false “certified” flags.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-01",
+        "T-02",
+        "T-03",
+        "T-04",
+        "T-05"
+      ]
+    },
+    {
+      "id": "H-01",
+      "title": "Validated codecs, versions, keys and conflicts",
+      "ownerRoles": "CORE + HOST",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Validate envelope and draft separately; migrate known versions and preserve a recoverable original. Reject unknown future versions visibly. Replace key sanitization that collapses distinct identities; scope by host, player/account/browser, context and draft identity. Enforce revision-aware tab conflict handling rather than a ten-minute advisory. Evidence: `CC/services/draftStorage.ts:20,40,138`; VTT ignores `isConflict` at `apps/vtt/src/components/SharedCharacterCreator.tsx:81`.",
+      "acceptance": "Test valid/current/legacy/future/corrupt/truncated records, key collisions, quota/blocked storage, account changes and two concurrent tabs. No silent overwrite or destructive migration. Resume/copy/discard decisions are explicit and recoverable. Keep codecs independent of browser storage.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-08"
+      ]
+    },
+    {
+      "id": "H-02",
+      "title": "Durable drafts at every host entry",
+      "ownerRoles": "HOST",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Wire Forge `App.tsx:1298` and `routes/CharacterForgeRoute.tsx:70` to existing IndexedDB storage. Move VTT persistence behind its host storage/worker boundary. Persist presentation state and all customization, surface storage failures, and retain an appropriate recovery receipt after partial completion.",
+      "acceptance": "Real IndexedDB upgrades and fresh-browser reloads preserve answers and mode/step across all entry paths. Test guest/account separation, explicit discard, interrupted writes and save rejection. Do not promise a last forced-close write; recovery uses the last confirmed durable revision. Existing character databases remain intact.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-08"
+      ]
+    },
+    {
+      "id": "H-03",
+      "title": "Idempotent save and canonical identity",
+      "ownerRoles": "HOST + API",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Freeze one evaluated payload/attempt across retries. Forge upserts that intended character. VTT parses and adopts the canonical response rather than retaining only the submitted ID (`apps/vtt/src/stores/characterStore.ts:255`). Retain the existing API dedupe and repository alias reconciliation; test whether an owner-scoped durable attempt receipt/unique constraint is needed for concurrency, and add it through existing repositories if needed.",
+      "acceptance": "Rejected save, commit then lost response, local post-save failure, double click, same-attempt concurrency and reload during an uncertain save produce one intended record and one canonical ID. Retry does not regenerate/randomize the character. Intentional copies use a new attempt. Account deduplication is tested, not assumed to guarantee exactly-once behavior.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-08"
+      ]
+    },
+    {
+      "id": "H-04",
+      "title": "Save, session acceptance, claim and placement",
+      "ownerRoles": "HOST",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Use one completion coordinator across desktop, Player Setup and Simple Player. Distinguish saved, submitting, accepted, rejected/offline and awaiting-GM states. Await callbacks and inspect results; retry room submission using the saved canonical character. Simple mode currently closes before submission (`SimplePlayerShell.tsx:76`); `SharedCharacterCreator.tsx:113` invokes an unawaited callback. Correct current-user selection (`PlayerPanel.tsx:132`) and retain GM authority for claims/placement.",
+      "acceptance": "Account save followed by rejected/timed-out session admission retains the sheet and a specific retry. Test DM offline, reconnect, room change, delayed results, two-player claim races, spectator, imported unassigned sheets, absent scene, existing linked token and delayed/rejected GM placement. No false “in game” status or duplicate linked token. Both clients agree on ownership and canonical character identity.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-08"
+      ]
+    },
+    {
+      "id": "H-05",
+      "title": "Reachable existing-character editing",
+      "ownerRoles": "HOST",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Forward `onEdit` through every Forge layout and mount the editor outside the selected-sheet early-return trap (`apps/forge/src/App.tsx:984,992,1377`; `components/CharacterSheet/layouts/PaperSheetLayout.tsx:28`). Preserve ID, provenance, notes, equipment and current HP/resources. Separate explicit manual override from recalculation. Edition changes require deliberate validated conversion or a clear restriction, never simple relabeling.",
+      "acceptance": "Open/save/cancel Edit from each desktop layout and the phone path; reload and export/import preserve expected changes. Opening or cancelling a legacy/imported character changes nothing. Restore/update and intentional copy have distinct identity behavior.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-08"
+      ]
+    },
+    {
+      "id": "H-06",
+      "title": "Working customization controls",
+      "ownerRoles": "CORE + HOST",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Wire the existing spell Randomize button to the real selection service (`CC/components/CharacterCreationWizard/steps/Step4Spells.tsx:255,315`). Restore standard-array swapping: swap logic exists, but the selector disables scores assigned elsewhere (`steps/Step4Abilities.tsx:104,336`). Correct skill editor slug/name lookup (`CC/components/guided/SkillEditModal.tsx:35`) and commit spell edits immutably.",
+      "acceptance": "Interact with actual buttons/editors using role/name queries; verify legal visible choices, saved draft and final result. Exchange STR/DEX array assignments while retaining exactly one of each array score. Randomization occurs only on explicit request. Skills and all spell-list distinctions survive rename, back navigation, mode switch and reload. No enabled inert control remains on required journeys.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-08"
+      ]
+    },
+    {
+      "id": "H-07",
+      "title": "Cancellation, focus, phone/help and scoped styling",
+      "ownerRoles": "CORE + HOST + QA",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Retain existing dialog labels/focus entry and complete one stack-aware focus/escape/dismissal primitive. Nested Escape closes the top editor first. Protect unsaved work and prevent dismissal while submitting. Use CSS Modules and existing scoped tokens for repaired/new creator surfaces; keep portals/help within the creator theme boundary. Help must work by touch and keyboard.",
+      "acceptance": "Complete keyboard/nested modal/return-focus/backdrop/route-exit cases, failed draft flush, 320/390/768 widths, portrait/landscape with soft keyboard, 200% zoom and 400% reflow, measured contrast, representative NVDA and VoiceOver/TalkBack, and both host palettes. Required actions remain reachable; automated accessibility checks alone do not certify this ticket.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-08"
+      ]
+    },
+    {
+      "id": "H-08",
+      "title": "Saved sheet and first-action handoff",
+      "ownerRoles": "HOST + RULES",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Open the exact newly saved Forge sheet. The active VTT character panel renders `CharacterSheet.tsx:624`'s Spells placeholder (`apps/vtt/src/components/Panels/CharacterPanel.tsx:33`); Simple Player lacks cast/slot controls. Complete existing `Panels/SpellbookPanel.tsx` binding: replace sample stats/spells and random definition UUIDs (`:40,60,194`) with actual actor profiles and canonical references. Reuse its controls/view-model in the desktop tab and compact Simple Player view with existing preparation/cast/concentration/rest commands. Keep existing sheets and host-owned persistence.",
+      "acceptance": "Newly saved Fighter/Rogue/caster can find and execute actual weapon/skill/save/spell/recovery actions in each host. Verify cantrips, legal slot selection, exactly-once slot use, unprepared/exhausted rejection, concentration/rest/reconnect and peer updates; pending/rejected states stay visible. Gear, preparations and resources agree with the evaluated sheet. Standalone export and VTT import/account/session routes stay explicit; no unsupported synchronization is invented.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-08"
+      ]
+    },
+    {
+      "id": "H-09",
+      "title": "Rollout, measurement and recovery-safe rollback",
+      "ownerRoles": "LEAD + HOST + QA",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Separate newcomer presentation rollout from rules-engine/evaluator adoption; retain full view against valid shared state. Wire real entry/step/edit/validation/resume/save/handoff events with accurate timings and separate completion checkpoints, excluding names/prose/raw character payloads. The in-memory recorder is tooling, not participant evidence. Use the original moderated-study protocol before broad promotion.",
+      "acceptance": "Flags/fallback preserve identity, answers and old/new drafts; unsupported records remain recoverable. Rollback never resets gameplay resources or reinstates known-invalid math. Instrumentation distinguishes a saved draft from a saved character and accepted room handoff. Conduct/review the planned 12–18-participant study if claiming that gate; report observed counts/timings, not invented success rates. Unrun research/release gates remain open.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-08"
+      ]
+    },
+    {
+      "id": "CS-01",
+      "title": "Stable session/plan IDs and correct navigation",
+      "ownerRoles": "STUDIO + API",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Use `addItem()`'s returned ID for callbacks/navigation instead of synthetic `session-N` (`DM/features/sessions/SessionPlannerModal.tsx:473,544,557`; `DM/services/campaign-bundle-api.ts:1797,1836`). Carry `sessionId`/`planId` through status, publish, reload and activation; replace title-only matching with guarded legacy recovery. Link the published plan to its authored session so the bundle does not add a duplicate timeline entry (`campaign-bundle-api.ts:1307`).",
+      "acceptance": "New session opens its saved route. Two same-title sessions remain distinct. Rename, clone, repeated publication and retry never add unintended prep plans/Chronicle sessions. Legacy title recovery refuses ambiguous matches rather than attaching the wrong plan.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06"
+      ]
+    },
+    {
+      "id": "CS-02",
+      "title": "Complete authoring persistence and hydration",
+      "ownerRoles": "STUDIO + API",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Persist one typed, versioned authoring representation and session link through existing prep repositories, with validated schema/revision checks. Extend the linked prep contract for readiness, DM notes, teaser and attachments absent from `packages/game-contracts/src/prep.ts:255`; do not create a second store. Session normalization discards embedded `plan` (`DM/services/campaign-bundle-api.ts:598,1919`), and modal add/update does not persist the separate plan. Load full linked contents, not metadata or a generated fallback.",
+      "acceptance": "Create/edit → confirmed save → fresh store/browser reload preserves all authored fields and references. Saving a draft leaves an older active/published revision immutable. Failed writes/links leave a recoverable draft; conflicts preserve both versions. A transaction or equivalent durable checkpoint prevents an apparent save with missing plan data.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06"
+      ]
+    },
+    {
+      "id": "CS-03",
+      "title": "Lossless references and real encounter materialization",
+      "ownerRoles": "STUDIO + API",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Preserve typed scene/encounter/handout/note references through both adapters. `buildSessionPlanModel.ts:215` drops them; `routes/SessionPlanRoute.tsx:59` derives every object reference from `encounterId`. Resolve SRD/homebrew encounter composition to the existing materializer; current publisher downgrades missing `encounterId` to reminder (`DM/services/campaign-prep-api.ts:545,570`).",
+      "acceptance": "Generate a plan with SRD and homebrew encounters, reorder/edit/reload/publish/activate, and deploy the correct actors once. Note/handout/scene links also survive. Missing required objects/stats produce a targeted blocker; authored encounter steps never silently become reminders. Retry and reconnect preserve deployment idempotency.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06"
+      ]
+    },
+    {
+      "id": "CS-04",
+      "title": "Bind all authoring controls and surface errors",
+      "ownerRoles": "STUDIO",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Bind prose, scratchpad, readiness, visibility and step changes to the shared authoring state. The body is unbound `contentEditable` (`DM/features/session-plan/SessionPlan.tsx:879`); checklists/dependencies/visibility only update local state (`:553,593,612,623`). Provide working per-step visibility and a clearly labelled default for new steps; new bulk-edit UI is outside this repair. Validate dependencies rather than merely toggling readiness. Check returned `{ok:false}` and thrown errors. Connect or visibly disable inert formatting/reference controls.",
+      "acceptance": "Type/edit/check/share → save → reload → publish transmits intended values. Invalid dependencies remain visible. Failures show accessible errors and retry, retain edits and never claim success. Per-step sharing survives serialization; player-facing VTT projections exclude DM-only prose while DM views retain it.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06"
+      ]
+    },
+    {
+      "id": "CS-05",
+      "title": "Exact published revision and truthful activation",
+      "ownerRoles": "STUDIO + API",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Separate dirty/saving/saved/published/activating/active/error states. Prevent stale status hydration from clearing new edits. Ordinary Play must not activate an older ready plan while current draft changes are visible (`DM/features/session-plan/SessionPlan.tsx:480`; `DM/services/campaign-prep-api.ts:755`). Carry returned plan ID/revision through activation; use stable operation identity for retry, new identity only for explicit restart.",
+      "acceptance": "Publish A → edit B → ordinary Play is blocked pending publication. Publish B → activate exactly B's returned revision. Slow hydration, failed publish/link/activation, reload and retry do not discard work, falsely report success or duplicate a run. Explicit restart clearly identifies its immutable revision.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06"
+      ]
+    },
+    {
+      "id": "CS-06",
+      "title": "One correct next-session resolver",
+      "ownerRoles": "STUDIO",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Reuse one selector across Overview, one-shot hub and Use in next session: valid open curated/current session, then upcoming/earliest open. Never fall back to completed history (`DM/features/section-shell/UseInNextSessionButton.tsx:27,45`). Display the destination and handle returned failures/rejections at `:137`; preserve linkage on failure.",
+      "acceptance": "Test empty/all-complete history, stale curated IDs, completed current session, dates/order, and each supported entity kind. Offer create/select-session recovery when none is open. Save/reload confirms links on the displayed session; conflict/network rejection cannot claim success or alter historical prep.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06"
+      ]
+    },
+    {
+      "id": "CS-07",
+      "title": "Correct map/scene and handout asset identity",
+      "ownerRoles": "STUDIO + API",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Select the step/session location's actual map/scene instead of `bundle.maps[0]` (`DM/features/session-plan/buildSessionPlanModel.ts:214`). Reuse assets by stable asset/source identity and content revision, not “Session Scene Map” (`DM/services/campaign-prep-api.ts:243`). `ensureTextAsset()` also reuses by name while ignoring edited body (`:229`); preserve handout identity and content freshness through publication.",
+      "acceptance": "Different maps and separate same-name handouts remain distinct across scenes/campaigns. Editing handout prose without renaming publishes the changed text while earlier published revisions stay immutable. Replacing a map affects only its intended scene; retries reuse the correct asset. Missing references produce a repair action, not fallback to another map.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06"
+      ]
+    },
+    {
+      "id": "CS-08",
+      "title": "Persist one-shot, edition and campaign mood",
+      "ownerRoles": "STUDIO + API",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Forward supported metadata on creation; align the update method compatibly with existing VTT clients; validate and persist allowed fields. Client drops `mode`/edition (`DM/services/campaign-api.ts:117`), uses PATCH at `:134` while VTT exposes PUT (`apps/vtt/server/routes/api.ts:653`); repository allowlist excludes metadata (`CampaignRepository.ts:72`). Keep local mood override distinct from campaign default and show save failures (`DM/features/moods/MoodContext.tsx:56`).",
+      "acceptance": "Create one-shot/edition → reload preserves selection. Save campaign mood → a second browser without local override sees it. Existing PUT consumers remain compatible; invalid metadata and unauthorized writes fail visibly. Reuse existing columns/migrations where present; add no redundant schema.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06"
+      ]
+    },
+    {
+      "id": "CS-09",
+      "title": "Actual Studio integration and capability closure",
+      "ownerRoles": "QA + STUDIO + API",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Close jointly with the Studio slice of Q-01: cover real server-backed create/author/reload/publish/activate/deploy. Current Studio Playwright config uses demo fixtures and stubs API calls. Inventory identified enabled controls/notices; distinguish planned roadmap scope from broken required operations.",
+      "acceptance": "Correct UUID navigation, complete plan round-trip, retained references, exact map/handout/monster/revision, no duplicate timeline/run, and truthful recoverable errors pass against real persistence. Demo/iPad smoke remains green but is not substituted for this gate. Planned capabilities are explicitly listed and do not count as repaired implementations.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06"
+      ]
+    },
+    {
+      "id": "Q-01",
+      "title": "Verify production paths, not reconstructed payloads",
+      "ownerRoles": "QA + host/Studio/API maintainers",
+      "ownerAlias": "Codex",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "Execute the full Q-01 checklist in the referenced repair plan.",
+      "acceptance": "Every applicable subcriterion has actual server-backed evidence, exact candidate identity and independent review.",
+      "evidence": [],
+      "defects": [],
+      "reviewerAlias": "DM",
+      "tranches": [
+        "T-06",
+        "T-07",
+        "T-08"
+      ]
+    },
+    {
+      "id": "Q-01.1",
+      "parentId": "Q-01",
+      "title": "Creator reference matrix",
+      "ownerRoles": "QA + independent RULES/HOST/API reviewers",
+      "ownerAlias": "Codex",
+      "reviewerAlias": "DM",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "1. **Creator reference matrix:** six complete independent reference builds (F14/F24/R14/R24/W14/W24) × guided/full × Forge/VTT = 24 actual completion cases. Add quiz continuity and desktop/Simple Player entries explicitly; six calls to a converter are not six browser journeys. Reload saved sheets, perform useful actions and compare complete evaluated/saved values.",
+      "acceptance": "Execute the complete criterion against the identified candidate and record independent review.",
+      "evidence": [],
+      "defects": [],
+      "tranches": [
+        "T-01",
+        "T-06",
+        "T-07",
+        "T-08"
+      ]
+    },
+    {
+      "id": "Q-01.2",
+      "parentId": "Q-01",
+      "title": "Broader creator coverage",
+      "ownerRoles": "QA + independent RULES/HOST/API reviewers",
+      "ownerAlias": "Codex",
+      "reviewerAlias": "DM",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "2. **Broader creator coverage:** every advertised class/edition and grant family, incompatible-choice mutations, origins/species casting, gear/gold alternatives, exact money/quantities/slots, levels 1/2/3/4/5/8/11/17/19/20 where relevant, legacy/manual-override preservation. Prioritize actual progression boundaries; do not claim complete multiclass coverage from these samples.",
+      "acceptance": "Execute the complete criterion against the identified candidate and record independent review.",
+      "evidence": [],
+      "defects": [],
+      "tranches": [
+        "T-01",
+        "T-06",
+        "T-07",
+        "T-08"
+      ]
+    },
+    {
+      "id": "Q-01.3",
+      "parentId": "Q-01",
+      "title": "Recovery matrix",
+      "ownerRoles": "QA + independent RULES/HOST/API reviewers",
+      "ownerAlias": "Codex",
+      "reviewerAlias": "DM",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "3. **Recovery matrix:** duplicate clicks; slow/rejected saves; server commit followed by lost response; partial local/account/session success; room rejection/reconnect; tab conflicts; corrupt/old/future drafts; route exit; nested Escape; name/mode/edition changes. Assert identity and preserved choices, not only displayed errors.",
+      "acceptance": "Execute the complete criterion against the identified candidate and record independent review.",
+      "evidence": [],
+      "defects": [],
+      "tranches": [
+        "T-01",
+        "T-06",
+        "T-07",
+        "T-08"
+      ]
+    },
+    {
+      "id": "Q-01.4",
+      "parentId": "Q-01",
+      "title": "Studio matrix",
+      "ownerRoles": "QA + independent RULES/HOST/API reviewers",
+      "ownerAlias": "Codex",
+      "reviewerAlias": "DM",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "4. **Studio matrix:** real campaign creation/metadata, complete authoring round-trip, typed references/maps/SRD and homebrew actors, same-title and renamed/cloned sessions, next-session linkage, dirty publication/activation, retry and revision conflict. Exercise a clean store/browser reload between operations. Observe the resulting VTT scene and actors.",
+      "acceptance": "Execute the complete criterion against the identified candidate and record independent review.",
+      "evidence": [],
+      "defects": [],
+      "tranches": [
+        "T-01",
+        "T-06",
+        "T-07",
+        "T-08"
+      ]
+    },
+    {
+      "id": "Q-01.5",
+      "parentId": "Q-01",
+      "title": "Accessibility and integration",
+      "ownerRoles": "QA + independent RULES/HOST/API reviewers",
+      "ownerAlias": "Codex",
+      "reviewerAlias": "DM",
+      "status": "not run",
+      "evidenceReviewRequired": true,
+      "requirement": "5. **Accessibility and integration:** complete H-07 checks; validate both host palettes and CSS boundaries; keep contract, workspace, Docker and CI target graphs accurate if dependencies/routes/build inputs change. Target at least 80% relevant line/branch coverage for changed implementation while retaining stricter existing workspace gates. Coverage is necessary evidence, not a substitute for independent assertions and real journeys.",
+      "acceptance": "Execute the complete criterion against the identified candidate and record independent review.",
+      "evidence": [],
+      "defects": [],
+      "tranches": [
+        "T-01",
+        "T-06",
+        "T-07",
+        "T-08"
+      ]
+    }
+  ]
+}

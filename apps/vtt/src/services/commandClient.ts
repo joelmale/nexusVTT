@@ -335,6 +335,25 @@ export class DomainCommandClient {
   /**
    * Take a short or long rest to restore HP and reset resource pools
    */
+  async consumeClassResource(
+    campaignId: string,
+    actorId: string,
+    resourceId: string,
+    amount: number,
+    options: { expectedVersion: number; commandId: string },
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    return this.dispatchCommand(campaignId, {
+      commandId: options.commandId,
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId: user?.id || 'anonymous',
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: { [actorId]: options.expectedVersion },
+      payload: { type: 'ConsumeClassResource', actorId, resourceId, amount },
+    });
+  }
+
   async restActor(
     campaignId: string,
     actorId: string,

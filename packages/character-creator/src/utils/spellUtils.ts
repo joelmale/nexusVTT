@@ -1,4 +1,5 @@
-import { FULL_CASTER_SLOTS, getPactMagicSlots } from '@nexus/rules-5e';
+import { classSpellSlots } from './classSpellSlots';
+import { FULL_CASTER_SLOTS } from '@nexus/rules-5e';
 // Spell management utilities for character creation and campaign play
 import {
   SpellcastingType,
@@ -538,23 +539,12 @@ export function migrateSpellSelectionToCharacter(
   const learningRules = SPELL_LEARNING_RULES[classData.slug];
 
   // Get correct spell slots for the character's level
-  const half = ['paladin', 'ranger', 'artificer'].includes(classData.slug);
-  const effectiveLevel = half ? Math.ceil(characterLevel / 2) : characterLevel;
-  const standardSlots =
-    half && classData.edition === '2014' && characterLevel === 1
-      ? {}
-      : FULL_CASTER_SLOTS[effectiveLevel] || {};
-  const spellSlots = Array.from({ length: 10 }, (_, index) =>
-    index === 0
-      ? spellSelection.selectedCantrips.length
-      : standardSlots[index] || 0,
+  const spellSlots = classSpellSlots(
+    classData.slug,
+    classData.edition ?? '2014',
+    characterLevel,
   );
-  if (classData.slug === 'warlock') {
-    spellSlots.fill(0);
-    spellSlots[0] = spellSelection.selectedCantrips.length;
-    const pact = getPactMagicSlots(characterLevel);
-    spellSlots[pact.slotLevel] = pact.slots;
-  }
+  spellSlots[0] = spellSelection.selectedCantrips.length;
 
   const baseSpellcasting = {
     ability: spellcasting.ability,

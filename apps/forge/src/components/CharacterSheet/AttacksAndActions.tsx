@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import { ClassResourceControls } from '@nexus/character-creator';
 import { Character, Equipment } from '../../types/dnd';
 import { loadEquipment, COMBAT_ACTIONS } from '../../services/dataService';
 import { DiceRoll } from '../../services/diceService';
-import { consumeResource, getResourceUses } from '../../utils/resourceUtils';
+import {
+  canUseResource,
+  consumeResource,
+  getResourceUses,
+} from '../../utils/resourceUtils';
 import { TacticalSection } from './TacticalSection';
 
 type CustomRoll = DiceRoll & {
@@ -15,13 +20,25 @@ type CustomRoll = DiceRoll & {
 interface TacticalAction {
   id: string;
   name: string;
-  type: 'weapon-attack' | 'spell-attack' | 'unarmed-attack' | 'special-attack' | 'defensive' | 'movement' | 'support' | 'stealth' | 'healing' | 'action-surge' | 'reaction-setup';
+  type:
+    | 'weapon-attack'
+    | 'spell-attack'
+    | 'unarmed-attack'
+    | 'special-attack'
+    | 'defensive'
+    | 'movement'
+    | 'support'
+    | 'stealth'
+    | 'healing'
+    | 'action-surge'
+    | 'reaction-setup';
   description: string;
   actionCost: 'Action' | 'Bonus Action' | 'Free' | 'Reaction';
   hasButton: boolean;
   buttonText?: string;
   category: 'offense' | 'defense' | 'mobility' | 'burst';
   isLimited?: boolean;
+  disabled?: boolean;
   usesRemaining?: number;
   maxUses?: number;
   specialUI?: 'bubble-display';
@@ -32,30 +49,42 @@ interface AttacksAndActionsProps {
   setRollResult: (result: {
     text: string;
     value: number | null;
-    details?: Array<{ value: number; kept: boolean; critical?: 'success' | 'failure' }>
+    details?: Array<{
+      value: number;
+      kept: boolean;
+      critical?: 'success' | 'failure';
+    }>;
   }) => void;
   onDiceRoll: (roll: CustomRoll) => void;
-  onUpdateCharacter: (character: Character) => void;
+  onUpdateCharacter: (character: Character) => void | Promise<boolean>;
   layoutMode?: 'paper-sheet' | 'classic-dnd' | 'modern';
 }
 
 // Helper function to calculate attack bonus for a weapon
-const calculateAttackBonus = (character: Character, weapon: Equipment): number => {
-  const isFinesse = weapon.properties?.some(prop => prop.name === 'Finesse');
+const calculateAttackBonus = (
+  character: Character,
+  weapon: Equipment,
+): number => {
+  const isFinesse = weapon.properties?.some((prop) => prop.name === 'Finesse');
   const isRanged = weapon.weapon_range === 'Ranged';
 
   // Determine ability modifier
   let abilityMod = 0;
-  if (isRanged || (isFinesse && character.abilities.DEX.modifier > character.abilities.STR.modifier)) {
+  if (
+    isRanged ||
+    (isFinesse &&
+      character.abilities.DEX.modifier > character.abilities.STR.modifier)
+  ) {
     abilityMod = character.abilities.DEX.modifier;
   } else {
     abilityMod = character.abilities.STR.modifier;
   }
 
   // Add proficiency bonus if proficient
-  const isProficient = character.proficiencies?.weapons?.some(w =>
-    w.toLowerCase().includes(weapon.name.toLowerCase()) ||
-    weapon.weapon_category?.toLowerCase() === w.toLowerCase()
+  const isProficient = character.proficiencies?.weapons?.some(
+    (w) =>
+      w.toLowerCase().includes(weapon.name.toLowerCase()) ||
+      weapon.weapon_category?.toLowerCase() === w.toLowerCase(),
   );
 
   return abilityMod + (isProficient ? character.proficiencyBonus : 0);
@@ -65,12 +94,16 @@ const calculateAttackBonus = (character: Character, weapon: Equipment): number =
 const getWeaponDamage = (weapon: Equipment, character: Character): string => {
   if (!weapon.damage) return '0';
 
-  const isFinesse = weapon.properties?.some(prop => prop.name === 'Finesse');
+  const isFinesse = weapon.properties?.some((prop) => prop.name === 'Finesse');
   const isRanged = weapon.weapon_range === 'Ranged';
 
   // Determine ability modifier for damage
   let abilityMod = 0;
-  if (isRanged || (isFinesse && character.abilities.DEX.modifier > character.abilities.STR.modifier)) {
+  if (
+    isRanged ||
+    (isFinesse &&
+      character.abilities.DEX.modifier > character.abilities.STR.modifier)
+  ) {
     abilityMod = character.abilities.DEX.modifier;
   } else {
     abilityMod = character.abilities.STR.modifier;
@@ -88,19 +121,46 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
   layoutMode = 'modern',
 }) => {
   const allEquipment = loadEquipment();
+  const resourceSaveInFlight = useRef(false);
+  const [resourceError, setResourceError] = useState('');
+  const [resourceSavePending, setResourceSavePending] = useState(false);
+  const persistResourceUse = async (id: string, amount = 1) => {
+    if (resourceSaveInFlight.current)
+      throw new Error('A resource change is already saving.');
+    if (!canUseResource(character, id))
+      throw new Error('No recorded uses are available.');
+    const resource = character.resources?.find((entry) => entry.id === id);
+    if (resource?.unlimited) return;
+    const updated = consumeResource(character, id, amount);
+    if (updated === character)
+      throw new Error('This resource use is not available.');
+    resourceSaveInFlight.current = true;
+    setResourceSavePending(true);
+    try {
+      const saved = await onUpdateCharacter(updated);
+      if (saved === false) throw new Error('Resource save failed.');
+    } finally {
+      resourceSaveInFlight.current = false;
+      setResourceSavePending(false);
+    }
+  };
 
   // Get equipped weapons
-  const equippedWeapons = character.equippedWeapons?.map(slug =>
-    allEquipment.find(eq => eq.slug === slug)
-  ).filter(Boolean) as Equipment[] || [];
+  const equippedWeapons =
+    (character.equippedWeapons
+      ?.map((slug) => allEquipment.find((eq) => eq.slug === slug))
+      .filter(Boolean) as Equipment[]) || [];
 
   // Check for Extra Attack feature (Fighter, etc.)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _hasExtraAttack = character.level >= 5 && ['fighter', 'paladin', 'ranger'].includes(character.class);
+  const _hasExtraAttack =
+    character.level >= 5 &&
+    ['fighter', 'paladin', 'ranger'].includes(character.class);
 
   // Check for Two-Weapon Fighting style
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _hasTwoWeaponFighting = character.selectedFightingStyle === 'Two-Weapon Fighting';
+  const _hasTwoWeaponFighting =
+    character.selectedFightingStyle === 'Two-Weapon Fighting';
 
   // Action Surge usage tracking (now uses resource system)
   const getActionSurgeInfo = () => {
@@ -112,14 +172,17 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
     return info.current > 0;
   };
 
-  const consumeActionSurge = () => {
+  const consumeActionSurge = async () => {
     if (canUseActionSurge()) {
-      const updatedCharacter = consumeResource(character, 'action-surge');
-      onUpdateCharacter(updatedCharacter);
+      await persistResourceUse('action-surge');
     }
   };
 
-  const handleWeaponAttack = (weapon: Equipment, isExtraAttack = false, isOffHand = false) => {
+  const handleWeaponAttack = (
+    weapon: Equipment,
+    isExtraAttack = false,
+    isOffHand = false,
+  ) => {
     const attackBonus = calculateAttackBonus(character, weapon);
     const attackRoll = `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`;
     const damageRoll = getWeaponDamage(weapon, character);
@@ -128,7 +191,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
 
     // Create the roll object for the dice system
     const roll: CustomRoll = {
-       id: `attack-${crypto.randomUUID()}`,
+      id: `attack-${crypto.randomUUID()}`,
       notation: attackRoll,
       type: 'attack' as const,
       description: rollText,
@@ -138,7 +201,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       diceResults: [],
       modifier: attackBonus,
       total: attackBonus,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     onDiceRoll(roll);
@@ -159,7 +222,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       diceResults: [],
       modifier: attackBonus,
       total: attackBonus,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     onDiceRoll(roll);
@@ -181,7 +244,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       diceResults: [],
       modifier: attackBonus,
       total: attackBonus,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     onDiceRoll(roll);
@@ -192,7 +255,8 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
     const modifier = character.abilities[ability].modifier;
     // TODO: Implement proper saving throw proficiency checking based on class features
     const isProficient = false; // Temporary fix - saving throw proficiency needs proper implementation
-    const saveBonus = modifier + (isProficient ? character.proficiencyBonus : 0);
+    const saveBonus =
+      modifier + (isProficient ? character.proficiencyBonus : 0);
     const saveRoll = `1d20${saveBonus >= 0 ? '+' : ''}${saveBonus}`;
 
     const roll: CustomRoll = {
@@ -204,7 +268,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       diceResults: [],
       modifier: saveBonus,
       total: saveBonus,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     onDiceRoll(roll);
@@ -223,13 +287,16 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       diceResults: [],
       modifier: character.initiative,
       total: character.initiative,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     onDiceRoll(roll);
   };
 
-  const handleSkillCheck = (skillName: string, ability: keyof Character['abilities']) => {
+  const handleSkillCheck = (
+    skillName: string,
+    ability: keyof Character['abilities'],
+  ) => {
     const skill = character.skills[skillName as keyof Character['skills']];
     const skillBonus = skill.value;
     const skillRoll = `1d20${skillBonus >= 0 ? '+' : ''}${skillBonus}`;
@@ -243,7 +310,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       diceResults: [],
       modifier: skillBonus,
       total: skillBonus,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     onDiceRoll(roll);
@@ -266,17 +333,17 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       diceResults: [],
       modifier: attackBonus,
       total: attackBonus,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     onDiceRoll(roll);
   };
 
-  const handleCombatAction = (actionSlug: string) => {
+  const handleCombatAction = async (actionSlug: string) => {
     // Special handling for Action Surge
     if (actionSlug === 'action-surge') {
       if (canUseActionSurge()) {
-        consumeActionSurge();
+        await consumeActionSurge();
       }
       return;
     }
@@ -286,14 +353,13 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       ...COMBAT_ACTIONS.bonusActions,
       ...COMBAT_ACTIONS.reactions,
       ...COMBAT_ACTIONS.movement,
-      ...COMBAT_ACTIONS.classFeatureActions
+      ...COMBAT_ACTIONS.classFeatureActions,
     ];
-    const action = allActions.find(a => a.slug === actionSlug);
+    const action = allActions.find((a) => a.slug === actionSlug);
 
     // Consume resource if this action has limited uses
     if (action?.usageType === 'limited') {
-      const updatedCharacter = consumeResource(character, actionSlug);
-      onUpdateCharacter(updatedCharacter);
+      await persistResourceUse(actionSlug);
     }
     if (!action) return;
 
@@ -302,8 +368,13 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       handleSkillCheck(action.skill, action.ability);
     } else if (action.rollType === 'healing' && action.notation) {
       const healingRoll = action.notation;
-      const levelBonus = action.slug === 'second-wind' && character.class.toLowerCase() === 'fighter' ? character.level : 0;
-      const totalNotation = levelBonus > 0 ? `${healingRoll}+${levelBonus}` : healingRoll;
+      const levelBonus =
+        action.slug === 'second-wind' &&
+        character.class.toLowerCase() === 'fighter'
+          ? character.level
+          : 0;
+      const totalNotation =
+        levelBonus > 0 ? `${healingRoll}+${levelBonus}` : healingRoll;
 
       const roll: CustomRoll = {
         id: `healing-${actionSlug}-${crypto.randomUUID()}`,
@@ -314,7 +385,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
         diceResults: [],
         modifier: levelBonus,
         total: levelBonus,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       onDiceRoll(roll);
@@ -324,10 +395,14 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
   // Get class-specific combat actions
   const getClassActions = () => {
     const classSlug = character.class.toLowerCase();
-    return COMBAT_ACTIONS.classFeatureActions.filter(action => {
+    return COMBAT_ACTIONS.classFeatureActions.filter((action) => {
       if (action.class !== classSlug) return false;
       if (action.minLevel && character.level < action.minLevel) return false;
-      if (action.subclass && character.subclass?.toLowerCase() !== action.subclass) return false;
+      if (
+        action.subclass &&
+        character.subclass?.toLowerCase() !== action.subclass
+      )
+        return false;
       return true;
     });
   };
@@ -340,12 +415,12 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       offense: [] as TacticalAction[],
       defense: [] as TacticalAction[],
       mobility: [] as TacticalAction[],
-      burst: [] as TacticalAction[]
+      burst: [] as TacticalAction[],
     };
 
     // 1. OFFENSE & CONTROL
     // Add weapon attacks
-    equippedWeapons.forEach(weapon => {
+    equippedWeapons.forEach((weapon) => {
       actions.offense.push({
         id: `weapon-${weapon.slug}`,
         name: weapon.name,
@@ -354,7 +429,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
         actionCost: 'Action',
         hasButton: true,
         buttonText: 'Attack',
-        category: 'offense'
+        category: 'offense',
       });
     });
 
@@ -367,154 +442,186 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       actionCost: 'Action',
       hasButton: true,
       buttonText: 'Attack',
-      category: 'offense'
+      category: 'offense',
     });
 
     // Add grapple and shove
-    const grappleAction = COMBAT_ACTIONS.standardActions.find(a => a.slug === 'grapple');
-    const shoveAction = COMBAT_ACTIONS.standardActions.find(a => a.slug === 'shove');
+    const grappleAction = COMBAT_ACTIONS.standardActions.find(
+      (a) => a.slug === 'grapple',
+    );
+    const shoveAction = COMBAT_ACTIONS.standardActions.find(
+      (a) => a.slug === 'shove',
+    );
 
-    if (grappleAction) actions.offense.push({
-      id: grappleAction.slug,
-      name: grappleAction.name,
-      type: 'special-attack',
-      description: `+${character.skills.Athletics.value} Athletics vs target's Athletics/Acrobatics`,
-      actionCost: 'Action',
-      hasButton: true,
-      buttonText: 'Contest',
-      category: 'offense'
-    });
+    if (grappleAction)
+      actions.offense.push({
+        id: grappleAction.slug,
+        name: grappleAction.name,
+        type: 'special-attack',
+        description: `+${character.skills.Athletics.value} Athletics vs target's Athletics/Acrobatics`,
+        actionCost: 'Action',
+        hasButton: true,
+        buttonText: 'Contest',
+        category: 'offense',
+      });
 
-    if (shoveAction) actions.offense.push({
-      id: shoveAction.slug,
-      name: shoveAction.name,
-      type: 'special-attack',
-      description: `+${character.skills.Athletics.value} Athletics vs target's Athletics/Acrobatics`,
-      actionCost: 'Action',
-      hasButton: true,
-      buttonText: 'Contest',
-      category: 'offense'
-    });
+    if (shoveAction)
+      actions.offense.push({
+        id: shoveAction.slug,
+        name: shoveAction.name,
+        type: 'special-attack',
+        description: `+${character.skills.Athletics.value} Athletics vs target's Athletics/Acrobatics`,
+        actionCost: 'Action',
+        hasButton: true,
+        buttonText: 'Contest',
+        category: 'offense',
+      });
 
     // 2. SURVIVAL & DEFENSE
-    const dodgeAction = COMBAT_ACTIONS.standardActions.find(a => a.slug === 'dodge');
-    const disengageAction = COMBAT_ACTIONS.standardActions.find(a => a.slug === 'disengage');
+    const dodgeAction = COMBAT_ACTIONS.standardActions.find(
+      (a) => a.slug === 'dodge',
+    );
+    const disengageAction = COMBAT_ACTIONS.standardActions.find(
+      (a) => a.slug === 'disengage',
+    );
 
-    if (dodgeAction) actions.defense.push({
-      id: dodgeAction.slug,
-      name: dodgeAction.name,
-      type: 'defensive',
-      description: 'Attack rolls against you have disadvantage',
-      actionCost: 'Action',
-      hasButton: false,
-      category: 'defense'
-    });
+    if (dodgeAction)
+      actions.defense.push({
+        id: dodgeAction.slug,
+        name: dodgeAction.name,
+        type: 'defensive',
+        description: 'Attack rolls against you have disadvantage',
+        actionCost: 'Action',
+        hasButton: false,
+        category: 'defense',
+      });
 
-    if (disengageAction) actions.defense.push({
-      id: disengageAction.slug,
-      name: disengageAction.name,
-      type: 'defensive',
-      description: 'Movement doesn\'t provoke opportunity attacks',
-      actionCost: 'Action',
-      hasButton: false,
-      category: 'defense'
-    });
+    if (disengageAction)
+      actions.defense.push({
+        id: disengageAction.slug,
+        name: disengageAction.name,
+        type: 'defensive',
+        description: "Movement doesn't provoke opportunity attacks",
+        actionCost: 'Action',
+        hasButton: false,
+        category: 'defense',
+      });
 
     // Add Second Wind for fighters
-    const secondWind = classActions.find(a => a.slug === 'second-wind');
-    if (secondWind) actions.defense.push({
-      id: secondWind.slug,
-      name: secondWind.name,
-      type: 'healing',
-      description: `Regain 1d10 + ${character.level} HP`,
-      actionCost: 'Bonus Action',
-      hasButton: true,
-      buttonText: 'Heal',
-      category: 'defense',
-      isLimited: true,
-      usesRemaining: getResourceUses(character, 'second-wind').current,
-      maxUses: getResourceUses(character, 'second-wind').max
-    });
+    const secondWind = classActions.find((a) => a.slug === 'second-wind');
+    if (secondWind)
+      actions.defense.push({
+        id: secondWind.slug,
+        name: secondWind.name,
+        type: 'healing',
+        description: `Regain 1d10 + ${character.level} HP`,
+        actionCost: 'Bonus Action',
+        hasButton: true,
+        buttonText: 'Heal',
+        category: 'defense',
+        isLimited: true,
+        usesRemaining: getResourceUses(character, 'second-wind').current,
+        maxUses: getResourceUses(character, 'second-wind').max,
+      });
 
     // 3. MOBILITY & SUPPORT
-    const dashAction = COMBAT_ACTIONS.standardActions.find(a => a.slug === 'dash');
-    const helpAction = COMBAT_ACTIONS.standardActions.find(a => a.slug === 'help');
-    const hideAction = COMBAT_ACTIONS.standardActions.find(a => a.slug === 'hide');
+    const dashAction = COMBAT_ACTIONS.standardActions.find(
+      (a) => a.slug === 'dash',
+    );
+    const helpAction = COMBAT_ACTIONS.standardActions.find(
+      (a) => a.slug === 'help',
+    );
+    const hideAction = COMBAT_ACTIONS.standardActions.find(
+      (a) => a.slug === 'hide',
+    );
 
-    if (dashAction) actions.mobility.push({
-      id: dashAction.slug,
-      name: dashAction.name,
-      type: 'movement',
-      description: `Double movement speed (${character.speed * 2}ft total)`,
-      actionCost: 'Action',
-      hasButton: false,
-      category: 'mobility'
-    });
+    if (dashAction)
+      actions.mobility.push({
+        id: dashAction.slug,
+        name: dashAction.name,
+        type: 'movement',
+        description: `Double movement speed (${character.speed * 2}ft total)`,
+        actionCost: 'Action',
+        hasButton: false,
+        category: 'mobility',
+      });
 
-    if (helpAction) actions.mobility.push({
-      id: helpAction.slug,
-      name: helpAction.name,
-      type: 'support',
-      description: 'Grant advantage on ally\'s next check or attack',
-      actionCost: 'Action',
-      hasButton: false,
-      category: 'mobility'
-    });
+    if (helpAction)
+      actions.mobility.push({
+        id: helpAction.slug,
+        name: helpAction.name,
+        type: 'support',
+        description: "Grant advantage on ally's next check or attack",
+        actionCost: 'Action',
+        hasButton: false,
+        category: 'mobility',
+      });
 
-    if (hideAction) actions.mobility.push({
-      id: hideAction.slug,
-      name: hideAction.name,
-      type: 'stealth',
-      description: `+${character.skills.Stealth.value} Stealth check`,
-      actionCost: 'Action',
-      hasButton: false,
-      category: 'mobility'
-    });
+    if (hideAction)
+      actions.mobility.push({
+        id: hideAction.slug,
+        name: hideAction.name,
+        type: 'stealth',
+        description: `+${character.skills.Stealth.value} Stealth check`,
+        actionCost: 'Action',
+        hasButton: false,
+        category: 'mobility',
+      });
 
     // Add Bardic Inspiration for bards
-    const bardicInspiration = classActions.find(a => a.slug === 'bardic-inspiration');
-    if (bardicInspiration) actions.mobility.push({
-      id: bardicInspiration.slug,
-      name: bardicInspiration.name,
-      type: 'support',
-      description: 'Give ally d6 inspiration die for checks/attacks/saves',
-      actionCost: 'Bonus Action',
-      hasButton: false,
-      category: 'mobility',
-      isLimited: true,
-      usesRemaining: getResourceUses(character, 'bardic-inspiration').current,
-      maxUses: getResourceUses(character, 'bardic-inspiration').max
-    });
+    const bardicInspiration = classActions.find(
+      (a) => a.slug === 'bardic-inspiration',
+    );
+    if (bardicInspiration)
+      actions.mobility.push({
+        id: bardicInspiration.slug,
+        name: bardicInspiration.name,
+        type: 'support',
+        description: 'Give ally d6 inspiration die for checks/attacks/saves',
+        actionCost: 'Bonus Action',
+        hasButton: false,
+        category: 'mobility',
+        isLimited: true,
+        usesRemaining: getResourceUses(character, 'bardic-inspiration').current,
+        maxUses: getResourceUses(character, 'bardic-inspiration').max,
+      });
 
     // 4. BURST / SPECIAL
-    const readyAction = COMBAT_ACTIONS.standardActions.find(a => a.slug === 'ready');
+    const readyAction = COMBAT_ACTIONS.standardActions.find(
+      (a) => a.slug === 'ready',
+    );
 
     // Add Action Surge for fighters
-    const actionSurge = classActions.find(a => a.slug === 'action-surge');
-    if (actionSurge) actions.burst.push({
-      id: actionSurge.slug,
-      name: actionSurge.name,
-      type: 'action-surge',
-      description: 'Take one additional action this turn',
-      actionCost: 'Free',
-      hasButton: false,
-      category: 'burst',
-      isLimited: true,
-      usesRemaining: getActionSurgeInfo().current,
-      maxUses: getActionSurgeInfo().max,
-      specialUI: 'bubble-display' // Special handling for bubble UI
-    });
+    const actionSurge = classActions.find((a) => a.slug === 'action-surge');
+    if (actionSurge)
+      actions.burst.push({
+        id: actionSurge.slug,
+        name: actionSurge.name,
+        type: 'action-surge',
+        description: 'Take one additional action this turn',
+        actionCost: 'Free',
+        hasButton: false,
+        category: 'burst',
+        isLimited: true,
+        usesRemaining: getActionSurgeInfo().current,
+        maxUses: getActionSurgeInfo().max,
+        specialUI: 'bubble-display', // Special handling for bubble UI
+      });
 
-    if (readyAction) actions.burst.push({
-      id: readyAction.slug,
-      name: readyAction.name,
-      type: 'reaction-setup',
-      description: 'Prepare action for specific trigger',
-      actionCost: 'Action',
-      hasButton: false,
-      category: 'burst'
-    });
+    if (readyAction)
+      actions.burst.push({
+        id: readyAction.slug,
+        name: readyAction.name,
+        type: 'reaction-setup',
+        description: 'Prepare action for specific trigger',
+        actionCost: 'Action',
+        hasButton: false,
+        category: 'burst',
+      });
 
+    for (const group of Object.values(actions))
+      for (const action of group)
+        if (action.isLimited) action.disabled = resourceSavePending;
     return actions;
   };
 
@@ -523,63 +630,90 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
   // Determine color scheme based on layout mode
   const isPaperSheet = layoutMode === 'paper-sheet';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _bgSecondaryClass = isPaperSheet ? 'bg-[#fcf6e3]' : 'bg-theme-secondary';
+  const _bgSecondaryClass = isPaperSheet
+    ? 'bg-[#fcf6e3]'
+    : 'bg-theme-secondary';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _bgTertiaryClass = isPaperSheet ? 'bg-[#f5ebd2]' : 'bg-theme-tertiary/50';
+  const _bgTertiaryClass = isPaperSheet
+    ? 'bg-[#f5ebd2]'
+    : 'bg-theme-tertiary/50';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _textPrimaryClass = isPaperSheet ? 'text-[#1e140a]' : 'text-theme-primary';
+  const _textPrimaryClass = isPaperSheet
+    ? 'text-[#1e140a]'
+    : 'text-theme-primary';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _textMutedClass = isPaperSheet ? 'text-[#3d2817]' : 'text-theme-muted';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _textTertiaryClass = isPaperSheet ? 'text-[#3d2817]' : 'text-theme-tertiary';
+  const _textTertiaryClass = isPaperSheet
+    ? 'text-[#3d2817]'
+    : 'text-theme-tertiary';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _borderClass = isPaperSheet ? 'border-[#1e140a]/20' : 'border-red-800';
 
   // Handle tactical action clicks
-  const handleTacticalAction = (actionId: string) => {
-    if (actionId.startsWith('weapon-')) {
-      const weaponSlug = actionId.replace('weapon-', '');
-      const weapon = equippedWeapons.find(w => w.slug === weaponSlug);
-      if (weapon) handleWeaponAttack(weapon);
-    } else if (actionId === 'unarmed-strike') {
-      handleUnarmedStrike();
-    } else if (actionId === 'second-wind') {
-      // Handle Second Wind healing
-      const healingRoll = `1d10+${character.level}`;
-      // Create the roll object for the dice system
-      const roll: CustomRoll = {
-        id: `second-wind-${crypto.randomUUID()}`,
-        notation: healingRoll,
-        type: 'complex' as const,
-        description: 'Second Wind Healing',
-        label: 'Second Wind',
-        diceResults: [],
-        modifier: character.level,
-        total: character.level,
-        timestamp: Date.now()
-      };
-      onDiceRoll(roll);
-    } else {
-      // Handle other tactical actions
-      handleCombatAction(actionId);
+  const handleTacticalAction = async (actionId: string) => {
+    try {
+      setResourceError('');
+      if (actionId.startsWith('weapon-')) {
+        const weaponSlug = actionId.replace('weapon-', '');
+        const weapon = equippedWeapons.find((w) => w.slug === weaponSlug);
+        if (weapon) handleWeaponAttack(weapon);
+      } else if (actionId === 'unarmed-strike') {
+        handleUnarmedStrike();
+      } else if (actionId === 'second-wind') {
+        await persistResourceUse('second-wind');
+        // Handle Second Wind healing
+        const healingRoll = `1d10+${character.level}`;
+        // Create the roll object for the dice system
+        const roll: CustomRoll = {
+          id: `second-wind-${crypto.randomUUID()}`,
+          notation: healingRoll,
+          type: 'complex' as const,
+          description: 'Second Wind Healing',
+          label: 'Second Wind',
+          diceResults: [],
+          modifier: character.level,
+          total: character.level,
+          timestamp: Date.now(),
+        };
+        onDiceRoll(roll);
+      } else {
+        // Handle other tactical actions
+        await handleCombatAction(actionId);
+      }
+      setResourceError('');
+    } catch {
+      setResourceError(
+        'This resource action was not confirmed. Check the remaining uses before retrying.',
+      );
     }
   };
 
   return (
     <div className="space-y-6">
+      <ClassResourceControls
+        resources={character.resources ?? []}
+        disabled={resourceSavePending}
+        onConsume={persistResourceUse}
+      />
+      {resourceError && <p role="alert">{resourceError}</p>}
       {/* Main Header */}
-      <div className={`flex items-center justify-between gap-3 pb-2 border-b-2 ${
-        layoutMode === 'paper-sheet'
-          ? 'border-[#1e140a]/30 text-[#1e140a]'
-          : 'border-theme-border text-theme-primary'
-      }`}>
+      <div
+        className={`flex items-center justify-between gap-3 pb-2 border-b-2 ${
+          layoutMode === 'paper-sheet'
+            ? 'border-[#1e140a]/30 text-[#1e140a]'
+            : 'border-theme-border text-theme-primary'
+        }`}
+      >
         <div className="flex items-center gap-2">
           <span className="text-xl">⚔️</span>
           <h2 className="text-2xl font-bold tracking-tight">Combat Options</h2>
         </div>
-        <span className={`text-xs uppercase tracking-[0.2em] font-semibold ${
-          layoutMode === 'paper-sheet' ? 'text-[#3d2817]' : 'text-theme-muted'
-        }`}>
+        <span
+          className={`text-xs uppercase tracking-[0.2em] font-semibold ${
+            layoutMode === 'paper-sheet' ? 'text-[#3d2817]' : 'text-theme-muted'
+          }`}
+        >
           Attacks & Spellcasting
         </span>
       </div>
@@ -599,7 +733,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
               actionCost: 'Action',
               hasButton: true,
               buttonText: 'Roll Attack',
-              category: 'offense'
+              category: 'offense',
             },
             {
               id: 'spell-save-dc',
@@ -608,8 +742,8 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
               description: `DC ${character.spellcasting.spellSaveDC} for enemy saves`,
               actionCost: 'Action',
               hasButton: false,
-              category: 'offense'
-            }
+              category: 'offense',
+            },
           ]}
           onAction={(actionId) => {
             if (actionId === 'spell-attack') handleSpellAttack();

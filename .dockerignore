@@ -11,5 +11,7 @@
 **/playwright-report
 **/test-results
 **/*.log
+.codex-local-validation
+apps/docs/build
 docs
 monitoring

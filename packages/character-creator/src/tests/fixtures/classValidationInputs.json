@@ -5,6 +5,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "barbarian",
+    "subclassSlug": null,
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -16,10 +17,7 @@
       "CHA": 10
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Animal Handling",
-      "Nature"
-    ],
+    "selectedSkills": ["Animal Handling", "Nature"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -38,7 +36,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -134,6 +131,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "bard",
+    "subclassSlug": null,
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -145,38 +143,22 @@
       "CHA": 15
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Acrobatics",
-      "Animal Handling",
-      "Arcana"
-    ],
+    "selectedSkills": ["Acrobatics", "Animal Handling", "Arcana"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
     "equipmentChoices": [],
-    "selectedMusicalInstruments": [
-      "Lute",
-      "Flute",
-      "Drum"
-    ],
+    "selectedMusicalInstruments": ["Lute", "Flute", "Drum"],
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "vicious-mockery",
-        "minor-illusion"
-      ],
+      "selectedCantrips": ["vicious-mockery", "minor-illusion"],
       "knownSpells": [
         "healing-word",
         "thunderwave",
         "animal-friendship",
         "bane"
       ],
-      "spellbook": [
-        "healing-word",
-        "thunderwave",
-        "animal-friendship",
-        "bane"
-      ],
+      "spellbook": ["healing-word", "thunderwave", "animal-friendship", "bane"],
       "preparedSpells": [
         "healing-word",
         "thunderwave",
@@ -195,7 +177,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -261,6 +242,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "cleric",
+    "subclassSlug": "life",
     "background": "acolyte-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -272,10 +254,7 @@
       "CHA": 12
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "History",
-      "Medicine"
-    ],
+    "selectedSkills": ["History", "Medicine"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -283,34 +262,17 @@
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "sacred-flame",
-        "guidance",
-        "thaumaturgy"
-      ],
-      "knownSpells": [
-        "cure-wounds",
-        "healing-word"
-      ],
-      "spellbook": [
-        "cure-wounds",
-        "healing-word"
-      ],
-      "preparedSpells": [
-        "cure-wounds",
-        "healing-word"
-      ],
-      "dailyPrepared": [
-        "cure-wounds",
-        "healing-word"
-      ]
+      "selectedCantrips": ["sacred-flame", "guidance", "thaumaturgy"],
+      "knownSpells": ["cure-wounds", "healing-word"],
+      "spellbook": ["cure-wounds", "healing-word"],
+      "preparedSpells": ["cure-wounds", "healing-word"],
+      "dailyPrepared": ["cure-wounds", "healing-word"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -426,6 +388,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "druid",
+    "subclassSlug": null,
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -437,10 +400,7 @@
       "CHA": 8
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Arcana",
-      "Animal Handling"
-    ],
+    "selectedSkills": ["Arcana", "Animal Handling"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -448,10 +408,7 @@
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "shillelagh",
-        "produce-flame"
-      ],
+      "selectedCantrips": ["shillelagh", "produce-flame"],
       "knownSpells": [],
       "spellbook": [],
       "preparedSpells": [],
@@ -462,7 +419,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -563,6 +519,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "fighter",
+    "subclassSlug": null,
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -574,10 +531,7 @@
       "CHA": 10
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Acrobatics",
-      "Animal Handling"
-    ],
+    "selectedSkills": ["Acrobatics", "Animal Handling"],
     "expertiseSkills": [],
     "selectedFightingStyle": "Defense",
     "weaponMastery": [],
@@ -596,7 +550,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "fightingStyle": "Defense",
     "startingInventory": [
@@ -708,6 +661,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "monk",
+    "subclassSlug": null,
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -719,10 +673,7 @@
       "CHA": 8
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Acrobatics",
-      "History"
-    ],
+    "selectedSkills": ["Acrobatics", "History"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -741,7 +692,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -837,6 +787,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "paladin",
+    "subclassSlug": null,
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -848,10 +799,7 @@
       "CHA": 14
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Insight",
-      "Medicine"
-    ],
+    "selectedSkills": ["Insight", "Medicine"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -870,7 +818,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -986,6 +933,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "ranger",
+    "subclassSlug": null,
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -997,11 +945,7 @@
       "CHA": 8
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Animal Handling",
-      "Insight",
-      "Investigation"
-    ],
+    "selectedSkills": ["Animal Handling", "Insight", "Investigation"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -1020,7 +964,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -1136,6 +1079,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "rogue",
+    "subclassSlug": null,
     "background": "criminal-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -1147,16 +1091,8 @@
       "CHA": 10
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Acrobatics",
-      "Athletics",
-      "Insight",
-      "Intimidation"
-    ],
-    "expertiseSkills": [
-      "Stealth",
-      "Acrobatics"
-    ],
+    "selectedSkills": ["Acrobatics", "Athletics", "Insight", "Intimidation"],
+    "expertiseSkills": ["Stealth", "Acrobatics"],
     "selectedFightingStyle": null,
     "weaponMastery": [],
     "equipmentChoices": [],
@@ -1174,7 +1110,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -1300,6 +1235,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "sorcerer",
+    "subclassSlug": "draconic",
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -1311,10 +1247,7 @@
       "CHA": 15
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Arcana",
-      "Deception"
-    ],
+    "selectedSkills": ["Arcana", "Deception"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -1328,29 +1261,16 @@
         "shocking-grasp",
         "prestidigitation"
       ],
-      "knownSpells": [
-        "magic-missile",
-        "shield"
-      ],
-      "spellbook": [
-        "magic-missile",
-        "shield"
-      ],
-      "preparedSpells": [
-        "magic-missile",
-        "shield"
-      ],
-      "dailyPrepared": [
-        "magic-missile",
-        "shield"
-      ]
+      "knownSpells": ["magic-missile", "shield"],
+      "spellbook": ["magic-missile", "shield"],
+      "preparedSpells": ["magic-missile", "shield"],
+      "dailyPrepared": ["magic-missile", "shield"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -1451,6 +1371,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "warlock",
+    "subclassSlug": "fiend",
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -1462,10 +1383,7 @@
       "CHA": 15
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Arcana",
-      "Deception"
-    ],
+    "selectedSkills": ["Arcana", "Deception"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -1473,33 +1391,17 @@
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "eldritch-blast",
-        "minor-illusion"
-      ],
-      "knownSpells": [
-        "charm-person",
-        "comprehend-languages"
-      ],
-      "spellbook": [
-        "charm-person",
-        "comprehend-languages"
-      ],
-      "preparedSpells": [
-        "charm-person",
-        "comprehend-languages"
-      ],
-      "dailyPrepared": [
-        "charm-person",
-        "comprehend-languages"
-      ]
+      "selectedCantrips": ["eldritch-blast", "minor-illusion"],
+      "knownSpells": ["charm-person", "comprehend-languages"],
+      "spellbook": ["charm-person", "comprehend-languages"],
+      "preparedSpells": ["charm-person", "comprehend-languages"],
+      "dailyPrepared": ["charm-person", "comprehend-languages"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -1590,6 +1492,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "wizard",
+    "subclassSlug": null,
     "background": "sage-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -1601,10 +1504,7 @@
       "CHA": 10
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Insight",
-      "Investigation"
-    ],
+    "selectedSkills": ["Insight", "Investigation"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -1612,11 +1512,7 @@
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "fire-bolt",
-        "mage-hand",
-        "prestidigitation"
-      ],
+      "selectedCantrips": ["fire-bolt", "mage-hand", "prestidigitation"],
       "knownSpells": [
         "magic-missile",
         "shield",
@@ -1639,19 +1535,13 @@
         "mage-armor",
         "detect-magic"
       ],
-      "dailyPrepared": [
-        "magic-missile",
-        "shield",
-        "mage-armor",
-        "detect-magic"
-      ]
+      "dailyPrepared": ["magic-missile", "shield", "mage-armor", "detect-magic"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -1742,6 +1632,7 @@
     "level": 1,
     "speciesSlug": "human",
     "classSlug": "artificer",
+    "subclassSlug": null,
     "background": "soldier-2014",
     "alignment": "Neutral Good",
     "abilities": {
@@ -1753,10 +1644,7 @@
       "CHA": 10
     },
     "abilityScoreMethod": "standard-array",
-    "selectedSkills": [
-      "Arcana",
-      "History"
-    ],
+    "selectedSkills": ["Arcana", "History"],
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
@@ -1775,7 +1663,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {},
     "startingInventory": [
       {
@@ -1816,6 +1703,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "barbarian",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -1834,18 +1722,12 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Animal Handling",
-      "Nature"
-    ],
+    "selectedSkills": ["Animal Handling", "Nature"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
     "selectedFightingStyle": null,
-    "weaponMastery": [
-      "Battleaxe",
-      "Club"
-    ],
+    "weaponMastery": ["Battleaxe", "Club"],
     "equipmentChoices": [],
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
@@ -1861,7 +1743,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1
@@ -1971,6 +1852,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "bard",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -1989,28 +1871,17 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Acrobatics",
-      "Animal Handling",
-      "Arcana"
-    ],
+    "selectedSkills": ["Acrobatics", "Animal Handling", "Arcana"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
     "selectedFightingStyle": null,
     "weaponMastery": [],
     "equipmentChoices": [],
-    "selectedMusicalInstruments": [
-      "Lute",
-      "Flute",
-      "Drum"
-    ],
+    "selectedMusicalInstruments": ["Lute", "Flute", "Drum"],
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "vicious-mockery",
-        "minor-illusion"
-      ],
+      "selectedCantrips": ["vicious-mockery", "minor-illusion"],
       "knownSpells": [
         "healing-word",
         "dissonant-whispers",
@@ -2041,7 +1912,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1
@@ -2121,6 +1991,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "cleric",
+    "subclassSlug": null,
     "background": "acolyte-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -2139,10 +2010,7 @@
         "CHA": 1
       }
     },
-    "selectedSkills": [
-      "History",
-      "Medicine"
-    ],
+    "selectedSkills": ["History", "Medicine"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
@@ -2153,42 +2021,22 @@
     "divineOrder": "protector",
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "sacred-flame",
-        "guidance",
-        "thaumaturgy"
-      ],
-      "knownSpells": [
-        "cure-wounds",
-        "healing-word",
-        "bless",
-        "guiding-bolt"
-      ],
-      "spellbook": [
-        "cure-wounds",
-        "healing-word",
-        "bless",
-        "guiding-bolt"
-      ],
+      "selectedCantrips": ["sacred-flame", "guidance", "thaumaturgy"],
+      "knownSpells": ["cure-wounds", "healing-word", "bless", "guiding-bolt"],
+      "spellbook": ["cure-wounds", "healing-word", "bless", "guiding-bolt"],
       "preparedSpells": [
         "cure-wounds",
         "healing-word",
         "bless",
         "guiding-bolt"
       ],
-      "dailyPrepared": [
-        "cure-wounds",
-        "healing-word",
-        "bless",
-        "guiding-bolt"
-      ]
+      "dailyPrepared": ["cure-wounds", "healing-word", "bless", "guiding-bolt"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "WIS": 2,
       "CHA": 1
@@ -2283,6 +2131,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "druid",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -2301,10 +2150,7 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Arcana",
-      "Animal Handling"
-    ],
+    "selectedSkills": ["Arcana", "Animal Handling"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
@@ -2315,22 +2161,9 @@
     "primalOrder": "warden",
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "shillelagh",
-        "produce-flame"
-      ],
-      "knownSpells": [
-        "cure-wounds",
-        "entangle",
-        "healing-word",
-        "thunderwave"
-      ],
-      "spellbook": [
-        "cure-wounds",
-        "entangle",
-        "healing-word",
-        "thunderwave"
-      ],
+      "selectedCantrips": ["shillelagh", "produce-flame"],
+      "knownSpells": ["cure-wounds", "entangle", "healing-word", "thunderwave"],
+      "spellbook": ["cure-wounds", "entangle", "healing-word", "thunderwave"],
       "preparedSpells": [
         "cure-wounds",
         "entangle",
@@ -2349,7 +2182,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1
@@ -2474,6 +2306,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "fighter",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -2492,19 +2325,12 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Acrobatics",
-      "Animal Handling"
-    ],
+    "selectedSkills": ["Acrobatics", "Animal Handling"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
     "selectedFightingStyle": "Defense",
-    "weaponMastery": [
-      "Greatsword",
-      "Flail",
-      "Javelin"
-    ],
+    "weaponMastery": ["Greatsword", "Flail", "Javelin"],
     "equipmentChoices": [],
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
@@ -2520,7 +2346,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1
@@ -2646,6 +2471,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "monk",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -2664,10 +2490,7 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Acrobatics",
-      "History"
-    ],
+    "selectedSkills": ["Acrobatics", "History"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
@@ -2688,7 +2511,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1
@@ -2798,6 +2620,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "paladin",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -2816,46 +2639,27 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Insight",
-      "Medicine"
-    ],
+    "selectedSkills": ["Insight", "Medicine"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
     "selectedFightingStyle": null,
-    "weaponMastery": [
-      "Battleaxe",
-      "Blowgun"
-    ],
+    "weaponMastery": ["Battleaxe", "Blowgun"],
     "equipmentChoices": [],
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
     "spellSelection": {
       "selectedCantrips": [],
-      "knownSpells": [
-        "bless",
-        "command"
-      ],
-      "spellbook": [
-        "bless",
-        "command"
-      ],
-      "preparedSpells": [
-        "bless",
-        "command"
-      ],
-      "dailyPrepared": [
-        "bless",
-        "command"
-      ]
+      "knownSpells": ["bless", "command"],
+      "spellbook": ["bless", "command"],
+      "preparedSpells": ["bless", "command"],
+      "dailyPrepared": ["bless", "command"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1
@@ -2975,6 +2779,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "ranger",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -2993,47 +2798,27 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Animal Handling",
-      "Insight",
-      "Investigation"
-    ],
+    "selectedSkills": ["Animal Handling", "Insight", "Investigation"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
     "selectedFightingStyle": null,
-    "weaponMastery": [
-      "Battleaxe",
-      "Blowgun"
-    ],
+    "weaponMastery": ["Battleaxe", "Blowgun"],
     "equipmentChoices": [],
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
     "spellSelection": {
       "selectedCantrips": [],
-      "knownSpells": [
-        "alarm",
-        "animal-friendship"
-      ],
-      "spellbook": [
-        "alarm",
-        "animal-friendship"
-      ],
-      "preparedSpells": [
-        "alarm",
-        "animal-friendship"
-      ],
-      "dailyPrepared": [
-        "alarm",
-        "animal-friendship"
-      ]
+      "knownSpells": ["alarm", "animal-friendship"],
+      "spellbook": ["alarm", "animal-friendship"],
+      "preparedSpells": ["alarm", "animal-friendship"],
+      "dailyPrepared": ["alarm", "animal-friendship"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1
@@ -3163,6 +2948,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "rogue",
+    "subclassSlug": null,
     "background": "criminal-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -3181,23 +2967,12 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Acrobatics",
-      "Athletics",
-      "Deception",
-      "Insight"
-    ],
+    "selectedSkills": ["Acrobatics", "Athletics", "Deception", "Insight"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
-    "expertiseSkills": [
-      "Stealth",
-      "Sleight of Hand"
-    ],
+    "expertiseSkills": ["Stealth", "Sleight of Hand"],
     "selectedFightingStyle": null,
-    "weaponMastery": [
-      "Shortbow",
-      "Dagger"
-    ],
+    "weaponMastery": ["Shortbow", "Dagger"],
     "equipmentChoices": [],
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
@@ -3213,7 +2988,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "DEX": 2,
       "CON": 1
@@ -3353,6 +3127,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "sorcerer",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -3371,10 +3146,7 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Arcana",
-      "Deception"
-    ],
+    "selectedSkills": ["Arcana", "Deception"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
@@ -3390,29 +3162,16 @@
         "shocking-grasp",
         "prestidigitation"
       ],
-      "knownSpells": [
-        "magic-missile",
-        "shield"
-      ],
-      "spellbook": [
-        "magic-missile",
-        "shield"
-      ],
-      "preparedSpells": [
-        "magic-missile",
-        "shield"
-      ],
-      "dailyPrepared": [
-        "magic-missile",
-        "shield"
-      ]
+      "knownSpells": ["magic-missile", "shield"],
+      "spellbook": ["magic-missile", "shield"],
+      "preparedSpells": ["magic-missile", "shield"],
+      "dailyPrepared": ["magic-missile", "shield"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1
@@ -3527,6 +3286,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "warlock",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -3545,10 +3305,7 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Arcana",
-      "Deception"
-    ],
+    "selectedSkills": ["Arcana", "Deception"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
@@ -3556,38 +3313,20 @@
     "weaponMastery": [],
     "equipmentChoices": [],
     "selectedMusicalInstruments": [],
-    "eldritchInvocations": [
-      "eldritch-mind"
-    ],
+    "eldritchInvocations": ["eldritch-mind"],
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "eldritch-blast",
-        "minor-illusion"
-      ],
-      "knownSpells": [
-        "hex",
-        "bane"
-      ],
-      "spellbook": [
-        "hex",
-        "bane"
-      ],
-      "preparedSpells": [
-        "hex",
-        "bane"
-      ],
-      "dailyPrepared": [
-        "hex",
-        "bane"
-      ]
+      "selectedCantrips": ["eldritch-blast", "minor-illusion"],
+      "knownSpells": ["hex", "bane"],
+      "spellbook": ["hex", "bane"],
+      "preparedSpells": ["hex", "bane"],
+      "dailyPrepared": ["hex", "bane"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1
@@ -3707,6 +3446,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "wizard",
+    "subclassSlug": null,
     "background": "sage-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -3725,10 +3465,7 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Insight",
-      "Investigation"
-    ],
+    "selectedSkills": ["Insight", "Investigation"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
@@ -3738,11 +3475,7 @@
     "selectedMusicalInstruments": [],
     "hpCalculationMethod": "max",
     "spellSelection": {
-      "selectedCantrips": [
-        "fire-bolt",
-        "mage-hand",
-        "prestidigitation"
-      ],
+      "selectedCantrips": ["fire-bolt", "mage-hand", "prestidigitation"],
       "knownSpells": [
         "magic-missile",
         "shield",
@@ -3765,19 +3498,13 @@
         "mage-armor",
         "detect-magic"
       ],
-      "dailyPrepared": [
-        "magic-missile",
-        "shield",
-        "mage-armor",
-        "detect-magic"
-      ]
+      "dailyPrepared": ["magic-missile", "shield", "mage-armor", "detect-magic"]
     },
     "personality": "Prepared and dependable.",
     "ideals": "Courage: Never back down from protecting others.",
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "INT": 2,
       "CON": 1
@@ -3877,6 +3604,7 @@
     "level": 1,
     "speciesSlug": "human-2024",
     "classSlug": "artificer",
+    "subclassSlug": null,
     "background": "soldier-2024",
     "alignment": "Neutral Good",
     "abilities": {
@@ -3895,10 +3623,7 @@
         "CON": 1
       }
     },
-    "selectedSkills": [
-      "Arcana",
-      "History"
-    ],
+    "selectedSkills": ["Arcana", "History"],
     "speciesSkillProficiency": "Perception",
     "humanOriginFeat": "tough",
     "expertiseSkills": [],
@@ -3919,7 +3644,6 @@
     "bonds": "My companions can count on me in battle.",
     "flaws": "I sometimes underestimate unknown hazards.",
     "featChoices": {},
-    "subclassSlug": null,
     "variantAbilityBonuses": {
       "STR": 2,
       "CON": 1

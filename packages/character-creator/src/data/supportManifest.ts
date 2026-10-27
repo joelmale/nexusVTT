@@ -18,6 +18,48 @@ export interface ClassSupportCertification {
   notes?: string;
 }
 
+export interface ClassSupportScope {
+  classSlug: string;
+  edition: Edition;
+  sourceStatus: 'verified-core' | 'unverified-supplemental';
+  creation: 'implemented-awaiting-acceptance' | 'blocked-unverified-source';
+  laterLevelCreation:
+    'implemented-awaiting-acceptance' | 'blocked-unverified-source';
+  levelUp: 'implemented-awaiting-acceptance' | 'unverified';
+  editing: 'preservation-awaiting-acceptance';
+  importedPreservation: 'awaiting-acceptance';
+  certified: false;
+}
+
+/** Capabilities and certification are deliberately separate dimensions. */
+export function getClassSupportScopes(): ClassSupportScope[] {
+  return CERTIFIED_SUPPORT_MANIFEST.flatMap((entry) =>
+    entry.editions.map((edition) => ({
+      classSlug: entry.classSlug,
+      edition,
+      sourceStatus:
+        entry.classSlug === 'artificer'
+          ? ('unverified-supplemental' as const)
+          : ('verified-core' as const),
+      creation:
+        entry.classSlug === 'artificer'
+          ? ('blocked-unverified-source' as const)
+          : ('implemented-awaiting-acceptance' as const),
+      laterLevelCreation:
+        entry.classSlug === 'artificer'
+          ? ('blocked-unverified-source' as const)
+          : ('implemented-awaiting-acceptance' as const),
+      levelUp:
+        entry.classSlug === 'artificer'
+          ? ('unverified' as const)
+          : ('implemented-awaiting-acceptance' as const),
+      editing: 'preservation-awaiting-acceptance' as const,
+      importedPreservation: 'awaiting-acceptance' as const,
+      certified: false as const,
+    })),
+  );
+}
+
 export const CERTIFIED_SUPPORT_MANIFEST: ClassSupportCertification[] = [
   {
     classSlug: 'artificer',
@@ -25,10 +67,10 @@ export const CERTIFIED_SUPPORT_MANIFEST: ClassSupportCertification[] = [
     editions: ['2014', '2024'],
     level1Certified: false,
     spellcaster: true,
-    recommendationSupported: true,
+    recommendationSupported: false,
     subclassLevels: [3],
     notes:
-      'Selectable supplemental class, outside the core SRD reference matrix. Both edition catalogs require source-specific independent review; the 2024 label does not establish revised rules provenance.',
+      "User authorized broad Artificer support. Recommended foundations: Tasha's Cauldron of Everything for legacy, Eberron: Forge of the Artificer for revised. Merge compatible options with source provenance; never stack replacement features or combine progression tables. Existing catalog mechanics await verification against those foundations; imports remain preserved.",
   },
   {
     classSlug: 'fighter',

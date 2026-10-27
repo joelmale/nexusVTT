@@ -237,6 +237,21 @@ for (const host of ['forge', 'vtt'] as const)
               );
             }
             expect(saved.name).toBe(draft.name);
+            if (oracle.creationData.classSlug === 'fighter')
+              expect(
+                saved.resources?.find(
+                  (resource) => resource.id === 'second-wind',
+                ),
+              ).toMatchObject({
+                maxUses: oracle.edition === '2024' ? 2 : 1,
+                currentUses: oracle.edition === '2024' ? 2 : 1,
+              });
+            if (oracle.creationData.classSlug === 'wizard')
+              expect(
+                saved.resources?.find(
+                  (resource) => resource.id === 'arcane-recovery',
+                ),
+              ).toMatchObject({ maxUses: 1, currentUses: 1 });
             expect(saved.maxHitPoints).toBe(oracle.expected.hp);
             expect(saved.armorClass).toBe(oracle.expected.ac);
             expect(saved.initiative).toBe(oracle.expected.initiative);
@@ -289,6 +304,61 @@ for (const host of ['forge', 'vtt'] as const)
               accessibilityFailures,
               'Automated accessibility and reflow findings',
             ).toEqual([]);
+            if (
+              host === 'forge' &&
+              mode === 'full' &&
+              reference === 'F24' &&
+              theme === 'dark'
+            ) {
+              const readUses = () =>
+                page.evaluate(
+                  async (id) =>
+                    new Promise<number | undefined>((resolve, reject) => {
+                      const request = indexedDB.open('NexusForge');
+                      request.onerror = () => reject(request.error);
+                      request.onsuccess = () => {
+                        const db = request.result;
+                        const read = db
+                          .transaction('characters')
+                          .objectStore('characters')
+                          .get(id);
+                        read.onsuccess = () => {
+                          resolve(
+                            (read.result as ForgeCharacter).resources?.find(
+                              (resource) => resource.id === 'second-wind',
+                            )?.currentUses,
+                          );
+                          db.close();
+                        };
+                        read.onerror = () => {
+                          reject(read.error);
+                          db.close();
+                        };
+                      };
+                    }),
+                  draft.characterId,
+                );
+              await page.goto('/forge/');
+              await page
+                .getByRole('button', { name: 'View Sheet', exact: true })
+                .click();
+              await page
+                .getByRole('button', { name: 'Classic D&D', exact: true })
+                .click();
+              await page
+                .getByRole('button', { name: 'Heal', exact: true })
+                .click();
+              await expect.poll(readUses).toBe(1);
+              await page.reload();
+              await expect.poll(readUses).toBe(1);
+              await page
+                .getByRole('button', { name: 'View Sheet', exact: true })
+                .click();
+              await page
+                .getByRole('button', { name: /^Take a Long Rest/ })
+                .click();
+              await expect.poll(readUses).toBe(2);
+            }
           } finally {
             await identity?.dispose();
           }

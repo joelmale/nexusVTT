@@ -7,22 +7,29 @@
  */
 
 import React, { useState } from 'react';
-import { ArrowRight, ArrowLeft, Dices, TrendingUp, Zap, Heart } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowLeft,
+  Dices,
+  TrendingUp,
+  Zap,
+  Heart,
+} from 'lucide-react';
 import { StepProps } from '../types/wizard.types';
 import {
   calculateFeaturesForLevel,
   calculateHPForLevel,
   getASILevelsForCharacter,
-  requiresSubclass
+  requiresSubclass,
 } from '../../../utils/highLevelCreationUtils';
-import { getModifier } from '../../../services/dataService';
+import { getModifier, getHitDieForClass } from '../../../services/dataService';
 
 export const StepHighLevelSetup: React.FC<StepProps> = ({
   data,
   updateData,
   nextStep,
   prevStep,
-  getNextStepLabel
+  getNextStepLabel,
 }) => {
   const [useAverage, setUseAverage] = useState(true);
 
@@ -36,7 +43,7 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
   const subclassInfo = requiresSubclass(classSlug, edition, targetLevel);
 
   // Calculate HP
-  const hitDie = features?.automaticFeatures[0]?.feature?.description?.match(/d\d+/)?.[0] || 'd8';
+  const hitDie = `d${getHitDieForClass(classSlug)}`;
   const conModifier = getModifier(data.abilities?.CON || 10);
 
   // Initialize HP rolls array with lazy state
@@ -53,7 +60,7 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
     hitDie,
     targetLevel,
     conModifier,
-    useAverage ? undefined : hpRolls
+    useAverage ? undefined : hpRolls,
   );
 
   const rollHP = (levelIndex: number) => {
@@ -70,8 +77,8 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
       highLevelSetup: {
         hpRolls: useAverage ? undefined : hpRolls,
         totalHP: hpCalculation.totalHP,
-        useAverage
-      }
+        useAverage,
+      },
     });
     nextStep();
   };
@@ -117,9 +124,7 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
             <div className="text-accent-gold font-bold text-2xl mb-1">
               {features.requiredChoices.length}
             </div>
-            <div className="text-theme-tertiary text-sm">
-              Choices to Make
-            </div>
+            <div className="text-theme-tertiary text-sm">Choices to Make</div>
           </div>
 
           {/* Proficiency Bonus */}
@@ -127,9 +132,7 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
             <div className="text-accent-gold font-bold text-2xl mb-1">
               +{features.proficiencyBonus}
             </div>
-            <div className="text-theme-tertiary text-sm">
-              Proficiency Bonus
-            </div>
+            <div className="text-theme-tertiary text-sm">Proficiency Bonus</div>
           </div>
         </div>
 
@@ -146,23 +149,23 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
                   Subclass at level {subclassInfo.subclassLevel}
                 </li>
               )}
-              {asiLevels.map(level => (
+              {asiLevels.map((level) => (
                 <li key={level} className="flex items-center gap-2">
                   <span className="text-accent-gold">•</span>
                   Ability Score Improvement or Feat at level {level}
                 </li>
               ))}
               {features.requiredChoices
-                .filter(c => c.choice.type === 'fighting-style')
+                .filter((c) => c.choice.type === 'fighting-style')
                 .map((c, i) => (
                   <li key={`fs-${i}`} className="flex items-center gap-2">
                     <span className="text-accent-gold">•</span>
                     Fighting Style at level {c.level}
                   </li>
                 ))}
-              {features.requiredChoices
-                .filter(c => c.choice.type === 'spells')
-                .length > 0 && (
+              {features.requiredChoices.filter(
+                (c) => c.choice.type === 'spells',
+              ).length > 0 && (
                 <li className="flex items-center gap-2">
                   <span className="text-accent-gold">•</span>
                   Spell selection (cantrips and leveled spells)
@@ -192,11 +195,17 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
               }`}
             >
               <div className="text-center">
-                <TrendingUp className={`w-6 h-6 mx-auto mb-2 ${useAverage ? 'text-white' : 'text-accent-gold'}`} />
-                <div className={`font-bold ${useAverage ? 'text-white' : 'text-theme-text'}`}>
+                <TrendingUp
+                  className={`w-6 h-6 mx-auto mb-2 ${useAverage ? 'text-white' : 'text-accent-gold'}`}
+                />
+                <div
+                  className={`font-bold ${useAverage ? 'text-white' : 'text-theme-text'}`}
+                >
                   Take Average
                 </div>
-                <div className={`text-xs mt-1 ${useAverage ? 'text-gray-200' : 'text-theme-tertiary'}`}>
+                <div
+                  className={`text-xs mt-1 ${useAverage ? 'text-gray-200' : 'text-theme-tertiary'}`}
+                >
                   Consistent, recommended
                 </div>
               </div>
@@ -211,11 +220,17 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
               }`}
             >
               <div className="text-center">
-                <Dices className={`w-6 h-6 mx-auto mb-2 ${!useAverage ? 'text-white' : 'text-accent-gold'}`} />
-                <div className={`font-bold ${!useAverage ? 'text-white' : 'text-theme-text'}`}>
+                <Dices
+                  className={`w-6 h-6 mx-auto mb-2 ${!useAverage ? 'text-white' : 'text-accent-gold'}`}
+                />
+                <div
+                  className={`font-bold ${!useAverage ? 'text-white' : 'text-theme-text'}`}
+                >
                   Roll Dice
                 </div>
-                <div className={`text-xs mt-1 ${!useAverage ? 'text-gray-200' : 'text-theme-tertiary'}`}>
+                <div
+                  className={`text-xs mt-1 ${!useAverage ? 'text-gray-200' : 'text-theme-tertiary'}`}
+                >
                   Random, risky
                 </div>
               </div>
@@ -235,9 +250,7 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
                 key={entry.level}
                 className="flex items-center justify-between text-sm border-b border-theme-border pb-2"
               >
-                <div className="text-theme-tertiary">
-                  Level {entry.level}:
-                </div>
+                <div className="text-theme-tertiary">Level {entry.level}:</div>
                 <div className="flex items-center gap-2">
                   {entry.level === 1 ? (
                     <span className="text-theme-text">

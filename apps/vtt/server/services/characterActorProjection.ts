@@ -7,6 +7,7 @@ import type {
   SpellDefinition,
 } from '@nexus/game-contracts';
 import { calculatePreparationLimit } from '@nexus/rules-5e';
+import { resourcePoolSchema } from '@nexus/game-contracts';
 
 const require = createRequire(import.meta.url);
 const rawSpellCatalog: Partial<
@@ -262,6 +263,68 @@ export function projectCharacterCasting(
   const result = projectClassCasting(raw, definitions);
   const data = object(raw);
   const grants = Array.isArray(data.castingSources) ? data.castingSources : [];
+  const hitDice = object(data.hitDice);
+  if (
+    Number.isSafeInteger(hitDice.max) &&
+    Number(hitDice.max) > 0 &&
+    Number.isSafeInteger(hitDice.dieType)
+  ) {
+    result.pools['feature:hit-dice'] = resourcePoolSchema.parse({
+      id: 'feature:hit-dice',
+      classResourceId: 'hit-dice',
+      name: 'Hit Dice',
+      poolType: 'uses',
+      max: hitDice.max,
+      current: hitDice.current,
+      resetOn: 'long-rest',
+      hitDieSize: hitDice.dieType,
+      hitDieModifier: Number(object(object(data.abilities).CON).modifier) || 0,
+      recovery: {
+        longRest:
+          object(data.ruleset).edition === '2014' || data.edition === '2014'
+            ? Math.max(1, Math.floor(Number(hitDice.max) / 2))
+            : 'full',
+      },
+    });
+    const pool = result.pools['feature:hit-dice'];
+    if (pool.current !== undefined && pool.current > pool.max!)
+      throw new Error('Hit dice current uses exceed maximum.');
+  }
+  for (const value of Array.isArray(data.resources) ? data.resources : []) {
+    const resource = object(value);
+    if (resource.active === false) continue;
+    const id = typeof resource.id === 'string' ? resource.id : '';
+    if (
+      !id ||
+      id.length > 128 ||
+      !Number.isSafeInteger(resource.maxUses) ||
+      Number(resource.maxUses) < 0
+    )
+      throw new Error('Invalid class resource in character definition.');
+    const poolId = `feature:${id}`;
+    if (result.pools[poolId])
+      throw new Error('Duplicate class resource in character definition.');
+    result.pools[poolId] = resourcePoolSchema.parse({
+      id: poolId,
+      name: String(resource.name ?? id),
+      poolType: 'uses',
+      classResourceId: id,
+      description: String(
+        resource.manualRecovery ?? resource.description ?? '',
+      ),
+      max: resource.maxUses,
+      current: resource.currentUses,
+      recovery: resource.recovery,
+      unlimited: resource.unlimited,
+      resetOn:
+        resource.rechargeType === 'daily' || resource.rechargeType === 'none'
+          ? 'manual'
+          : resource.rechargeType,
+    });
+    const pool = result.pools[poolId];
+    if (pool.current !== undefined && pool.current > pool.max!)
+      throw new Error('Class resource current uses exceed maximum.');
+  }
   for (const value of grants) {
     const grant = object(value);
     if (

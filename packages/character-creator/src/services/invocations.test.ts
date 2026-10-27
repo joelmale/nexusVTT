@@ -86,7 +86,7 @@ describe('revised Warlock invocation progression (SRD 5.2.1 pp71–74)', () => {
       expect(classGrantErrors(warlock(level, []))).not.toEqual([]);
     },
   );
-  it('rejects unknown and duplicate IDs at higher levels, preserving legacy behavior', () => {
+  it('rejects unknown and duplicate IDs at higher levels while preserving imported legacy selections', () => {
     expect(classGrantErrors(warlock(20, ['invented'])).join()).toContain(
       'not available',
     );
@@ -95,9 +95,16 @@ describe('revised Warlock invocation progression (SRD 5.2.1 pp71–74)', () => {
         warlock(2, ['eldritch-mind', 'eldritch-mind', 'armor-of-shadows']),
       ).join(),
     ).toContain('different');
+    const legacy: CharacterCreationData = {
+      ...warlock(2, ['legacy-custom']),
+      edition: '2014',
+    };
+    expect(classGrantErrors(legacy).join()).toContain(
+      'Unknown legacy invocation',
+    );
     expect(
-      classGrantErrors({ ...warlock(2, ['legacy-custom']), edition: '2014' }),
-    ).toEqual([]);
+      draftToCreationData(creationDataToDraft(legacy)).eldritchInvocations,
+    ).toEqual(['legacy-custom']);
   });
   it.each([
     ['eldritch-smite', 5, 'pact-of-the-blade'],

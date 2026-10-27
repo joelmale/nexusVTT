@@ -160,3 +160,7 @@ export {
 } from './services/studyRecorder';
 
 export { generateFirstTurnGuidance } from './services/guidanceService';
+export {
+  ClassResourceControls,
+  type ClassResourceControlsProps,
+} from './components/ClassResourceControls';

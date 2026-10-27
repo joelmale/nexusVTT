@@ -65,6 +65,8 @@ import {
 } from '../types/dnd';
 import { Level1Feature } from '../types/widgets';
 import { getSelectableLanguages } from '../data/languages';
+import { CORE_SUBCLASSES_2024 } from '../data/coreSubclasses';
+import { isCoreSrdContent, ORIGIN_FEATS_2024 } from '../data/contentProvenance';
 
 // Local type definitions for dataService
 interface Alignment {
@@ -668,7 +670,7 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
     name: srdClass.name,
     source:
       srdClass.index === 'artificer'
-        ? `Unverified supplemental ${year}`
+        ? `Unverified ${year === 2024 ? 'Eberron: Forge of the Artificer' : "Tasha's Cauldron of Everything"}`
         : `SRD ${year}`,
     edition, // Add edition field
     hit_die: srdClass.hit_die,
@@ -679,7 +681,10 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
     musical_instrument_proficiencies: musicalInstrumentProficiencies,
     num_instrument_choices: numInstrumentChoices,
     class_features: [], // Would need to be populated from features database
-    description: `${srdClass.name} from the System Reference Document.`,
+    description:
+      srdClass.index === 'artificer'
+        ? 'Supplemental Artificer catalog. Source and edition revision await verification.'
+        : `${srdClass.name} from the System Reference Document.`,
     keyRole: 'Varies', // Would need manual mapping
     spellcasting, // Include spellcasting data
 
@@ -1018,17 +1023,29 @@ export function loadFeatures(): Feature[] {
 
 // Load all subclasses from SRD
 export function loadSubclasses(): Subclass[] {
-  const subclasses2014 = (srdSubclasses2014 as SRDSubclass[]).map((sc) =>
-    transformSubclass(sc),
-  );
-  const subclasses2018 = (srdSubclasses2018 as SRDSubclass[]).map((sc) =>
-    transformSubclass(sc),
-  );
-  const subclasses2020 = (srdSubclasses2020 as SRDSubclass[]).map((sc) =>
-    transformSubclass(sc),
-  );
+  const subclasses2014 = (srdSubclasses2014 as SRDSubclass[]).map((sc) => ({
+    ...transformSubclass(sc),
+    edition: '2014' as const,
+    source: isCoreSrdContent('subclass', sc.index, '2014')
+      ? 'SRD 2014'
+      : 'PHB 2014',
+  }));
+  const subclasses2018 = (srdSubclasses2018 as SRDSubclass[]).map((sc) => ({
+    ...transformSubclass(sc),
+    edition: '2014' as const,
+    source: 'Unverified supplemental 2018',
+  }));
+  const subclasses2020 = (srdSubclasses2020 as SRDSubclass[]).map((sc) => ({
+    ...transformSubclass(sc),
+    edition: '2014' as const,
+    source: 'Unverified supplemental 2020',
+  }));
   const subclasses2020egtw = (srdSubclasses2020egtw as SRDSubclass[]).map(
-    (sc) => transformSubclass(sc),
+    (sc) => ({
+      ...transformSubclass(sc),
+      edition: '2014' as const,
+      source: 'Unverified supplemental 2020-egtw',
+    }),
   );
 
   const allSubclasses = [
@@ -1043,7 +1060,14 @@ export function loadSubclasses(): Subclass[] {
     // Create the lookup key in the format "class-subclass"
     const lookupKey = `${subclass.class}-${subclass.slug}`;
     const enhanced = getEnhancedSubclassData(lookupKey);
-    return enhanced ? { ...subclass, ...enhanced } : subclass;
+    return enhanced
+      ? {
+          ...subclass,
+          ...enhanced,
+          source: subclass.source,
+          edition: subclass.edition,
+        }
+      : subclass;
   });
 
   return subclassesWithEnhancedData;
@@ -1052,7 +1076,19 @@ export function loadSubclasses(): Subclass[] {
 // Load all feats (merge SRD + custom feats)
 export function loadFeats(): Feat[] {
   // Load custom feats from our JSON
-  const customFeats = featsData as Feat[];
+  const publicationYears: Record<string, number> = {
+    XGtE: 2017,
+    TCoE: 2020,
+    FToD: 2021,
+  };
+  const customFeats: Feat[] = (featsData as Feat[]).map((feat) => ({
+    ...feat,
+    year: publicationYears[feat.source] ?? feat.year,
+    category:
+      feat.category === 'origin' && !ORIGIN_FEATS_2024.has(feat.slug)
+        ? 'general'
+        : feat.category,
+  }));
 
   // Load SRD Grappler feat
   const srdGrappler = srdFeats2014 as Array<{
@@ -1105,8 +1141,43 @@ export function getFeaturesBySubclass(
   );
 }
 
-export function getSubclassesByClass(classSlug: string): Subclass[] {
-  return SUBCLASS_DATABASE.filter((sc) => sc.class === classSlug);
+export function getSubclassesByClass(
+  classSlug: string,
+  edition?: Edition,
+): Subclass[] {
+  const legacy = SUBCLASS_DATABASE.filter((sc) => sc.class === classSlug);
+  if (edition !== '2024')
+    return legacy.map((entry) => ({
+      ...entry,
+      edition: '2014',
+      source: entry.source ?? 'PHB 2014',
+    }));
+  const core = CORE_SUBCLASSES_2024.filter(
+    (entry) => entry.class === classSlug,
+  ).map((entry) => ({
+    slug: entry.slug,
+    name: entry.name,
+    class: entry.class,
+    desc: [`${entry.name}; SRD 5.2.1 revised subclass.`],
+    subclassFlavor: entry.name,
+    edition: '2024' as const,
+    source: 'SRD 2024',
+    supportStatus: 'verified-core' as const,
+  }));
+  return [
+    ...core,
+    ...legacy
+      .filter(
+        (entry) => !core.some((candidate) => candidate.slug === entry.slug),
+      )
+      .map((entry) => ({
+        ...entry,
+        edition: '2014' as const,
+        source: entry.source ?? 'PHB 2014',
+        supportStatus: 'legacy-compatibility-unverified' as const,
+        subclassFlavor: `${entry.subclassFlavor} — legacy compatibility requires review`,
+      })),
+  ];
 }
 
 // Export databases

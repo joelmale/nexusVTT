@@ -85,7 +85,23 @@ export const resourcePoolSchema = z.object({
     .optional(),
   current: z.number().int().nonnegative().optional(),
   max: z.number().int().nonnegative().optional(),
-  resetOn: z.enum(['short-rest', 'long-rest', 'dawn']),
+  resetOn: z.enum(['short-rest', 'long-rest', 'dawn', 'manual']),
+  classResourceId: z.string().optional(),
+  description: z.string().optional(),
+  recovery: z
+    .object({
+      shortRest: z
+        .union([z.number().int().nonnegative(), z.literal('full')])
+        .optional(),
+      longRest: z
+        .union([z.number().int().nonnegative(), z.literal('full')])
+        .optional(),
+    })
+    .optional(),
+  unlimited: z.boolean().optional(),
+  active: z.boolean().optional(),
+  hitDieSize: z.number().int().positive().max(20).optional(),
+  hitDieModifier: z.number().int().optional(),
 });
 export type ResourcePool = z.infer<typeof resourcePoolSchema>;
 

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { recoverCharacterResource } from '@nexus/character-contracts';
 import type { PoolClient } from 'pg';
 import type { DatabaseService } from '../database.js';
 import type {
@@ -211,6 +212,16 @@ export class DomainCommandService {
           break;
         }
 
+        case 'ConsumeClassResource': {
+          receipt = await this.handleConsumeClassResource(
+            command,
+            command.payload,
+            payloadHash,
+            context,
+            client,
+          );
+          break;
+        }
         case 'RestActor': {
           receipt = await this.handleRestActor(
             command,
@@ -1543,6 +1554,65 @@ export class DomainCommandService {
     };
   }
 
+  private async handleConsumeClassResource(
+    command: DomainCommand,
+    payload: Extract<DomainCommandPayload, { type: 'ConsumeClassResource' }>,
+    payloadHash: string,
+    context: DomainCommandContext,
+    client: PoolClient,
+  ): Promise<DomainCommandReceipt> {
+    if (!Number.isSafeInteger(payload.amount) || payload.amount < 1)
+      throw new Error('Resource consumption must be a positive integer.');
+    const actor = await this.db.campaignActors.lockActorForUpdate(
+      payload.actorId,
+      client,
+    );
+    if (!actor) throw new Error('Actor not found.');
+    await this.assertCanControlActor(
+      actor,
+      context,
+      'use a class resource',
+      client,
+    );
+    if (
+      command.expectedActorVersions?.[actor.id] === undefined ||
+      command.expectedActorVersions[actor.id] !== actor.stateVersion
+    )
+      throw new Error(
+        'Class resource use requires the current actor state version.',
+      );
+    const pools = structuredClone(
+      (actor.resourcePools ?? {}) as Record<string, ResourcePool>,
+    );
+    const pool = pools[`feature:${payload.resourceId}`];
+    if (!pool || !pool.classResourceId || pool.active === false)
+      throw new Error('Class resource is not available.');
+    if (!pool.unlimited) {
+      if (pool.current === undefined || pool.current < payload.amount)
+        throw new Error('Insufficient or unrecorded class resource uses.');
+      pool.current -= payload.amount;
+    }
+    const updated = await this.db.campaignActors.updateActorState(
+      actor.id,
+      { expectedVersion: actor.stateVersion, resourcePools: pools },
+      client,
+    );
+    if (updated.status === 'conflict')
+      throw new Error('Concurrent mutation conflict on class resource use.');
+    return {
+      commandId: command.commandId,
+      principalId: context.principalId,
+      campaignId: command.campaignId,
+      payloadHash,
+      committedAt: new Date().toISOString(),
+      result: {
+        success: true,
+        committedVersions: { [actor.id]: updated.actor.stateVersion },
+        data: { actorId: actor.id, resourcePools: pools },
+      },
+    };
+  }
+
   private async handleRestActor(
     command: DomainCommand,
     payload: Extract<DomainCommandPayload, { type: 'RestActor' }>,
@@ -1550,6 +1620,14 @@ export class DomainCommandService {
     context: DomainCommandContext,
     client: PoolClient,
   ): Promise<DomainCommandReceipt> {
+    // Supported characters have at most twenty Hit Dice. Bound the healing
+    // loop even when a custom/imported resource pool advertises a larger count.
+    if (
+      !Number.isSafeInteger(payload.hitDiceToSpend ?? 0) ||
+      (payload.hitDiceToSpend ?? 0) < 0 ||
+      (payload.hitDiceToSpend ?? 0) > 20
+    )
+      throw new Error('A rest can spend between zero and twenty Hit Dice.');
     const actor = await this.db.campaignActors.lockActorForUpdate(
       payload.actorId,
       client,
@@ -1599,7 +1677,26 @@ export class DomainCommandService {
       conditions = conditions.filter((c) => c !== 'unconscious');
 
       for (const pool of Object.values(pools)) {
-        if (pool.poolType === 'slots' && pool.slots) {
+        if (pool.classResourceId) {
+          pool.current = recoverCharacterResource(
+            {
+              id: pool.classResourceId,
+              name: pool.name,
+              description: pool.description ?? '',
+              maxUses: pool.max ?? 0,
+              currentUses: pool.current,
+              rechargeType:
+                pool.resetOn === 'manual'
+                  ? 'none'
+                  : pool.resetOn === 'dawn'
+                    ? 'daily'
+                    : pool.resetOn,
+              recovery: pool.recovery,
+              active: pool.active,
+            },
+            'long-rest',
+          ).currentUses;
+        } else if (pool.poolType === 'slots' && pool.slots) {
           for (const slot of Object.values(pool.slots)) {
             slot.current = slot.total;
           }
@@ -1614,7 +1711,26 @@ export class DomainCommandService {
     } else {
       // Short rest
       for (const pool of Object.values(pools)) {
-        if (pool.resetOn === 'short-rest') {
+        if (pool.classResourceId) {
+          pool.current = recoverCharacterResource(
+            {
+              id: pool.classResourceId,
+              name: pool.name,
+              description: pool.description ?? '',
+              maxUses: pool.max ?? 0,
+              currentUses: pool.current,
+              rechargeType:
+                pool.resetOn === 'manual'
+                  ? 'none'
+                  : pool.resetOn === 'dawn'
+                    ? 'daily'
+                    : pool.resetOn,
+              recovery: pool.recovery,
+              active: pool.active,
+            },
+            'short-rest',
+          ).currentUses;
+        } else if (pool.resetOn === 'short-rest') {
           if (pool.poolType === 'pact') {
             pool.current = pool.max ?? pool.current;
             for (const slot of Object.values(pool.slots ?? {}))
@@ -1626,11 +1742,23 @@ export class DomainCommandService {
       }
 
       if (payload.hitDiceToSpend && payload.hitDiceToSpend > 0) {
-        const healPerDie = Math.max(1, Math.floor(actor.maxHp / 4));
-        currentHp = Math.min(
-          actor.maxHp,
-          currentHp + payload.hitDiceToSpend * healPerDie,
-        );
+        const hitDice = pools['feature:hit-dice'];
+        if (
+          !hitDice ||
+          hitDice.current === undefined ||
+          hitDice.current < payload.hitDiceToSpend ||
+          !hitDice.hitDieSize
+        )
+          throw new Error('Insufficient or unrecorded hit dice.');
+        let healed = 0;
+        for (let index = 0; index < payload.hitDiceToSpend; index++)
+          healed += Math.max(
+            1,
+            crypto.randomInt(1, hitDice.hitDieSize + 1) +
+              (hitDice.hitDieModifier ?? 0),
+          );
+        hitDice.current -= payload.hitDiceToSpend;
+        currentHp = Math.min(actor.maxHp, currentHp + healed);
         if (currentHp > 0) {
           conditions = conditions.filter((c) => c !== 'unconscious');
           deathSaves = { successes: 0, failures: 0 };

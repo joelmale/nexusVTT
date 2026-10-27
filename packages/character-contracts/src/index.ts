@@ -1,4 +1,7 @@
 // D&D 5e Character Sheet Types and Interfaces
+import type { CharacterResource } from './resources';
+export type { CharacterResource } from './resources';
+export { recoverCharacterResource } from './resources.js';
 
 export type AbilityKey = 'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA';
 
@@ -401,7 +404,25 @@ export interface Character {
     pp: number;
   };
   equippedWeapons?: EquippedWeapon[];
-  resources?: unknown[];
+  resources?: CharacterResource[];
+  classMechanics?: {
+    attacksPerAction: number;
+    pactWeaponAttacks?: number;
+    martialArtsDie?: number;
+    sneakAttackDice?: number;
+    rageDamageBonus?: number;
+    criticalThreshold: number;
+    cantripEffects: Record<
+      string,
+      {
+        damageBonus?: number;
+        rangeBonus?: number;
+        pushFeet?: number;
+        requiresHit?: boolean;
+        targetSizeLimit?: 'Large';
+      }
+    >;
+  };
   deathSaves?: {
     successes: number;
     failures: number;
@@ -838,7 +859,7 @@ export interface ForgeCharacter {
   selectedFeats?: string[];
   feats?: string[];
   inspiration?: boolean;
-  resources?: unknown[];
+  resources?: CharacterResource[];
   deathSaves?: {
     successes: number;
     failures: number;

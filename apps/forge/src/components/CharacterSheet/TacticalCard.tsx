@@ -3,13 +3,25 @@ import React from 'react';
 interface TacticalAction {
   id: string;
   name: string;
-  type: 'weapon-attack' | 'spell-attack' | 'unarmed-attack' | 'special-attack' | 'defensive' | 'movement' | 'support' | 'stealth' | 'healing' | 'action-surge' | 'reaction-setup';
+  type:
+    | 'weapon-attack'
+    | 'spell-attack'
+    | 'unarmed-attack'
+    | 'special-attack'
+    | 'defensive'
+    | 'movement'
+    | 'support'
+    | 'stealth'
+    | 'healing'
+    | 'action-surge'
+    | 'reaction-setup';
   description: string;
   actionCost: 'Action' | 'Bonus Action' | 'Free' | 'Reaction';
   hasButton: boolean;
   buttonText?: string;
   category: 'offense' | 'defense' | 'mobility' | 'burst';
   isLimited?: boolean;
+  disabled?: boolean;
   usesRemaining?: number;
   maxUses?: number;
   specialUI?: 'bubble-display';
@@ -22,7 +34,12 @@ interface TacticalCardProps {
   layoutMode?: 'paper-sheet' | 'classic-dnd' | 'modern';
 }
 
-export const TacticalCard: React.FC<TacticalCardProps> = ({ action, onAction, theme = 'standard', layoutMode }) => {
+export const TacticalCard: React.FC<TacticalCardProps> = ({
+  action,
+  onAction,
+  theme = 'standard',
+  layoutMode,
+}) => {
   const isAccent = theme === 'accent' || action.isLimited;
   const isPaperSheet = layoutMode === 'paper-sheet';
   const isClassic = layoutMode === 'classic-dnd';
@@ -41,7 +58,9 @@ export const TacticalCard: React.FC<TacticalCardProps> = ({ action, onAction, th
       : 'bg-orange-700 hover:bg-orange-600 border-orange-500 text-white';
 
   // Text colors
-  const textPrimaryClass = isPaperSheet ? 'text-[#1e140a]' : 'text-theme-primary';
+  const textPrimaryClass = isPaperSheet
+    ? 'text-[#1e140a]'
+    : 'text-theme-primary';
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _textMutedClass = isPaperSheet ? 'text-[#3d2817]' : 'text-theme-muted';
 
@@ -56,19 +75,19 @@ export const TacticalCard: React.FC<TacticalCardProps> = ({ action, onAction, th
   const getActionBadgeClass = (cost: string) => {
     if (isPaperSheet) {
       const paperBadges: Record<string, string> = {
-        'Action': 'bg-red-900/80 text-[#fcf6e3] border border-red-800',
+        Action: 'bg-red-900/80 text-[#fcf6e3] border border-red-800',
         'Bonus Action': 'bg-blue-900/80 text-[#fcf6e3] border border-blue-800',
-        'Free': 'bg-green-900/80 text-[#fcf6e3] border border-green-800',
-        'Reaction': 'bg-gray-700/80 text-[#fcf6e3] border border-gray-600',
+        Free: 'bg-green-900/80 text-[#fcf6e3] border border-green-800',
+        Reaction: 'bg-gray-700/80 text-[#fcf6e3] border border-gray-600',
       };
       return paperBadges[cost] || paperBadges['Action'];
     }
 
     const darkBadges: Record<string, string> = {
-      'Action': 'bg-red-500 text-white',
+      Action: 'bg-red-500 text-white',
       'Bonus Action': 'bg-blue-500 text-white',
-      'Free': 'bg-green-500 text-white',
-      'Reaction': 'bg-gray-500 text-white',
+      Free: 'bg-green-500 text-white',
+      Reaction: 'bg-gray-500 text-white',
     };
     return darkBadges[cost] || darkBadges['Action'];
   };
@@ -87,7 +106,8 @@ export const TacticalCard: React.FC<TacticalCardProps> = ({ action, onAction, th
       : 'bg-gray-600 border-gray-500';
 
   const cardClasses = isAccent ? accentBgClass : standardBgClass;
-  const cardTextClass = isAccent && !isPaperSheet ? 'text-white' : textPrimaryClass;
+  const cardTextClass =
+    isAccent && !isPaperSheet ? 'text-white' : textPrimaryClass;
 
   const typeBadge = (() => {
     const palette = (() => {
@@ -118,27 +138,44 @@ export const TacticalCard: React.FC<TacticalCardProps> = ({ action, onAction, th
       };
     })();
 
-    if (action.type === 'weapon-attack' || action.type === 'unarmed-attack' || action.type === 'spell-attack') return { label: 'Attack', color: palette.attack };
-    if (action.type === 'defensive') return { label: 'Defense', color: palette.defense };
-    if (action.type === 'movement' || action.type === 'stealth') return { label: 'Move', color: palette.move };
-    if (action.type === 'support' || action.type === 'healing') return { label: 'Support', color: palette.support };
-    if (action.type === 'action-surge' || action.type === 'reaction-setup') return { label: 'Reaction', color: palette.reaction };
+    if (
+      action.type === 'weapon-attack' ||
+      action.type === 'unarmed-attack' ||
+      action.type === 'spell-attack'
+    )
+      return { label: 'Attack', color: palette.attack };
+    if (action.type === 'defensive')
+      return { label: 'Defense', color: palette.defense };
+    if (action.type === 'movement' || action.type === 'stealth')
+      return { label: 'Move', color: palette.move };
+    if (action.type === 'support' || action.type === 'healing')
+      return { label: 'Support', color: palette.support };
+    if (action.type === 'action-surge' || action.type === 'reaction-setup')
+      return { label: 'Reaction', color: palette.reaction };
     return null;
   })();
 
   return (
-    <div className={`rounded-xl border-2 p-3 transition-all duration-200 ${cardClasses}`}>
+    <div
+      className={`rounded-xl border-2 p-3 transition-all duration-200 ${cardClasses}`}
+    >
       {/* Header Row */}
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-2">
-          <h4 className={`font-semibold text-sm ${cardTextClass}`}>{action.name}</h4>
+          <h4 className={`font-semibold text-sm ${cardTextClass}`}>
+            {action.name}
+          </h4>
           {typeBadge && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${typeBadge.color}`}>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full border ${typeBadge.color}`}
+            >
               {typeBadge.label}
             </span>
           )}
         </div>
-        <span className={`text-xs px-2 py-0.5 rounded-full ${getActionBadgeClass(action.actionCost)}`}>
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full ${getActionBadgeClass(action.actionCost)}`}
+        >
           {action.actionCost}
         </span>
       </div>
@@ -146,7 +183,9 @@ export const TacticalCard: React.FC<TacticalCardProps> = ({ action, onAction, th
       {/* Body Row */}
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className={`text-xs opacity-80 leading-tight ${cardTextClass}`}>{action.description}</p>
+          <p className={`text-xs opacity-80 leading-tight ${cardTextClass}`}>
+            {action.description}
+          </p>
           {action.isLimited && (
             <p className={`text-xs opacity-60 mt-1 ${cardTextClass}`}>
               {action.usesRemaining}/{action.maxUses} uses
@@ -156,6 +195,10 @@ export const TacticalCard: React.FC<TacticalCardProps> = ({ action, onAction, th
 
         {action.hasButton && (
           <button
+            disabled={
+              action.disabled ||
+              (action.isLimited && (action.usesRemaining ?? 0) < 1)
+            }
             onClick={() => onAction?.(action.id)}
             className={`ml-3 px-3 py-1 rounded text-xs font-medium transition-colors ${buttonClass}`}
           >
@@ -165,20 +208,22 @@ export const TacticalCard: React.FC<TacticalCardProps> = ({ action, onAction, th
       </div>
 
       {/* Special UI for Action Surge */}
-      {action.specialUI === 'bubble-display' && action.isLimited && action.maxUses && (
-        <div className="mt-2 flex gap-1 justify-center">
-          {Array.from({ length: action.maxUses }, (_, i) => (
-            <div
-              key={i}
-              className={`w-3 h-3 rounded-full border ${
-                i < (action.usesRemaining || 0)
-                  ? activeBubbleClass
-                  : inactiveBubbleClass
-              }`}
-            />
-          ))}
-        </div>
-      )}
+      {action.specialUI === 'bubble-display' &&
+        action.isLimited &&
+        action.maxUses && (
+          <div className="mt-2 flex gap-1 justify-center">
+            {Array.from({ length: action.maxUses }, (_, i) => (
+              <div
+                key={i}
+                className={`w-3 h-3 rounded-full border ${
+                  i < (action.usesRemaining || 0)
+                    ? activeBubbleClass
+                    : inactiveBubbleClass
+                }`}
+              />
+            ))}
+          </div>
+        )}
     </div>
   );
 };

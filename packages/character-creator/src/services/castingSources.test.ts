@@ -1,11 +1,81 @@
 import { describe, expect, it } from 'vitest';
 import { getRecommendation } from './recommendationService';
-import { draftToCreationData } from '../adapters/draftAdapter';
+import { draftToCreationData, creationDataToDraft } from '../adapters/draftAdapter';
 import { castingGrantErrors, resolveCastingGrants } from './castingSources';
 import { calculateCharacterStats } from '../utils/characterCreationUtils';
-import { toNexusCharacter } from '../adapters/nexusCharacter';
+import { toNexusCharacter, createdCharacterToNexus } from '../adapters/nexusCharacter';
+import { REFERENCE_BUILDS } from '../tests/fixtures/referenceBuilds';
+import type { CharacterCreationData } from '../types/dnd';
+import { classGrantErrors } from './classGrantChoices';
 
 describe('independent casting grants (SRD 5.2.1 pp84–87)', () => {
+  it('keeps repeated Lessons Magic Initiate lists, casting abilities and free uses independent through saving', () => {
+    const data: CharacterCreationData = {
+      ...REFERENCE_BUILDS.WL24.creationData,
+      level: 2,
+      humanOriginFeat: 'alert',
+      eldritchInvocations: ['eldritch-mind', 'lessons-of-the-first-ones'],
+      featChoices: {
+        'invocation:lessons-of-the-first-ones': {
+          targets: ['magic-initiate-cleric', 'magic-initiate-wizard'],
+        },
+      },
+    };
+    data.additionalCastingSources = resolveCastingGrants(data).map((grant) => ({
+      ...grant.source,
+      ability: grant.spellClass === 'cleric' ? 'WIS' : 'INT',
+    }));
+    expect(classGrantErrors(data)).toEqual([]);
+    expect(castingGrantErrors(data)).toEqual([]);
+    const restored = draftToCreationData(creationDataToDraft(data));
+    const saved = JSON.parse(
+      JSON.stringify(
+        createdCharacterToNexus(calculateCharacterStats(restored)),
+      ),
+    );
+    expect(saved.castingSources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'feat:magic-initiate:cleric',
+          ability: 'WIS',
+          freeUses: 1,
+          allowClassSlots: true,
+        }),
+        expect.objectContaining({
+          id: 'feat:magic-initiate:wizard',
+          ability: 'INT',
+          freeUses: 1,
+          allowClassSlots: true,
+        }),
+      ]),
+    );
+    expect(
+      new Set(saved.castingSources.map((source: { id: string }) => source.id))
+        .size,
+    ).toBe(2);
+    expect(saved.spellcasting.preparedSpells).toEqual(
+      data.spellSelection.preparedSpells,
+    );
+    const changed = {
+      ...restored,
+      featChoices: {
+        'invocation:lessons-of-the-first-ones': {
+          targets: ['magic-initiate-cleric'],
+        },
+      },
+    };
+    expect(castingGrantErrors(changed).join()).toContain('requires review');
+    expect(
+      classGrantErrors({
+        ...data,
+        featChoices: {
+          'invocation:lessons-of-the-first-ones': {
+            targets: ['magic-initiate-cleric', 'magic-initiate-cleric'],
+          },
+        },
+      }).join(),
+    ).toContain('different eligible targets');
+  });
   it('keeps invocation at-will spells and Tome rituals separate from Pact Magic', () => {
     const data = draftToCreationData(
       getRecommendation({ classSlug: 'warlock', edition: '2024' }).draft,

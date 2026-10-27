@@ -15,6 +15,7 @@ import {
   ALL_SKILLS,
   getHitDieForClass,
   FEAT_DATABASE,
+  getFeaturesBySubclass,
 } from '../services/dataService';
 import { migrateSpellSelectionToCharacter } from '../utils/spellUtils';
 import { resolveLoadout } from '../services/loadoutResolver';
@@ -26,8 +27,17 @@ import {
   INVOCATIONS_2024,
   invocationFeatGrants,
   invocationTargets,
+  isSkilledLesson,
 } from '../services/invocations';
 import { log } from './logger';
+import { initializeCharacterResources } from './resourceUtils';
+import {
+  applyClassCapstone,
+  deriveClassMechanics,
+} from '../services/classMechanics';
+import { coreClassProgression } from '../data/progressions/coreSchedules';
+import { warlock2024Progression } from '../data/progressions/warlock2024';
+import { revisedSubclassFeatures } from '../data/coreSubclasses';
 
 /**
  * Calculate final character stats from character creation data
@@ -183,6 +193,7 @@ export const calculateCharacterStats = (
   });
 
   const level = data.level;
+  applyClassCapstone(finalAbilities, data.classSlug, edition, level);
   const pb = PROFICIENCY_BONUSES[level - 1] || 2;
 
   // 2. Calculate Hit Points (Based on chosen method)
@@ -198,20 +209,37 @@ export const calculateCharacterStats = (
       hitDieValue = classData.hit_die;
     }
 
-    maxHitPoints = hitDieValue + finalAbilities.CON.modifier;
+    maxHitPoints = Math.max(1, hitDieValue + finalAbilities.CON.modifier);
   } else if (data.highLevelSetup) {
     // Use high-level setup HP if available
-    maxHitPoints = data.highLevelSetup.totalHP;
+    const die = classData.hit_die;
+    const rolls = data.highLevelSetup.useAverage
+      ? Array.from({ length: level - 1 }, () => Math.floor(die / 2) + 1)
+      : data.highLevelSetup.hpRolls;
+    if (
+      !rolls ||
+      rolls.length !== level - 1 ||
+      rolls.some((roll) => !Number.isInteger(roll) || roll < 1 || roll > die)
+    )
+      throw new Error(
+        'Choose a valid hit-die roll for every level after the first.',
+      );
+    maxHitPoints =
+      Math.max(1, die + finalAbilities.CON.modifier) +
+      rolls.reduce(
+        (sum, roll) => sum + Math.max(1, roll + finalAbilities.CON.modifier),
+        0,
+      );
   } else {
     // Fallback: Multi-level calculation using average HP
     const conModifier = finalAbilities.CON.modifier;
     const hitDie = classData.hit_die;
 
     // Level 1: Full hit die + CON
-    let totalHP = hitDie + conModifier;
+    let totalHP = Math.max(1, hitDie + conModifier);
 
     // Levels 2+: Average HP per level + CON
-    const avgHPPerLevel = Math.floor(hitDie / 2) + 1 + conModifier;
+    const avgHPPerLevel = Math.max(1, Math.floor(hitDie / 2) + 1 + conModifier);
     totalHP += avgHPPerLevel * (level - 1);
 
     maxHitPoints = totalHP;
@@ -243,6 +271,12 @@ export const calculateCharacterStats = (
   if (hasTough) {
     maxHitPoints += level * 2;
   }
+  if (
+    data.classSlug === 'sorcerer' &&
+    data.subclassSlug === 'draconic' &&
+    level >= (edition === '2024' ? 3 : 1)
+  )
+    maxHitPoints += level;
 
   // 3. Calculate Skills (from selected skills + background skills + expertise)
   const backgroundSkills = backgroundData?.skill_proficiencies || [];
@@ -290,6 +324,8 @@ export const calculateCharacterStats = (
     if (isProficient) {
       skillBonus = hasExpertise ? pb * 2 : pb;
     }
+    if (!isProficient && data.classSlug === 'bard' && level >= 2)
+      skillBonus = Math.floor(pb / 2);
 
     finalSkills[skillName] = {
       proficient: isProficient,
@@ -419,6 +455,42 @@ export const calculateCharacterStats = (
   if (hasDefenseStyle && isWearingArmor) {
     armorClass += 1;
   }
+  if (
+    !isWearingArmor &&
+    data.classSlug === 'sorcerer' &&
+    data.subclassSlug === 'draconic' &&
+    level >= (edition === '2024' ? 3 : 1)
+  )
+    armorClass = Math.max(
+      armorClass,
+      edition === '2024'
+        ? 10 + dexMod + finalAbilities.CHA.modifier
+        : 13 + dexMod,
+    );
+  if (!isWearingArmor && !hasShield && data.classSlug === 'monk' && level >= 2)
+    effectiveSpeed +=
+      level >= 18
+        ? 30
+        : level >= 14
+          ? 25
+          : level >= 10
+            ? 20
+            : level >= 6
+              ? 15
+              : 10;
+  if (
+    data.classSlug === 'barbarian' &&
+    level >= 5 &&
+    equippedArmorItem?.armor_category !== 'Heavy'
+  )
+    effectiveSpeed += 10;
+  if (
+    edition === '2024' &&
+    data.classSlug === 'ranger' &&
+    level >= 6 &&
+    equippedArmorItem?.armor_category !== 'Heavy'
+  )
+    effectiveSpeed += 10;
 
   // 7. Calculate Initiative (DEX modifier + Alert feat bonus if applicable)
   const hasAlert =
@@ -438,6 +510,23 @@ export const calculateCharacterStats = (
     (hasAlert ? (edition === '2014' ? 5 : pb) : 0);
 
   // 8. Load Features and Traits
+  const progression =
+    coreClassProgression(data.classSlug, edition) ??
+    (data.classSlug === 'warlock' && edition === '2024'
+      ? warlock2024Progression
+      : null);
+  const subclassFeatures =
+    edition === '2024'
+      ? revisedSubclassFeatures(
+          data.classSlug,
+          data.subclassSlug ?? undefined,
+          level,
+        )
+      : data.subclassSlug
+        ? getFeaturesBySubclass(data.classSlug, data.subclassSlug, level).map(
+            (feature) => feature.name,
+          )
+        : [];
   const featuresAndTraits: Character['featuresAndTraits'] = {
     personality: data.personality || '',
     ideals: data.ideals || '',
@@ -445,13 +534,26 @@ export const calculateCharacterStats = (
     flaws: data.flaws || '',
     classFeatures: [
       ...(classData.class_features || []),
+      ...new Set(
+        (progression?.features ?? [])
+          .filter(
+            (feature) =>
+              feature.level <= level && feature.name !== 'Subclass feature',
+          )
+          .map((feature) => feature.name),
+      ),
+      ...subclassFeatures,
       ...(edition === '2024' && data.classSlug === 'warlock'
         ? (data.eldritchInvocations ?? []).flatMap((id) => {
             const invocation = INVOCATIONS_2024.find(
               (entry) => entry.id === id,
             );
             if (!invocation) return [];
-            const targets = invocationTargets(data, id);
+            const targets = invocationTargets(data, id).map((target) =>
+              isSkilledLesson(target)
+                ? target.replace('skilled:lesson-', 'Skilled lesson ')
+                : target,
+            );
             return [
               `Eldritch Invocation: ${invocation.name}${targets.length ? ` (${targets.join(', ')})` : ''}`,
             ];
@@ -620,5 +722,7 @@ export const calculateCharacterStats = (
     updatedAt: new Date().toISOString(),
   };
 
+  character.resources = initializeCharacterResources(character);
+  character.classMechanics = deriveClassMechanics(data, finalAbilities);
   return character;
 };
