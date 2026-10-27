@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ClassResourceControls } from '@nexus/character-creator';
+import { ClassResourceControls } from '@nexus/character-creator/components/ClassResourceControls';
 import type { SpellDefinition } from '@nexus/game-contracts';
 import type { PanelComponentProps } from '@/services/panelRegistry';
 import {

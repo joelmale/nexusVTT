@@ -55,8 +55,13 @@ export default defineConfig({
       testDir: './tests/ui',
       // Independent of the managed stack, so it can actually use the machine.
       fullyParallel: true,
+      // The first page load per worker makes the Vite dev server compile the
+      // whole app, which outlasts the managed suite's 30s navigation budget.
+      timeout: 120_000,
+      expect: { timeout: 30_000 },
       use: {
         ...devices['Desktop Chrome'],
+        navigationTimeout: 90_000,
         baseURL: uiBaseURL,
         viewport: { width: 1440, height: 900 },
       },
