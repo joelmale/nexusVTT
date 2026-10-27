@@ -53,6 +53,7 @@ export function reconcileCharacterResources(
         ...definition,
         maxUses,
         maxUsesOverride: validCount(override) ? override : undefined,
+        cooldown: existing?.cooldown,
         currentUses:
           spent !== undefined
             ? Math.max(0, maxUses - spent)
@@ -83,6 +84,7 @@ export const consumeResource = (
     !resource ||
     resource.active === false ||
     resource.unlimited ||
+    (resource.cooldown && resource.cooldown.remaining > 0) ||
     !validCount(resource.currentUses) ||
     resource.currentUses < uses
   )
@@ -107,6 +109,7 @@ export const canUseResource = (
   return Boolean(
     resource &&
     resource.active !== false &&
+    !(resource.cooldown && resource.cooldown.remaining > 0) &&
     (resource.unlimited ||
       (validCount(resource.currentUses) && resource.currentUses > 0)),
   );

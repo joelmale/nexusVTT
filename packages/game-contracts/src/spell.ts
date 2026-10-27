@@ -100,6 +100,12 @@ export const resourcePoolSchema = z.object({
     .optional(),
   unlimited: z.boolean().optional(),
   active: z.boolean().optional(),
+  cooldown: z
+    .object({
+      remaining: z.number().int().nonnegative().max(1000),
+      unit: z.enum(['day', 'long-rest']),
+    })
+    .optional(),
   hitDieSize: z.number().int().positive().max(20).optional(),
   hitDieModifier: z.number().int().optional(),
 });

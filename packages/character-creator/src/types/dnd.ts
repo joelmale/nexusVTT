@@ -1080,6 +1080,7 @@ export interface LevelUpChoices {
 
   /** Eldritch invocations chosen (Warlock) */
   eldritchInvocationsChosen?: string[];
+  castingSourcesChosen?: import('@nexus/character-contracts').CharacterCastingSource[];
 }
 
 // ==================== NPC System ====================

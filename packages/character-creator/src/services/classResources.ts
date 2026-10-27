@@ -1,5 +1,6 @@
 import type { CharacterResource } from '@nexus/character-contracts';
 import type { Character } from '../types/dnd';
+import { ARTIFICER_LEGACY_ITEMS } from '../data/progressions/artificer2014';
 
 type ResourceOwner = Pick<
   Character,
@@ -21,6 +22,7 @@ export function classResourceDefinitions(
   const classSlug = (owner.classSlug || owner.class).toLowerCase();
   const revised = edition === '2024';
   const charisma = Math.max(1, owner.abilities.CHA?.modifier ?? 0);
+  const intelligence = Math.max(1, owner.abilities.INT?.modifier ?? 0);
   const wisdom = Math.max(1, owner.abilities.WIS?.modifier ?? 0);
   const resources: CharacterResource[] = [];
   const add = (
@@ -48,7 +50,12 @@ export function classResourceDefinitions(
         classSlug,
         edition,
         gainedAt,
-        source: revised ? 'SRD 5.2.1' : 'SRD 5.1',
+        source:
+          classSlug === 'artificer'
+            ? 'Legacy Artificer: https://dnd5e.wikidot.com/artificer'
+            : revised
+              ? 'SRD 5.2.1'
+              : 'SRD 5.1',
       },
       ...extra,
     });
@@ -60,6 +67,47 @@ export function classResourceDefinitions(
     note: string,
   ) => add(id, name, gainedAt, 1, LONG, { manualRecovery: note });
   switch (classSlug) {
+    case 'artificer':
+      if (!revised) {
+        add(
+          'magical-tinkering-capacity',
+          'Magical Tinkering object capacity',
+          1,
+          intelligence,
+          {},
+          {
+            rechargeType: 'none',
+            manualRecovery:
+              'Tracks unassigned object capacity. Ending an effect releases capacity; a rest does not end existing effects.',
+          },
+        );
+        add(
+          'infused-item-capacity',
+          'Infused item capacity',
+          2,
+          ARTIFICER_LEGACY_ITEMS[level - 1],
+          {},
+          {
+            rechargeType: 'none',
+            manualRecovery:
+              'Tracks capacity, not daily charges. Record infusions and their assigned items; replacing an infusion ends its prior item effect.',
+          },
+        );
+        add('flash-of-genius', 'Flash of Genius', 7, intelligence, LONG);
+        add(
+          'spell-storing-item',
+          'Spell-Storing Item uses',
+          11,
+          intelligence * 2,
+          {},
+          {
+            rechargeType: 'none',
+            manualRecovery:
+              'Choose and store an eligible spell after a long rest, then explicitly record the item uses. Resting alone does not create or replace a stored spell.',
+          },
+        );
+      }
+      break;
     case 'barbarian':
       add(
         'rage',

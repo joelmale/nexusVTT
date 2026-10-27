@@ -42,6 +42,10 @@ export function calculatePreparationLimit(
   }
 
   switch (slug) {
+    case 'artificer':
+      return edition === '2014'
+        ? Math.max(1, Math.floor(level / 2) + abilityModifier)
+        : 0;
     case 'wizard':
     case 'cleric':
     case 'druid':

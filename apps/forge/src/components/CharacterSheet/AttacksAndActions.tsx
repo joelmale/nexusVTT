@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { ClassResourceControls } from '@nexus/character-creator';
+import { recordCharacterResource } from '@nexus/character-contracts';
 import { Character, Equipment } from '../../types/dnd';
 import { loadEquipment, COMBAT_ACTIONS } from '../../services/dataService';
 import { DiceRoll } from '../../services/diceService';
@@ -695,6 +696,29 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
         resources={character.resources ?? []}
         disabled={resourceSavePending}
         onConsume={persistResourceUse}
+        onRecord={async (id, current, cooldown) => {
+          if (resourceSaveInFlight.current)
+            throw new Error('A resource change is already saving.');
+          const resource = character.resources?.find(
+            (entry) => entry.id === id,
+          );
+          if (!resource) throw new Error('Resource is not available.');
+          const recorded = recordCharacterResource(resource, current, cooldown);
+          resourceSaveInFlight.current = true;
+          setResourceSavePending(true);
+          try {
+            const saved = await onUpdateCharacter({
+              ...character,
+              resources: character.resources!.map((entry) =>
+                entry.id === id ? recorded : entry,
+              ),
+            });
+            if (saved === false) throw new Error('Resource save failed.');
+          } finally {
+            resourceSaveInFlight.current = false;
+            setResourceSavePending(false);
+          }
+        }}
       />
       {resourceError && <p role="alert">{resourceError}</p>}
       {/* Main Header */}

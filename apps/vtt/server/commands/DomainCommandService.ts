@@ -1,5 +1,8 @@
 import crypto from 'crypto';
-import { recoverCharacterResource } from '@nexus/character-contracts';
+import {
+  recoverCharacterResource,
+  recordCharacterResource,
+} from '@nexus/character-contracts';
 import type { PoolClient } from 'pg';
 import type { DatabaseService } from '../database.js';
 import type {
@@ -212,7 +215,8 @@ export class DomainCommandService {
           break;
         }
 
-        case 'ConsumeClassResource': {
+        case 'ConsumeClassResource':
+        case 'RecordClassResource': {
           receipt = await this.handleConsumeClassResource(
             command,
             command.payload,
@@ -1349,6 +1353,8 @@ export class DomainCommandService {
     }> = [];
     if (evalResult.poolIdToCharge) {
       const pool = pools[evalResult.poolIdToCharge];
+      if (pool?.cooldown && pool.cooldown.remaining > 0)
+        throw new Error('Casting resource is on cooldown.');
       if (pool) {
         if (pool.poolType === 'slots' && evalResult.slotLevelToCharge) {
           const slotKey = evalResult.slotLevelToCharge.toString();
@@ -1556,12 +1562,18 @@ export class DomainCommandService {
 
   private async handleConsumeClassResource(
     command: DomainCommand,
-    payload: Extract<DomainCommandPayload, { type: 'ConsumeClassResource' }>,
+    payload: Extract<
+      DomainCommandPayload,
+      { type: 'ConsumeClassResource' | 'RecordClassResource' }
+    >,
     payloadHash: string,
     context: DomainCommandContext,
     client: PoolClient,
   ): Promise<DomainCommandReceipt> {
-    if (!Number.isSafeInteger(payload.amount) || payload.amount < 1)
+    if (
+      payload.type === 'ConsumeClassResource' &&
+      (!Number.isSafeInteger(payload.amount) || payload.amount < 1)
+    )
       throw new Error('Resource consumption must be a positive integer.');
     const actor = await this.db.campaignActors.lockActorForUpdate(
       payload.actorId,
@@ -1587,7 +1599,27 @@ export class DomainCommandService {
     const pool = pools[`feature:${payload.resourceId}`];
     if (!pool || !pool.classResourceId || pool.active === false)
       throw new Error('Class resource is not available.');
-    if (!pool.unlimited) {
+    if (payload.type === 'RecordClassResource') {
+      const recorded = recordCharacterResource(
+        {
+          id: pool.classResourceId,
+          name: pool.name,
+          description: pool.description ?? '',
+          maxUses: pool.max ?? 0,
+          currentUses: pool.current,
+          rechargeType: 'none',
+          active: pool.active,
+          unlimited: pool.unlimited,
+          cooldown: pool.cooldown,
+        },
+        payload.currentUses,
+        payload.cooldown,
+      );
+      pool.current = recorded.currentUses;
+      pool.cooldown = recorded.cooldown;
+    } else if (!pool.unlimited) {
+      if (pool.cooldown && pool.cooldown.remaining > 0)
+        throw new Error('Class resource is on cooldown.');
       if (pool.current === undefined || pool.current < payload.amount)
         throw new Error('Insufficient or unrecorded class resource uses.');
       pool.current -= payload.amount;
@@ -1678,7 +1710,7 @@ export class DomainCommandService {
 
       for (const pool of Object.values(pools)) {
         if (pool.classResourceId) {
-          pool.current = recoverCharacterResource(
+          const recovered = recoverCharacterResource(
             {
               id: pool.classResourceId,
               name: pool.name,
@@ -1692,10 +1724,13 @@ export class DomainCommandService {
                     ? 'daily'
                     : pool.resetOn,
               recovery: pool.recovery,
+              cooldown: pool.cooldown,
               active: pool.active,
             },
             'long-rest',
-          ).currentUses;
+          );
+          pool.current = recovered.currentUses;
+          pool.cooldown = recovered.cooldown;
         } else if (pool.poolType === 'slots' && pool.slots) {
           for (const slot of Object.values(pool.slots)) {
             slot.current = slot.total;
@@ -1712,7 +1747,7 @@ export class DomainCommandService {
       // Short rest
       for (const pool of Object.values(pools)) {
         if (pool.classResourceId) {
-          pool.current = recoverCharacterResource(
+          const recovered = recoverCharacterResource(
             {
               id: pool.classResourceId,
               name: pool.name,
@@ -1726,10 +1761,13 @@ export class DomainCommandService {
                     ? 'daily'
                     : pool.resetOn,
               recovery: pool.recovery,
+              cooldown: pool.cooldown,
               active: pool.active,
             },
             'short-rest',
-          ).currentUses;
+          );
+          pool.current = recovered.currentUses;
+          pool.cooldown = recovered.cooldown;
         } else if (pool.resetOn === 'short-rest') {
           if (pool.poolType === 'pact') {
             pool.current = pool.max ?? pool.current;

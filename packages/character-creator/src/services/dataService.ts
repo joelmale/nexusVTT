@@ -676,7 +676,10 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
     hit_die: srdClass.hit_die,
     primary_stat: 'Varies', // SRD doesn't specify, would need manual mapping
     save_throws: srdClass.saving_throws.map((st) => st.name),
-    skill_proficiencies: skillProficiencies,
+    skill_proficiencies:
+      srdClass.index === 'artificer'
+        ? skillProficiencies.filter((skill) => skill !== 'Survival')
+        : skillProficiencies,
     num_skill_choices: numSkillChoices,
     musical_instrument_proficiencies: musicalInstrumentProficiencies,
     num_instrument_choices: numInstrumentChoices,
@@ -2179,7 +2182,11 @@ export const getClassProficiencies = (
     case 'artificer':
       proficiencies.armor = ['Light armor', 'Medium armor', 'Shields'];
       proficiencies.weapons = ['Simple weapons'];
-      proficiencies.tools = ["Thieves' tools", "One type of artisan's tools"];
+      proficiencies.tools = [
+        "Thieves' tools",
+        "Tinker's tools",
+        "One type of artisan's tools",
+      ];
       break;
 
     default:

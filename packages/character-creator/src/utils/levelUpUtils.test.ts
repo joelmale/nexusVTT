@@ -1,10 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { REFERENCE_BUILDS } from '../tests/fixtures/referenceBuilds';
 import { calculateCharacterStats } from './characterCreationUtils';
-import { applyLevelUp, calculateLevelUpData } from './levelUpUtils';
+import {
+  applyLevelUp,
+  calculateLevelUpData,
+  getHighLevelChoices,
+} from './levelUpUtils';
 import { classSpellSlots } from './classSpellSlots';
 
 describe('level-up preservation and boundaries', () => {
+  it('can enumerate high-level choices with complete planning facts', () => {
+    expect(
+      getHighLevelChoices('wizard', '2024', 4).map((level) => level.toLevel),
+    ).toEqual([2, 3, 4]);
+    expect(
+      getHighLevelChoices('fighter', '2014', 4).map((level) => level.toLevel),
+    ).toEqual([2, 3, 4]);
+  });
   it('does not mutate the prior character and preserves damage and spent resources', () => {
     const character = calculateCharacterStats({
       ...REFERENCE_BUILDS.F24.creationData,
@@ -36,6 +48,7 @@ describe('level-up preservation and boundaries', () => {
     character.spellcasting!.usedSpellSlots = [0, 2, 0, 0, 0, 0, 0, 0, 0, 0];
     const next = applyLevelUp(character, calculateLevelUpData(character)!, {
       hpGained: 5,
+      spellsLearned: ['comprehend-languages', 'hold-person'],
     });
     expect(next.spellcasting!.spellSlots[2]).toBe(2);
     expect(next.spellcasting!.usedSpellSlots.slice(1, 3)).toEqual([0, 2]);

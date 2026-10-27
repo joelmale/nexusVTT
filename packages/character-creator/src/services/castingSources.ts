@@ -11,24 +11,32 @@ export interface CastingGrant {
   spellChoices: number;
   ritualChoices?: boolean;
   chooseSpellClass?: boolean;
+  spellLevel?: number;
+  eligibleSpellSlugs?: string[];
 }
 
 /** SRD 5.2.1 pp84–87: lineage and Magic Initiate grants stay separate from class lists. */
 export function resolveCastingGrants(
   data: CharacterCreationData,
 ): CastingGrant[] {
+  const classGrants = resolveClassFreeCasting(data);
   if (data.edition !== '2024')
-    return (data.additionalCastingSources ?? []).map((source) => ({
-      source,
-      cantripChoices: 0,
-      spellChoices: 0,
-    }));
+    return [
+      ...classGrants,
+      ...(data.additionalCastingSources ?? [])
+        .filter((source) => !source.resourceId)
+        .map((source) => ({
+          source,
+          cantripChoices: 0,
+          spellChoices: 0,
+        })),
+    ];
   const catalog = loadSpells(data.edition);
   const abilities: AbilityName[] = ['INT', 'WIS', 'CHA'];
   const ability = [...abilities].sort(
     (a, b) => data.abilities[b] - data.abilities[a],
   )[0];
-  const result: CastingGrant[] = [];
+  const result: CastingGrant[] = [...classGrants];
   const background = BACKGROUNDS.find(
     (entry) =>
       entry.edition === data.edition &&
@@ -234,6 +242,17 @@ export function castingGrantErrors(data: CharacterCreationData): string[] {
         `Casting source '${source.sourceSlug}' requires review after changing character choices.`,
     );
   return [
+    ...(data.classSlug === 'wizard' &&
+    data.level >= 20 &&
+    new Set(
+      grants
+        .filter((grant) =>
+          grant.source.resourceId?.startsWith('signature-spell-'),
+        )
+        .flatMap((grant) => grant.source.preparedSpells),
+    ).size !== 2
+      ? ['Choose two different Signature Spells from your spellbook.']
+      : []),
     ...unsupported,
     ...(grants
       .filter((grant) => grant.chooseSpellClass)
@@ -248,8 +267,23 @@ export function castingGrantErrors(data: CharacterCreationData): string[] {
       ? ['Choose different spell lists for repeated Magic Initiate grants.']
       : []),
     ...grants.flatMap(
-      ({ source, spellClass, cantripChoices, spellChoices, ritualChoices }) => {
+      ({
+        source,
+        spellClass,
+        cantripChoices,
+        spellChoices,
+        ritualChoices,
+        spellLevel = 1,
+        eligibleSpellSlugs,
+      }) => {
         const errors: string[] = [];
+        if (
+          eligibleSpellSlugs &&
+          source.preparedSpells.some(
+            (slug) => !eligibleSpellSlugs.includes(slug),
+          )
+        )
+          errors.push('Choose Signature Spells from your spellbook.');
         if (!['INT', 'WIS', 'CHA'].includes(source.ability))
           errors.push(
             `Choose a mental casting ability for ${source.sourceSlug}.`,
@@ -268,7 +302,7 @@ export function castingGrantErrors(data: CharacterCreationData): string[] {
             new Set(source.preparedSpells).size !== spellChoices)
         )
           errors.push(
-            `Choose ${spellChoices} different level 1 spells for ${source.sourceSlug}.`,
+            `Choose ${spellChoices} different level ${spellLevel} spells for ${source.sourceSlug}.`,
           );
         if (
           ritualChoices &&
@@ -292,7 +326,10 @@ export function castingGrantErrors(data: CharacterCreationData): string[] {
           );
         for (const [slugs, level] of [
           [source.cantrips, 0],
-          [spellChoices ? source.preparedSpells : [], 1],
+          [
+            spellChoices || source.resourceId ? source.preparedSpells : [],
+            spellLevel,
+          ],
         ] as const) {
           if (
             slugs.some(
@@ -313,4 +350,120 @@ export function castingGrantErrors(data: CharacterCreationData): string[] {
       },
     ),
   ];
+}
+
+/** SRD class grants use the same counter as the saved sheet and campaign actor. */
+export function resolveClassFreeCasting(
+  data: CharacterCreationData,
+): CastingGrant[] {
+  const result: CastingGrant[] = [];
+  const add = (
+    resourceId: string,
+    spellLevel: number,
+    ability: 'INT' | 'WIS' | 'CHA',
+    fixed?: string,
+    freeUses = 1,
+    allowClassSlots = false,
+  ) => {
+    const id = `class:${data.classSlug}:${resourceId}`;
+    const existing = data.additionalCastingSources?.find(
+      (source) => source.id === id,
+    );
+    result.push({
+      spellClass: data.classSlug,
+      spellLevel,
+      cantripChoices: 0,
+      spellChoices: fixed ? 0 : 1,
+      eligibleSpellSlugs: resourceId.startsWith('signature-spell-')
+        ? (data.spellSelection.spellbook ?? [])
+        : undefined,
+      source: {
+        id,
+        sourceType: 'class',
+        sourceSlug: resourceId,
+        ability,
+        cantrips: [],
+        knownSpells: [],
+        preparedSpells: fixed
+          ? [
+              loadSpells(data.edition).find(
+                (spell) => spell.slug.replace(/['’]/g, '') === fixed,
+              )?.slug ?? fixed,
+            ]
+          : (existing?.preparedSpells ?? []),
+        resourceId,
+        freeUses,
+        allowClassSlots,
+      },
+    });
+  };
+  if (data.classSlug === 'warlock')
+    for (const [level, gainedAt] of [
+      [6, 11],
+      [7, 13],
+      [8, 15],
+      [9, 17],
+    ])
+      if (data.level >= gainedAt) add(`mystic-arcanum-${level}`, level, 'CHA');
+  if (data.classSlug === 'wizard' && data.level >= 20)
+    for (const index of [1, 2])
+      add(`signature-spell-${index}`, 3, 'INT', undefined, 1, true);
+  if (data.edition === '2024' && data.classSlug === 'paladin') {
+    if (data.level >= 2)
+      add('paladins-smite', 1, 'CHA', 'divine-smite', 1, true);
+    if (data.level >= 5) add('faithful-steed', 2, 'CHA', 'find-steed', 1, true);
+  }
+  if (data.edition === '2024' && data.classSlug === 'ranger')
+    add(
+      'favored-enemy',
+      1,
+      'WIS',
+      'hunters-mark',
+      data.level >= 17
+        ? 6
+        : data.level >= 13
+          ? 5
+          : data.level >= 9
+            ? 4
+            : data.level >= 5
+              ? 3
+              : 2,
+      true,
+    );
+  return result;
+}
+
+export function classFreeCastingErrors(data: CharacterCreationData): string[] {
+  const grants = resolveClassFreeCasting(data);
+  const catalog = loadSpells(data.edition);
+  const errors: string[] = [];
+  for (const grant of grants) {
+    if (
+      grant.source.preparedSpells.length !== 1 ||
+      !catalog.some(
+        (spell) =>
+          spell.slug === grant.source.preparedSpells[0] &&
+          spell.level === grant.spellLevel &&
+          spell.classes.includes(data.classSlug),
+      )
+    )
+      errors.push(`Choose an eligible spell for ${grant.source.sourceSlug}.`);
+    if (
+      grant.eligibleSpellSlugs &&
+      grant.source.preparedSpells.some(
+        (slug) => !grant.eligibleSpellSlugs!.includes(slug),
+      )
+    )
+      errors.push('Choose Signature Spells from your spellbook.');
+  }
+  const signatures = grants.filter((grant) =>
+    grant.source.resourceId?.startsWith('signature-spell-'),
+  );
+  if (
+    signatures.length &&
+    new Set(signatures.flatMap((grant) => grant.source.preparedSpells)).size !==
+      2
+  )
+    errors.push('Choose two different Signature Spells.');
+  return errors;
 }

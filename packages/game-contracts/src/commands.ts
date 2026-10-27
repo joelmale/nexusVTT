@@ -124,6 +124,19 @@ export type ConsumeClassResourcePayload = z.infer<
   typeof consumeClassResourcePayloadSchema
 >;
 
+export const recordClassResourcePayloadSchema = z.object({
+  type: z.literal('RecordClassResource'),
+  actorId: z.string().uuid(),
+  resourceId: z.string().min(1).max(128),
+  currentUses: z.number().int().nonnegative().max(1000),
+  cooldown: z
+    .object({
+      remaining: z.number().int().nonnegative().max(1000),
+      unit: z.enum(['day', 'long-rest']),
+    })
+    .optional(),
+});
+
 export const transferItemPayloadSchema = z.object({
   type: z.literal('TransferItem'),
   sourceActorId: z.string().uuid().optional(),
@@ -177,6 +190,7 @@ export const domainCommandPayloadSchema = z.discriminatedUnion('type', [
   endConcentrationPayloadSchema,
   restActorPayloadSchema,
   consumeClassResourcePayloadSchema,
+  recordClassResourcePayloadSchema,
   transferItemPayloadSchema,
   activateSessionPlanPayloadSchema,
   advanceSessionPlanStepPayloadSchema,

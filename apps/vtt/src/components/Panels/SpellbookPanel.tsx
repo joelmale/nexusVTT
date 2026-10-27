@@ -274,6 +274,7 @@ export const SpellbookPanel: React.FC<
                   unlimited: pool.unlimited,
                   active: pool.active,
                   recovery: pool.recovery,
+                  cooldown: pool.cooldown,
                   rechargeType:
                     pool.resetOn === 'dawn'
                       ? 'daily'
@@ -295,6 +296,22 @@ export const SpellbookPanel: React.FC<
                 );
                 if (!success)
                   throw new Error('Resource use was not confirmed.');
+              }}
+              onRecord={async (resourceId, currentUses, cooldown) => {
+                if (!campaignId) throw new Error('No active campaign.');
+                const commandId = crypto.randomUUID();
+                const success = await execute(() =>
+                  commandClient.recordClassResource(
+                    campaignId,
+                    actor.id,
+                    resourceId,
+                    currentUses,
+                    cooldown,
+                    { expectedVersion: actor.stateVersion, commandId },
+                  ),
+                );
+                if (!success)
+                  throw new Error('Resource record was not confirmed.');
               }}
             />
           )}

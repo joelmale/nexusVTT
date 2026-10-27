@@ -1484,6 +1484,87 @@ describe('DomainCommandService', () => {
         expect(mockDb.campaignActors.updateActorState).not.toHaveBeenCalled();
       },
     );
+    it('records a corrected balance and cooldown under the actor version and transaction', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValue(resourceActor);
+      mockDb.campaignActors.updateActorState.mockResolvedValue({
+        status: 'updated',
+        actor: { ...resourceActor, stateVersion: 2 },
+      });
+      const request = command();
+      request.payload = {
+        type: 'RecordClassResource',
+        actorId: mockActor.id,
+        resourceId: 'second-wind',
+        currentUses: 0,
+        cooldown: { remaining: 4, unit: 'long-rest' },
+      };
+      await service.execute(request, { principalId: 'user-1', isDm: false });
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        mockActor.id,
+        expect.objectContaining({
+          expectedVersion: 1,
+          resourcePools: expect.objectContaining({
+            'feature:second-wind': expect.objectContaining({
+              current: 0,
+              cooldown: { remaining: 4, unit: 'long-rest' },
+            }),
+          }),
+        }),
+        mockClient,
+      );
+      expect(mockDb.commandReceipts.saveReceipt).toHaveBeenCalledOnce();
+    });
+    it.each([
+      'missing',
+      'stale',
+      'excessive',
+      'unauthorized',
+      'contradictory',
+    ] as const)(
+      'rejects %s manual corrections before mutation',
+      async (kind) => {
+        mockDb.campaignActors.lockActorForUpdate.mockResolvedValue(
+          resourceActor,
+        );
+        const request = command();
+        request.payload = {
+          type: 'RecordClassResource',
+          actorId: mockActor.id,
+          resourceId: 'second-wind',
+          currentUses: kind === 'excessive' ? 3 : 1,
+          cooldown:
+            kind === 'contradictory'
+              ? { remaining: 1, unit: 'day' }
+              : undefined,
+        };
+        if (kind === 'missing') request.expectedActorVersions = {};
+        if (kind === 'stale')
+          request.expectedActorVersions = { [mockActor.id]: 0 };
+        await expect(
+          service.execute(request, {
+            principalId: kind === 'unauthorized' ? 'other-user' : 'user-1',
+            isDm: false,
+          }),
+        ).rejects.toThrow();
+        expect(mockDb.campaignActors.updateActorState).not.toHaveBeenCalled();
+      },
+    );
+    it('rejects consumption while a cooldown is active', async () => {
+      const actor = {
+        ...resourceActor,
+        resourcePools: {
+          'feature:second-wind': {
+            ...resourceActor.resourcePools['feature:second-wind'],
+            cooldown: { remaining: 1, unit: 'day' },
+          },
+        },
+      };
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValue(actor);
+      await expect(
+        service.execute(command(), { principalId: 'user-1', isDm: false }),
+      ).rejects.toThrow('cooldown');
+      expect(mockDb.campaignActors.updateActorState).not.toHaveBeenCalled();
+    });
     it('applies revised partial recovery without replenishing unrelated daily counters', async () => {
       const actor = structuredClone(resourceActor);
       actor.resourcePools['feature:second-wind'].current = 0;

@@ -354,6 +354,32 @@ export class DomainCommandClient {
     });
   }
 
+  async recordClassResource(
+    campaignId: string,
+    actorId: string,
+    resourceId: string,
+    currentUses: number,
+    cooldown: { remaining: number; unit: 'day' | 'long-rest' } | undefined,
+    options: { expectedVersion: number; commandId: string },
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    return this.dispatchCommand(campaignId, {
+      commandId: options.commandId,
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId: user?.id || 'anonymous',
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: { [actorId]: options.expectedVersion },
+      payload: {
+        type: 'RecordClassResource',
+        actorId,
+        resourceId,
+        currentUses,
+        cooldown,
+      },
+    });
+  }
+
   async restActor(
     campaignId: string,
     actorId: string,

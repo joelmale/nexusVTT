@@ -5,11 +5,14 @@ description: Current source, resource and progression repairs, measured checks a
 
 # Creator tranches 1–3 implementation record
 
-Updated **2026-10-26**. Repairs began from `38ba98566372f3d229ad572e10236bb9a16f7a50`;
+Updated **2026-10-27**. Repairs began from `38ba98566372f3d229ad572e10236bb9a16f7a50`;
 the commit parent for publication is `5e2c4ce2535e7c64e04139d04a30999529a3518f`.
 Publication does not establish deployment. **T-01, T-02 and T-03 remain open**;
 this record does not replace their [exit criteria](character-creation-remaining-tranches.md).
 The previous portable validation artifact remains a historical snapshot.
+The first implementation slices were published to `main` as `4d3136f0`.
+The follow-up below is based on that commit; publishing code is separate from
+closing the acceptance criteria.
 
 ## Source and ownership decisions
 
@@ -68,6 +71,18 @@ python scripts/validation/capture-srd-spell-headings.py --legacy .codex-local-va
 The script reads no production catalog and refuses PDFs with a different hash.
 Independent DM review remains pending.
 
+On 2026-10-27 the user supplied the [legacy Artificer reference](https://dnd5e.wikidot.com/artificer).
+It describes the legacy infusion system, not the revised 2025 plan system.
+Its base feature timeline, infusion/item/cantrip counts and Intelligence-based
+resource counts now have literal regression assertions. The normalized class
+skill list excludes the spurious Survival choice; tool proficiencies now include
+Tinker's Tools. Legacy preparation uses Intelligence plus half level, rounded
+down, rather than the generic full-caster formula. Infused-item capacity and
+stored-spell charges are distinguished from ordinary rest-recovering uses.
+This partial source audit does not complete subclass, infusion choices, item
+assignments or full Artificer spell-list integration. Canonical Artificer creation
+therefore remains blocked rather than accepting an incomplete class.
+
 ## Implemented engineering slices
 
 - Shared typed resources carry identity, provenance, maximum, known/unknown
@@ -104,6 +119,51 @@ Independent DM review remains pending.
   without mutating the prior character.
 
 ## Measured checks
+
+### Follow-up engineering checks (2026-10-27)
+
+- Added explicit resource correction/recovery in both hosts. The VTT command
+  uses actor-version validation, control authorization and the existing receipt
+  transaction. Invalid balances and contradictory cooldown states are rejected.
+- Recorded game-day cooldowns require explicit day advancement/correction;
+  ordinary rests do not imply elapsed days. Cooldowns measured in long rests
+  decrement once per long rest, block consumption/casting until finished, and
+  survive reconciliation and persistence.
+- Level-up now saves new Expertise selections, retains prior Expertise,
+  validates eligibility and duplicates, and records actual HP gained in history.
+  Required Scholar/Expertise choices have a shared wizard step.
+- Spell learning validates class, edition, level, duplicate/known selections
+  and separate cantrip/spell counts. Wizard book additions and revised prepared
+  additions are saved in their respective lists; the old legacy Ranger known-
+  spell cap is corrected. Legacy Paladin/Ranger spellcasting is initialized at
+  level two, including slots and derived attack/DC. Planning facts now support
+  enumerating higher-level choices without missing abilities.
+- Mystic Arcanum, Signature Spells and revised Paladin/Ranger fixed free casts
+  bind to the existing class counters. Signature choices must be distinct
+  third-level spells in the book. Source spell references are matched to the
+  campaign catalog without granting a duplicate fresh pool. The level-up wizard
+  confirms these class casting selections and preserves unrelated grants.
+- The acceptance register now has **112 individually identified criteria**,
+  each linked to starting-point checks, manual instructions or the unresolved
+  implementation register. They remain not-run until complete candidate-specific
+  evidence and independent expectations are recorded; a linked file is not proof.
+
+The full Forge suite passed **862 tests in 88 files**. The managed browser suite
+passed **50 scenarios in one single-worker run**, including both hosts' new
+manual-record/cooldown journeys and VTT peer assertions. The subsequent first-
+spellcasting boundary repair passed its ten focused progression tests and the
+production Forge build. The final creator suite passed **778 tests in 74 files**.
+Coverage across six selected new level-up/resource services and controls was
+**100% lines and 90% branches**; this is not whole-creator coverage.
+The final PostgreSQL suite passed **49 tests in nine files**, including concurrent
+manual-record retry and multi-rest cooldown recovery. Game contracts passed
+47 tests in 11 files; shared rules passed 51 tests in eight files. Changed files
+passed their owning projects' lint rules and creator/Forge/VTT type checks.
+Fresh server CodeQL retained 78 raw findings
+(23 distinct rule/file/message combinations), with no added combinations against
+the preceding candidate. Existing findings still require independent disposition.
+
+### Previous implementation-slice checks
 
 Raw reports are local `validation-tranche-*.log` files, rather than committed
 reports containing incidental runtime information.
@@ -148,21 +208,24 @@ timeouts or assertions. Neither failed attempt is recorded as a pass.
 
 ## Remaining work before closing these tranches
 
-1. Verify the complete supplemental Artificer foundations and compatible option
-   union. Complete source audits for spell mechanics/equipment entries, and map every
-   acceptance criterion to specific executable or manual cases.
+1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices
+   and the compatible option union. The supplied legacy reference does not
+   establish revised 2025 tables. Finish spell-mechanics/equipment audits and
+   replace criterion starting-point links with complete independent cases.
 2. Complete remaining grant resources, conditional paired operations, explicit
-   daily resets and rolled cooldown behavior. Signature-spell counters need
-   binding to the chosen spells. Other class free-casting counters also need
-   linkage to their actual casting grants. A manual note is not an automated recovery
-   action or an enforced cooldown.
+   paired costs/effects and resource restoration. Explicit balance recording,
+   daily recovery controls, cooldown enforcement and the listed class free-casting
+   bindings are implemented; other conditional operations still require manual
+   application. A manual operation is not an automated paired transaction.
 3. Complete higher-level replacement flows and the remaining mutation/source
    coverage for repeated grants. Finish level-up choice application and
    cross-path equivalence for derived AC, movement, proficiencies and casting.
+   Expertise and the covered spell-learning/free-casting choices are applied;
+   remaining mastery/invocation and other class choice application is still open.
    Replace legacy hardcoded feat-spell defaults with validated explicit choices.
 4. Connect promised invocation effects to actual sheet/casting actions; saved
    mechanics metadata alone does not establish attack/damage/range automation.
-5. Finish real-host resource journeys and remaining higher-level real-host journeys.
+5. Finish remaining higher-level real-host journeys.
    Keep their exact candidate scope distinct from the successful backend soaks.
 6. DM performs independent rules review and the actual device/AT tasks using
    the [manual acceptance instructions](character-creation-manual-acceptance.md).

@@ -8,8 +8,7 @@ import React, { useMemo, useState } from 'react';
 import { Character, LevelUpChoices } from '../../../types/dnd';
 import { LevelUpData } from '@nexus/character-creator/data/classProgression';
 import { loadSpells, AppSpell } from '../../../services/dataService';
-import { SPELL_SLOTS_BY_CLASS } from '@nexus/character-creator/data/spellSlots';
-import { getHighestSpellSlotLevel, normalizeSpellSlots } from '../../../utils/spellSlotUtils';
+import { classSpellSlots } from '@nexus/character-creator/utils/classSpellSlots';
 import { evaluatePredicate } from '@nexus/character-creator/rulesEngine/evaluators/predicates';
 import { BaseFacts } from '@nexus/character-creator/rulesEngine/types/baseFacts';
 
@@ -26,77 +25,93 @@ interface StepSpellsProps {
 export const StepSpells: React.FC<StepSpellsProps> = ({
   character,
   levelUpData,
-  choices: _choices,
+  choices,
   updateChoices,
   onNext,
   onPrev,
-  spellChoiceIndex = 0
+  spellChoiceIndex = 0,
 }) => {
-  const [selectedSpells, setSelectedSpells] = useState<string[]>([]);
+  const initialSpellChoice = levelUpData.choices.filter(
+    (choice) => choice.type === 'spells',
+  )[spellChoiceIndex];
+  const [selectedSpells, setSelectedSpells] = useState<string[]>(() =>
+    initialSpellChoice?.description.toLowerCase().includes('cantrip')
+      ? (choices.cantripsLearned ?? [])
+      : (choices.spellsLearned ?? []),
+  );
   const [expandedSpell, setExpandedSpell] = useState<string | null>(null);
 
   // Build facts for rule-engine based filtering
   const classSlug = character.class.toLowerCase();
   const baseClass = classSlug.split('-')[0];
-  const facts = useMemo<BaseFacts>(() => ({
-    level: levelUpData.toLevel,
-    classSlug: baseClass,
-    classLevel: { [baseClass]: levelUpData.toLevel },
-    subclassSlug: character.subclass || undefined,
-    speciesSlug: character.species,
-    lineageSlug: character.selectedSpeciesVariant,
-    backgroundSlug: character.background,
-    edition: character.edition,
-    abilities: {
-      STR: character.abilities?.STR?.score ?? 10,
-      DEX: character.abilities?.DEX?.score ?? 10,
-      CON: character.abilities?.CON?.score ?? 10,
-      INT: character.abilities?.INT?.score ?? 10,
-      WIS: character.abilities?.WIS?.score ?? 10,
-      CHA: character.abilities?.CHA?.score ?? 10
-    },
-    choices: {},
-    equippedArmor: character.equippedArmor,
-    equippedWeapons: character.equippedWeapons || [],
-    equippedItems: character.inventory?.map(item => item.equipmentSlug) || [],
-    conditions: [],
-    tags: [],
-    feats: character.selectedFeats || character.feats || []
-  }), [
-    baseClass,
-    levelUpData.toLevel,
-    character.subclass,
-    character.species,
-    character.selectedSpeciesVariant,
-    character.background,
-    character.edition,
-    character.abilities?.STR?.score,
-    character.abilities?.DEX?.score,
-    character.abilities?.CON?.score,
-    character.abilities?.INT?.score,
-    character.abilities?.WIS?.score,
-    character.abilities?.CHA?.score,
-    character.equippedArmor,
-    character.equippedWeapons,
-    character.inventory,
-    character.selectedFeats,
-    character.feats
-  ]);
+  const facts = useMemo<BaseFacts>(
+    () => ({
+      level: levelUpData.toLevel,
+      classSlug: baseClass,
+      classLevel: { [baseClass]: levelUpData.toLevel },
+      subclassSlug: character.subclass || undefined,
+      speciesSlug: character.species,
+      lineageSlug: character.selectedSpeciesVariant,
+      backgroundSlug: character.background,
+      edition: character.edition,
+      abilities: {
+        STR: character.abilities?.STR?.score ?? 10,
+        DEX: character.abilities?.DEX?.score ?? 10,
+        CON: character.abilities?.CON?.score ?? 10,
+        INT: character.abilities?.INT?.score ?? 10,
+        WIS: character.abilities?.WIS?.score ?? 10,
+        CHA: character.abilities?.CHA?.score ?? 10,
+      },
+      choices: {},
+      equippedArmor: character.equippedArmor,
+      equippedWeapons: character.equippedWeapons || [],
+      equippedItems:
+        character.inventory?.map((item) => item.equipmentSlug) || [],
+      conditions: [],
+      tags: [],
+      feats: character.selectedFeats || character.feats || [],
+    }),
+    [
+      baseClass,
+      levelUpData.toLevel,
+      character.subclass,
+      character.species,
+      character.selectedSpeciesVariant,
+      character.background,
+      character.edition,
+      character.abilities?.STR?.score,
+      character.abilities?.DEX?.score,
+      character.abilities?.CON?.score,
+      character.abilities?.INT?.score,
+      character.abilities?.WIS?.score,
+      character.abilities?.CHA?.score,
+      character.equippedArmor,
+      character.equippedWeapons,
+      character.inventory,
+      character.selectedFeats,
+      character.feats,
+    ],
+  );
 
   // Load spells for this class via rule-engine predicate (classIs)
   const allSpells = loadSpells();
   const classSpells = useMemo(() => {
-    return allSpells.filter(spell => {
+    return allSpells.filter((spell) => {
       if (!spell.classes) return false;
-      const classList = Array.isArray(spell.classes) ? spell.classes : [spell.classes];
+      const classList = Array.isArray(spell.classes)
+        ? spell.classes
+        : [spell.classes];
       const predicate = { type: 'classIs' as const, slug: baseClass };
-      return classList.some(c => c && typeof c === 'string' && c.toLowerCase() === baseClass) &&
-        evaluatePredicate(predicate, { facts, derived: {} });
+      return (
+        classList.some(
+          (c) => c && typeof c === 'string' && c.toLowerCase() === baseClass,
+        ) && evaluatePredicate(predicate, { facts, derived: {} })
+      );
     });
   }, [allSpells, baseClass, facts]);
 
   // Get the specific spell choice for this step
-  const spellChoices = levelUpData.choices.filter(c => c.type === 'spells');
+  const spellChoices = levelUpData.choices.filter((c) => c.type === 'spells');
   const currentSpellChoice = spellChoices[spellChoiceIndex];
 
   if (!currentSpellChoice) {
@@ -124,26 +139,25 @@ export const StepSpells: React.FC<StepSpellsProps> = ({
 
   // Determine how many spells can be learned and what type
   const spellsToLearn = currentSpellChoice.count || 1;
-  const isCantripChoice = currentSpellChoice.description.toLowerCase().includes('cantrip');
+  const isCantripChoice = currentSpellChoice.description
+    .toLowerCase()
+    .includes('cantrip');
 
   // Determine the highest spell level the character can cast at the new level
-  const rawSlotsAtNewLevel =
-    SPELL_SLOTS_BY_CLASS[baseClass]?.[levelUpData.toLevel] ||
-    character.spellcasting?.spellSlots ||
-    [];
-  const normalizedSlots = normalizeSpellSlots(baseClass, rawSlotsAtNewLevel);
-  const derivedMaxSpellLevel = getHighestSpellSlotLevel(baseClass, rawSlotsAtNewLevel);
-  let fallbackMaxSpellLevel = 0;
-  for (let level = normalizedSlots.length - 1; level > 0; level -= 1) {
-    if (normalizedSlots[level] > 0) {
-      fallbackMaxSpellLevel = level;
-      break;
-    }
-  }
-  const maxSpellLevel = derivedMaxSpellLevel || fallbackMaxSpellLevel;
+  const slotsAtNewLevel = classSpellSlots(
+    baseClass,
+    character.edition ?? '2014',
+    levelUpData.toLevel,
+  );
+  const maxSpellLevel = Math.max(
+    0,
+    ...slotsAtNewLevel.flatMap((count, level) =>
+      level > 0 && count > 0 ? [level] : [],
+    ),
+  );
 
   // Filter spells based on choice type and exclude already known
-  const availableSpells = classSpells.filter(spell => {
+  const availableSpells = classSpells.filter((spell) => {
     // Filter by spell level based on choice type
     if (isCantripChoice && spell.level !== 0) return false;
     if (!isCantripChoice) {
@@ -169,22 +183,26 @@ export const StepSpells: React.FC<StepSpellsProps> = ({
   // All available spells are now filtered by choice type
 
   const handleToggleSpell = (spellSlug: string) => {
-    if (selectedSpells.includes(spellSlug)) {
-      setSelectedSpells(selectedSpells.filter(s => s !== spellSlug));
-    } else if (selectedSpells.length < spellsToLearn) {
-      setSelectedSpells([...selectedSpells, spellSlug]);
-    }
+    const next = selectedSpells.includes(spellSlug)
+      ? selectedSpells.filter((value) => value !== spellSlug)
+      : selectedSpells.length < spellsToLearn
+        ? [...selectedSpells, spellSlug]
+        : selectedSpells;
+    setSelectedSpells(next);
+    updateChoices(
+      isCantripChoice ? { cantripsLearned: next } : { spellsLearned: next },
+    );
   };
 
   const handleToggleExpand = (spellSlug: string) => {
-    setExpandedSpell(prev => (prev === spellSlug ? null : spellSlug));
+    setExpandedSpell((prev) => (prev === spellSlug ? null : spellSlug));
   };
 
   const handleCardKeyDown = (
     event: React.KeyboardEvent<HTMLDivElement>,
     spellSlug: string,
     isSelected: boolean,
-    selectionDisabled: boolean
+    selectionDisabled: boolean,
   ) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -199,7 +217,11 @@ export const StepSpells: React.FC<StepSpellsProps> = ({
   };
 
   const handleNext = () => {
-    updateChoices({ spellsLearned: selectedSpells });
+    updateChoices(
+      isCantripChoice
+        ? { cantripsLearned: selectedSpells }
+        : { spellsLearned: selectedSpells },
+    );
     onNext();
   };
 
@@ -210,20 +232,26 @@ export const StepSpells: React.FC<StepSpellsProps> = ({
           {currentSpellChoice.description}
         </h3>
         <p className="text-[#992600]">
-          Select {spellsToLearn} {isCantripChoice ? 'cantrip(s)' : 'spell(s)'} to learn.
+          Select {spellsToLearn} {isCantripChoice ? 'cantrip(s)' : 'spell(s)'}{' '}
+          to learn.
         </p>
       </div>
 
       <div className="bg-theme-primary rounded-lg p-4">
         <p className="text-theme-text">
-          Selected: <span className="text-accent-gold font-bold">{selectedSpells.length}</span> / {spellsToLearn}
+          Selected:{' '}
+          <span className="text-accent-gold font-bold">
+            {selectedSpells.length}
+          </span>{' '}
+          / {spellsToLearn}
         </p>
       </div>
 
       <div className="max-h-96 overflow-y-auto space-y-2">
         {availableSpells.map((spell: AppSpell) => {
           const isSelected = selectedSpells.includes(spell.slug);
-          const selectionDisabled = !isSelected && selectedSpells.length >= spellsToLearn;
+          const selectionDisabled =
+            !isSelected && selectedSpells.length >= spellsToLearn;
           const isExpanded = expandedSpell === spell.slug;
 
           return (
@@ -238,20 +266,39 @@ export const StepSpells: React.FC<StepSpellsProps> = ({
               aria-expanded={isExpanded}
               role="button"
               tabIndex={0}
-              onKeyDown={event => handleCardKeyDown(event, spell.slug, isSelected, selectionDisabled)}
+              onKeyDown={(event) =>
+                handleCardKeyDown(
+                  event,
+                  spell.slug,
+                  isSelected,
+                  selectionDisabled,
+                )
+              }
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                  <h4 className="font-semibold text-theme-text">{spell.name}</h4>
+                  <h4 className="font-semibold text-theme-text">
+                    {spell.name}
+                  </h4>
                   <p className="text-xs text-[#992600] mt-1 flex flex-wrap items-center gap-1">
-                    {spell.level === 0 ? `${spell.school} • ${spell.castingTime}` : `Level ${spell.level} • ${spell.school} • ${spell.castingTime}`}
-                    {spell.ritual && <span className="text-[10px] uppercase tracking-wide px-1 py-0.5 rounded bg-theme-primary border border-theme-border">Ritual</span>}
-                    {spell.concentration && <span className="text-[10px] uppercase tracking-wide px-1 py-0.5 rounded bg-theme-primary border border-theme-border">Conc.</span>}
+                    {spell.level === 0
+                      ? `${spell.school} • ${spell.castingTime}`
+                      : `Level ${spell.level} • ${spell.school} • ${spell.castingTime}`}
+                    {spell.ritual && (
+                      <span className="text-[10px] uppercase tracking-wide px-1 py-0.5 rounded bg-theme-primary border border-theme-border">
+                        Ritual
+                      </span>
+                    )}
+                    {spell.concentration && (
+                      <span className="text-[10px] uppercase tracking-wide px-1 py-0.5 rounded bg-theme-primary border border-theme-border">
+                        Conc.
+                      </span>
+                    )}
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation();
                     handleToggleSpell(spell.slug);
                   }}
@@ -286,27 +333,46 @@ export const StepSpells: React.FC<StepSpellsProps> = ({
                       </span>
                     )}
                     <span className="inline-flex items-center gap-1 rounded-full border border-theme-border px-2 py-1 text-[11px] font-semibold uppercase tracking-wide">
-                      {[['V', spell.components?.verbal], ['S', spell.components?.somatic], ['M', spell.components?.material]]
+                      {[
+                        ['V', spell.components?.verbal],
+                        ['S', spell.components?.somatic],
+                        ['M', spell.components?.material],
+                      ]
                         .filter(([, present]) => present)
                         .map(([label]) => label)
                         .join(' • ') || 'V/S/M'}
                     </span>
                   </div>
 
-                  <p className="whitespace-pre-line leading-relaxed">{spell.description}</p>
+                  <p className="whitespace-pre-line leading-relaxed">
+                    {spell.description}
+                  </p>
 
                   {spell.atHigherLevels && (
                     <p className="whitespace-pre-line leading-relaxed text-[#992600]">
-                      <span className="font-semibold">At Higher Levels:</span> {spell.atHigherLevels}
+                      <span className="font-semibold">At Higher Levels:</span>{' '}
+                      {spell.atHigherLevels}
                     </p>
                   )}
 
                   <div className="flex flex-wrap gap-3 text-xs text-theme-text opacity-80">
-                    <span><span className="font-semibold">Casting Time:</span> {spell.castingTime}</span>
-                    <span><span className="font-semibold">Range:</span> {spell.range}</span>
-                    <span><span className="font-semibold">Duration:</span> {spell.duration}</span>
+                    <span>
+                      <span className="font-semibold">Casting Time:</span>{' '}
+                      {spell.castingTime}
+                    </span>
+                    <span>
+                      <span className="font-semibold">Range:</span>{' '}
+                      {spell.range}
+                    </span>
+                    <span>
+                      <span className="font-semibold">Duration:</span>{' '}
+                      {spell.duration}
+                    </span>
                     {spell.components?.materialDescription && (
-                      <span><span className="font-semibold">Materials:</span> {spell.components.materialDescription}</span>
+                      <span>
+                        <span className="font-semibold">Materials:</span>{' '}
+                        {spell.components.materialDescription}
+                      </span>
                     )}
                   </div>
                 </div>

@@ -160,6 +160,8 @@ export {
 } from './services/studyRecorder';
 
 export { generateFirstTurnGuidance } from './services/guidanceService';
+export { LevelUpExpertiseChoices } from './components/LevelUpExpertiseChoices';
+export { LevelUpClassCastingChoices } from './components/LevelUpClassCastingChoices';
 export {
   ClassResourceControls,
   type ClassResourceControlsProps,

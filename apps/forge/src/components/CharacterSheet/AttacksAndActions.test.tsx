@@ -5,6 +5,41 @@ import { calculateCharacterStats } from '@nexus/character-creator/utils/characte
 import { AttacksAndActions } from './AttacksAndActions';
 
 describe('Forge limited resource actions', () => {
+  it('persists an explicit correction for an unrecorded imported balance', async () => {
+    const character = calculateCharacterStats(
+      REFERENCE_BUILDS.F24.creationData,
+    );
+    character.resources!.find(
+      (entry) => entry.id === 'second-wind',
+    )!.currentUses = undefined;
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    render(
+      <AttacksAndActions
+        character={character}
+        onUpdateCharacter={onUpdate}
+        onDiceRoll={vi.fn()}
+        setRollResult={vi.fn()}
+      />,
+    );
+    fireEvent.click(
+      screen.getByText('Record Second Wind recovery or correction'),
+    );
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: 'Remaining Second Wind uses' }),
+      { target: { value: '1' } },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Record Second Wind' }));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledOnce());
+    expect(
+      onUpdate.mock.calls[0][0].resources.find(
+        (entry: { id: string }) => entry.id === 'second-wind',
+      ),
+    ).toMatchObject({ currentUses: 1, cooldown: { remaining: 0 } });
+    expect(
+      character.resources!.find((entry) => entry.id === 'second-wind')!
+        .currentUses,
+    ).toBeUndefined();
+  });
   it.each(['F14', 'F24'])(
     'spends %s Second Wind before rolling healing and preserves the original character',
     async (reference) => {

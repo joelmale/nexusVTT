@@ -358,6 +358,48 @@ for (const host of ['forge', 'vtt'] as const)
                 .getByRole('button', { name: /^Take a Long Rest/ })
                 .click();
               await expect.poll(readUses).toBe(2);
+              await page
+                .getByText('Record Second Wind recovery or correction', {
+                  exact: true,
+                })
+                .click();
+              await page
+                .getByRole('spinbutton', {
+                  name: 'Remaining Second Wind uses',
+                  exact: true,
+                })
+                .fill('0');
+              await page
+                .getByRole('spinbutton', {
+                  name: 'Second Wind cooldown remaining',
+                  exact: true,
+                })
+                .fill('2');
+              await page
+                .getByRole('button', {
+                  name: 'Record Second Wind',
+                  exact: true,
+                })
+                .click();
+              await expect.poll(readUses).toBe(0);
+              await expect(
+                page.getByText('Cooldown: 2 long rests remaining', {
+                  exact: true,
+                }),
+              ).toBeVisible();
+              await page
+                .getByRole('button', { name: /^Take a Long Rest/ })
+                .click();
+              await expect(
+                page.getByText('Cooldown: 1 long rests remaining', {
+                  exact: true,
+                }),
+              ).toBeVisible();
+              await expect.poll(readUses).toBe(0);
+              await page
+                .getByRole('button', { name: /^Take a Long Rest/ })
+                .click();
+              await expect.poll(readUses).toBe(2);
             }
           } finally {
             await identity?.dispose();

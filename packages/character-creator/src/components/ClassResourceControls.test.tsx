@@ -13,6 +13,84 @@ const resource: CharacterResource = {
 };
 
 describe('class resource persistence feedback', () => {
+  it('retains an explicit daily record after a failed save and permits retry', async () => {
+    const onRecord = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(undefined);
+    render(
+      <ClassResourceControls
+        resources={[{ ...resource, currentUses: undefined }]}
+        onConsume={vi.fn()}
+        onRecord={onRecord}
+      />,
+    );
+    fireEvent.click(
+      screen.getByText('Record Second Wind recovery or correction'),
+    );
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: 'Remaining Second Wind uses' }),
+      { target: { value: '1' } },
+    );
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'Second Wind cooldown unit' }),
+      { target: { value: 'day' } },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Record Second Wind' }));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'could not be saved',
+      ),
+    );
+    expect(
+      screen.getByRole('spinbutton', { name: 'Remaining Second Wind uses' }),
+    ).toHaveValue(1);
+    expect(screen.getByText('Remaining uses not recorded')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Record Second Wind' }));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('record saved'),
+    );
+    expect(onRecord).toHaveBeenLastCalledWith('second-wind', 1, {
+      remaining: 0,
+      unit: 'day',
+    });
+  });
+  it('records an unknown balance and a rolled cooldown through host persistence', async () => {
+    const onRecord = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ClassResourceControls
+        resources={[{ ...resource, currentUses: undefined }]}
+        onConsume={vi.fn()}
+        onRecord={onRecord}
+      />,
+    );
+    fireEvent.click(
+      screen.getByText('Record Second Wind recovery or correction'),
+    );
+    const submit = screen.getByRole('button', { name: 'Record Second Wind' });
+    expect(submit).toBeDisabled();
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: 'Remaining Second Wind uses' }),
+      { target: { value: '0' } },
+    );
+    fireEvent.change(
+      screen.getByRole('spinbutton', {
+        name: 'Second Wind cooldown remaining',
+      }),
+      { target: { value: '4' } },
+    );
+    fireEvent.click(submit);
+    await waitFor(() =>
+      expect(onRecord).toHaveBeenCalledWith('second-wind', 0, {
+        remaining: 4,
+        unit: 'long-rest',
+      }),
+    );
+    expect(screen.getByText('Remaining uses not recorded')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('record saved'),
+    );
+  });
   it('waits for host persistence, prevents duplicate use and leaves the balance with the host', async () => {
     let finish!: () => void;
     const onConsume = vi.fn(

@@ -13,9 +13,17 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  LevelUpExpertiseChoices,
+  LevelUpClassCastingChoices,
+} from '@nexus/character-creator';
 import { Character, LevelUpChoices } from '../../types/dnd';
 import { LevelUpData } from '@nexus/character-creator/data/classProgression';
-import { calculateLevelUpData, getLevelUpSteps, applyLevelUp } from '../../utils/levelUpUtils';
+import {
+  calculateLevelUpData,
+  getLevelUpSteps,
+  applyLevelUp,
+} from '../../utils/levelUpUtils';
 
 // Step components (to be implemented)
 import { StepOverview } from './steps/StepOverview';
@@ -38,13 +46,14 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
   isOpen,
   character,
   onClose,
-  onComplete
+  onComplete,
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [completionError, setCompletionError] = useState('');
   const [levelUpData, setLevelUpData] = useState<LevelUpData | null>(null);
   const [steps, setSteps] = useState<string[]>([]);
   const [choices, setChoices] = useState<LevelUpChoices>({
-    hpGained: 0
+    hpGained: 0,
   });
 
   // Calculate level-up data when wizard opens
@@ -56,11 +65,21 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
   }, [isOpen, character]);
 
   // Initialize state when calculatedData changes
-  const wizardSteps = useMemo(() => calculatedData ? getLevelUpSteps(calculatedData) : [], [calculatedData]);
-  const initialChoices = useMemo(() => calculatedData ? { hpGained: calculatedData.averageHpGain } : { hpGained: 0 }, [calculatedData]);
+  const wizardSteps = useMemo(
+    () => (calculatedData ? getLevelUpSteps(calculatedData) : []),
+    [calculatedData],
+  );
+  const initialChoices = useMemo(
+    () =>
+      calculatedData
+        ? { hpGained: calculatedData.averageHpGain }
+        : { hpGained: 0 },
+    [calculatedData],
+  );
 
   useEffect(() => {
     if (calculatedData) {
+      setCompletionError('');
       setLevelUpData(calculatedData);
       setSteps(wizardSteps);
       setCurrentStepIndex(0);
@@ -86,9 +105,17 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
   };
 
   const handleComplete = () => {
-    const updatedCharacter = applyLevelUp(character, levelUpData, choices);
-    onComplete(updatedCharacter);
-    onClose();
+    try {
+      const updatedCharacter = applyLevelUp(character, levelUpData, choices);
+      onComplete(updatedCharacter);
+      onClose();
+    } catch (caught) {
+      setCompletionError(
+        caught instanceof Error
+          ? caught.message
+          : 'Level advancement could not be completed.',
+      );
+    }
   };
 
   const updateChoices = (newChoices: Partial<LevelUpChoices>) => {
@@ -102,7 +129,7 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
       choices,
       updateChoices,
       onNext: handleNext,
-      onPrev: handlePrev
+      onPrev: handlePrev,
     };
 
     switch (currentStep) {
@@ -117,10 +144,36 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
       case 'spells':
         return <StepSpells {...stepProps} />;
       default:
+        if (currentStep === 'class-free-casting')
+          return (
+            <LevelUpClassCastingChoices
+              character={character}
+              choices={choices}
+              onChange={updateChoices}
+              onNext={handleNext}
+              onPrev={handlePrev}
+            />
+          );
         // Handle dynamic spell steps (spells-0, spells-1, etc.)
+        if (currentStep === 'expertise')
+          return (
+            <LevelUpExpertiseChoices
+              character={character}
+              choices={choices}
+              onChange={updateChoices}
+              onNext={handleNext}
+              onPrev={handlePrev}
+            />
+          );
         if (currentStep.startsWith('spells-')) {
           const spellChoiceIndex = parseInt(currentStep.split('-')[1]);
-          return <StepSpells {...stepProps} spellChoiceIndex={spellChoiceIndex} />;
+          return (
+            <StepSpells
+              key={currentStep}
+              {...stepProps}
+              spellChoiceIndex={spellChoiceIndex}
+            />
+          );
         }
         if (currentStep === 'fighting-style') {
           return <StepFightingStyle {...stepProps} />;
@@ -140,7 +193,8 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
       className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-[100] p-4"
       onClick={onClose}
     >
-      <div data-theme="paper"
+      <div
+        data-theme="paper"
         className="relative z-10 bg-[#f5ebd2] border-2 border-[#1e140a] rounded-sm shadow-md w-full max-w-3xl transition-all transform duration-300 scale-100 my-8 flex flex-col max-h-[calc(100vh-4rem)] pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -150,15 +204,26 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
             <div>
               <h2 className="text-3xl font-bold text-gray-900">Level Up!</h2>
               <p className="text-white mt-1">
-                {character.name} - Level {levelUpData.fromLevel} → {levelUpData.toLevel}
+                {character.name} - Level {levelUpData.fromLevel} →{' '}
+                {levelUpData.toLevel}
               </p>
             </div>
             <button
               onClick={onClose}
               className="text-gray-700 hover:text-gray-900 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -166,13 +231,19 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
           {/* Progress Bar */}
           <div className="mt-4">
             <div className="flex items-center justify-between text-sm text-white mb-2">
-              <span>Step {currentStepIndex + 1} of {steps.length}</span>
-              <span className="capitalize">{currentStep.replace('-', ' ')}</span>
+              <span>
+                Step {currentStepIndex + 1} of {steps.length}
+              </span>
+              <span className="capitalize">
+                {currentStep.replace('-', ' ')}
+              </span>
             </div>
             <div className="w-full bg-theme-primary rounded-full h-2">
               <div
                 className="bg-accent-gold rounded-full h-2 transition-all duration-300"
-                style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
+                style={{
+                  width: `${((currentStepIndex + 1) / steps.length) * 100}%`,
+                }}
               />
             </div>
           </div>
@@ -180,10 +251,11 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8">
+          {completionError && <p role="alert">{completionError}</p>}
           {renderStep()}
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };

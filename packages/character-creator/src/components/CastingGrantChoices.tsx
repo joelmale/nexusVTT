@@ -10,17 +10,25 @@ import { FeatProficiencyChoices } from './FeatProficiencyChoices';
 export function CastingGrantChoices({
   data,
   onChange,
+  classFreeOnly = false,
 }: {
   data: CharacterCreationData;
   onChange: (update: Partial<CharacterCreationData>) => void;
+  classFreeOnly?: boolean;
 }) {
-  const grants = resolveCastingGrants(data);
+  const grants = resolveCastingGrants(data).filter(
+    (grant) => !classFreeOnly || grant.source.resourceId,
+  );
   if (!grants.length)
     return (
       <>
-        <OriginGrantChoices data={data} onChange={onChange} />
-        <ClassGrantChoices data={data} onChange={onChange} />
-        <FeatProficiencyChoices data={data} onChange={onChange} />
+        {!classFreeOnly && (
+          <>
+            <OriginGrantChoices data={data} onChange={onChange} />
+            <ClassGrantChoices data={data} onChange={onChange} />
+            <FeatProficiencyChoices data={data} onChange={onChange} />
+          </>
+        )}
       </>
     );
   const catalog = loadSpells(data.edition);
@@ -32,10 +40,18 @@ export function CastingGrantChoices({
     });
   return (
     <section className={styles.grants} aria-label="Granted spell choices">
-      <OriginGrantChoices data={data} onChange={onChange} />
-      <ClassGrantChoices data={data} onChange={onChange} />
-      <FeatProficiencyChoices data={data} onChange={onChange} />
-      <h3>Spells from your species and feats</h3>
+      {!classFreeOnly && (
+        <>
+          <OriginGrantChoices data={data} onChange={onChange} />
+          <ClassGrantChoices data={data} onChange={onChange} />
+          <FeatProficiencyChoices data={data} onChange={onChange} />
+        </>
+      )}
+      <h3>
+        {classFreeOnly
+          ? 'Class free-casting spells'
+          : 'Spells from your class, species and feats'}
+      </h3>
       {grants.map(
         ({
           source,
@@ -44,6 +60,8 @@ export function CastingGrantChoices({
           spellChoices,
           ritualChoices,
           chooseSpellClass,
+          spellLevel = 1,
+          eligibleSpellSlugs,
         }) => (
           <fieldset className={styles.grant} key={source.id}>
             <legend>{source.sourceSlug}</legend>
@@ -166,18 +184,21 @@ export function CastingGrantChoices({
             )}
             {spellChoices === 1 && (
               <label>
-                Level 1 spell{' '}
+                Level {spellLevel} spell{' '}
                 <select
-                  aria-label={`Level 1 spell for ${source.sourceSlug}`}
+                  aria-label={`Level ${spellLevel} spell for ${source.sourceSlug}`}
                   value={source.preparedSpells[0] ?? ''}
                   onChange={(event) =>
                     update(source.id, { preparedSpells: [event.target.value] })
                   }
                 >
+                  <option value="">Choose a spell</option>
                   {catalog
                     .filter(
                       (spell) =>
-                        spell.level === 1 &&
+                        spell.level === spellLevel &&
+                        (!eligibleSpellSlugs ||
+                          eligibleSpellSlugs.includes(spell.slug)) &&
                         (!spellClass || spell.classes.includes(spellClass)),
                     )
                     .map((spell) => (
@@ -193,9 +214,11 @@ export function CastingGrantChoices({
                 ? source.ritualOnly
                   ? 'These leveled spells are rituals: add 10 minutes and spend no spell slot.'
                   : 'This source casts its spells at will, without spell slots.'
-                : source.freeUses
-                  ? 'Granted leveled spells have one free use each per long rest and can also use your class spell slots.'
-                  : 'These class spells stay prepared and use your class spell slots.'}
+                : source.resourceId
+                  ? 'Free castings share this class feature’s remaining uses and recovery rule.'
+                  : source.freeUses
+                    ? 'Granted leveled spells have one free use each per long rest and can also use your class spell slots.'
+                    : 'These class spells stay prepared and use your class spell slots.'}
             </p>
           </fieldset>
         ),

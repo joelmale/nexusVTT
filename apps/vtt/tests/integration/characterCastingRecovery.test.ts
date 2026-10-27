@@ -154,6 +154,44 @@ runIntegration('saved character admission and casting recovery', () => {
     expect(saved.resourcePools?.['feature:second-wind'].current).toBe(3);
     expect(saved.resourcePools?.['feature:hit-dice'].current).toBe(4);
     expect(saved.currentHp).toBe(36);
+    const record = {
+      ...command({
+        type: 'RecordClassResource',
+        actorId: actor.id,
+        resourceId: 'second-wind',
+        currentUses: 0,
+        cooldown: { remaining: 2, unit: 'long-rest' },
+      }),
+      expectedActorVersions: { [actor.id]: saved.stateVersion },
+    };
+    const records = await Promise.all([
+      db.domainCommands.execute(record, { principalId: ownerId }),
+      db.domainCommands.execute(record, { principalId: ownerId }),
+    ]);
+    expect(records.filter((result) => result.duplicate)).toHaveLength(1);
+    saved = (await db.campaignActors.getActorById(actor.id))!;
+    expect(saved.resourcePools?.['feature:second-wind']).toMatchObject({
+      current: 0,
+      cooldown: { remaining: 2, unit: 'long-rest' },
+    });
+    for (const remaining of [1, 0]) {
+      await db.domainCommands.execute(
+        {
+          ...command({
+            type: 'RestActor',
+            actorId: actor.id,
+            restType: 'long',
+          }),
+          expectedActorVersions: { [actor.id]: saved.stateVersion },
+        },
+        { principalId: ownerId },
+      );
+      saved = (await db.campaignActors.getActorById(actor.id))!;
+      expect(saved.resourcePools?.['feature:second-wind']).toMatchObject({
+        current: remaining === 0 ? 3 : 0,
+        cooldown: { remaining },
+      });
+    }
   });
 
   it('admits saved HP and resources once, commits a concurrent cast retry once, rejects unknown revisions and restores slots', async () => {

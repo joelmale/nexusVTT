@@ -20,6 +20,7 @@ vi.mock('@/services/commandClient', () => ({
     endConcentration: vi.fn(),
     restActor: vi.fn(),
     consumeClassResource: vi.fn(),
+    recordClassResource: vi.fn(),
   },
 }));
 const spell = {

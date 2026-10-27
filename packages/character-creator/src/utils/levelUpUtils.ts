@@ -26,19 +26,33 @@ import { cleric2024Progression } from '../data/progressions/cleric2024';
 import { druid2024Progression } from '../data/progressions/druid2024';
 import { warlock2024Progression } from '../data/progressions/warlock2024';
 import { artificer2024Progression } from '../data/progressions/artificer2024';
+import { artificer2014Progression } from '../data/progressions/artificer2014';
 import {
   PROFICIENCY_BONUSES,
   SKILL_TO_ABILITY,
-  CANTRIPS_KNOWN_BY_CLASS,
   loadSpells,
   loadFeats,
+  loadClasses,
   type AppSpell,
 } from '../services/dataService';
-import { SPELL_LEARNING_RULES } from '../data/spellLearning';
 import { classSpellSlots } from './classSpellSlots';
 import { reconcileCharacterResources } from './resourceUtils';
 import { coreClassProgression } from '../data/progressions/coreSchedules';
 import { classResourceDefinitions } from '../services/classResources';
+import {
+  levelUpExpertise,
+  levelUpExpertiseErrors,
+} from '../services/levelUpExpertise';
+import { skillId } from '../services/originChoices';
+import { levelUpClassCastingData } from '../services/levelUpClassCasting';
+import {
+  classFreeCastingErrors,
+  resolveClassFreeCasting,
+} from '../services/castingSources';
+import {
+  levelUpCasting,
+  levelUpCastingErrors,
+} from '../services/levelUpCasting';
 import {
   applyClassCapstone,
   deriveClassMechanics,
@@ -51,6 +65,8 @@ export function getClassProgression(
   classSlug: string,
   edition: '2014' | '2024' = '2024',
 ): ClassProgression | null {
+  if (classSlug === 'artificer' && edition === '2014')
+    return artificer2014Progression;
   const core = coreClassProgression(classSlug, edition);
   if (core) return core;
   // Implemented class progressions
@@ -169,7 +185,14 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
   let newCantripsKnown: number | undefined;
   let newSpellsKnown: number | undefined;
 
-  if (character.spellcasting) {
+  if (
+    character.spellcasting ||
+    classSpellSlots(
+      character.classSlug || character.class.toLowerCase(),
+      character.edition,
+      toLevel,
+    ).some((count, index) => index > 0 && count > 0)
+  ) {
     const classSlug = character.class.toLowerCase();
     const currentSlots = classSpellSlots(
       classSlug,
@@ -192,62 +215,38 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
       });
     }
 
-    // Check if cantrips known changed
-    const currentCantrips =
-      (CANTRIPS_KNOWN_BY_CLASS as Record<string, Record<string, number>>)[
-        classSlug
-      ]?.[fromLevel.toString()] || 0;
-    const nextCantrips =
-      (CANTRIPS_KNOWN_BY_CLASS as Record<string, Record<string, number>>)[
-        classSlug
-      ]?.[toLevel.toString()] || 0;
-    if (nextCantrips > currentCantrips) {
-      newCantripsKnown = nextCantrips;
-    }
-
-    const learningRules = SPELL_LEARNING_RULES[classSlug];
-
-    // For known casters, calculate new spells known
-    if (
-      character.spellcasting.spellcastingType === 'known' &&
-      learningRules?.spellsKnown
-    ) {
-      const currentSpellsKnown =
-        character.spellcasting.spellsKnown?.length || 0;
-      const expectedSpellsKnown = learningRules.spellsKnown[toLevel - 1] || 0; // Array is 0-indexed
-      const spellsToLearn = Math.max(
-        0,
-        expectedSpellsKnown - currentSpellsKnown,
-      );
-      if (spellsToLearn > 0) {
-        newSpellsKnown = spellsToLearn;
-      }
-    }
-
-    // For prepared casters, surface additional prepared slots as spell choices
-    if (
-      character.spellcasting.spellcastingType === 'prepared' &&
-      learningRules?.spellsPrepared
-    ) {
-      const currentPrepared =
-        character.spellcasting.preparedSpells?.length || 0;
-      const expectedPrepared = learningRules.spellsPrepared[toLevel - 1] || 0;
-      const newPreparedSlots = Math.max(0, expectedPrepared - currentPrepared);
-      if (newPreparedSlots > 0) {
-        newSpellsKnown = (newSpellsKnown || 0) + newPreparedSlots;
-      }
-    }
-
-    // Add spell choice if appropriate
-    if (newCantripsKnown || newSpellsKnown) {
+    const requirements = levelUpCasting(character);
+    newCantripsKnown = requirements.cantrips || undefined;
+    newSpellsKnown = requirements.spells || undefined;
+    if (requirements.cantrips)
       choices.push({
         type: 'spells',
-        description: `Learn new spells at level ${toLevel}`,
-        count: (newCantripsKnown ? 1 : 0) + (newSpellsKnown || 0),
+        description: 'Choose new class cantrips',
+        count: requirements.cantrips,
       });
-    }
+    if (requirements.spells)
+      choices.push({
+        type: 'spells',
+        description: 'Choose new class spells',
+        count: requirements.spells,
+      });
   }
 
+  const expertise = levelUpExpertise(character);
+  if (resolveClassFreeCasting(levelUpClassCastingData(character)).length)
+    choices.push({
+      type: 'class-free-casting',
+      description: 'Confirm class free-casting spells.',
+    });
+  if (expertise.count > 0) {
+    for (let index = choices.length - 1; index >= 0; index--)
+      if (choices[index].type === 'skill-expertise') choices.splice(index, 1);
+    choices.push({
+      type: 'skill-expertise',
+      description: 'Choose new Expertise proficiencies.',
+      count: expertise.count,
+    });
+  }
   return {
     fromLevel,
     toLevel,
@@ -324,6 +323,8 @@ function createFallbackLevelUpData(
  */
 export function getLevelUpSteps(levelUpData: LevelUpData): string[] {
   const steps: string[] = ['overview', 'hp'];
+  if (levelUpData.choices.some((choice) => choice.type === 'skill-expertise'))
+    steps.push('expertise');
 
   // Check for ASI/Feat choice
   const hasASI = levelUpData.choices.some((c) => c.type === 'asi');
@@ -353,6 +354,10 @@ export function getLevelUpSteps(levelUpData: LevelUpData): string[] {
   }
 
   // Always show features summary (even if automatic)
+  if (
+    levelUpData.choices.some((choice) => choice.type === 'class-free-casting')
+  )
+    steps.push('class-free-casting');
   if (levelUpData.features.length > 0) {
     steps.push('features');
   }
@@ -379,6 +384,20 @@ export function applyLevelUp(
       'Level-up data must advance the current character by exactly one level.',
     );
   const updatedCharacter = structuredClone(character);
+  const expertiseErrors = levelUpExpertiseErrors(
+    character,
+    choices.expertiseChosen,
+  );
+  if (expertiseErrors.length) throw new Error(expertiseErrors.join(' '));
+  const castingErrors = levelUpCastingErrors(character, [
+    ...(choices.spellsLearned ?? []),
+    ...(choices.cantripsLearned ?? []),
+  ]);
+  if (castingErrors.length) throw new Error(castingErrors.join(' '));
+  const freeCastingErrors = classFreeCastingErrors(
+    levelUpClassCastingData(character, choices),
+  );
+  if (freeCastingErrors.length) throw new Error(freeCastingErrors.join(' '));
 
   if (choices.asiChoices?.length) {
     const allowed = getClassProgression(
@@ -522,6 +541,19 @@ export function applyLevelUp(
       jackAfter -
       jackBefore;
   }
+  for (const selected of choices.expertiseChosen ?? []) {
+    const entry = Object.entries(updatedCharacter.skills).find(
+      ([name]) => skillId(name) === skillId(selected),
+    );
+    if (entry) {
+      entry[1].expertise = true;
+      entry[1].value += updatedCharacter.proficiencyBonus;
+    }
+  }
+  updatedCharacter.expertiseSkills = [
+    ...(character.expertiseSkills ?? []),
+    ...(choices.expertiseChosen ?? []),
+  ];
   updatedCharacter.initiative +=
     updatedCharacter.abilities.DEX.modifier - character.abilities.DEX.modifier;
   if (updatedCharacter.spellcasting && character.spellcasting) {
@@ -546,6 +578,34 @@ export function applyLevelUp(
   }
 
   // Apply spell slot increases
+  if (!updatedCharacter.spellcasting) {
+    const configuration = loadClasses(character.edition).find(
+      (entry) => entry.slug === classSlug,
+    )?.spellcasting;
+    const casting = levelUpCasting(character);
+    if (configuration && casting.type && casting.maxLevel > 0) {
+      const ability = configuration.ability;
+      updatedCharacter.spellcasting = {
+        ability,
+        spellSaveDC:
+          8 +
+          updatedCharacter.proficiencyBonus +
+          updatedCharacter.abilities[ability].modifier,
+        spellAttackBonus:
+          updatedCharacter.proficiencyBonus +
+          updatedCharacter.abilities[ability].modifier,
+        cantripsKnown: [],
+        spellcastingType: casting.type,
+        cantripChoicesByLevel: {},
+        spellSlots: classSpellSlots(
+          classSlug,
+          character.edition,
+          updatedCharacter.level,
+        ),
+        usedSpellSlots: Array<number>(10).fill(0),
+      };
+    }
+  }
   if (levelUpData.newSpellSlots && updatedCharacter.spellcasting) {
     const classSlug = character.class.toLowerCase();
     const newSlots = classSpellSlots(
@@ -569,14 +629,18 @@ export function applyLevelUp(
   }
 
   // Apply spells learned
-  if (choices.spellsLearned && updatedCharacter.spellcasting) {
+  const learned = [
+    ...(choices.spellsLearned ?? []),
+    ...(choices.cantripsLearned ?? []),
+  ];
+  if (learned.length && updatedCharacter.spellcasting) {
     // Load spell data to separate cantrips from leveled spells
-    const allSpells: AppSpell[] = loadSpells();
-    const cantrips = choices.spellsLearned.filter((spellSlug: string) => {
+    const allSpells: AppSpell[] = loadSpells(character.edition);
+    const cantrips = learned.filter((spellSlug: string) => {
       const spell = allSpells.find((s: AppSpell) => s.slug === spellSlug);
       return spell && spell.level === 0;
     });
-    const leveledSpells = choices.spellsLearned.filter((spellSlug: string) => {
+    const leveledSpells = learned.filter((spellSlug: string) => {
       const spell = allSpells.find((s: AppSpell) => s.slug === spellSlug);
       return spell && spell.level > 0;
     });
@@ -587,6 +651,8 @@ export function applyLevelUp(
         updatedCharacter.spellcasting.cantripsKnown = [];
       }
       updatedCharacter.spellcasting.cantripsKnown.push(...cantrips);
+      updatedCharacter.spellcasting.spellSlots[0] =
+        updatedCharacter.spellcasting.cantripsKnown.length;
     }
 
     // Add leveled spells based on casting type
@@ -601,9 +667,24 @@ export function applyLevelUp(
           updatedCharacter.spellcasting.spellbook = [];
         }
         updatedCharacter.spellcasting.spellbook.push(...leveledSpells);
+      } else if (
+        updatedCharacter.spellcasting.spellcastingType === 'prepared'
+      ) {
+        updatedCharacter.spellcasting.preparedSpells = [
+          ...(updatedCharacter.spellcasting.preparedSpells ?? []),
+          ...leveledSpells,
+        ];
       }
     }
   }
+
+  const freeSources = resolveClassFreeCasting(
+    levelUpClassCastingData(character, choices),
+  ).map((grant) => grant.source);
+  updatedCharacter.castingSources = [
+    ...(character.castingSources ?? []).filter((source) => !source.resourceId),
+    ...freeSources,
+  ];
 
   // Apply automatic features to class features list
   levelUpData.features
@@ -640,7 +721,8 @@ export function applyLevelUp(
     level: levelUpData.toLevel,
     timestamp: new Date().toISOString(),
     hpRolled: choices.hpRoll,
-    hpGained: choices.hpGained || 0,
+    hpGained: updatedCharacter.maxHitPoints - character.maxHitPoints,
+    expertiseChosen: choices.expertiseChosen,
     asiChoices: choices.asiChoices,
     featChosen: choices.featChosen,
     subclassChosen: choices.subclassChosen,
@@ -1368,7 +1450,12 @@ export function getHighLevelChoices(
       class: classSlug,
       edition,
       abilities: {
+        STR: { score: 10, modifier: 0 },
+        DEX: { score: 10, modifier: 0 },
         CON: { score: 10, modifier: 0 },
+        INT: { score: 10, modifier: 0 },
+        WIS: { score: 10, modifier: 0 },
+        CHA: { score: 10, modifier: 0 },
       },
     } as Character;
 

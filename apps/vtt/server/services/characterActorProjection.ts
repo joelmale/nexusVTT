@@ -315,6 +315,7 @@ export function projectCharacterCasting(
       max: resource.maxUses,
       current: resource.currentUses,
       recovery: resource.recovery,
+      cooldown: resource.cooldown,
       unlimited: resource.unlimited,
       resetOn:
         resource.rechargeType === 'daily' || resource.rechargeType === 'none'
@@ -346,19 +347,30 @@ export function projectCharacterCasting(
         ...stringList(grant.preparedSpells),
       ]),
     ];
-    const spells = definitions.filter((spell) => slugs.includes(spell.slug));
+    const spells = definitions.filter((spell) =>
+      slugs.some(
+        (entry) => spell.slug === entry || slug(spell.name) === slug(entry),
+      ),
+    );
     for (const spell of spells) {
       const profileId = `${String(grant.id)}:${spell.slug}`;
-      const poolId = `${profileId}:uses`;
+      const boundPoolId =
+        typeof grant.resourceId === 'string'
+          ? `feature:${grant.resourceId}`
+          : undefined;
+      if (boundPoolId && !result.pools[boundPoolId])
+        throw new Error('Casting grant requires its class resource counter.');
+      const poolId = boundPoolId ?? `${profileId}:uses`;
       const uses = Math.max(0, Number(grant.freeUses) || 0);
-      result.pools[poolId] = {
-        id: poolId,
-        name: `${spell.name} uses`,
-        poolType: grant.atWill === true ? 'at-will' : 'uses',
-        current: uses,
-        max: uses,
-        resetOn: 'long-rest',
-      };
+      if (!boundPoolId)
+        result.pools[poolId] = {
+          id: poolId,
+          name: `${spell.name} uses`,
+          poolType: grant.atWill === true ? 'at-will' : 'uses',
+          current: uses,
+          max: uses,
+          resetOn: 'long-rest',
+        };
       const profile: SpellcastingProfile = {
         profileId,
         name: `${String(grant.sourceSlug)}: ${spell.name}`,

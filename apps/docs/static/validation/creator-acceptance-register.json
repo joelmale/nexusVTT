@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "baselineCommit": "38ba98566372f3d229ad572e10236bb9a16f7a50",
   "requirementsFile": "apps/docs/platform/integrations/character-creation-review.md",
   "requirementsSha256": "bed1805f49159b7031c8d6fe541fea15b2b1e7356aebc87593bb3fe1ed6ddae2",
@@ -22,10 +22,11 @@
       },
       "mergePolicy": "Retain source provenance, deduplicate equivalent options, and apply the selected edition foundation when features replace one another. Do not stack Infuse Item with Replicate Magic Item or mix their progression tables.",
       "sources": [
+        "https://dnd5e.wikidot.com/artificer",
         "https://www.dndbeyond.com/posts/908-artificer-101-alchemist-from-tashas-cauldron-of",
         "https://www.dndbeyond.com/posts/2106-whats-new-with-the-artificer-in-eberron-forge-of"
       ],
-      "verification": "Foundations selected by Codex under user authorization. Full class, subclass, item-plan and spell tables still require source verification and independent DM acceptance."
+      "verification": "The user supplied the Wikidot legacy Artificer reference on 2026-10-27. Base progression and resource facts were checked against it. It is a community reference for the legacy class, not evidence for the 2025 replacement mechanics. Subclass, infusion/item-plan and full spell-list coverage and independent acceptance remain required."
     }
   },
   "testEnvironment": {
@@ -76,6 +77,65 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-01.A1",
+          "requirement": "Every fixture records exact edition/source/version/locator, all choices and independently derived abilities, skills/expertise, saves, attacks, HP/AC, speed, resources, spells, equipment and money.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/tests/fixtures/referenceBuilds.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Every fixture records exact edition/source/version/locator, all choices and independently derived abilities, skills/expertise, saves, attacks, HP/AC, speed, resources, spells, equipment and money.",
+          "evidence": []
+        },
+        {
+          "id": "CR-01.A2",
+          "requirement": "Assert all promised fields, not just HP/AC.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/tests/fixtures/referenceBuilds.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Assert all promised fields, not just HP/AC.",
+          "evidence": []
+        },
+        {
+          "id": "CR-01.A3",
+          "requirement": "A second reviewer approves expectations.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/tests/fixtures/referenceBuilds.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "A second reviewer approves expectations.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -96,6 +156,84 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-02.A1",
+          "requirement": "Full ↔ newcomer ↔ quiz, Back/forward, rename, edition/class/background changes and adapter round-trips retain compatible explicit choices.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/adapters/draftAdapter.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Full ↔ newcomer ↔ quiz, Back/forward, rename, edition/class/background changes and adapter round-trips retain compatible explicit choices.",
+          "evidence": []
+        },
+        {
+          "id": "CR-02.A2",
+          "requirement": "Invalidated explicit choices have targeted repair messages.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/adapters/draftAdapter.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Invalidated explicit choices have targeted repair messages.",
+          "evidence": []
+        },
+        {
+          "id": "CR-02.A3",
+          "requirement": "Name/alignment changes never rebuild mechanical choices.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/adapters/draftAdapter.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Name/alignment changes never rebuild mechanical choices.",
+          "evidence": []
+        },
+        {
+          "id": "CR-02.A4",
+          "requirement": "Quiz answers and presentation position survive independently of derived choices.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/adapters/draftAdapter.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Quiz answers and presentation position survive independently of derived choices.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -116,6 +254,84 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-03.A1",
+          "requirement": "Positive/negative cases cover every advertised grant family, ability method and required subchoice.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/catalogResolver.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Positive/negative cases cover every advertised grant family, ability method and required subchoice.",
+          "evidence": []
+        },
+        {
+          "id": "CR-03.A2",
+          "requirement": "Unknown/wrong-edition/disallowed content and illegal scores/allocations block completion at a repair target.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/catalogResolver.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Unknown/wrong-edition/disallowed content and illegal scores/allocations block completion at a repair target.",
+          "evidence": []
+        },
+        {
+          "id": "CR-03.A3",
+          "requirement": "Equivalent spells granted by different sources retain distinct provenance.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/catalogResolver.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Equivalent spells granted by different sources retain distinct provenance.",
+          "evidence": []
+        },
+        {
+          "id": "CR-03.A4",
+          "requirement": "Preserve advertised choices while repairing their grants; no silent fallback to another class/species.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/catalogResolver.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Preserve advertised choices while repairing their grants; no silent fallback to another class/species.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -136,6 +352,65 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-04.A1",
+          "requirement": "Preview → result → Forge reload → VTT conversion have exactly equal inventory, stack quantities, equipped slots and money.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/loadoutResolver.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Preview → result → Forge reload → VTT conversion have exactly equal inventory, stack quantities, equipped slots and money.",
+          "evidence": []
+        },
+        {
+          "id": "CR-04.A2",
+          "requirement": "Test package A/B combinations, purchases/change, duplicate stacks, empty wallets, all five coins, edition-specific packs, ammunition and conflicting armor/shield/two-handed assignments.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/loadoutResolver.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Test package A/B combinations, purchases/change, duplicate stacks, empty wallets, all five coins, edition-specific packs, ammunition and conflicting armor/shield/two-handed assignments.",
+          "evidence": []
+        },
+        {
+          "id": "CR-04.A3",
+          "requirement": "Re-evaluation never adds gear or money.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/loadoutResolver.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Re-evaluation never adds gear or money.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -156,6 +431,88 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-05.A1",
+          "requirement": "Both editions pass membership/level/count/subset/duplicate checks and preserve source grants.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/castingSources.test.ts",
+              "packages/character-creator/src/services/classFreeCasting.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Both editions pass membership/level/count/subset/duplicate checks and preserve source grants.",
+          "evidence": []
+        },
+        {
+          "id": "CR-05.A2",
+          "requirement": "Cover low/high INT, 2024 level-one Paladin/Ranger, and progression boundaries.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/castingSources.test.ts",
+              "packages/character-creator/src/services/classFreeCasting.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Cover low/high INT, 2024 level-one Paladin/Ranger, and progression boundaries.",
+          "evidence": []
+        },
+        {
+          "id": "CR-05.A3",
+          "requirement": "Shared helpers, creator evaluation and saved-sheet preparation agree.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/castingSources.test.ts",
+              "packages/character-creator/src/services/classFreeCasting.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Shared helpers, creator evaluation and saved-sheet preparation agree.",
+          "evidence": []
+        },
+        {
+          "id": "CR-05.A4",
+          "requirement": "Assert actual saved lists, slots, attack/DC and usable sheet actions; six displayed spells alone are not acceptance.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/castingSources.test.ts",
+              "packages/character-creator/src/services/classFreeCasting.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Assert actual saved lists, slots, attack/DC and usable sheet actions; six displayed spells alone are not acceptance.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -176,6 +533,68 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-06.A1",
+          "requirement": "Independent cases distinguish carried/equipped armor/shields, armor alternatives, negative DEX, Defense/Archery, Tough, edition-specific Alert, species/lineage benefits and resource counts.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/classResources.test.ts",
+              "packages/character-creator/src/services/classMechanics.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Independent cases distinguish carried/equipped armor/shields, armor alternatives, negative DEX, Defense/Archery, Tough, edition-specific Alert, species/lineage benefits and resource counts.",
+          "evidence": []
+        },
+        {
+          "id": "CR-06.A2",
+          "requirement": "No double ability/feat grant; every pending required choice blocks completion.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/classResources.test.ts",
+              "packages/character-creator/src/services/classMechanics.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "No double ability/feat grant; every pending required choice blocks completion.",
+          "evidence": []
+        },
+        {
+          "id": "CR-06.A3",
+          "requirement": "Existing-character HP/resource usage is not reset.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/classResources.test.ts",
+              "packages/character-creator/src/services/classMechanics.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Existing-character HP/resource usage is not reset.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -196,6 +615,103 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-07.A1",
+          "requirement": "The same revision yields identical preview/result/conversion.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/draftEvaluator.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "The same revision yields identical preview/result/conversion.",
+          "evidence": []
+        },
+        {
+          "id": "CR-07.A2",
+          "requirement": "Any intervening edit invalidates the old evaluation.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/draftEvaluator.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Any intervening edit invalidates the old evaluation.",
+          "evidence": []
+        },
+        {
+          "id": "CR-07.A3",
+          "requirement": "Invalid/stale results cannot save.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/draftEvaluator.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Invalid/stale results cannot save.",
+          "evidence": []
+        },
+        {
+          "id": "CR-07.A4",
+          "requirement": "Public imports/callbacks still compile, asynchronous errors retain work, and finalization neither recalculates nor duplicates grants.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/draftEvaluator.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Public imports/callbacks still compile, asynchronous errors retain work, and finalization neither recalculates nor duplicates grants.",
+          "evidence": []
+        },
+        {
+          "id": "CR-07.A5",
+          "requirement": "Integrate stable host retries through H-03.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/draftEvaluator.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Integrate stable host retries through H-03.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -216,6 +732,65 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-08.A1",
+          "requirement": "Both editions complete “make a Fighter,” “sneaky elf archer,” and caster journeys.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/recommendationService.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Both editions complete “make a Fighter,” “sneaky elf archer,” and caster journeys.",
+          "evidence": []
+        },
+        {
+          "id": "CR-08.A2",
+          "requirement": "Every advertised class has complete required grants, valid skill replacements, equipped starting gear and legal spells.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/recommendationService.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Every advertised class has complete required grants, valid skill replacements, equipped starting gear and legal spells.",
+          "evidence": []
+        },
+        {
+          "id": "CR-08.A3",
+          "requirement": "Name changes do not discard edits; class/species/fantasy and compatible custom choices survive regeneration.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/recommendationService.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Name changes do not discard edits; class/species/fantasy and compatible custom choices survive regeneration.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -236,6 +811,84 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-09.A1",
+          "requirement": "Changing weapon, ability, edition, level or spell package changes guidance appropriately.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/guidanceService.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Changing weapon, ability, edition, level or spell package changes guidance appropriately.",
+          "evidence": []
+        },
+        {
+          "id": "CR-09.A2",
+          "requirement": "Each suggested action is available on the saved sheet and consumes/replenishes the correct resource.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/guidanceService.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Each suggested action is available on the saved sheet and consumes/replenishes the correct resource.",
+          "evidence": []
+        },
+        {
+          "id": "CR-09.A3",
+          "requirement": "No fixed +5 promise or ordinary movement described as a bonus action.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/guidanceService.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "No fixed +5 promise or ordinary movement described as a bonus action.",
+          "evidence": []
+        },
+        {
+          "id": "CR-09.A4",
+          "requirement": "Host reachability is tested in H-08.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/services/guidanceService.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Host reachability is tested in H-08.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -256,6 +909,84 @@
         "T-03",
         "T-04",
         "T-05"
+      ],
+      "criteria": [
+        {
+          "id": "CR-10.A1",
+          "requirement": "At least one complete independent build per advertised class/edition plus positive/negative grant-family coverage.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/tests/supportInventory.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "At least one complete independent build per advertised class/edition plus positive/negative grant-family coverage.",
+          "evidence": []
+        },
+        {
+          "id": "CR-10.A2",
+          "requirement": "Execute the six references × guided/full × Forge/VTT, then quiz and Simple Player coverage.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/tests/supportInventory.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Execute the six references × guided/full × Forge/VTT, then quiz and Simple Player coverage.",
+          "evidence": []
+        },
+        {
+          "id": "CR-10.A3",
+          "requirement": "Preserve higher-level compatibility and test relevant boundaries without claiming complete multiclass certification from level-one tests.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/tests/supportInventory.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Preserve higher-level compatibility and test relevant boundaries without claiming complete multiclass certification from level-one tests.",
+          "evidence": []
+        },
+        {
+          "id": "CR-10.A4",
+          "requirement": "No false “certified” flags.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "packages/character-creator/src/tests/supportInventory.test.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "No false “certified” flags.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -273,6 +1004,84 @@
       "tranches": [
         "T-06",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "H-01.A1",
+          "requirement": "Test valid/current/legacy/future/corrupt/truncated records, key collisions, quota/blocked storage, account changes and two concurrent tabs.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Test valid/current/legacy/future/corrupt/truncated records, key collisions, quota/blocked storage, account changes and two concurrent tabs.",
+          "evidence": []
+        },
+        {
+          "id": "H-01.A2",
+          "requirement": "No silent overwrite or destructive migration.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "No silent overwrite or destructive migration.",
+          "evidence": []
+        },
+        {
+          "id": "H-01.A3",
+          "requirement": "Resume/copy/discard decisions are explicit and recoverable.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Resume/copy/discard decisions are explicit and recoverable.",
+          "evidence": []
+        },
+        {
+          "id": "H-01.A4",
+          "requirement": "Keep codecs independent of browser storage.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Keep codecs independent of browser storage.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -290,6 +1099,84 @@
       "tranches": [
         "T-06",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "H-02.A1",
+          "requirement": "Real IndexedDB upgrades and fresh-browser reloads preserve answers and mode/step across all entry paths.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Real IndexedDB upgrades and fresh-browser reloads preserve answers and mode/step across all entry paths.",
+          "evidence": []
+        },
+        {
+          "id": "H-02.A2",
+          "requirement": "Test guest/account separation, explicit discard, interrupted writes and save rejection.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Test guest/account separation, explicit discard, interrupted writes and save rejection.",
+          "evidence": []
+        },
+        {
+          "id": "H-02.A3",
+          "requirement": "Do not promise a last forced-close write; recovery uses the last confirmed durable revision.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Do not promise a last forced-close write; recovery uses the last confirmed durable revision.",
+          "evidence": []
+        },
+        {
+          "id": "H-02.A4",
+          "requirement": "Existing character databases remain intact.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Existing character databases remain intact.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -307,6 +1194,84 @@
       "tranches": [
         "T-06",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "H-03.A1",
+          "requirement": "Rejected save, commit then lost response, local post-save failure, double click, same-attempt concurrency and reload during an uncertain save produce one intended record and one canonical ID.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Rejected save, commit then lost response, local post-save failure, double click, same-attempt concurrency and reload during an uncertain save produce one intended record and one canonical ID.",
+          "evidence": []
+        },
+        {
+          "id": "H-03.A2",
+          "requirement": "Retry does not regenerate/randomize the character.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Retry does not regenerate/randomize the character.",
+          "evidence": []
+        },
+        {
+          "id": "H-03.A3",
+          "requirement": "Intentional copies use a new attempt.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Intentional copies use a new attempt.",
+          "evidence": []
+        },
+        {
+          "id": "H-03.A4",
+          "requirement": "Account deduplication is tested, not assumed to guarantee exactly-once behavior.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Account deduplication is tested, not assumed to guarantee exactly-once behavior.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -324,6 +1289,84 @@
       "tranches": [
         "T-06",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "H-04.A1",
+          "requirement": "Account save followed by rejected/timed-out session admission retains the sheet and a specific retry.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Account save followed by rejected/timed-out session admission retains the sheet and a specific retry.",
+          "evidence": []
+        },
+        {
+          "id": "H-04.A2",
+          "requirement": "Test DM offline, reconnect, room change, delayed results, two-player claim races, spectator, imported unassigned sheets, absent scene, existing linked token and delayed/rejected GM placement.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Test DM offline, reconnect, room change, delayed results, two-player claim races, spectator, imported unassigned sheets, absent scene, existing linked token and delayed/rejected GM placement.",
+          "evidence": []
+        },
+        {
+          "id": "H-04.A3",
+          "requirement": "No false “in game” status or duplicate linked token.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "No false “in game” status or duplicate linked token.",
+          "evidence": []
+        },
+        {
+          "id": "H-04.A4",
+          "requirement": "Both clients agree on ownership and canonical character identity.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Both clients agree on ownership and canonical character identity.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -341,6 +1384,65 @@
       "tranches": [
         "T-06",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "H-05.A1",
+          "requirement": "Open/save/cancel Edit from each desktop layout and the phone path; reload and export/import preserve expected changes.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Open/save/cancel Edit from each desktop layout and the phone path; reload and export/import preserve expected changes.",
+          "evidence": []
+        },
+        {
+          "id": "H-05.A2",
+          "requirement": "Opening or cancelling a legacy/imported character changes nothing.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Opening or cancelling a legacy/imported character changes nothing.",
+          "evidence": []
+        },
+        {
+          "id": "H-05.A3",
+          "requirement": "Restore/update and intentional copy have distinct identity behavior.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Restore/update and intentional copy have distinct identity behavior.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -358,6 +1460,103 @@
       "tranches": [
         "T-06",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "H-06.A1",
+          "requirement": "Interact with actual buttons/editors using role/name queries; verify legal visible choices, saved draft and final result.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Interact with actual buttons/editors using role/name queries; verify legal visible choices, saved draft and final result.",
+          "evidence": []
+        },
+        {
+          "id": "H-06.A2",
+          "requirement": "Exchange STR/DEX array assignments while retaining exactly one of each array score.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Exchange STR/DEX array assignments while retaining exactly one of each array score.",
+          "evidence": []
+        },
+        {
+          "id": "H-06.A3",
+          "requirement": "Randomization occurs only on explicit request.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Randomization occurs only on explicit request.",
+          "evidence": []
+        },
+        {
+          "id": "H-06.A4",
+          "requirement": "Skills and all spell-list distinctions survive rename, back navigation, mode switch and reload.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Skills and all spell-list distinctions survive rename, back navigation, mode switch and reload.",
+          "evidence": []
+        },
+        {
+          "id": "H-06.A5",
+          "requirement": "No enabled inert control remains on required journeys.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "No enabled inert control remains on required journeys.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -375,6 +1574,46 @@
       "tranches": [
         "T-06",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "H-07.A1",
+          "requirement": "Complete keyboard/nested modal/return-focus/backdrop/route-exit cases, failed draft flush, 320/390/768 widths, portrait/landscape with soft keyboard, 200% zoom and 400% reflow, measured contrast, representative NVDA and VoiceOver/TalkBack, and both host palettes.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Complete keyboard/nested modal/return-focus/backdrop/route-exit cases, failed draft flush, 320/390/768 widths, portrait/landscape with soft keyboard, 200% zoom and 400% reflow, measured contrast, representative NVDA and VoiceOver/TalkBack, and both host palettes.",
+          "evidence": []
+        },
+        {
+          "id": "H-07.A2",
+          "requirement": "Required actions remain reachable; automated accessibility checks alone do not certify this ticket.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Required actions remain reachable; automated accessibility checks alone do not certify this ticket.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -392,6 +1631,84 @@
       "tranches": [
         "T-06",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "H-08.A1",
+          "requirement": "Newly saved Fighter/Rogue/caster can find and execute actual weapon/skill/save/spell/recovery actions in each host.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Newly saved Fighter/Rogue/caster can find and execute actual weapon/skill/save/spell/recovery actions in each host.",
+          "evidence": []
+        },
+        {
+          "id": "H-08.A2",
+          "requirement": "Verify cantrips, legal slot selection, exactly-once slot use, unprepared/exhausted rejection, concentration/rest/reconnect and peer updates; pending/rejected states stay visible.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Verify cantrips, legal slot selection, exactly-once slot use, unprepared/exhausted rejection, concentration/rest/reconnect and peer updates; pending/rejected states stay visible.",
+          "evidence": []
+        },
+        {
+          "id": "H-08.A3",
+          "requirement": "Gear, preparations and resources agree with the evaluated sheet.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Gear, preparations and resources agree with the evaluated sheet.",
+          "evidence": []
+        },
+        {
+          "id": "H-08.A4",
+          "requirement": "Standalone export and VTT import/account/session routes stay explicit; no unsupported synchronization is invented.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Standalone export and VTT import/account/session routes stay explicit; no unsupported synchronization is invented.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -409,6 +1726,103 @@
       "tranches": [
         "T-06",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "H-09.A1",
+          "requirement": "Flags/fallback preserve identity, answers and old/new drafts; unsupported records remain recoverable.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Flags/fallback preserve identity, answers and old/new drafts; unsupported records remain recoverable.",
+          "evidence": []
+        },
+        {
+          "id": "H-09.A2",
+          "requirement": "Rollback never resets gameplay resources or reinstates known-invalid math.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Rollback never resets gameplay resources or reinstates known-invalid math.",
+          "evidence": []
+        },
+        {
+          "id": "H-09.A3",
+          "requirement": "Instrumentation distinguishes a saved draft from a saved character and accepted room handoff.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Instrumentation distinguishes a saved draft from a saved character and accepted room handoff.",
+          "evidence": []
+        },
+        {
+          "id": "H-09.A4",
+          "requirement": "Conduct/review the planned 12–18-participant study if claiming that gate; report observed counts/timings, not invented success rates.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Conduct/review the planned 12–18-participant study if claiming that gate; report observed counts/timings, not invented success rates.",
+          "evidence": []
+        },
+        {
+          "id": "H-09.A5",
+          "requirement": "Unrun research/release gates remain open.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Unrun research/release gates remain open.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -425,6 +1839,88 @@
       "reviewerAlias": "DM",
       "tranches": [
         "T-06"
+      ],
+      "criteria": [
+        {
+          "id": "CS-01.A1",
+          "requirement": "New session opens its saved route.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "New session opens its saved route.",
+          "evidence": []
+        },
+        {
+          "id": "CS-01.A2",
+          "requirement": "Two same-title sessions remain distinct.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Two same-title sessions remain distinct.",
+          "evidence": []
+        },
+        {
+          "id": "CS-01.A3",
+          "requirement": "Rename, clone, repeated publication and retry never add unintended prep plans/Chronicle sessions.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Rename, clone, repeated publication and retry never add unintended prep plans/Chronicle sessions.",
+          "evidence": []
+        },
+        {
+          "id": "CS-01.A4",
+          "requirement": "Legacy title recovery refuses ambiguous matches rather than attaching the wrong plan.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Legacy title recovery refuses ambiguous matches rather than attaching the wrong plan.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -441,6 +1937,88 @@
       "reviewerAlias": "DM",
       "tranches": [
         "T-06"
+      ],
+      "criteria": [
+        {
+          "id": "CS-02.A1",
+          "requirement": "Create/edit → confirmed save → fresh store/browser reload preserves all authored fields and references.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Create/edit → confirmed save → fresh store/browser reload preserves all authored fields and references.",
+          "evidence": []
+        },
+        {
+          "id": "CS-02.A2",
+          "requirement": "Saving a draft leaves an older active/published revision immutable.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Saving a draft leaves an older active/published revision immutable.",
+          "evidence": []
+        },
+        {
+          "id": "CS-02.A3",
+          "requirement": "Failed writes/links leave a recoverable draft; conflicts preserve both versions.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Failed writes/links leave a recoverable draft; conflicts preserve both versions.",
+          "evidence": []
+        },
+        {
+          "id": "CS-02.A4",
+          "requirement": "A transaction or equivalent durable checkpoint prevents an apparent save with missing plan data.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "A transaction or equivalent durable checkpoint prevents an apparent save with missing plan data.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -457,6 +2035,88 @@
       "reviewerAlias": "DM",
       "tranches": [
         "T-06"
+      ],
+      "criteria": [
+        {
+          "id": "CS-03.A1",
+          "requirement": "Generate a plan with SRD and homebrew encounters, reorder/edit/reload/publish/activate, and deploy the correct actors once.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Generate a plan with SRD and homebrew encounters, reorder/edit/reload/publish/activate, and deploy the correct actors once.",
+          "evidence": []
+        },
+        {
+          "id": "CS-03.A2",
+          "requirement": "Note/handout/scene links also survive.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Note/handout/scene links also survive.",
+          "evidence": []
+        },
+        {
+          "id": "CS-03.A3",
+          "requirement": "Missing required objects/stats produce a targeted blocker; authored encounter steps never silently become reminders.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Missing required objects/stats produce a targeted blocker; authored encounter steps never silently become reminders.",
+          "evidence": []
+        },
+        {
+          "id": "CS-03.A4",
+          "requirement": "Retry and reconnect preserve deployment idempotency.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Retry and reconnect preserve deployment idempotency.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -473,6 +2133,88 @@
       "reviewerAlias": "DM",
       "tranches": [
         "T-06"
+      ],
+      "criteria": [
+        {
+          "id": "CS-04.A1",
+          "requirement": "Type/edit/check/share → save → reload → publish transmits intended values.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Type/edit/check/share → save → reload → publish transmits intended values.",
+          "evidence": []
+        },
+        {
+          "id": "CS-04.A2",
+          "requirement": "Invalid dependencies remain visible.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Invalid dependencies remain visible.",
+          "evidence": []
+        },
+        {
+          "id": "CS-04.A3",
+          "requirement": "Failures show accessible errors and retry, retain edits and never claim success.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Failures show accessible errors and retry, retain edits and never claim success.",
+          "evidence": []
+        },
+        {
+          "id": "CS-04.A4",
+          "requirement": "Per-step sharing survives serialization; player-facing VTT projections exclude DM-only prose while DM views retain it.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Per-step sharing survives serialization; player-facing VTT projections exclude DM-only prose while DM views retain it.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -489,6 +2231,88 @@
       "reviewerAlias": "DM",
       "tranches": [
         "T-06"
+      ],
+      "criteria": [
+        {
+          "id": "CS-05.A1",
+          "requirement": "Publish A → edit B → ordinary Play is blocked pending publication.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Publish A → edit B → ordinary Play is blocked pending publication.",
+          "evidence": []
+        },
+        {
+          "id": "CS-05.A2",
+          "requirement": "Publish B → activate exactly B's returned revision.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Publish B → activate exactly B's returned revision.",
+          "evidence": []
+        },
+        {
+          "id": "CS-05.A3",
+          "requirement": "Slow hydration, failed publish/link/activation, reload and retry do not discard work, falsely report success or duplicate a run.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Slow hydration, failed publish/link/activation, reload and retry do not discard work, falsely report success or duplicate a run.",
+          "evidence": []
+        },
+        {
+          "id": "CS-05.A4",
+          "requirement": "Explicit restart clearly identifies its immutable revision.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Explicit restart clearly identifies its immutable revision.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -505,6 +2329,68 @@
       "reviewerAlias": "DM",
       "tranches": [
         "T-06"
+      ],
+      "criteria": [
+        {
+          "id": "CS-06.A1",
+          "requirement": "Test empty/all-complete history, stale curated IDs, completed current session, dates/order, and each supported entity kind.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Test empty/all-complete history, stale curated IDs, completed current session, dates/order, and each supported entity kind.",
+          "evidence": []
+        },
+        {
+          "id": "CS-06.A2",
+          "requirement": "Offer create/select-session recovery when none is open.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Offer create/select-session recovery when none is open.",
+          "evidence": []
+        },
+        {
+          "id": "CS-06.A3",
+          "requirement": "Save/reload confirms links on the displayed session; conflict/network rejection cannot claim success or alter historical prep.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Save/reload confirms links on the displayed session; conflict/network rejection cannot claim success or alter historical prep.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -521,6 +2407,88 @@
       "reviewerAlias": "DM",
       "tranches": [
         "T-06"
+      ],
+      "criteria": [
+        {
+          "id": "CS-07.A1",
+          "requirement": "Different maps and separate same-name handouts remain distinct across scenes/campaigns.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Different maps and separate same-name handouts remain distinct across scenes/campaigns.",
+          "evidence": []
+        },
+        {
+          "id": "CS-07.A2",
+          "requirement": "Editing handout prose without renaming publishes the changed text while earlier published revisions stay immutable.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Editing handout prose without renaming publishes the changed text while earlier published revisions stay immutable.",
+          "evidence": []
+        },
+        {
+          "id": "CS-07.A3",
+          "requirement": "Replacing a map affects only its intended scene; retries reuse the correct asset.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Replacing a map affects only its intended scene; retries reuse the correct asset.",
+          "evidence": []
+        },
+        {
+          "id": "CS-07.A4",
+          "requirement": "Missing references produce a repair action, not fallback to another map.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Missing references produce a repair action, not fallback to another map.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -537,6 +2505,88 @@
       "reviewerAlias": "DM",
       "tranches": [
         "T-06"
+      ],
+      "criteria": [
+        {
+          "id": "CS-08.A1",
+          "requirement": "Create one-shot/edition → reload preserves selection.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Create one-shot/edition → reload preserves selection.",
+          "evidence": []
+        },
+        {
+          "id": "CS-08.A2",
+          "requirement": "Save campaign mood → a second browser without local override sees it.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Save campaign mood → a second browser without local override sees it.",
+          "evidence": []
+        },
+        {
+          "id": "CS-08.A3",
+          "requirement": "Existing PUT consumers remain compatible; invalid metadata and unauthorized writes fail visibly.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Existing PUT consumers remain compatible; invalid metadata and unauthorized writes fail visibly.",
+          "evidence": []
+        },
+        {
+          "id": "CS-08.A4",
+          "requirement": "Reuse existing columns/migrations where present; add no redundant schema.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Reuse existing columns/migrations where present; add no redundant schema.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -553,6 +2603,68 @@
       "reviewerAlias": "DM",
       "tranches": [
         "T-06"
+      ],
+      "criteria": [
+        {
+          "id": "CS-09.A1",
+          "requirement": "Correct UUID navigation, complete plan round-trip, retained references, exact map/handout/monster/revision, no duplicate timeline/run, and truthful recoverable errors pass against real persistence.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Correct UUID navigation, complete plan round-trip, retained references, exact map/handout/monster/revision, no duplicate timeline/run, and truthful recoverable errors pass against real persistence.",
+          "evidence": []
+        },
+        {
+          "id": "CS-09.A2",
+          "requirement": "Demo/iPad smoke remains green but is not substituted for this gate.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Demo/iPad smoke remains green but is not substituted for this gate.",
+          "evidence": []
+        },
+        {
+          "id": "CS-09.A3",
+          "requirement": "Planned capabilities are explicitly listed and do not count as repaired implementations.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Planned capabilities are explicitly listed and do not count as repaired implementations.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -571,6 +2683,27 @@
         "T-06",
         "T-07",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "Q-01.A1",
+          "requirement": "Execute the full Q-01 checklist in the referenced repair plan.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "Execute the full Q-01 checklist in the referenced repair plan.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -591,6 +2724,27 @@
         "T-06",
         "T-07",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "Q-01.1.A1",
+          "requirement": "1. **Creator reference matrix:** six complete independent reference builds (F14/F24/R14/R24/W14/W24) × guided/full × Forge/VTT = 24 actual completion cases. Add quiz continuity and desktop/Simple Player entries explicitly; six calls to a converter are not six browser journeys. Reload saved sheets, perform useful actions and compare complete evaluated/saved values.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "1. **Creator reference matrix:** six complete independent reference builds (F14/F24/R14/R24/W14/W24) × guided/full × Forge/VTT = 24 actual completion cases. Add quiz continuity and desktop/Simple Player entries explicitly; six calls to a converter are not six browser journeys. Reload saved sheets, perform useful actions and compare complete evaluated/saved values.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -611,6 +2765,27 @@
         "T-06",
         "T-07",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "Q-01.2.A1",
+          "requirement": "2. **Broader creator coverage:** every advertised class/edition and grant family, incompatible-choice mutations, origins/species casting, gear/gold alternatives, exact money/quantities/slots, levels 1/2/3/4/5/8/11/17/19/20 where relevant, legacy/manual-override preservation. Prioritize actual progression boundaries; do not claim complete multiclass coverage from these samples.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "2. **Broader creator coverage:** every advertised class/edition and grant family, incompatible-choice mutations, origins/species casting, gear/gold alternatives, exact money/quantities/slots, levels 1/2/3/4/5/8/11/17/19/20 where relevant, legacy/manual-override preservation. Prioritize actual progression boundaries; do not claim complete multiclass coverage from these samples.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -631,6 +2806,27 @@
         "T-06",
         "T-07",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "Q-01.3.A1",
+          "requirement": "3. **Recovery matrix:** duplicate clicks; slow/rejected saves; server commit followed by lost response; partial local/account/session success; room rejection/reconnect; tab conflicts; corrupt/old/future drafts; route exit; nested Escape; name/mode/edition changes. Assert identity and preserved choices, not only displayed errors.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "3. **Recovery matrix:** duplicate clicks; slow/rejected saves; server commit followed by lost response; partial local/account/session success; room rejection/reconnect; tab conflicts; corrupt/old/future drafts; route exit; nested Escape; name/mode/edition changes. Assert identity and preserved choices, not only displayed errors.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -651,6 +2847,28 @@
         "T-06",
         "T-07",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "Q-01.4.A1",
+          "requirement": "4. **Studio matrix:** real campaign creation/metadata, complete authoring round-trip, typed references/maps/SRD and homebrew actors, same-title and renamed/cloned sessions, next-session linkage, dirty publication/activation, retry and revision conflict. Exercise a clean store/browser reload between operations. Observe the resulting VTT scene and actors.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/studio-authoring.smoke.spec.ts",
+              "apps/vtt/tests/e2e/studio-deployment.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "4. **Studio matrix:** real campaign creation/metadata, complete authoring round-trip, typed references/maps/SRD and homebrew actors, same-title and renamed/cloned sessions, next-session linkage, dirty publication/activation, retry and revision conflict. Exercise a clean store/browser reload between operations. Observe the resulting VTT scene and actors.",
+          "evidence": []
+        }
       ]
     },
     {
@@ -671,6 +2889,27 @@
         "T-06",
         "T-07",
         "T-08"
+      ],
+      "criteria": [
+        {
+          "id": "Q-01.5.A1",
+          "requirement": "5. **Accessibility and integration:** complete H-07 checks; validate both host palettes and CSS boundaries; keep contract, workspace, Docker and CI target graphs accurate if dependencies/routes/build inputs change. Target at least 80% relevant line/branch coverage for changed implementation while retaining stricter existing workspace gates. Coverage is necessary evidence, not a substitute for independent assertions and real journeys.",
+          "ownerAlias": "Codex",
+          "reviewerAlias": "DM",
+          "status": "not run",
+          "verification": {
+            "automatedStartingPoints": [
+              "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts"
+            ],
+            "manualInstructions": "apps/docs/platform/integrations/character-creation-manual-acceptance.md",
+            "unresolvedImplementationRegister": "apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md",
+            "instructions": "Check every clause against the named candidate. Add the specific inputs, independently expected values, exact command or manual steps and report before recording a pass. Starting-point files are not proof that this entire criterion is covered."
+          },
+          "candidate": null,
+          "inputs": null,
+          "expectedResult": "5. **Accessibility and integration:** complete H-07 checks; validate both host palettes and CSS boundaries; keep contract, workspace, Docker and CI target graphs accurate if dependencies/routes/build inputs change. Target at least 80% relevant line/branch coverage for changed implementation while retaining stricter existing workspace gates. Coverage is necessary evidence, not a substitute for independent assertions and real journeys.",
+          "evidence": []
+        }
       ]
     }
   ]

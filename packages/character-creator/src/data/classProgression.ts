@@ -22,7 +22,8 @@ export type FeatureChoiceType =
   | 'natural-explorer' // Ranger natural explorer choice
   | 'skill-expertise' // Wizard Scholar skill expertise
   | 'spell-mastery' // Wizard Spell Mastery choices
-  | 'signature-spells'; // Wizard Signature Spells choices
+  | 'signature-spells' // Wizard Signature Spells choices
+  | 'class-free-casting'; // Shares the class resource ledger.
 
 /**
  * Represents a choice the player must make at a specific level
@@ -88,6 +89,7 @@ export interface LevelUpRecord {
   spellsLearned?: string[]; // Spell slugs learned at this level
   fightingStyleChosen?: string; // Fighting style slug if chosen
   invocationChosen?: string; // Eldritch Invocation if chosen
+  expertiseChosen?: string[];
   featuresGained: string[]; // Names of automatic features gained
 }
 

@@ -12,6 +12,49 @@ const campaignId = '11111111-1111-4111-8111-111111111111';
 const ownerId = '22222222-2222-4222-8222-222222222222';
 
 describe('saved character casting projection', () => {
+  it('binds a class free casting to the existing spent counter without duplicating uses', () => {
+    const definitions = bundledSpellDefinitions(campaignId, ownerId, '2024');
+    const data = {
+      edition: '2024',
+      proficiencyBonus: 2,
+      abilities: { WIS: { modifier: 3 } },
+      resources: [
+        {
+          id: 'favored-enemy',
+          name: "Hunter's Mark",
+          description: '',
+          maxUses: 2,
+          currentUses: 0,
+          rechargeType: 'long-rest',
+        },
+      ],
+      castingSources: [
+        {
+          id: 'class:ranger:favored-enemy',
+          sourceType: 'class',
+          sourceSlug: 'favored-enemy',
+          ability: 'WIS',
+          cantrips: [],
+          knownSpells: [],
+          preparedSpells: ['hunters-mark'],
+          freeUses: 2,
+          resourceId: 'favored-enemy',
+        },
+      ],
+    };
+    const result = projectCharacterCasting(data, definitions);
+    expect(
+      result.profiles.find((profile) => profile.sourceSlug === 'favored-enemy')
+        ?.resourcePoolId,
+    ).toBe('feature:favored-enemy');
+    expect(result.pools['feature:favored-enemy'].current).toBe(0);
+    expect(
+      Object.values(result.pools).filter((pool) => pool.poolType === 'uses'),
+    ).toHaveLength(1);
+    expect(() =>
+      projectCharacterCasting({ ...data, resources: [] }, definitions),
+    ).toThrow('requires its class resource');
+  });
   it('projects martial resources and actual Hit Dice without requiring a spell profile', () => {
     const { profiles, pools } = projectCharacterCasting(
       {

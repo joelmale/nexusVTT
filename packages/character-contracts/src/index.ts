@@ -1,7 +1,10 @@
 // D&D 5e Character Sheet Types and Interfaces
 import type { CharacterResource } from './resources';
 export type { CharacterResource } from './resources';
-export { recoverCharacterResource } from './resources.js';
+export {
+  recoverCharacterResource,
+  recordCharacterResource,
+} from './resources.js';
 
 export type AbilityKey = 'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA';
 
@@ -125,6 +128,8 @@ export interface CharacterCastingSource {
   knownSpells: string[];
   preparedSpells: string[];
   freeUses?: number;
+  /** Bind a free casting to the existing class counter rather than duplicating it. */
+  resourceId?: string;
   ritual?: boolean;
   allowClassSlots?: boolean;
   atWill?: boolean;

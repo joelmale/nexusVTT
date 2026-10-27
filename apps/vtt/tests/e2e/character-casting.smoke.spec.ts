@@ -221,6 +221,62 @@ test('two clients cast a saved character, retry a committed command and reconnec
     await expect(
       hostBook.getByText('Level 1: 1 / 2', { exact: true }),
     ).toBeVisible();
+    await playerBook
+      .getByText('Record Arcane Recovery recovery or correction', {
+        exact: true,
+      })
+      .click();
+    await playerBook
+      .getByRole('spinbutton', {
+        name: 'Remaining Arcane Recovery uses',
+        exact: true,
+      })
+      .fill('0');
+    await playerBook
+      .getByRole('spinbutton', {
+        name: 'Arcane Recovery cooldown remaining',
+        exact: true,
+      })
+      .fill('2');
+    await playerBook
+      .getByRole('button', { name: 'Record Arcane Recovery', exact: true })
+      .click();
+    await expect(
+      playerBook.getByText('Cooldown: 2 long rests remaining', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      hostBook.getByText('Cooldown: 2 long rests remaining', { exact: true }),
+    ).toBeVisible();
+    await playerBook
+      .getByRole('button', { name: 'Short Rest', exact: true })
+      .click();
+    await expect(
+      playerBook.getByText('Cooldown: 2 long rests remaining', { exact: true }),
+    ).toBeVisible();
+    for (const remaining of [1, 0]) {
+      await playerBook
+        .getByRole('button', { name: 'Long Rest', exact: true })
+        .click();
+      if (remaining) {
+        await expect(
+          playerBook.getByText(`Cooldown: ${remaining} long rests remaining`, {
+            exact: true,
+          }),
+        ).toBeVisible();
+        await expect(
+          hostBook.getByText(`Cooldown: ${remaining} long rests remaining`, {
+            exact: true,
+          }),
+        ).toBeVisible();
+      } else {
+        await expect(
+          playerBook.getByText('1 / 1 remaining', { exact: true }),
+        ).toBeVisible();
+        await expect(
+          hostBook.getByText('1 / 1 remaining', { exact: true }),
+        ).toBeVisible();
+      }
+    }
   } finally {
     await host.close();
     await player.close();
