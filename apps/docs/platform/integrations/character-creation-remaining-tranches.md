@@ -6,7 +6,7 @@ description: Ordered implementation and acceptance work after the first rules, r
 # Remaining creator and Studio implementation tranches
 
 Date: **2026-10-26**. Implementation baseline: **`38ba9856`**, pushed to `main`.
-Status: **T-01–03 implementation in progress; exit criteria remain open.** See the
+Status: **T-01–03 implementation in progress; exit criteria remain open. T-08 device/AT acceptance waived by the owner (excluded, not passed).** See the
 [current implementation record](character-creation-tranches-1-3-evidence.md).
 
 This is the execution plan for work remaining after the first repair tranche.
@@ -317,6 +317,16 @@ Prepare recruitment and privacy-safe instrumentation early; conduct the planned
 **12–18 participant study** on the stabilized candidate. Agree success criteria
 before sessions, record observed completion/time/help/errors/recovery/handoff,
 repair material issues and retest. A deferred study leaves that gate open.
+
+**Decision (2026-10-27): device and assistive-technology acceptance waived by the
+owner.** The owner chose not to run the real-device, screen-reader, browser-zoom
+and keyboard acceptance rows in this plan. Status for those rows is **excluded**,
+not pass. No accessibility conformance is claimed for the creator, sheet or
+Studio; the automated axe, focus, viewport and contrast checks remain the only
+accessibility evidence. The independent rules review and the 12–18 participant
+study are **not** covered by this waiver and remain open, as do T-09 release and
+rollback acceptance. The prepared [run checklist](character-creation-t08-checklist.md)
+stays available if this decision is reversed.
 
 **Exit:** required device/AT tasks and independent reviews pass, material findings
 are repaired/retested, and actual participant evidence satisfies the agreed study

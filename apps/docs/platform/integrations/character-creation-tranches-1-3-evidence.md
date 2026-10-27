@@ -233,7 +233,9 @@ timeouts or assertions. Neither failed attempt is recorded as a pass.
    mechanics metadata alone does not establish attack/damage/range automation.
 5. Finish remaining higher-level real-host journeys.
    Keep their exact candidate scope distinct from the successful backend soaks.
-6. DM performs independent rules review and the actual device/AT tasks using
-   the [manual acceptance instructions](character-creation-manual-acceptance.md).
+6. DM performs the independent rules review. The actual device/AT tasks were
+   **waived by the owner on 2026-10-27** (status excluded, not passed; no
+   accessibility conformance is claimed). The [manual acceptance instructions](character-creation-manual-acceptance.md)
+   remain available if that decision is reversed.
 
 The broad player and engineering guide refresh remains deferred.

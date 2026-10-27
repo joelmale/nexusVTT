@@ -5,6 +5,8 @@ description: Tickable run sheet for the real device, screen-reader, zoom and key
 
 # T-08 device and assistive technology run checklist
 
+> **Waived by the owner on 2026-10-27; these rows are excluded, not passed.** Use this sheet only if the decision is reversed.
+
 Tick boxes as you go. Task steps and pass criteria live in the
 [manual acceptance instructions](character-creation-manual-acceptance.md); sample
 inputs and expected values (F24, WL24) are there too. Record results with the
