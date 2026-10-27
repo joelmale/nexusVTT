@@ -6,7 +6,7 @@ export const campaignSchema = z.object({
   description: z.string().optional(),
   gameSystem: z.string().min(1, 'Game system is required'),
   currentDate: z.string().optional(),
-  settings: z.record(z.any()).optional().default({}),
+  settings: z.record(z.string(), z.any()).optional().default({}),
   status: z.enum(['planning', 'active', 'completed', 'archived']).default('planning')
 });
 

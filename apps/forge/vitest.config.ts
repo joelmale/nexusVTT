@@ -63,6 +63,9 @@ export default defineConfig({
         lines: 70
       }
     },
-    globals: true
+    globals: true,
+    // Shared creator UI tests render large forms; coverage instrumentation
+    // pushes them past the 5s default on CI runners.
+    testTimeout: 20000
   }
 });
