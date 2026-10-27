@@ -43,6 +43,12 @@ export type {
 
 // Rules surface reused by host applications (character sheets, level-up, etc.)
 export * from './types/dnd';
+export {
+  featSpellChoiceFields,
+  featSpellChoicesComplete,
+  resolveFeatSpellChoice,
+  type FeatSpellChoiceField,
+} from './services/featSpellChoices';
 export type { CharacterCastingSource as CreatorCastingSource } from '@nexus/character-contracts';
 export { calculateCharacterStats } from './utils/characterCreationUtils';
 

@@ -36,6 +36,7 @@ import {
   type AppSpell,
 } from '../services/dataService';
 import { classSpellSlots } from './classSpellSlots';
+import { resolveFeatSpellChoice } from '../services/featSpellChoices';
 import { reconcileCharacterResources } from './resourceUtils';
 import { coreClassProgression } from '../data/progressions/coreSchedules';
 import { classResourceDefinitions } from '../services/classResources';
@@ -767,20 +768,6 @@ export function getAverageHPGain(hitDie: string, conModifier: number): number {
   return Math.max(1, average + conModifier); // Minimum 1 HP
 }
 
-/** Resolve an explicit feat spell choice against the edition's catalog. */
-function chosenFeatSpell(
-  edition: Character['edition'],
-  value: unknown,
-  level: number,
-  eligible: (spell: AppSpell) => boolean,
-): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const spell = loadSpells(edition).find((entry) => entry.slug === value);
-  return spell && spell.level === level && eligible(spell)
-    ? spell.slug
-    : undefined;
-}
-
 /**
  * Apply effects granted by a feat to the character
  */
@@ -877,14 +864,11 @@ function applyFeatEffects(
         // The player picks one 1st-level divination or enchantment spell; with
         // no valid choice recorded nothing is granted.
         {
-          const spell = chosenFeatSpell(
+          const spell = resolveFeatSpellChoice(
             character.edition,
+            'fey-touched',
+            'spell',
             featChoices?.['fey-touched']?.spell,
-            1,
-            (entry) =>
-              ['divination', 'enchantment'].includes(
-                entry.school.toLowerCase(),
-              ),
           );
           if (spell)
             featSpells.push({
@@ -943,11 +927,11 @@ function applyFeatEffects(
         // Cantrip and 1st-level spell come from the player's explicit choices.
         {
           const choices = featChoices?.['artificer-initiate'];
-          const cantrip = chosenFeatSpell(
+          const cantrip = resolveFeatSpellChoice(
             character.edition,
+            'artificer-initiate',
+            'cantrip',
             choices?.cantrip,
-            0,
-            (entry) => entry.classes.includes('artificer'),
           );
           if (cantrip)
             featSpells.push({
@@ -956,11 +940,11 @@ function applyFeatEffects(
               rechargeType: 'at-will',
               featSlug: 'artificer-initiate',
             });
-          const spell = chosenFeatSpell(
+          const spell = resolveFeatSpellChoice(
             character.edition,
+            'artificer-initiate',
+            'spell',
             choices?.spell,
-            1,
-            (entry) => entry.classes.includes('artificer'),
           );
           if (spell)
             featSpells.push({
@@ -976,11 +960,11 @@ function applyFeatEffects(
       case 'spell-sniper':
         // The attack cantrip comes from the player's explicit choice.
         {
-          const cantrip = chosenFeatSpell(
+          const cantrip = resolveFeatSpellChoice(
             character.edition,
+            'spell-sniper',
+            'cantrip',
             featChoices?.['spell-sniper']?.cantrip,
-            0,
-            (entry) => /spell attack/i.test(entry.description),
           );
           if (cantrip)
             featSpells.push({

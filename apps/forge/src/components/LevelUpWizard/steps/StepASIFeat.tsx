@@ -7,6 +7,10 @@
 import React, { useState } from 'react';
 import { Character, LevelUpChoices, AbilityName, ABILITY_SCORES } from '../../../types/dnd';
 import { LevelUpData } from '@nexus/character-creator/data/classProgression';
+import {
+  featSpellChoiceFields,
+  featSpellChoicesComplete,
+} from '@nexus/character-creator/services/featSpellChoices';
 import { loadFeats, resolveSpeciesSlug } from '../../../services/dataService';
 import { getAvailableFeatsForCharacter } from '../../../utils/featUtils';
 
@@ -30,6 +34,8 @@ export const StepASIFeat: React.FC<StepASIFeatProps> = ({
   const [choiceType, setChoiceType] = useState<'asi' | 'feat'>('asi');
   const [asiSelections, setAsiSelections] = useState<Array<{ ability: AbilityName; increase: number }>>([]);
   const [selectedFeat, setSelectedFeat] = useState<string>('');
+  const [spellChoices, setSpellChoices] = useState<Record<string, string>>({});
+  const spellFields = featSpellChoiceFields(selectedFeat, character.edition);
 
   const abilityScores = ABILITY_SCORES.reduce((acc, ability) => {
     acc[ability as AbilityName] = character.abilities[ability as AbilityName].score;
@@ -85,12 +91,22 @@ export const StepASIFeat: React.FC<StepASIFeatProps> = ({
     if (choiceType === 'asi') {
       updateChoices({ asiChoices: asiSelections, featChosen: undefined });
     } else {
-      updateChoices({ featChosen: selectedFeat, asiChoices: undefined });
+      updateChoices({
+        featChosen: selectedFeat,
+        asiChoices: undefined,
+        featChoices: spellFields.length
+          ? { [selectedFeat]: spellChoices }
+          : undefined
+      });
     }
     onNext();
   };
 
-  const canProceed = choiceType === 'asi' ? remainingPoints === 0 : selectedFeat !== '';
+  const canProceed =
+    choiceType === 'asi'
+      ? remainingPoints === 0
+      : selectedFeat !== '' &&
+        featSpellChoicesComplete(selectedFeat, character.edition, spellChoices);
 
   return (
     <div className="space-y-6">
@@ -201,11 +217,51 @@ export const StepASIFeat: React.FC<StepASIFeatProps> = ({
             </div>
           )}
 
+          {spellFields.length > 0 && (
+            <div className="bg-[#f5ebd2] border-2 border-[#1e140a] rounded-lg p-4 space-y-3">
+              <p className="text-sm text-gray-900 font-semibold">
+                This feat grants spells. Choose them now.
+              </p>
+              {spellFields.map((field) => (
+                <label key={field.key} className="block text-sm text-gray-900">
+                  {field.label}
+                  {field.options.length === 0 ? (
+                    <span className="block text-xs text-gray-700 mt-1">
+                      No eligible spells are available in the current catalog, so
+                      this feat will not grant one.
+                    </span>
+                  ) : (
+                    <select
+                      className="mt-1 block w-full rounded border-2 border-[#1e140a] bg-[#fcf6e3] p-2"
+                      value={spellChoices[field.key] ?? ''}
+                      onChange={(event) =>
+                        setSpellChoices((current) => ({
+                          ...current,
+                          [field.key]: event.target.value
+                        }))
+                      }
+                    >
+                      <option value="">Choose a spell</option>
+                      {field.options.map((spell) => (
+                        <option key={spell.slug} value={spell.slug}>
+                          {spell.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </label>
+              ))}
+            </div>
+          )}
+
           <div className="max-h-96 overflow-y-auto space-y-2">
             {availableFeats.map((feat) => (
               <button
                 key={feat.slug}
-                onClick={() => setSelectedFeat(feat.slug)}
+                onClick={() => {
+                  setSelectedFeat(feat.slug);
+                  setSpellChoices({});
+                }}
                 className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                   selectedFeat === feat.slug
                     ? 'border-red-800 bg-red-100'
