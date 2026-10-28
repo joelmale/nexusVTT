@@ -135,3 +135,30 @@ retry identity, durable save and session acknowledgement. Existing-character
 repair, a controlled newcomer rollout, phone/assistive-technology certification
 and the implementation plan's release gates remain unverified or incomplete; see
 the review record for their current status.
+
+## Implementation status note — 2026-10-27 (supersedes the 2026-10-24 note above)
+
+The 2026-10-24 note is kept as history; several of its statements are no longer
+true at `6d187098`. The decision itself is unchanged: one creator, imported at
+build time, with host-owned persistence. What changed:
+
+- **Shared state.** `CharacterCreator` owns one session shared by every
+  presentation, so draft data, identity, loadout and quiz answers carry across
+  mode switches. A few four-screen selections remain local.
+- **Completion.** Both presentations submit through `evaluateDraft()` and
+  `toCharacterCreationResult()`, which refuse invalid or changed drafts.
+- **Identity.** The character ID is the draft's `characterId`, and a failed save is
+  retried with the same cached result.
+- **Storage boundary.** Production hosts no longer use the package's raw `Storage`
+  helpers. Forge persists drafts in IndexedDB and VTT in its storage worker, each
+  through a recovery hook with revision checks. This restores the intended
+  boundary: the package still owns no storage backend. The `Storage` helpers
+  remain exported but are unused by hosts and skip some validation.
+- **Rollout.** There is no certification or staged release. The only control is a
+  runtime presentation flag, `__NEXUS_CREATOR_FLAGS__.guidedDefault`; both hosts
+  open the detailed wizard by default.
+- **Still open.** Real device and assistive-technology acceptance (waived by the
+  owner on 2026-10-27, not passed), class certification (every
+  `level1Certified` is `false`), a persistent awaiting-DM state in VTT, and the
+  defects listed in the
+  [engineering guide](/platform/integrations/character-creation#known-defects-and-discrepancies).

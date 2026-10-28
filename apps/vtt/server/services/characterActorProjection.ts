@@ -57,14 +57,17 @@ export function bundledSpellDefinitions(
     const file = require.resolve(
       edition === '2014'
         ? '@nexus/character-creator/data/srd/2014/5e-SRD-Spells.json'
-        : '@nexus/character-creator/data/srd/5e-SRD-Spells-Merged.json',
+        : '@nexus/character-creator/data/srd/2024/5e-SRD-spells.json',
     );
     const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'));
     if (!Array.isArray(parsed))
       throw new Error('Bundled spell catalog is invalid.');
+    // The 2024 file carries no edition tag; add it last so spell ids stay stable.
     rawSpellCatalog[edition] = parsed
       .map(object)
-      .filter((spell) => edition === '2014' || spell.source === edition);
+      .map((spell) =>
+        edition === '2024' ? { ...spell, source: '2024' } : spell,
+      );
   }
   return rawSpellCatalog[edition]!.map((spell) => {
     const name = String(spell.name);

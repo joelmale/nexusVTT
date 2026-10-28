@@ -5,6 +5,8 @@ description: Current source, resource and progression repairs, measured checks a
 
 # Creator tranches 1–3 implementation record
 
+> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
+
 Updated **2026-10-27**. Repairs began from `38ba98566372f3d229ad572e10236bb9a16f7a50`;
 the commit parent for publication is `5e2c4ce2535e7c64e04139d04a30999529a3518f`.
 Publication does not establish deployment. **T-01, T-02 and T-03 remain open**;

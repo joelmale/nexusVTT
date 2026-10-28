@@ -12,29 +12,27 @@ distinguishes the current candidate from released/deployed behavior.
 
 ## Current implementation status
 
-Reviewed 2026-10-24 against `edd07ca9` plus local changes. The candidate adds a
-four-screen guided presentation, draft APIs, recommendation/evaluation services
-and storage helpers. These are not evidence of a deployed release or completed
-class/edition certification.
+Reviewed 2026-10-27 at `6d187098`. See the
+[engineering guide](../../apps/docs/platform/integrations/character-creation.md)
+for evidence and file references; this summary only states what is true now.
 
-- `CharacterCreator` selects guided/full; Forge currently uses individual modal
-  exports and VTT uses this selector. Presentations still own separate local
-  state, so switching modes does not transfer all edits.
-- Actual modal submission calls `calculateCharacterStats()` through
-  `useCreationSubmission()`. It does not yet use the exported draft evaluator or
-  enforce its issues as final validation.
-- Hosts own character persistence, identity, ownership and session state. The
-  candidate package also exports optional browser `Storage` helpers; VTT wires
-  them for partial draft resume, while standalone Forge has no draft wiring.
-- Save rejection keeps mounted answers available and displays an error. The
-  submission guard blocks concurrent calls; it creates a new character UUID per
-  attempt, so it does not establish durable idempotency or duplicate-free retries.
-- `CERTIFIED_SUPPORT_MANIFEST` contains candidate assertions. Its booleans and
-  service tests do not replace independent rules or real-host verification.
-
-Do not treat draft migration, provenance, reconciliation, loadout equality,
-accessibility or rollout gating as complete. Details and recovery limits are in
-the engineering guide.
+- `CharacterCreator` owns one session shared by the guided (four-screen and quiz)
+  and full presentations, so draft data, identity and loadout carry across mode
+  switches. A few four-screen selections (playstyle card, explicit class and
+  species, name field) are local and do not.
+- Both presentations submit through `evaluateDraft()` and
+  `toCharacterCreationResult()`, which throw on invalid or changed drafts. The
+  character ID is the draft's `characterId`, and a failed save retries the same
+  cached result.
+- Hosts own persistence, identity and recovery (Forge: IndexedDB; VTT: account,
+  storage worker and session handoff). The package's raw `Storage` draft helpers
+  remain exported but are not used by either host and skip some validation.
+- Every `level1Certified` flag in `CERTIFIED_SUPPORT_MANIFEST` is `false`; the
+  export is an inventory of implemented, tested classes, not a certification.
+  Real-device and assistive-technology acceptance was waived by the owner and is
+  not passed.
+- No host context props (allowed sources, starting level) exist; `allowedSources`
+  is set through `initialDraft`.
 
 ## Minimal host integration
 
@@ -76,9 +74,9 @@ export function HostCharacterCreation({
 ```
 
 `CharacterCreationResult` carries `character`, `creationData`, `edition`,
-`createdAt` and optional candidate `combatGuidance`. The current UI submission
-does not set that optional guidance field. Await host persistence before closing;
-throw/reject to surface a save failure inside the modal.
+`createdAt`, and optional `combatGuidance`, `creationAttemptId`, `draftId` and
+`draftRevision`. Await host persistence before closing; throw/reject to surface a
+save failure inside the modal and keep the creator open.
 
 For the VTT character model, use the shared conversion:
 

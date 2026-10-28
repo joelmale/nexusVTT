@@ -1,7 +1,7 @@
 # Use the Forge character sheet
 
-A successful Forge creation opens the new character's sheet. To return later,
-open **Your Heroes → View Sheet**. **Back to List** returns to the cards.
+A successful Forge creation adds the character to **Your Heroes** and selects
+it; if the sheet is not showing, choose **View Sheet** on its card. **Back to List** returns to the cards.
 Forge saves characters in this browser's IndexedDB; it has no account or
 automatic VTT synchronization.
 
@@ -15,8 +15,8 @@ sheet and VTT sheet have different controls.
 Read the saved class, level, species, background, abilities, HP, armor class
 (AC), skills, equipped weapons, currency, and spell lists with your DM. A
 preview or recommendation is not proof that every choice was saved or that
-the build is rules-complete. The current creation candidate has known
-[equipment, spell, and recovery limitations](character-creation.md#recover-common-problems).
+the build is rules-complete. See
+[recovering from common problems](character-creation.md#recover-common-problems).
 
 The edition is stored on the character. Forge's creation chooser offers
 2014 and 2024, but neither selection guarantees every published option or

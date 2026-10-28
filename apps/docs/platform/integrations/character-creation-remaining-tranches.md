@@ -5,6 +5,8 @@ description: Ordered implementation and acceptance work after the first rules, r
 
 # Remaining creator and Studio implementation tranches
 
+> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
+
 Date: **2026-10-26**. Implementation baseline: **`38ba9856`**, pushed to `main`.
 Status: **T-01–03 implementation in progress; exit criteria remain open. T-08 device/AT acceptance waived by the owner (excluded, not passed).** See the
 [current implementation record](character-creation-tranches-1-3-evidence.md).

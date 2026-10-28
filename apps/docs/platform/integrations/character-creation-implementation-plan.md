@@ -6,7 +6,7 @@ description: Phased delivery, role ownership, rules acceptance, and release gate
 # Shared character creation implementation plan
 
 Date: 2026-10-23  
-Status: Proposed; implementation has not started under this plan.  
+Status (updated 2026-10-27): **Planning document, partly implemented; not a completion record.** Much of Phases 1–5 exists in source at `6d187098` (shared session and draft, evaluator-backed submission, loadout resolver, recommendations, four-screen flow, host draft recovery, stable-ID retry, VTT session handoff). **Not done or not evidenced:** class certification (every `level1Certified` is `false`), the 24-case real-browser matrix as an executed result (the e2e host matrix skips without a managed stack), the moderated study and pilot (Phase 6), staged release and rollback rehearsal (only a runtime `guidedDefault` presentation flag exists), a persistent awaiting-GM state, and real-device and assistive-technology acceptance (T-08, waived by the owner on 2026-10-27 — excluded, not passed). Gates G0–G6 are therefore **not** recorded as passed. Current facts live in the [engineering guide](character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md); the sections below are retained as the original proposal.  
 Planning baseline: `edd07ca931b6ae590b28a061756e1d56041072db` (`edd07ca9`).  
 Primary scope: `packages/character-creator`, its Forge/VTT hosts, and existing shared rules/contracts.  
 Effort: approximately **50–75 engineering person-days**, or **60–90 with contingency**; rules review, research and QA add approximately **15–25 specialist days**. A three-engineer team with fractional UX/rules and dedicated QA should provision **8–12 calendar weeks**, subject to Phase 0 re-estimation.

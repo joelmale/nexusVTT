@@ -1,451 +1,439 @@
 ---
 title: Shared character creation engineering guide
-description: Current package contracts, host ownership, candidate draft services, validation limits, and contributor checks for Nexus character creation.
+description: Implemented package contracts, draft and evaluation pipeline, host persistence and handoff, rollout controls, known defects, and contributor checks for Nexus character creation.
 ---
 
 # Shared character creation engineering guide
 
-Reviewed on **2026-10-24**, against `edd07ca9` plus the local character-creation
-candidate. The four-screen flow, draft services, evaluator, recommendations and
-support manifest include uncommitted changes. Their presence in this checkout
-does **not** establish that a deployed Forge or VTT has them. See the
-[review and verification record](character-creation-review.md) for build evidence,
-test results and unresolved defects, and the
-[implementation plan](character-creation-implementation-plan.md) for the remaining
-acceptance gates.
+Reviewed on **2026-10-27** against repository `HEAD` **`6d187098`** (Forge
+`1.5.3`, VTT `0.1.0`). Every claim below was read from source at that commit;
+file references use `path:line` and may drift, so re-check before relying on a
+line number. Nothing here was exercised in a deployed build. Test names are
+cited as evidence that a behavior is **covered**, not that the suite was run for
+this review (see [Validation](#validation-commands-and-evidence)).
 
-This is the maintained engineering explanation. Player instructions live in
-[Forge character creation](/forge/character-creation) and
-[VTT getting started](/vtt/getting-started). The accepted
-[shared-creator ADR](/vtt/adr/shared-character-creator) records why the
-package is imported at build time.
+Status vocabulary used throughout: **Implemented** (present in source and
+reachable from the shipped UI), **Partial** (present with a named gap),
+**Not present** (do not document as available), **Open acceptance** (the
+[execution records](character-creation-remaining-tranches.md) still list a gate
+as open). Support is **not certified**: every `level1Certified` flag is `false`
+(`packages/character-creator/src/data/supportManifest.ts`).
+
+Audience routes: players use [Create a character](/forge/character-creation) and
+[Bring your character into a VTT game](/vtt/features/character-onboarding).
+The accepted decision is [ADR-0002](/vtt/adr/shared-character-creator). The
+documentation audit behind this page is the
+[coverage matrix](character-creation-docs-coverage.md).
 
 ## Ownership and data flow
 
-All source paths below are relative to the repository root.
+Paths are relative to the repository root.
 
-| Owner | Current responsibility |
+| Owner | Responsibility |
 | --- | --- |
-| `packages/character-creator` | Creator UI, bundled creation catalogs, its character model, calculators, rules-engine modules, draft adapters and candidate recommendation/evaluation services. |
-| `packages/character-contracts` | Shared VTT character and Forge import shapes, proficiency/skill types and basic helpers. This is the conversion target, not a host persistence service. |
-| `packages/game-contracts` | Shared domain schemas, identity, actors, casting profiles, commands and receipts; depends on character contracts. |
-| `packages/rules-5e` | Headless shared math, progression, casting/preparation and catalog-key helpers; depends on game contracts. |
-| `packages/rules-contracts` | Rules publication schemas and fixtures. It does not own the creator's local draft or wizard state. |
-| Forge | Chooser/edition context, its IndexedDB adapter by default, sheet selection and post-save actions. |
-| VTT | Account/player identity, conversion, catalog-version recording, account persistence, local cache and separate session/claim/placement operations. |
+| `packages/character-creator` | Wizard and guided UI, bundled catalogs, calculators, effect engine, draft/recommendation/evaluation/loadout services, draft storage codec, level-up choice components. **No** account, storage backend or room state. |
+| `packages/rules-5e` | Headless math. The evaluator imports `calculatePreparationLimit` from it, and the creator's `package.json` now declares `@nexus/rules-5e`. |
+| `packages/character-contracts` | VTT character shape and the conversion target. |
+| Forge (`apps/forge`) | IndexedDB persistence, draft repository, recovery dialog, library selection. |
+| VTT (`apps/vtt`) | Conversion, account save, storage-worker draft persistence, session handoff, claim/token operations. |
 
-The creator's manifest currently depends on `@nexus/character-contracts`; it does
-**not** depend on `@nexus/rules-5e`. Do not describe the plan's proposed
-`character-creator → rules-5e → game-contracts → character-contracts` chain as an
-implemented evaluator migration. Add shared generic rules at their existing
-headless boundary after independent review; avoid introducing host or creator
-imports into those packages.
+Both hosts import the creator's TypeScript source at build time through
+workspace paths and Vite aliases (`packages/character-creator/package.json:6-11`).
+VTT creation does not depend on a reachable Forge service.
 
-Both applications resolve the creator's TypeScript source through workspace
-configuration. Forge still federates its character sheet separately. Creation
-does not require a running Forge remote when launched in VTT.
-
-The current UI completion path is:
+Completion path in both presentations:
 
 ```text
-Full wizard answers or guided answers
-  → useCreationSubmission
-  → calculateCharacterStats
-  → CharacterCreationResult
-  → host save callback
+answers (CreationSession) → useCreationSubmission
+  → creationDataToDraft (stable IDs) → evaluateDraft → toCharacterCreationResult
+  → CharacterCreationResult → host onComplete
 ```
 
-The candidate also exports a second, explicit service path:
+`useCreationSubmission.ts:98-100` calls `toCharacterCreationResult(evaluateDraft(current))`
+for both the full wizard and the guided flow. `toCharacterCreationResult` throws
+when the evaluation is invalid or the draft changed after evaluation
+(`services/draftEvaluator.ts`, "Character changed after evaluation"), and the
+message is shown in the creator. The `buildCharacter` option on the hook bypasses
+the evaluator and exists for tests only; neither presentation passes it.
 
-```text
-CharacterCreationData → creationDataToDraft → CreationDraft
-  → evaluateDraft → DraftEvaluationResult
-  → toCharacterCreationResult → host
-```
+**Partial — preview equality.** The four-screen preview runs `evaluateDraft` on
+every render (`FourScreenNewcomerFlow.tsx:182`), but submit rebuilds a draft
+from `CharacterCreationData` and re-evaluates it rather than reusing the
+previewed object. Equality is covered by `tests/regressionMatrix.test.ts` and
+`tests/creatorRepair.test.ts`; no test asserts "previewed object deep-equals
+saved result".
 
-The four-screen flow calls `getRecommendation()`, which evaluates a generated
-draft for its recommendation result. **Actual UI submission still uses the first
-path.** Neither creator presentation submits through `evaluateDraft()` or
-`toCharacterCreationResult()`. Treat preview/final validation parity as incomplete.
+## Public entry points
 
-## Public entry points and completion contract
-
-Prefer `CharacterCreator` when a host wants the package's guided/full selector.
-Forge currently renders the individual `CharacterCreationWizard` and
-`GuidedCharacterCreator` exports from its own chooser; VTT renders
-`CharacterCreator` through `SharedCharacterCreator`.
+`src/index.ts` is the supported surface. Highlights:
 
 | Export | Purpose |
 | --- | --- |
-| `CharacterCreator`, `CreationMode` | Selects `guided` or `full`; default mode is `guided`. |
-| `CharacterCreationWizard`, `WizardProps` | Full presentation with 14 indexed steps and conditional navigation. Higher-level steps remain a compatibility path, not newly certified support. |
-| `GuidedCharacterCreator` | Guided modal; the candidate starts with `FourScreenNewcomerFlow` and offers the older personality quiz. |
-| `FourScreenNewcomerFlow`, `FourScreenNewcomerFlowProps` | Lower-level candidate presentation. Its completion callback receives `CharacterCreationData`, not `CharacterCreationResult`. |
-| `CharacterCreationResult`, `CharacterCreationCompleteHandler` | Host save contract shared by the full and guided modal wrappers. |
-| `CreatedCharacter`, `CharacterCreationData`, `Edition` | Creator model, legacy answer model and `'2014' \| '2024'`. |
-| `createdCharacterToNexus`, `toNexusCharacter`, `ToNexusCharacterOptions` | Creator/Forge JSON conversion into the shared VTT character model. |
-| `useCreationSubmission` | Shared asynchronous save/error guard; hosts can test the same handshake. |
-| Draft, recommendation, evaluation, loadout and storage exports | Candidate services described below; exporting them does not mean all UI paths use them. |
+| `CharacterCreator` | Host entry; owns one `CreationSession` and switches presentations. |
+| `CharacterCreationWizard`, `GuidedCharacterCreator`, `FourScreenNewcomerFlow`, `PersonalityWizard` | Individual presentations. `FourScreenNewcomerFlow`'s `onComplete` receives `CharacterCreationData`, not a result. |
+| `CharacterCreationResult`, `CharacterCreationCompleteHandler`, `CreatedCharacter`, `CharacterCreationData`, `Edition` | Host contract types. |
+| `useCreationSubmission` | Save handshake (in-flight guard, cached retry). |
+| `toNexusCharacter`, `createdCharacterToNexus`, `UNMAPPED_CREATOR_FIELDS` | Single conversion into the VTT model; also used by Forge JSON import (`apps/vtt/src/services/characterImport/forgeAdapter.ts`). |
+| `CreationDraft`, `creationDataToDraft`, `draftToCreationData`, `evaluateDraft`, `toCharacterCreationResult`, `resolveCatalogEntitlements`, `resolveLoadout`, `calculateTotalCurrencyGp` | Draft and evaluation services. |
+| `getRecommendation`, `intentToClass`, `generateFirstTurnGuidance`, `CERTIFIED_SUPPORT_MANIFEST` | Recommendation and support data. |
+| `createDraftStorageKey`, `save/load/clearDraftFromStorage`, `encode/decodeDraftRecord`, `migrateDraft`, `CURRENT_DRAFT_VERSION` | Draft codec and optional `Storage` helpers. Production hosts use their own repositories (below). |
+| `LevelUp*Choices`, `ClassResourceControls`, `featSpellChoice*` | Level-up and resource building blocks used by Forge. |
 
-`CharacterCreatorComponentProps` is the alias exported for the actual component
-props in `components/CharacterCreator.tsx`. `CharacterCreatorProps` is separately
-exported from `api/types.ts`. They currently describe the same host surface; keep
-both compatible when evolving it. `WizardProps` excludes mode controls.
+Not exported: `useCreationSession`, `getClassSupportScopes`, `getSubclassLevel`,
+content-provenance helpers.
 
-| Prop | Current behavior |
+### `CharacterCreator` props
+
+From `components/CharacterCreator.tsx:23-49`:
+
+| Prop | Behavior |
 | --- | --- |
-| `isOpen` | Required; the component renders nothing when false. The host controls visibility. |
-| `edition?` | Initial edition. The full wizard can change it in its first step. The guided wrapper defaults to 2024 when omitted. |
-| `theme?` | Written to `data-theme` on the creator root. VTT resolves its theme explicitly. |
-| `initialMode?`, `allowModeSwitch?` | `CharacterCreator` only; defaults are `guided` and `true`. Mode changes remount the child. |
-| `initialDraft?`, `onDraftChange?`, `onDraftDiscard?` | Candidate resume/change/discard seams. Their current limitations are listed below. |
-| `submitLabel?` | Used by the full wizard; the guided wrapper does not forward a custom label to its final button. |
-| `onCancel` | Required; tells the host to dismiss. Cancellation does not itself clear storage. |
-| `onComplete` | Required; `(result: CharacterCreationResult) => void \| Promise<void>`. Await durable host save before resolving. |
+| `isOpen`, `onCancel`, `onComplete` | Required. `onComplete(result)` may return a promise; await your durable save and **throw to keep the creator open**. |
+| `edition?` | Initial edition. |
+| `theme?` | Written to `data-theme` on the creator root. |
+| `initialMode?`, `allowModeSwitch?` | `'guided'` (default) or `'full'`; switching defaults on. |
+| `initialDraft?`, `onDraftChange?`, `onDraftDiscard?` | Resume and persistence seams. **`onDraftDiscard` is accepted but never called by creator code** — hosts discard on their own save path (see Forge/VTT below). |
+| `initialPresentation?`, `onPresentationChange?` | Restore and report `CreatorPresentation` (mode plus per-mode step positions). |
+| `submitLabel?` | Forwarded **only** to the full wizard (`CharacterCreator.tsx:161`); the guided final button ignores it. |
 
-The result contains `character`, `creationData`, `edition` and ISO `createdAt`.
-The candidate adds optional `combatGuidance`. `toCharacterCreationResult()` sets
-that field; `useCreationSubmission()` currently omits it. The host must not assume
-it is present after a real UI save. `creationData` contains creation answers, not
-an exhaustive provenance ledger or a lossless replay format for every draft.
+`api/types.ts:44-71` exports a second, near-duplicate `CharacterCreatorProps`;
+the component's own interface is exported as `CharacterCreatorComponentProps`.
+They are separate types — keep them in step.
 
-This minimal host uses actual public exports and keeps save failures inside the
-creator. It deliberately selects the full presentation for a host that has already
-chosen its experience:
+**Not present:** host context props for allowed sources, starting level or
+capabilities. `allowedSources?: string[]` exists only on `CreationDraft`
+(`types/draft.ts:66`); a host can set it through `initialDraft`, and it is then
+enforced by `catalogResolver.ts` and `draftEvaluator.ts`.
+
+### `CharacterCreationResult`
+
+`api/types.ts:28-38`: `character`, `creationData`, `edition`, `createdAt`,
+optional `combatGuidance`, `creationAttemptId`, `draftId`, `draftRevision`.
+`toCharacterCreationResult` sets `character.id = draft.characterId` and the
+guidance field, so the UI path does produce `combatGuidance`.
+
+Minimal host (verified against the props above):
 
 ```tsx
-import { useState } from 'react';
 import {
   CharacterCreator,
   type CharacterCreationResult,
-  type CreatedCharacter,
 } from '@nexus/character-creator';
 import '@nexus/character-creator/styles.css';
 
-interface HostCharacterCreationProps {
-  saveCharacter: (character: CreatedCharacter) => Promise<void>;
-}
-
-export function HostCharacterCreation({
-  saveCharacter,
-}: HostCharacterCreationProps) {
-  const [isOpen, setIsOpen] = useState(true);
-
-  async function complete(result: CharacterCreationResult): Promise<void> {
-    await saveCharacter(result.character);
-    setIsOpen(false);
-  }
-
-  return (
-    <CharacterCreator
-      isOpen={isOpen}
-      edition="2024"
-      initialMode="full"
-      allowModeSwitch={false}
-      theme="dark-colorful"
-      onCancel={() => setIsOpen(false)}
-      onComplete={complete}
-    />
-  );
-}
+<CharacterCreator
+  isOpen
+  edition="2024"
+  initialMode="full"
+  allowModeSwitch={false}
+  onCancel={close}
+  onComplete={async (result: CharacterCreationResult) => {
+    await save(result.character); // throw to keep the creator open
+    close();
+  }}
+/>;
 ```
 
-For VTT model conversion, use `createdCharacterToNexus(result.character,
-{ playerId })`. The same underlying `toNexusCharacter()` serves Forge JSON import.
-Review `UNMAPPED_CREATOR_FIELDS` and conversion regressions whenever adding a
-field; do not create a second host converter.
+## Presentations and shared state
 
-## Presentation state, drafts and reconciliation
+* **Guided (default for the component).** `GuidedCharacterCreator` runs
+  `FourScreenNewcomerFlow` by default (`flowMode: 'four-screen'`) and links to the
+  older `PersonalityWizard` quiz. The four screens are *Intent* (five playstyle
+  cards, a **Quick Class Bypass** button per manifest class, optional species),
+  *Recommended Hero* (with ability, skill and spell editors), *Equipment & Spells*,
+  and *Name & Finalize* (name, alignment, first-turn guidance, **Create
+  Character**).
+* **Full.** `CharacterCreationWizard` has 14 indexed steps
+  (`constants/wizard.constants.ts:5-38`); conditional steps are skipped.
+* **Switching.** `CharacterCreator` creates one `useCreationSession`
+  (`CharacterCreator.tsx:73`) and provides it by context; both doors read the
+  inherited session (`useCreationSession.ts:145`). Draft data, identity, loadout,
+  quiz answers and per-mode step positions transfer
+  (`tests/creatorSession.test.tsx:15-37`). **Partial:** the four-screen flow keeps
+  `selectedIntent`, `explicitClass`, `selectedSpecies` and the name field in local
+  React state (`FourScreenNewcomerFlow.tsx:114-140`), so those are not carried
+  across a switch. Button labels: **Advanced Mode** (guided → full) and **Use
+  guided creation** (full → guided, only when the host allows switching).
+* Hosts choose the starting door. Both hosts pass `initialMode='full'` unless a
+  rollout flag is set (see [Rollout](#rollout-and-rollback)); Forge's *Personality
+  Wizard* method forces `guided` (`apps/forge/src/App.tsx:1608`).
 
-The full wizard still owns a local `CharacterCreationData` object and step index
-in `useWizardState`. Updates shallow-merge answers. Opening resets it or converts
-`initialDraft`; it does not restore a persisted step. The four-screen flow owns
-intent, explicit class/species, name, alignment and modal edits separately, then
-generates recommendations with `useMemo`. The older quiz owns another local
-answer flow. These presentations do not yet share one live canonical draft.
+## Draft model
 
-`CreationDraft` currently has literal `draftVersion: 1`, `draftId`, `characterId`,
-edition, level and name; species/lineage/class/subclass/background slugs; raw
-ability scores and a normalized method; ability bonuses; skills, expertise,
-style/mastery/origin fields; languages/tools; spell lists; a resolved loadout;
-narrative fields; and `provenance: Record<string, DraftProvenance>`.
+`CreationDraft` (`types/draft.ts:59-120`): `draftVersion: 1`, `revision`,
+`attemptId`, `draftId`, `characterId`, `allowedSources`, edition/level/name,
+species/lineage/class/subclass/background slugs, `rawAbilityScores`,
+`abilityMethod`, bonuses, skills, expertise, style/mastery/origin fields,
+languages, tools, `spells`, a resolved `loadout`, narrative fields and
+`provenance: Record<string, 'player' | 'recommended' | 'imported'>`.
 
-`DraftProvenance` is `player | recommended | imported`. The adapter marks broad
-groups (`species`, `class`, `background`, `abilities`, `skills`, `spells`,
-`equipment`) with one supplied provenance value. It does not track each grant's
-source, explicit edit, timestamp or rules revision. `DraftChoiceRecord` defines
-additional metadata internally but is not used as the draft's provenance shape.
+Lifecycle (`hooks/useCreationSession.ts`):
 
-`creationDataToDraft(data, { draftId?, characterId?, provenance? })` resolves a
-loadout and normalizes legacy aliases. Callers can supply stable IDs; current UI
-change callbacks do not. Each conversion otherwise creates new IDs.
-`draftToCreationData()` maps a subset back. It combines known spells and a wizard
-spellbook into one draft list, maps manual score methods back to `standard-roll`,
-and does not round-trip every full-wizard choice. In particular, weapon mastery,
-feat follow-up choices and high-level setup are not a lossless resume contract.
+* `updateCreationDraft` bumps `revision` and records provenance per updated
+  `CharacterCreationData` key. Changing a mechanical key (class, background,
+  edition, equipment choices) clears the resolved inventory and currency so the
+  loadout is re-resolved; narrative edits keep the exact loadout.
+* `replaceRecommended` swaps in a regenerated recommendation but copies back every
+  key whose provenance is `player`, and preserves draft, character and attempt IDs.
+* **Partial:** choosing a class with the bypass or a species in the dropdown stays
+  in local component state and is **not** recorded as `player` provenance, so a
+  later regeneration may replace it. Edits made through the modals, name and
+  alignment are protected. Provenance is per group, not per grant.
 
-Current reconciliation limits:
+### Draft storage codec
 
-- Switching guided to full through `CharacterCreator` changes local mode and
-  mounts a fresh child with the original `initialDraft`. It does not transfer the
-  latest edited draft. Quick Build/quiz switching also remounts their local state.
-- The four-screen change callback publishes `recommendation.draft`. Custom
-  abilities and skills are held separately, alignment is separate, and spell
-  edits mutate the recommendation object. Do not promise those edits survive
-  reload or trigger an up-to-date preview.
-- Explicit class/species requests are inputs to recommendation generation; no
-  general domain reconciler preserves compatible player edits or produces
-  targeted repair actions after a dependency change. The provenance field alone
-  does not provide that behavior.
-- `onDraftDiscard` is accepted through the components but is not called by the
-  current full/four-screen presentations. Closing and discarding are not the same
-  operation.
+`services/draftStorage.ts`: `CURRENT_DRAFT_VERSION = 1`. `isDraft` validates level
+1–20, six numeric scores, array shapes, loadout item shape (positive integer
+quantities) and non-negative integer currency. `encodeDraftRecord` throws on an
+invalid draft. `decodeDraftRecord` returns `ok`, `unsupported` (future version,
+raw bytes retained) or `invalid`, validates `pendingCompletion` and presentation,
+and falls back to `migrateDraft` for legacy `CharacterCreationData`.
+`tests/tamperedDrafts.test.ts` and the draftStorage tests cover rejection.
 
-When completing this architecture, preserve explicit player choices, explain
-incompatibilities and regenerate only recommendations that are no longer valid.
-Those are acceptance requirements from the plan, not guarantees of this candidate.
+**Defect (package helpers).** `loadDraftFromStorage` (`draftStorage.ts:256-318`)
+accepts any `version === 1` record with a `draft` field without calling `isDraft`,
+and `saveDraftToStorage` does not use `encodeDraftRecord`. The raw-`Storage`
+helpers therefore bypass the validation the codec offers. Production hosts do not
+use them (below); do not adopt them for new hosts.
+`isConflict` is advisory only (another tab id within ten minutes).
 
-## Recommendations, evaluation and supported content
+## Recommendations
 
-`getRecommendation(request)` accepts edition plus optional intent, class,
-species, level and name. It returns a draft, reasons, first-turn guidance and an
-evaluation. `intentToClass()` maps close combat/archery to Fighter, sneaking to
-Rogue, casting to Wizard and support to Cleric. A class request takes precedence
-over that map. Policies, score profiles and starter spell packages live in
-`services/recommendationService.ts`; guidance lives in `services/guidanceService.ts`.
+`getRecommendation({ intent?, classSlug?, speciesSlug?, edition, level?, name? })`
+(`services/recommendationService.ts:173`) returns `{ draft, reasons,
+firstTurnGuidance, evaluation }`. `intentToClass`: close combat and archery →
+Fighter, sneak → Rogue, cast → Wizard, support → Cleric. Every manifest class is
+reachable through the class bypass.
 
-Build choices are policy-driven, but IDs and evaluation timestamps change on
-generation. There is no seed/versioned recommendation record. Unknown requests
-can fall back, species lookup includes a cross-edition fallback, and the service
-does not preserve prior explicit modal edits. Its comments claiming guaranteed
-legal, complete builds exceed what the implemented checks establish.
+* Species defaults to Human, or Elf for archery, unless the player chose one.
+* Background is fixed per intent class (Fighter Soldier, Rogue Criminal, Wizard
+  Sage, Cleric Acolyte); all other classes receive Soldier.
+* Starter spell packages exist for Wizard, Cleric, Warlock, Sorcerer, Bard and
+  Druid; other casters are padded from the class list. **Artificer has no ability
+  profile and recommendations are marked unsupported for it** (`recommendationSupported: false`).
+* Reasons are returned in the result, **not stored on the draft**; only the
+  `recommended` provenance tag persists. The reason text is a template.
 
-`evaluateDraft()` resolves the loadout, calls `resolveCatalogEntitlements()`,
-adapts to creation answers, calls `calculateCharacterStats()`, copies resolved
-currency, and applies a small spell-validation set. It returns the updated draft,
-calculated character, structured issues, `isValid`, `evaluatedAt` and evaluator
-version `1.0.0`. Issue fields are `id`, numeric `step`, `group`, severity, message
-and optional `repairTarget`. The issue step numbers do not currently correspond
-to the full wizard's indices in every case; there is no integrated issue router.
+## Evaluation, entitlements and support policy
 
-Current checks cover required/catalog species and class, background existence,
-some 2024 bonus-allocation shapes, minimum class skill count, overlapping
-background skills, missing Fighter style, Rogue expertise and limited spell
-counts. Several are warnings. `strictEntitlements` is declared but unused.
-Background lookup is not fully edition-qualified. Source permissions, complete
-feat/species/class grants, legal skill pools, duplicate spell choices and all
-casting sources are not comprehensively validated. `isValid` means only that
-these checks produced no error; it is not certification of a playable build.
+`evaluateDraft` (`services/draftEvaluator.ts:249`, `EVALUATOR_VERSION` `1.1.0`):
+resolve loadout → structural checks (level, equipment-choice indexes) → catalog
+and entitlement resolution (`MISSING_*`, `INVALID_*`, under-entitled or duplicate
+skills, missing fighting style, source permissions via `allowedSources`) → on a
+hard catalog error return early without a character → `calculateCharacterStats` →
+validators for spellcasting (cantrip count, six-spell Wizard book, preparation
+limit through `rules-5e`, known-spell count, list/level membership), casting
+sources, class grants, origin choices and feat entitlements. The result carries a
+`draftFingerprint` and `draftRevision`; `isValid` means no error-level issue, not
+that the build is certified.
 
-`toCharacterCreationResult(evaluation)` returns the calculated object and guidance
-without refusing `isValid: false`. It does not replace the character ID with
-`draft.characterId`. A service consumer must handle invalid evaluations before
-calling it and must verify identity/preview equality itself.
+`data/supportManifest.ts` lists 13 classes (including Artificer), each with both
+editions, **all `level1Certified: false`**, and every scope from
+`getClassSupportScopes()` has `certified: false`. Artificer creation is
+`blocked-unverified-source`; other classes are `implemented-awaiting-acceptance`.
+The export name `CERTIFIED_SUPPORT_MANIFEST` is historical — treat it as a
+support inventory. `data/contentProvenance.ts` separates SRD 5.1 / SRD 5.2.1 core
+content from supplemental or unverified sources; unverified sources are rejected
+by `isPermittedContentSource`.
 
-The package also contains an effect-based `rulesEngine` with `BaseFacts`, sourced
-effects, pending choices and phased evaluation. The current draft facade does
-not call that engine. `VITE_USE_RULES_ENGINE=true` defines its exported
-`USE_RULES_ENGINE` constant; the actual creator completion path does not consult
-it. The flag is not a newcomer rollout control or proof of certified rules
-adoption. The generic preparation helper in `@nexus/rules-5e` is also not a
-substitute for an independent edition-specific rules oracle.
+Independent reference coverage exists as tests, not certification:
+`referenceBuilds.test.ts` (F14/F24/R14/R24/W14 and more), the per-class
+`*References.test.ts` files, `supportCertification.test.ts`,
+`supportInventory.test.ts` and `regressionMatrix.test.ts`. The matrix exercises
+services and conversion, **not** rendered hosts.
 
-`data/supportManifest.ts` names 12 classes with both editions and
-`level1Certified: true`. The four-screen class picker consumes this list. Those
-booleans record candidate assertions, not completed independent certification.
-The fixture tests and service tests must be reviewed with their actual results;
-neither advertised options nor an evaluator success establish full edition,
-subclass, multiclass or higher-level correctness. Source-qualified catalog keys
-exist in `rules-5e`, but the local draft uses slugs and does not implement a
-host-supplied allowed-source policy.
+The effect-based `rulesEngine` remains separate; do not infer rules-engine
+adoption from `VITE_USE_RULES_ENGINE`. Keep rules claims anchored to primary
+sources: SRD 5.1 and SRD 5.2.1 for core content, and the publisher's source
+pages named in the [tranche record](character-creation-tranches-1-3-evidence.md)
+for supplemental content.
 
-## Loadouts, money and equipped state
+## Loadouts, currency and equipped state
 
-The candidate `resolveLoadout(CharacterCreationData | CreationDraft)` reads
-selected class equipment options, background equipment, explicit currency and
-starting inventory. It expands five named packs, parses coin strings using the
-existing equipment parser, matches catalog equipment and merges entries by slug.
-Resolved items have an ID, slug, name, quantity, equipped flag, optional slot/AC/
-armor metadata, and a class/background/purchased/custom source. Coin denominations
-are `cp`, `sp`, `ep`, `gp`, `pp`.
+`resolveLoadout` (`services/loadoutResolver.ts`) turns class/background options,
+explicit currency and starting inventory into items with integer quantities,
+equipped flags and source (`class | background | purchased | custom`). Currency
+covers `cp/sp/ep/gp/pp`; `calculateTotalCurrencyGp` values electrum at 0.5 gp and
+totals **coin value only**. Equipped-slot logic covers armor, shield, main hand,
+two-handed and off hand (lines 234-287). Starting gold defaults to 50 gp. A
+populated loadout is returned unchanged, which is why mechanical edits clear it
+(see Draft model).
 
-`calculateTotalCurrencyGp()` totals denominations; `totalValueGp` currently means
-**coin value**, not an appraisal of the carried items. A populated draft loadout
-is returned unchanged. The resolver is not a complete legality or integer-quantity
-validator, does not enforce one item per equipped slot, and can add the same
-background items again if callers pass already-resolved starting inventory with
-the original background.
+## Submission, identity and retry
 
-The full equipment UI and `calculateCharacterStats()` still have their own
-equipment handling. The four-screen recommendation starts with empty class
-equipment choices; its background-derived loadout is not evidence that the
-displayed class combat kit or required ammunition/focus exists. Verify actual
-inventory, denominations, equipped armor/weapons and post-save AC against the
-preview. The intended one-resolved-loadout pipeline is not yet adopted end to end.
+`useCreationSubmission` (`components/CharacterCreationWizard/hooks/useCreationSubmission.ts`):
 
-## Host persistence, identity and recovery
+* The character ID is `draft.characterId`, stable for the draft/session — **not**
+  a new UUID per attempt.
+* `inFlight` and `completed` refs block concurrent and duplicate submits.
+* The first successful build is cached in `pendingResult`; if `onComplete`
+  rejects, the retry calls `onComplete` with the **same** result and ID.
 
-Forge's `App.tsx` awaits `dbService.addCharacter(result.character)`, refreshes its
-list and selects that ID. The default storage adapter is IndexedDB; an embedding
-host may inject another adapter. Standalone Forge does not acquire VTT account or
-session ownership through this callback. Forge currently supplies no draft
-callbacks, so the draft helper exports do not provide Forge autosave/resume.
+**Defect — stale retry cache.** `pendingResult` is never cleared on failure, and
+the cached branch runs before any rebuild (`useCreationSubmission.ts:67-70`).
+Reproduction: make `onComplete` reject once; edit an answer in the still-open
+creator; click the final button. The host receives the original result, not the
+edited one. (Hosts that freeze completion into the persisted draft, below, behave
+the same by design after a reload — "Retry previous save" replays the frozen
+result.) Idempotency is in memory; reload relies on the host's persisted draft.
 
-VTT's `SharedCharacterCreator.tsx` converts with `createdCharacterToNexus()`, sets
-`rulesCatalogVersion` using the catalog client and awaits
-`characterStore.saveCreatedCharacter()`. A missing catalog response degrades to
-`null`; bundled creation does not wait for Codex availability. The store saves to
-the account first when authenticated, updates in-memory state, then attempts its
-local cache. Cache failure is logged and does not fail creation. The host clears
-the stored draft after a successful save callback.
+## Host: Forge
 
-Session acceptance is a separate host operation. Desktop and Simple Player Mode
-callers manage their own assignment/claim flow. Saving a character does not
-prove a token was placed, ownership was accepted by the room, or a GM completed
-setup. Preserve those separate outcomes in UI and telemetry.
+* **Wrapper.** `ForgeCharacterCreator.tsx` renders `CharacterCreator` in a
+  `<dialog>`, used from `App.tsx:1593-1612` (full wizard and personality door)
+  and `routes/CharacterForgeRoute.tsx` (`/character-creator`, hard-coded 2024,
+  `submitLabel="Save Character"`).
+* **Storage.** IndexedDB `NexusForge` v14: `characters` and `characterDrafts`
+  stores (`services/storage/IndexedDbAdapter.ts:11-19`) behind `IStorageService`.
+  `addCharacter` uses `put`, so a retried save overwrites rather than duplicating
+  (`IndexedDbAdapter.drafts.test.ts`).
+* **Draft and recovery.** One draft slot per browser, key `forge:local:creation`
+  (`ForgeCharacterCreator.tsx:44`). `hooks/useCreatorRecovery.ts` loads on open
+  and offers **Resume creation**, **Retry previous save**, **Export recovery
+  copy** (`nexus-character-draft.json`) and **Discard draft and start new**. A
+  serialized write queue with a revision check rejects writes from a second tab
+  ("Draft changed in another tab").
+* **Completion.** flush draft → freeze completion → `onComplete` → discard draft
+  **only after the host save succeeded**. A failed save keeps the frozen result
+  for retry. `App.tsx:333-348` adds the character, reloads the list, selects it and
+  shows a "created" toast.
+* **Not present in Forge:** first-turn guidance cards (only in the creator's final
+  guided screen); a persisted rollout flag (below); account sync.
+* **Level-up.** `LevelUpWizard` includes Eldritch Invocation and Weapon Mastery
+  steps (`LevelUpWizard.tsx:180-201`) backed by shared `LevelUp*Choices`.
+* **Sheet actions.** `AttacksAndActions.tsx` builds attack/damage rolls and renders
+  `ClassResourceControls`. The edit form is a manual editor; there is no
+  dedicated "manual override" UI beyond editing values.
 
-`useCreationSubmission()` synchronously blocks concurrent submissions and blocks
-outer cancellation while a save is in flight. Rejections show an alert and keep
-the mounted answers available. After success or failure, its guard resets. It
-generates a **new UUID on every attempt**. Draft IDs do not yet stabilize that
-identity, and the guard does not prevent a later repeat after success if the
-host leaves the creator mounted.
+## Host: VTT
 
-VTT account creation includes server-side deduplication behavior, but callers
-must verify it against changing payload IDs and the returned server identity;
-the store currently retains its supplied ID without consuming the success body.
-Forge's IndexedDB adapter uses `add`, not an idempotent upsert. Do not promise
-duplicate-free retries across partial saves or remounts. A new integration needs
-a stable creation identity, durable acknowledgement and host-level retry tests
-before making that guarantee.
+* **Wrapper.** `SharedCharacterCreator.tsx`. Before the creator opens it asks
+  **Use 2014 rules / Use 2024 rules** unless a draft supplies the edition (lines
+  197-207). `allowModeSwitch` is on.
+* **Draft.** Key `vtt:<playerId>:<room|standalone>:creation`, stored in a
+  storage-worker IndexedDB (`apps/vtt/src/workers/storageWorker.ts`). A legacy
+  `nexus_draft_vtt_<player>` localStorage envelope is imported, not deleted, and
+  removed on discard (`SharedCharacterCreator.tsx:33-61`). Same recovery dialog and
+  hook design as Forge (`apps/vtt/src/hooks/useCreatorRecovery.ts`).
+* **Pipeline** (`SharedCharacterCreator.tsx:103-137`): flush → freeze →
+  `createdCharacterToNexus` → stamp `rulesCatalogVersion` →
+  `characterStore.saveCreatedCharacter` (POST `/api/characters` with
+  `creationAttemptId` and `draftRevision` when authenticated; server
+  `createCharacterOnce` in `apps/vtt/server/routes/api.ts:865-890` is idempotent,
+  409 on conflict; local cache failure does not fail creation) →
+  `handoffSavedCharacter` (`services/characterHandoff.ts`) → discard draft, toast,
+  `onComplete`.
+* **Handoff outcomes.** No session → *saved*. Host user → *accepted* without a
+  network send. Non-host → `sendPlayerIntent({ kind: 'submit-character' })` over
+  WebSocket (`playerIntentClient.ts`, 8 s timeout resolving `host-offline`), applied
+  by the host client in `playerIntentApplier.ts:136-153`, which rejects
+  `not-owner`, forces the submitter as owner and upserts. A non-applied result
+  throws, so the creator stays open and the frozen draft supports retry.
+* **Not present:** a persistent "awaiting GM" state or approval queue. Feedback is
+  a transient toast and thrown errors. The player is never given a token
+  automatically; the "ask the DM to place a token" message is computed from the
+  player's local scene state (`characterHandoff.ts:36-44`) and can lag the host.
+* **Simple Player Mode** reuses `SharedCharacterCreator` through the claim modal
+  (`SimplePlayerShell.tsx:63-65, 251-258`). Entry is `/play/:roomCode`
+  (`main.tsx:104-112`); the DM invite card (link, copy, share, QR) is mounted in
+  `LobbyPanel.tsx:262`.
 
-### Draft helper contract and limits
+## Known defects and discrepancies
 
-The package now exports storage utilities, an implementation change from the
-original storage-free boundary. They accept an injected `Storage` or default to
-browser `localStorage`. They do not access accounts or multiplayer state.
+Report-only; no runtime code was changed by this documentation work.
 
-| API | Current behavior |
-| --- | --- |
-| `createDraftStorageKey(host, playerId)` | Lowercases and removes characters outside letters/digits/underscore/hyphen. This can collide; it is not a collision-free identity encoding. |
-| `saveDraftToStorage(key, draft, options?)` | Writes `DurableDraftRecord` with envelope `version: 1`, timestamp and optional tab/mode/step; returns `null` on unavailable/failed storage. |
-| `loadDraftFromStorage(key, options?)` | Loads current-version records or attempts migration; returns `{ record, isConflict }` or `null`. |
-| `migrateDraft(raw)` | Attempts limited legacy conversion. Its shape detection is permissive and does not validate every version-1 field. |
-| `clearDraftFromStorage(key, options?)` | Removes one key; errors are logged. |
+| # | Evidence | Reproduction / effect |
+| - | --- | --- |
+| 1 | `apps/vtt/src/components/CharacterPanel.tsx:127-130`; `playerIntentApplier.ts:136` — no spectator check | Join `/play/CODE` with watch-only, switch to Full VTT, open **Characters**: **Create** is offered and a submission is applied. The onboarding banner correctly hides for spectators (`GameUI.tsx:84`). |
+| 2 | `useCreationSubmission.ts:67-70` | Stale retry after edit (above). |
+| 3 | `packages/character-creator/src/services/draftStorage.ts:256-318` | `loadDraftFromStorage` skips `isDraft`. |
+| 4 | `apps/forge/src/App.tsx:482-483` | Importing the same Forge backup twice creates duplicate characters (new UUID each time). |
+| 5 | `apps/forge/src/App.tsx:434-443` | Export `postMessage` uses target origin `*` and sends full character data to any parent/opener. |
+| 6 | `apps/forge/src/services/dbService.ts:13`; `VttSocketAdapter.ts:35-39` | `setStorageAdapter` has no callers; the adapter has no draft methods and `addCharacter` returns the id without saving when no API exists. Do not wire it without both fixes. |
+| 7 | `IndexedDbAdapter.ts:73-76`; `ForgeCharacterCreator.tsx:44` | Single Forge draft slot: two tabs (or both doors) conflict. |
+| 8 | `GameUI.tsx:81` | Desktop onboarding banner dismissal is in memory; it returns after reload. |
+| 9 | `SharedCharacterCreator.tsx:28, 79-85` | `isModal` prop is declared and unused. |
+| 10 | `tests/unit/components/SharedCharacterCreator.test.tsx` | Despite its name it drives `CharacterCreationWizard`, not the host component. Host behavior is covered by `creationSubmission.test.tsx`, `useCreatorRecovery.test.ts`, `characterHandoff.test.ts` and the e2e matrix. |
+| 11 | `FourScreenNewcomerFlow.tsx:114-140`; `useCreationSession.ts:105-135` | Class/species picks are not `player` provenance (above). |
 
-`CURRENT_DRAFT_VERSION`/record `version` and draft `draftVersion` are separate
-fields currently set to 1. They are not a rules-content revision or an object
-revision. The helper returns current envelope versions without full schema
-validation; it does not offer a future-version rejection UI, backup/export,
-conflict merge or recovery prompt. Its old-draft detection checks `abilities`
-although the canonical draft uses `rawAbilityScores`.
+## Rollout and rollback
 
-VTT wires these helpers under a player key and tab ID, but ignores the conflict
-flag and uses `localStorage` directly. A tab conflict is only a recent-other-tab
-advisory (ten minutes), not a write lock. VTT does not persist presentation mode
-or step in its current callback. Resume is therefore partial and limited by the
-adapter/four-screen omissions above. New VTT persistence work must follow the
-repository's storage-worker boundary and preserve a recoverable copy before
-migration; do not copy this direct-storage seam as an approved new pattern.
+The only rollout control found is a runtime global,
+`globalThis.__NEXUS_CREATOR_FLAGS__.guidedDefault`, read by identical
+`creatorCapabilities.ts` files in Forge and VTT (`apps/*/src/services/creatorCapabilities.ts`).
+Strictly `true` makes guided the starting door; otherwise **full**. Nothing in the
+repository sets it, so both hosts open the full wizard by default. A previously
+saved presentation overrides the flag (`ForgeCharacterCreator.tsx:153`). There is
+no `VITE_` creator variable. The flag changes presentation only; reverting it does
+not alter saved data or calculations. A staged-release and rollback runbook,
+moderated study and recorded pilot **do not exist** — the
+[implementation plan](character-creation-implementation-plan.md) status reflects
+that.
 
-## Existing characters and manual changes
+## Accessibility and styling
 
-Creation drafts describe new creation. They are not an edit/migration format for
-an existing saved sheet. There is no new automatic character repair, comparison
-screen or opt-in recalculation workflow in this candidate. Preserve stored base
-choices, manual values, used resources/current HP and any existing
-`rulesCatalogVersion`; do not label an older sheet with today's catalog on open.
+`CreatorDialog` uses a native `<dialog>` with `showModal`, `aria-modal`, an
+`aria-label`, Escape/cancel handling, a manual Tab trap and focus restore; the
+guided flow uses it. Error banners use `role="alert"`; controls use 44 px minimum
+heights. Forge's recovery dialog also uses `<dialog>`. An automated axe audit at
+320/390/768/1440 px exists in the e2e matrix
+(`apps/vtt/tests/e2e/support/creatorAccessibility.ts:8-10`; it skips unless a
+managed stack is available). **Real device, screen-reader, zoom and keyboard
+acceptance (T-08) was waived by the owner on 2026-10-27 and is excluded, not
+passed.** Do not state the creator is accessibility-certified.
 
-Host sheet actions remain their own behavior. Forge synchronizes equipped-item
-references on load and recalculates AC for equipment changes in `App.tsx`; general
-sheet edits save through `handleUpdateCharacter`. These paths do not round-trip
-through `CreationDraft`. Changes to creation arithmetic need compatibility
-fixtures for old imports/manual sheets and separate equipment-action tests;
-never assume regenerating a character preserves intentional overrides.
+Styling: `scripts/build-styles.mjs` scopes `src/styles/creator-theme.source.css`
+to `.nexus-character-creator`, emitting `dist/creator.css` (`./styles.css`). Any
+blanket VTT element rule must exclude that subtree. New UI uses CSS Modules and
+tokens (ADR-0006); do not add Tailwind.
 
-## Accessibility, styling and rollout
+## Existing characters
 
-Both modal wrappers render a portal rooted at `.nexus-character-creator`, use
-`role="dialog"`, `aria-modal`, dialog labels, initial focus/restore, Escape
-handling and alert announcements. The full progress bar uses visible step
-positions. These primitives are implemented; they do not establish a focus trap,
-nested-dialog Escape policy, background inertness, phone usability or assistive
-technology certification. Verify those in both hosts before claiming accessible
-completion. Nested editor state must survive dismissal/navigation testing.
-
-The creator palette source is
-`src/styles/creator-theme.source.css`; `scripts/build-styles.mjs` generates
-`dist/creator.css` scoped to the root. Forge imports the source as its app theme;
-VTT imports `@nexus/character-creator/styles.css`. Hosts generate the existing
-utility classes from package source. Do not import an unscoped creator palette
-into VTT, add a second palette, or let global VTT element rules enter the creator
-subtree. New components follow the repository's CSS Modules/token guidance;
-this existing utility-based surface is not permission for a Tailwind migration.
-
-The candidate makes the four-screen guided view the component default. There is
-no separate host-controlled newcomer pilot flag or independently certified
-class/edition evaluator rollout. `initialMode` is a presentation prop, not a
-release-management system. A rollback must retain compatible saved data and
-working arithmetic; reverting a presentation alone is not a verified rollback
-procedure. `studyRecorder` is an in-memory helper with partial event wiring, not
-evidence that a moderated study, pilot targets or successful handoffs occurred.
+Creation drafts describe new characters only. There is no automatic repair or
+re-evaluation of saved sheets. Preserve stored choices, manual values, current HP
+and resource usage, and any existing `rulesCatalogVersion`. Resource and
+manual-recovery behavior lives in `ClassResourceControls` and
+`services/resourceLifecycle.ts`; hosts own persistence.
 
 ## Extending the creator
 
-Keep catalog data, evaluated grants, UI choices and host preservation aligned.
-Before advertising content, record its edition, permitted source and independent
-expected output. Consult primary edition-specific rules references for the
-oracle; neither another calculator nor a generated recommendation is that oracle.
+Record edition, permitted source and an **independent** expected value (primary
+rules text, not another calculator) before advertising content.
 
-| Change | Source and checks |
-| --- | --- |
-| Class/subclass | Update edition SRD data and relevant enhanced class/features data consumed by `services/dataService.ts`. Review class-skill counts, subclass/level gating, score profile, equipment and casting/resource handling. Add catalog/entitlement and calculator fixtures in each supported edition, navigation/UI choice tests, conversion preservation and saved-sheet action checks. |
-| Background | Update `data/backgrounds.json` with explicit edition/slug and associated grants. Test both lookups, ability allocation and remount continuity, origin choices, skill overlap/replacement, tools/languages, coin alternatives and exact inventory quantities. Test the full UI and recommendation path separately. |
-| Feat | Update the feat catalogs/loaders and `utils/featUtils.ts` or sourced effects where the existing path applies. Cover eligibility, follow-up choices, exactly-once effects, ASI/resource/casting source behavior, draft round-trip and VTT conversion. Data presence alone must not mark it supported. |
-| Recommendation | Change `services/recommendationService.ts`, explanations and `guidanceService.ts` together. Test explicit class/species preservation, deterministic choices apart from identity/time, legal allocations, dependencies after player edits and the actual four-screen submission payload. |
-| Starter spell package | Update the package table and verify every slug against the edition/class catalog. Independently check counts, spellbook/known/prepared distinctions, origins, focus/components, slots and usable first-turn actions. Exercise edit → back → preview → save → host sheet, not only `getRecommendation()`. |
-| Host | Consume the existing component/result/converter; define identity, storage and source context outside the package. Test durable save rejection, retry after partial success, cancellation, resume compatibility, saved ID, account/local behavior and session acknowledgement separately. Add browser coverage in each supported host/entry mode. |
+| Change | Edit | Required tests |
+| --- | --- | --- |
+| Class / subclass | SRD and enhanced class data via `services/dataService.ts`, `data/progressions/*`, `supportManifest.ts` entry (subclass levels, `recommendationSupported`) | Reference build in `src/tests/*References.test.ts` for each edition; update `fixtures/supportInventory.json` by running `scripts/capture-support-inventory.ts`; catalog/entitlement fixture; UI choice test; conversion preservation. |
+| Background | `data/backgrounds.json` (explicit edition and slug) | Both lookups, ability allocation continuity, skill overlap, tools/languages, coin alternatives, exact inventory. |
+| Feat | Feat catalogs and `utils/featUtils.ts` | Eligibility, follow-up choices (`featSpellChoices`), exactly-once effects, draft round-trip, VTT conversion. Presence in data does not mean supported. |
+| Recommendation | `recommendationService.ts`, `guidanceService.ts` together | Explicit class/species preservation, deterministic choices, four-screen payload. |
+| Spell package | Package table in `recommendationService.ts`; `data/supplementalSpells.ts` for non-SRD | Slug validity per edition, counts, `spellSourceAudit.test.ts`. |
+| Host integration | Consume `CharacterCreator`, `CharacterCreationResult` and `createdCharacterToNexus`; supply identity, storage and recovery | Rejected save, retry after partial save, cancel, resume, and session acknowledgement; add a host e2e case. Reuse the existing repository/recovery-hook pattern rather than `Storage` helpers. |
 
 Adding a field requires decisions for `CharacterCreationData`, `CreationDraft`,
-both adapters, evaluator/result generation, `CreatedCharacter`, conversion and
-host persistence. Add a documented unmapped-field reason only when loss is
-deliberate. Do not introduce another creator or general calculator.
+both adapters, evaluator, `CreatedCharacter`, conversion (`UNMAPPED_CREATOR_FIELDS`
+with a reason if lossy) and host persistence. Never add a second creator or
+calculator.
 
 ## Validation commands and evidence
 
-Run these from the **repository root**. Commands below are verified against the
-current manifests; their inclusion here is not a claim they passed in this
-candidate. Record actual outcomes in the
-[verification record](character-creation-review.md).
+Each script was confirmed in `package.json` at the reviewed commit. Run from the
+repository root:
 
 ```bash
-npm run build:contracts
-npm run type-check --workspace=@nexus/character-creator
 npm run test:character-creator
-npm run test:rules-5e
-npm run test:game-contracts
+npm run type-check --workspace=@nexus/character-creator
 npm run test --workspace=nexus-forge -- --run
 npm run test:unit --workspace=nexus-vtt
-npm run typecheck --workspace=@nexus/docs
-npm run build:docs
+npm run build:forge
+npm run build:vtt
+npm run test:docs
 ```
 
-The creator owns a Vitest project now; its tests are not only run from Forge.
-`npm run build --workspace=@nexus/character-creator` regenerates scoped CSS, not
-a JavaScript bundle. Build affected hosts with `npm run build:forge` and
-`npm run build:vtt`. Repository policy requires affected CI checks before a PR;
-do not describe package tests as full host integration validation.
+If workspace dependencies, Docker inputs or CI targets change, add
+`npm run check:workspace-lock`, `npm run check:docker-build-contracts` and
+`npm run test:affected-targets`. Browser coverage uses `npm run test:e2e
+--workspace=nexus-vtt` (managed stack; the creator host matrix skips without it).
+`npm run build --workspace=@nexus/character-creator` regenerates scoped CSS only.
 
-The candidate adds adapter/catalog/loadout/evaluator/recommendation/storage tests,
-`FourScreenNewcomerFlow.test.tsx`, `BackgroundASIWidget.test.tsx`, six F14/F24/
-R14/R24/W14/W24 fixtures, `referenceBuilds.test.ts`, `supportCertification.test.ts`
-and `regressionMatrix.test.ts`. The reference test currently asserts only part of
-the fixture fields. The matrix invokes services/converters, not the rendered
-Forge/VTT hosts; its “24-case” label does not establish 24 browser journeys.
-
-Also retain `apps/forge/src/components/CharacterCreationHost.test.tsx`, VTT
-submission/save/conversion/round-trip/host-binding tests and independently
-reviewed rules fixtures. Release evidence still needs full UI saves for both
-editions, both presentations and all host entry modes, error/resume cases,
-keyboard/phone/nested-dialog checks, and actual sheet/assignment/placement
-outcomes. See the plan's release gates before promoting the newcomer default.
+The results of the checks run for this documentation pass are recorded in the
+[coverage matrix](character-creation-docs-coverage.md#validation-performed).

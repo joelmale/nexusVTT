@@ -5,6 +5,8 @@ description: Evidence-backed repair backlog, dependencies, regression journeys, 
 
 # Character creator and Campaign Studio repair plan
 
+> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
+
 Date: **2026-10-24**
 
 Status: **Implementation in progress. Acceptance and documentation refresh remain open.**

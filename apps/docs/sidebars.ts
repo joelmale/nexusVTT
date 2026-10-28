@@ -26,6 +26,8 @@ const sidebars: SidebarsConfig = {
         'integrations/campaign-studio-sidecar-plan',
         'integrations/campaign-studio-session-planner-plan',
         'integrations/forge-vtt-object-integration-plan',
+        'integrations/character-creation',
+        'integrations/character-creation-docs-coverage',
         'integrations/character-creation-implementation-plan',
         {
           type: 'doc',
@@ -36,6 +38,8 @@ const sidebars: SidebarsConfig = {
         'integrations/character-creation-remaining-tranches',
         'integrations/character-creation-validation-evidence',
         'integrations/character-creation-manual-acceptance',
+        'integrations/character-creation-tranches-1-3-evidence',
+        'integrations/character-creation-t08-checklist',
         'integrations/NEXUSCODEX_INTEGRATION',
         'integrations/INTEGRATED_SETUP',
       ],

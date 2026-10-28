@@ -2,233 +2,196 @@
 
 Start with your group's rules edition, starting level, and character idea. If
 someone has told you to “make a Fighter,” you already have enough to begin.
-Forge and VTT share the creator; the place you open it determines where the
+Forge and VTT share one creator; the place you open it decides where the
 finished character is saved.
 
-:::note Candidate features
-This guide describes the character-creation candidate in the current source.
-The four-screen flow and VTT draft recovery are implemented but still under
-review. Interface labels such as “optimal” or “certified” do not establish
-complete rules support or release readiness. See the
-[implementation status and remaining gates](/platform/integrations/character-creation-implementation-plan).
+:::note What this guide is based on
+Written 2026-10-27 from the current source (Forge 1.5.3, VTT 0.1.0, commit
+`6d187098`), not from a deployed site. Your hosted version may be older.
+Labels such as “recommended” describe a suggested starting point. The app
+does not guarantee that every class, level, or option is complete and
+correct, and its accessibility has not been tested on real devices or with
+screen readers. Always review the saved sheet with your DM. Contributors:
+see the [engineering guide](/platform/integrations/character-creation).
 :::
 
 ## Open the creator and choose a path
 
 In standalone Forge, open **New Character**, choose **Legacy (2014)** or
-**Revised (2024)**, then choose a method. Revised (2024) is the initial choice.
-Use the edition your DM requested; neither edition includes every published
-option.
+**Revised (2024)** (2024 is selected first), then choose a method. Use the
+edition your DM requested.
 
 | Forge option | What opens | Use it when |
 | --- | --- | --- |
-| **Personality Wizard** | Four-screen level-one build, with an optional longer quiz | You want a suggested starting point, or already know your class |
-| **Character Wizard** | Detailed choices, starting with level | You want control over backgrounds, lineage, class choices, spells, and equipment |
+| **Personality Wizard** | The four-screen quick build (with an optional longer quiz) | You want a suggested starting point, or you already know your class |
+| **Character Wizard** | The detailed wizard | You want control over background, species, class choices, spells, and equipment |
 | **Manual Entry** | A character-sheet form | You already have a character and want to copy its values |
 
 In VTT, **Open Character Forge**, **Create Character**, or the in-game
-character creator opens the shared flow inside VTT. It starts with the
-four-screen build using 2024; the VTT host has no edition picker. Choose
-**Advanced Mode** for detailed choices. For room participation, continue to
+**Create** button opens the same creator inside VTT. VTT first asks
+**Use 2014 rules** or **Use 2024 rules**, then opens the **detailed wizard**.
+Choose **Use guided creation** at the top of the wizard for the quick build.
+Inside the quick build, **Advanced Mode** switches back to the detailed wizard. Forge offers the same switch buttons in whichever door you open.
+Switching keeps your name, class and the rest of your draft in most cases; if
+you rely on a choice you made on the first quick-build screen (the playstyle
+card or the species list), look at it again after you switch. For
+joining a room, continue to
 [VTT character onboarding](/vtt/features/character-onboarding).
 
 ## Make a first Fighter
 
-In Forge, choose **Personality Wizard**. In VTT, use the initial guided flow.
+In Forge choose **Personality Wizard**. In VTT choose **Use guided creation**.
 
-1. On **How do you want to play?**, choose **Close Combat**, or choose
-   **Fighter** in the class buttons. Leave **Desired Species** on
-   **Recommended Match**, unless you have a preference.
-2. On **Recommended Character**, read the class, species, background,
-   ability scores, and skills. Ability scores describe strengths such as
-   Strength and Dexterity; a skill proficiency is training in a task.
-   **Customize Stats** and **Customize Skills** open editors.
-3. Review **Starting Loadout & Currency**. “Equipped” means an item is marked
-   for use, rather than merely carried. Check the actual weapon and armor
-   list: the **Close Combat** description mentions a sword and shield, but
-   that description does not guarantee a shield in the supplied package.
-4. On **Name & Finalize**, enter a name or use **Randomize Name**, choose an
-   alignment, and read **First-Turn Combat Guidance**. Alignment is a brief
-   roleplaying description. Choose **Create Character** and wait for saving.
+1. On **How do you want to play?**, choose **Close Combat**, or press the
+   **Fighter** button under the class list. Leave **Desired Species** on
+   **Recommended Match** unless you have a preference.
+2. On **Recommended Character**, read the class, species, background, ability
+   scores, and skills. Ability scores describe strengths such as Strength and
+   Dexterity; a skill proficiency is training in a task. **Customize Stats**
+   and **Customize Skills** open editors.
+3. On the equipment screen, check the weapon and armor list. “Equipped” means an
+   item is marked for use, not merely carried. A playstyle description such as
+   “sword and shield” does not guarantee that exact gear.
+4. On **Name & Finalize**, enter a name or use the dice-icon **Randomize Name** button, choose an
+   alignment (a short roleplaying description), and read **First-Turn Combat
+   Guidance**. Choose **Create Character** and wait for **Saving…**.
 
-This is a suggested build, not a guarantee of legal or complete output.
-Review the saved sheet with your DM, including HP, armor, weapon attacks,
-class resources, and required feat or spell choices. The equipment and money
-shown before saving can differ from the saved result in this candidate.
-For precise choices, use the detailed wizard from the outset.
+The build is a suggestion. Compare the saved sheet with what you chose,
+especially HP, armor class, weapon attacks, and money.
 
 ## Make a sneaky elf archer
 
-**Sneak & Skills** recommends a Rogue. **Ranged Archery** recommends a
-Fighter. Choosing archery does not also promise Stealth training, and
-choosing Rogue does not finish every species or expertise choice for you.
+**Sneak & Skills** recommends a Rogue. **Ranged Archery** recommends a Fighter
+and starts from an Elf unless you choose another species. Neither promises
+every detail of your concept.
 
-For a starting point, choose **Sneak & Skills**, set **Desired Species** to
-the available Elf option, and inspect skills and gear. **Customize Skills**
-changes class skill selections; **Back** returns to the earlier screen while
-the flow remains open.
-
-For control over the complete concept, start with **Character Wizard** in
-Forge, or **Advanced Mode** before making guided edits in VTT. Choose Elf,
-the available lineage or variant, and Rogue; then choose class skills and
-expertise. Expertise is extra training in selected skills. Select equipment
-containing the intended bow, and check that the saved inventory includes
-ammunition as well as the bow. Check species-granted skills, background
-skills, and class selections for duplicates. The quick flow's skill editor
-does not reliably show all background grants.
+* For a quick start, choose **Sneak & Skills**, set **Desired Species** to an
+  Elf option, then open **Customize Skills** and check for Stealth.
+* For full control, use the detailed wizard: choose an Elf species and lineage,
+  the Rogue class, class skills, and expertise (extra training in chosen
+  skills), then pick equipment that includes a bow and its ammunition.
+* Check species, background and class skills for duplicates before saving.
 
 ## Make a spellcaster with a starting package
 
-**Arcane Magic** recommends a Wizard; **Divine Support** recommends a Cleric.
-The guided flow displays starting spells on the equipment screen. Cantrips
-are repeatable spells; prepared spells are the spells selected for use,
-while a Wizard's spellbook can contain additional spells.
+**Arcane Magic** recommends a Wizard and **Divine Support** a Cleric. Other
+casters (Bard, Druid, Sorcerer, Warlock and more) are available from the class
+buttons. The equipment screen shows **Prepared Spells & Cantrips**; a cantrip
+is a spell you can cast repeatedly, and a prepared spell is one you have
+chosen for the day. A Wizard also keeps a spellbook. Open **Swap Spells** to
+change the suggestion.
 
-Read **Prepared Spells & Cantrips**, and open **Swap Spells** if needed. The
-Wizard recommendation includes a six-spell book and a prepared subset in
-the source, but that does not prove all edition, species, background, and
-feat grants are complete. Spell swaps can reset when another choice
-rebuilds the recommendation, including a name change. Recheck before saving.
-
-Use the detailed wizard for explicit spell selection, class features,
-subclasses, or additional granted spells. Its spell screen separates
-cantrips, known/prepared spells, and the Wizard's book and preparation where
-applicable. Read spell details and satisfy the displayed counts. Those
-counts are interface limits, not proof that every 2014 and 2024 formula is
-correct. **Randomize** on this screen currently does nothing; select spells
-directly.
-
-Before playing, check the saved focus/component equipment, book or known
-spells, prepared spells, attack bonus, save DC, and slots. A save DC is the
-number a target must meet when resisting a spell. Known and prepared spell
-lists can be lost during final result generation in this candidate; if the
-saved sheet is incomplete, review it with your DM before play.
-[Forge's sheet](character-sheet.md#spells-and-first-actions) and the
-[VTT sheet](/vtt/features/character-onboarding#take-your-first-actions) have
-different spell controls. These VTT sheets do not currently offer complete
-spell casting and slot management.
+Use the detailed wizard when you want to choose every spell, subclass, or
+extra granted spell yourself; its spell screen shows the counts you must
+meet. Before play, check the saved spell lists, spell attack bonus, save DC (the
+number a target must meet to resist your spell), and spell slots. Forge's sheet
+and the VTT sheet have [different spell controls](character-sheet.md#spells-and-first-actions).
+The VTT sheet's **Spells** tab and Simple Mode's Spells card share one spellbook
+panel with spell slots and a casting-source selector; it needs an active game
+session, so outside a game track slots yourself.
 
 ## Choose everything in the detailed wizard
 
-The detailed wizard offers starting levels 1–20. Availability does not mean
-every class, level, or edition has been independently verified. Follow the
-screens that appear for your build, rather than a fixed step number:
-conditional steps are skipped.
+The detailed wizard has 14 steps, and steps that do not apply to your build are
+skipped. It offers starting levels 1–20, but that does not mean every class and
+level has been independently verified; level one is the best-covered case.
 
-| Screen or choice | What to check |
+| Screen | What to check |
 | --- | --- |
-| **Character Level** | Starting level agreed with your DM |
-| **Basic Identity** | Name, alignment, background; in 2024, the background ability-increase choices shown by the form |
-| **Choose Species** | Species, lineage/variant, and any displayed skill, feat, or spell choices |
-| **Choose Class & Subclass** | Class skills and class-specific or subclass choices offered for that level |
-| **Determine Abilities** | Standard array, point buy, rolled scores, or custom values; changing the method resets assignments |
-| **High-Level Setup / Ability Score Improvements** | Additional choices shown for higher starting levels |
-| **Fighting Style / Spells / Feats** | Conditional selections displayed for your build; a feat is a special character benefit |
-| **Select Languages** | Languages your character is meant to know |
-| **Select Equipment / Customize Equipment** | Package or shopping choices, additional inventory, quantities, and money |
-| **Final Details & Personality** | Personality, ideals, bonds, flaws, HP method, and final creation |
+| **Character Level** | The starting level your DM agreed |
+| **Basic Identity** (2024: includes background) | Name, alignment, background and, in 2024, its ability increases |
+| **Choose Species** | Species, lineage, and any skill, feat or spell choices |
+| **Choose Class & Subclass** | Class skills and class or subclass choices |
+| **Determine Abilities** | Standard array, point buy, rolled or custom scores; changing method resets assignments |
+| **High-Level Setup / Ability Score Improvements** | Extra choices for higher starting levels |
+| **Fighting Style / Spells / Feats** | A feat is a special character benefit |
+| **Select Languages** | Languages your character knows |
+| **Select Equipment / Customize Equipment** | Package or gold, quantities, and money |
+| **Final Details & Personality** | Personality, HP method, and final creation |
 
-Standard array assigns the same six starting numbers to different abilities;
-point buy spends a displayed budget. Use custom scores or extra equipment
-with your DM's agreement. The equipment browser permits adding items and
-should not be treated as proof that every item was paid for or granted.
+Standard array assigns six fixed numbers; point buy spends a displayed budget.
+Use custom scores or extra equipment only with your DM's agreement. The 2024
+equipment screen offers a background package-or-gold choice; selecting a package
+does not also give you the gold.
 
-The 2024 equipment screen offers a background-package/gold fork; other modes
-include quick-start packages, choices, and a shop. Review actual contents
-and the saved result. Class/background packages, currency, quantities, and
-equipped state are not fully consistent across preview and save paths.
-Do not assume selecting a package and selecting gold grants both.
-
-Use **Back** to revise answers. Some dependent screens remove selections
-that exceed their limits, but there is no complete explanation or automatic
-repair of every affected choice. After changing class, background, species,
-level, or abilities, revisit skills, feats, spells, languages, and equipment.
+Use **Back** to change earlier answers. Dependent choices may be cleared or
+re-checked when you change class, background, species, level, or abilities, and
+the creator does not list everything it changed, so revisit skills, feats,
+spells, languages and equipment afterwards.
 
 ## Fast creation for an experienced player
 
-For a level-one starting point, choose the class directly on the first guided
-screen; no personality questions are required. The longer quiz is available
-through **Want to take the in-depth personality quiz instead?** It suggests
-a class and profile, but does not carry quick-flow work into the quiz.
-
-Choose the detailed wizard immediately for exact choices or a higher
-starting level. In Forge, return to **New Character** and select
-**Character Wizard**. In VTT, choose **Advanced Mode**. Switching
-presentations does not reliably preserve current answers in this candidate;
-record important choices first. The detailed view has no matching button
-to return to the quick flow.
+For a level-one build, press your class's button on the first quick-build screen
+and skip the playstyle questions. The longer quiz is behind **Want to take the
+in-depth personality quiz instead?**; it also keeps your work if you switch.
+For exact choices or a higher starting level, use the detailed wizard.
 
 ## Save, cancel, resume, and retry
 
-Choose the final creation button once and wait for **Saving…**. Concurrent
-submissions are blocked. A reported failure leaves the creator open with its
-current answers: read the error, restore the required connection or storage
-access, and try the final button again. If a request may have succeeded
-before the error appeared, check the character list first; stable identity
-across retries is not guaranteed in every host path.
+Press the final button once and wait for **Saving…**; extra clicks are ignored.
+If saving fails, the creator stays open with your answers and shows the error.
+Fix the cause (for example, restore your connection) and press the button again.
 
-| Where you create | Finished character | Interrupted creation |
-| --- | --- | --- |
-| **Standalone Forge** | Saved in this browser's IndexedDB and selected for display | No wizard draft save; closing, switching methods, or reloading can lose unfinished work |
-| **Signed-in VTT** | Account save attempted before adding to the local list | Candidate stores a browser-local draft; recovery is partial with no resume/conflict prompt |
-| **Guest VTT** | Added to the local character store/cache without an account save | Same partial local draft mechanism; it is not an account backup |
+Cancelling or closing the creator keeps a draft **in this browser**. The next
+time you open the creator it offers:
 
-The close button and **Escape** dismiss the creator unless a save is in
-progress. The detailed wizard also closes when its backdrop is clicked.
-There is no unsaved-work confirmation. In the guided flow, **Back** on the
-first screen leaves the flow.
+* **Resume creation** — continue where the draft left off (including which
+  screen you were on).
+* **Retry previous save** — shown when a finished build was frozen but not saved.
+* **Export recovery copy** — downloads the draft as `nexus-character-draft.json`.
+* **Discard draft and start new** — deletes the draft.
 
-VTT attempts to load the last local draft when the creator opens. It starts
-at the first screen, and the quick flow restores only part of the choices.
-Customized abilities and skills, alignment, spell edits, and the previous
-screen are not all reliably recovered. The quiz does not save a draft.
-There is no visible draft export, discard, migration, or multi-tab conflict
-recovery interface. Keep creation to one tab and recheck every screen after
-reopening. Do not clear browser storage as a recovery step; that can remove
-characters and drafts.
+The draft is removed only after the character is saved successfully. There is
+**one draft per browser** in Forge (and one per player and room in VTT), and
+two open tabs can conflict — the second tab reports “Draft changed in another
+tab.” Work in a single tab, and do not clear browser data to “fix” a draft; that
+also deletes your characters.
+
+| Where you create | Where the finished character lives |
+| --- | --- |
+| **Standalone Forge** | This browser's IndexedDB. No account and no automatic VTT sync. |
+| **Signed-in VTT** | Saved to your account, then cached locally. |
+| **Guest VTT** | Local to this browser only; it is not an account backup. |
 
 ### Recover common problems
 
 | Symptom | Next action |
 | --- | --- |
-| Saved gear or money differs from the package | Check inventory, equipped items, ammunition, and coins with your DM; make an explicit correction on the saved sheet and retain a backup |
-| A spell or skill edit disappears | Recheck final choices; use the detailed wizard for controlled selection before saving |
-| A 2014 option is missing | Confirm **Legacy (2014)** in Forge; VTT currently opens 2024. Do not silently substitute a similarly named 2024 option |
-| Save reports an account/network error | Keep the creator open, restore access, and retry after checking whether the character already exists |
-| Reopened work differs | Treat it as partial recovery and review the whole build before submitting |
-| A nested editor closes the entire creator | Reopen and check what survived. Use its visible **Save** or close button instead of Escape |
-| A character is absent in another browser | Open the browser/profile where it was saved; Forge characters and drafts do not synchronize between browsers |
+| Saved gear, money or spells differ from what you chose | Check inventory, equipped items, ammunition and coins with your DM; correct them on the saved sheet |
+| Save reports an error | Keep the creator open, restore access, and press the button again; the retry reuses the same character, so it will not create a copy. Don't change answers between a failed save and the retry: the retry sends the first build, so edit the saved sheet afterwards instead |
+| You closed the creator mid-build | Reopen it and choose **Resume creation** |
+| Reopening says a draft exists you don't want | Choose **Export recovery copy** if unsure, then **Discard draft and start new** |
+| A 2014 option is missing | Confirm the edition (**Legacy (2014)** in Forge, **Use 2014 rules** in VTT); don't substitute a similar 2024 option |
+| A pick you made on screen 1 of the quick build isn't kept after switching modes | Choose it again, or use the detailed wizard from the start |
+| A character is missing in another browser | Open the browser where you saved it; Forge data is per browser |
+| Escape closes more than you expected | Use the visible **Back**, **Save** or close buttons inside nested editors |
 
 ## Use the saved character
 
-After a successful Forge save, the new character's sheet opens. Use
-**Back to List** to return to character cards and select it again later.
-For first rolls, equipment, editing, and backups, see
-[Using the character sheet](character-sheet.md).
+After a successful Forge save, the new character is added to **Your Heroes**
+and selected, and a short “created” message appears. If you do not land on the
+sheet, choose **View Sheet** on its card; **Back to List** returns to the cards.
+See [Using the character sheet](character-sheet.md) for first rolls, equipment,
+and backups. **Edit** on a card is a manual editor, not a resumed creation.
 
-Use **Edit** on a Forge character card to change an existing character. This
-is a manual editor, not a resumed creation wizard. It permits changing the
-edition field; that is not a guided rules conversion. Back up before major
-edits and review the resulting values.
-
-Forge's **Export Data** downloads selected characters, or all characters if
-none are selected, as JSON. **Import Data** adds copies with new IDs. This is
-manual transfer/backup, not ongoing synchronization. For VTT import and room
+**Export Data** downloads selected characters (all if none are selected) as JSON.
+**Import Data** adds copies with **new IDs**, so importing the same file twice
+creates duplicates. This is manual transfer, not sync. For VTT import and room
 participation, follow [VTT onboarding](/vtt/features/character-onboarding).
 
 ## Keyboard, phone, and help
 
-Use **Tab** and **Shift+Tab** between controls, **Enter** or **Space** for
-buttons, and visible **Back** and **Continue/Next** controls to navigate.
-The creator includes dialog labels and save-error announcements, but full
-keyboard, screen-reader, phone, and zoom certification remains pending.
-Some nested editors do not isolate Escape; use their visible close control.
+Use **Tab** and **Shift+Tab** to move, **Enter** or **Space** for buttons, and the
+visible **Back** and **Continue** controls to navigate. The creator is a modal
+dialog that keeps focus inside, closes with **Escape**, and returns focus to
+where you started. Errors are announced to screen readers. Species traits and
+spell details have explanations in the detailed wizard.
 
-On a phone, scroll inside the creator to reach all choices and the footer.
-Dismiss the soft keyboard if it covers navigation. Species traits and spell
-details offer explanations in the detailed flow. If a control cannot be
-reached or help only appears on hover, use a larger screen or ask your DM
-for assistance and report the screen, device, and control name.
+On a phone, scroll inside the creator to reach all choices and the footer, and
+dismiss the soft keyboard if it covers navigation. Automated layout checks run at
+320, 390, 768 and 1440 px wide, but testing on real phones, screen readers and
+zoom levels has not been done. If a control cannot be reached or only works on
+hover, use a larger screen and tell your DM which screen and control.
 
 Contributors can read the
 [shared-creator architecture](/vtt/adr/shared-character-creator).

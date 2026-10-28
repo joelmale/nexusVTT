@@ -115,7 +115,7 @@ The `Character` interface is the canonical data structure for all saved characte
 ### SRD Data Structure
 
 Located in `/src/data/srd/`:
-- `5e-SRD-Spells-Merged.json` - **Merged spell database** (2014 + 2024 editions)
+- `2014/5e-SRD-Spells.json` and `2024/5e-SRD-spells.json` - the two spell sources. The merged list (2014 + 2024, 2024 wins) is computed at load time by `mergeSpellSources`; there is no committed merged file
 - `2014/` - Core D&D 5e 2014 SRD data (archived)
 - `2024/` - Updated 2024 rules (equipment)
 - `2018/`, `2020/`, `2020-egtw/` - Additional subclasses

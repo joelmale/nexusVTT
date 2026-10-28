@@ -18,6 +18,7 @@ const sidebars: SidebarsConfig = {
         'features/fog-of-war',
         'features/drawing-and-ink',
         'features/props',
+        'features/character-onboarding',
         'features/initiative-and-combat',
         'features/dice',
       ],

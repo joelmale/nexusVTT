@@ -1,172 +1,157 @@
 # Bring your character into a VTT game
 
 You can create a character inside VTT, import a Forge JSON file, or claim a
-party character supplied by the DM. Creating or saving a character does not
-by itself confirm that the DM has received it or that a linked token is on
-the map.
+party character supplied by the DM. A character has three separate states:
+**saved** (in your account or this browser), **in the game** (the DM's session
+accepted it), and **on the map** (a token is linked to it). Saving does not
+imply the other two.
 
-:::note Candidate scope
-The shared four-screen creator and local draft recovery are part of the
-current candidate. Rules output, recovery, accessibility, and host handoff
-still have open verification gates. For shared creation instructions and
-known limitations, use the [character-creation guide](/forge/character-creation).
+:::note What this guide is based on
+Written 2026-10-27 from the current source (VTT 0.1.0, commit `6d187098`), not
+from a deployed site. Creator instructions live in the
+[character-creation guide](/forge/character-creation). Real-phone and
+screen-reader testing has not been done.
 :::
 
 ## Create before joining
 
 1. Open **Player Setup**. Under **Your Characters**, choose an existing
-   character, or open **Character Forge → Open Character Forge** to build
-   one inside VTT.
-2. The creator begins with the guided 2024 flow. Choose **Advanced Mode**
-   before entering choices if you need the detailed wizard. VTT does not
-   currently expose the Forge host's edition picker; do not assume this is
-   a selectable 2014 path.
-3. After saving, check the selected character and player name. Enter the
-   DM's four-character room code, choose **Join As: Player**, and select
-   **Join Game**. A spectator can watch without playing a character.
-4. Confirm with the DM that the intended character is in the session and
-   has a token on the active scene.
+   character, or open **Character Forge → Open Character Forge** to build one
+   inside VTT.
+2. VTT asks **Use 2014 rules** or **Use 2024 rules**, then opens the detailed
+   wizard. Choose **Use guided creation** for the four-screen quick build.
+3. After saving, check the selected character and player name. Enter the DM's
+   four-character room code, choose **Join As: Player**, and select **Join Game**.
+   A spectator can watch without a character.
+4. Confirm with the DM that your character is in the session and has a token on
+   the active scene.
 
-If you already have a Forge export, use **Import JSON → Upload File** in
-Player Setup instead. VTT supports Forge exports, Nexus VTT exports, and
-its documented generic JSON format through the import dialog; it is not a
-universal importer for every character-builder format. Inspect the import
-result and select the intended character before joining.
-
-The dashboard also has **Create Character**. A character saved there is a
-library/account character; it is not a request to join a room.
+If you already have a Forge export, use **Import JSON → Upload File** in Player
+Setup. VTT accepts Forge exports, Nexus VTT exports and its documented generic
+JSON; it is not a universal importer. Inspect the result and select the intended
+character before joining. The dashboard's **Create Character** saves a library
+character; it is not a request to join a room.
 
 ## Create or claim during a desktop session
 
-Open the **Characters** panel. A player can choose **Create** or
-**Create a Character**. If the panel offers **Select Existing Character**,
-use it to claim a free party character. The DM can **Import** characters into
-the party without assigning them to a player first.
+A player who has no character sees a **No Character Assigned** banner with
+**Open Characters** (the banner returns after you reload if you dismiss it). Open
+the **Characters** panel and choose **Create**, or **Select Existing Character**
+to claim a free party character. The DM can **Import** characters into the party.
 
-The **Choose your character** dialog lists unassigned characters and those
-already owned by you. Select **Play as [name]** and wait for **Asking the
-DM…** to finish. A character assigned to another player cannot be claimed.
-If the DM is away, wait for them to return and try again.
+When you finish creating inside a session, VTT saves the character, then asks
+the DM's client to accept it. You get a short confirmation only after the DM's
+client accepts. If the DM is away or the request times out (about 8 seconds), the
+creator **stays open with an error** and your build is kept; use **Retry previous
+save** (also offered after a reload) when the DM is back. There is no separate
+“awaiting GM” screen, so confirm with the DM if you see no confirmation.
 
-Creation inside a session saves the character and sends it to the DM's
-client. The current completion flow does not give a reliable, separate
-“saved but awaiting session acceptance” screen or a dedicated retry button
-for a failed handoff. If the creator closes but the DM cannot see the
-character, check your saved characters and the connection before creating
-another copy. With the DM, use an explicit export/import or existing party
-character claim when a new submission has not reached the session.
+The **Choose your character** dialog lists unassigned characters and those you
+own. Select **Play as [name]** and wait for **Asking the DM…**. A character owned
+by another player cannot be claimed.
 
-Open a character card's **View Character Sheet** action to inspect it.
-**Open in Panel / Popout** opens a separate character panel. A token badge
-means a token is linked to that character; **Focus on Token** pans to it when
-that action is present. **Add to Combat** creates an initiative entry; it
-does not place a token.
+Open a card's **View Character Sheet** to inspect it; **Open in Panel / Popout**
+opens a separate panel. A token badge means a token is linked; **Focus on Token**
+pans to it. **Add to Combat** creates an initiative entry but does not place a
+token.
+
+:::caution Known gap
+A viewer who joined as a spectator can still see **Create** in the desktop
+**Characters** panel. Spectators are not meant to submit characters; don't use
+it. This is reported as a defect in the
+[engineering guide](/platform/integrations/character-creation#known-defects-and-discrepancies).
+:::
 
 ## Play on a phone with Simple Player Mode
 
-Simple Player Mode presents **Map**, **My Hero**, and **Rolls**. A touch-device
-player can enter it automatically after joining, or use a DM-provided simple
-invite. The full VTT's **Simple Mode** button and Simple Mode's
-**Settings → Switch to Full VTT** change views. This does not change your
-rules edition or rebuild the character. Tablet settings can show the map
-beside the hero/roll panel.
+Simple Player Mode has **Map**, **My Hero** and **Rolls**. A touch-device player
+can enter it automatically, or use the DM's simple invite (a link or QR code that
+opens `/play/ROOMCODE`; the DM can also create a watch-only link). The full VTT's
+**Simple Mode** (phone & tablet view) button and Simple Mode's **Settings → Switch to Full VTT** change
+views without changing your rules edition or rebuilding the character.
 
-If you have no owned character, **Choose your character** opens. Select
-**Play as [name]**, or **Create New Character** to open the shared creator.
-You can also open **My Hero → Select or Create Your Character** or
-**Settings → Switch Character** later. Spectators have no hero tab or
-character-claim action.
+With no owned character, **Choose your character** opens. Select **Play as
+[name]**, or **Create New Character** to open the same creator (including the
+edition question and recovery). Later use **My Hero → Select or Create Your
+Character** or **Settings → Switch Character**. Spectators have no hero tab or
+claim action.
 
-After creation, check **My Hero** and confirm with the DM that the character
-was accepted into the game. Account saving and session acceptance are
-separate operations. The current UI can close the creator before a failed
-or delayed session submission is resolved; it does not provide a complete
-handoff-recovery workflow.
+After creating, check **My Hero** and confirm acceptance as described above.
 
 ### Get a token onto the map
 
-Ask the DM to open the intended scene and place or confirm a token linked
-to your character. Creating or claiming a sheet in Simple Mode does not
-place a linked token automatically. Joining without a selected character
-can create a default player token, which is different from confirming a
+Ask the DM to open the intended scene and place or confirm a token linked to
+your character. Creating or claiming a sheet does not place a linked token. If
+the creator says to ask the DM to place a token, that message is based on what
+your device currently knows and can be briefly out of date; check the map. Joining
+without a character can create a default player token, which is not a
 character-linked token.
 
-On **Map**, one-finger movement pans. To move your available, unlocked token,
-use **Move Token** or tap it, choose a destination, and select
-**Confirm Move**. **Center on Me** finds it; **Follow DM** follows the DM's
-view. If there is no move control, ask the DM to check placement, ownership,
-visibility, and locking on the active scene. See [Tokens](tokens.md) for the
-technical token model and limitations.
+On **Map**, one finger pans. To move your unlocked token, use **Move My Token** or
+tap it, choose a destination, and select **Confirm Move**. **Center on My Token** finds
+it; **Follow DM** follows the DM's view. If there is no move control, ask the DM to
+check placement, ownership, visibility and locking. See [Tokens](tokens.md).
 
 ## Take your first actions
 
-Check the saved values before the first turn. The creator's first-turn cards
-are suggestions and include fixed text that may not match your final build.
-Use the actual sheet and your DM's rules adjudication for bonuses, action
-costs, spell availability, and resource use.
+The creator's first-turn cards (shown on its last screen) are suggestions. Use
+the actual sheet and your DM's rulings for bonuses, action costs, spells and
+resources.
 
 In **Simple Player Mode**:
 
-1. Open **My Hero → Skills & Saves**. Choose **Normal**, **Advantage**, or
-   **Disadvantage**, then tap the skill, ability **Check**, or **Save** the
-   DM requests. Advantage/disadvantage changes how the d20 roll is made.
-2. On **Combat**, tap **Initiative** when asked. For an equipped weapon,
-   **Roll Attack** and **Roll Damage** are separate controls. Check the
-   equipped gear if the sheet says **No equipped weapons**.
-3. Use the **Action**, **Bonus Action**, and **Reaction** checkboxes as
-   personal reminders; they do not apply a feature or spend a class
-   resource. **Reset Turn** clears them; they also reset on your next turn.
-4. Use the top HP controls for damage or healing and wait for the DM to
-   apply the change. Use **End Turn** when available on your turn. At zero
-   HP, **Roll Death Save** and **Mark Success/Failure** are separate steps.
-5. Review results in **Rolls**. If the DM is away or the connection is
-   recovering, wait for the connection and session state before repeating
-   an action.
+1. Open **My Hero → Skills & Saves**. Choose **Normal**, **Advantage** or
+   **Disadvantage**, then tap the skill, ability **Check** or **Save** the DM
+   asks for.
+2. On **Combat**, tap **Initiative** when asked. **Roll Attack** and **Roll
+   Damage** are separate controls for an equipped weapon; **No equipped weapons**
+   means check your gear.
+3. **Action**, **Bonus Action** and **Reaction** are personal reminder checkboxes;
+   they don't spend a resource. **Reset Turn** clears them.
+4. Use the HP controls for damage or healing. At zero HP, **Roll Death Save** and
+   **Mark Success/Failure** are separate steps. Use **End Turn** on your turn.
+5. Results appear in **Rolls**. If the connection is recovering, wait before
+   repeating an action.
 
-Simple Mode shows spell save DC and spell attack bonus but has no full spell
-list/casting/slot controls. The desktop character sheet's **Spells** tab
-also currently displays a spell-management placeholder. Use the dice roller
-with the actual expression agreed with your DM, and track spell slots and
-class resources explicitly. Switching to Full VTT does not by itself add
-complete spell management to that sheet.
-
-For the full VTT dice interface, see [Dice](dice.md); for turn order, see
-[Initiative and Combat](initiative-and-combat.md). Standalone Forge has its
-own [sheet and spell controls](/forge/character-sheet).
+Simple Mode's Spells card and the desktop sheet's **Spells** tab share one
+spellbook panel with a spell slot grid, a casting-source selector and cast
+controls. It needs an active campaign session. Treat casting results as
+unverified until your DM confirms them; if the panel is unavailable, roll with
+the dice roller and track slots yourself. See [Dice](dice.md) and
+[Initiative and Combat](initiative-and-combat.md). Standalone Forge has its own
+[sheet and spell controls](/forge/character-sheet).
 
 ## Understand saving and recovery
 
-Signed-in VTT creation attempts to save to your account before adding the
-character locally. Guest creation adds to the local character store/cache
-without an account save. Session ownership and DM acceptance are additional
-steps; a saved account character is not proof of a completed room handoff.
+Signed-in creation saves to your account first (a retried save does not create a
+duplicate), then caches locally. Guest creation stays in this browser. Accepting
+the character into the session is a separate step, as above.
 
-Forge uses its own browser's IndexedDB and has no account or automatic VTT
-synchronization. **Export Data** in Forge and VTT's JSON import are manual
-transfer steps. Importing a file is not a live connection to the original.
+Forge uses its own browser's IndexedDB with no account or automatic VTT sync.
+Forge's **Export Data** and VTT's JSON import are manual transfers; an imported
+file is not a live connection.
 
-The candidate stores VTT creation drafts in local browser storage. Reopening
-can restore part of a draft, but does not reliably restore all edits, mode,
-or screen; there is no visible conflict or migration recovery. Keep one
-creation tab open. Read the
-[save, cancel, resume, and retry limits](/forge/character-creation#save-cancel-resume-and-retry)
-before relying on draft recovery.
+VTT keeps your unfinished creation as a draft for you in this browser, per room
+(or outside a room). Reopening the creator offers **Resume creation**, **Retry
+previous save**, **Export recovery copy** or **Discard draft and start new**. See
+[save, cancel, resume, and retry](/forge/character-creation#save-cancel-resume-and-retry).
+Keep one creation tab open.
 
 | Symptom | Recovery |
 | --- | --- |
-| Account save fails | Leave the creator open, restore access, check for an existing save, then retry the final button |
-| Sheet exists locally but DM cannot see it | Confirm connection and DM presence; check the party list together before retrying or importing a saved copy |
+| Account save fails | Keep the creator open, restore access, press the final button again |
+| Creator shows the DM is unavailable or did not accept | Keep it open; ask the DM to confirm they're connected, then **Retry previous save** |
+| You closed the creator after a failed handoff | Reopen it and choose **Retry previous save** |
 | Claim says the character is unavailable | Ask the DM to check assignment; choose your own or an unassigned character |
-| **My Hero** shows the wrong character | Use **Settings → Switch Character** and claim/select the intended character |
+| **My Hero** shows the wrong character | **Settings → Switch Character**, then claim the intended one |
 | **Waiting for the DM to open a map…** | Wait for the DM to open a scene |
-| Sheet exists but no usable token appears | Ask the DM to confirm a visible, unlocked, correctly owned/linked token in that scene |
-| Gear, coins, known spells, or preparations are missing | Compare the saved sheet with your intended choices and agree explicit corrections with the DM; recreating alone may repeat the issue |
+| Sheet exists but no usable token | Ask the DM to confirm a visible, unlocked, correctly linked token in that scene |
+| Gear, coins or spells look wrong | Compare the saved sheet with your choices and agree explicit corrections with the DM |
 
 ## Keyboard and small-screen help
 
-Use **Tab/Shift+Tab** to reach buttons and visible labels to identify sheet
-sections. Use the creator's visible back/close controls inside nested
-editors; Escape can dismiss more than the editor. On a phone, scroll within
-the creator and dismiss the soft keyboard to reach its footer. Complete
-keyboard, screen-reader, real-phone, and zoom certification is still pending;
-see the [shared creator's help and limitations](/forge/character-creation#keyboard-phone-and-help).
+Use **Tab/Shift+Tab** and the visible labels. The creator is a dialog that traps
+focus and closes with **Escape**; inside nested editors prefer their visible
+close button. On a phone, scroll within the creator and dismiss the soft
+keyboard to reach its footer. See
+[keyboard, phone, and help](/forge/character-creation#keyboard-phone-and-help).

@@ -2,7 +2,8 @@
 // Transforms 5e SRD JSON format to our app's format
 // Supports both 2014 and 2024 editions with 'year' field to distinguish
 
-import srdSpellsMerged from '../data/srd/5e-SRD-Spells-Merged.json';
+import srdSpells2024 from '../data/srd/2024/5e-SRD-spells.json';
+import { mergeSpellSources } from '../data/mergeSpells';
 import srdSpells2014 from '../data/srd/2014/5e-SRD-Spells.json';
 import {
   GROUP_RELATED_SKILLS,
@@ -842,6 +843,12 @@ export function transformEquipment(srdEquip: SRDEquipment): Equipment {
       })),
   };
 }
+
+// Both source files are the only copy of the data; the merged list is derived.
+const srdSpellsMerged = mergeSpellSources(
+  srdSpells2014 as unknown as SRDSpell[],
+  srdSpells2024 as unknown as SRDSpell[],
+);
 
 // --- Data Loading Functions ---
 
