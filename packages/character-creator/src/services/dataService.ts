@@ -154,6 +154,7 @@ interface SRDSpell {
   description?: string; // Already transformed format
   higher_level?: string[];
   higherLevelSlot?: string;
+  cantripUpgrade?: string;
   range: string;
   components: string[];
   material?: string;
@@ -303,6 +304,8 @@ export interface AppSpell {
   ritual: boolean;
   description: string;
   atHigherLevels?: string;
+  /** SRD 5.2.1 cantrip scaling text (levels 5, 11 and 17). */
+  cantripUpgrade?: string;
   damageType?: string;
   saveType?: AbilityName;
   classes: string[];
@@ -380,6 +383,7 @@ export function transformSpell(srdSpell: SRDSpell): AppSpell {
     description:
       srdSpell.description || (srdSpell.desc ? srdSpell.desc.join('\n\n') : ''),
     atHigherLevels,
+    cantripUpgrade: srdSpell.cantripUpgrade,
     damageType: srdSpell.damage?.damage_type?.name,
     saveType: srdSpell.dc
       ? mapAbilityScore(srdSpell.dc.dc_type.index)

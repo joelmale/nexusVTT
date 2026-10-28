@@ -288,6 +288,25 @@ No numeric or ledger defect surfaced in this batch. One open gap was recorded:
 the Soldier background's gaming set choice is saved as the placeholder "Gaming
 Set (choose one)" instead of the player's choice (`it.todo` in the test file).
 
+### T-03 invocation effects on the sheet (2026-10-27)
+
+The saved `classMechanics.cantripEffects` metadata was previously unused by any
+host. A shared `resolveCantripAction()` now turns a known cantrip, the
+character's level and those saved effects into a concrete action: attack bonus
+or save DC, damage dice with cantrip scaling at levels 5, 11 and 17,
+Eldritch Blast beam counts, Agonizing Blast's per-roll Charisma bonus, Eldritch
+Spear's range increase (30 feet times Warlock level) and Repelling Blast's
+10-foot push. Forge's Attacks and Spellcasting panel lists each damaging cantrip
+and emits one attack and damage roll per beam. The 2024 catalog's
+`cantripUpgrade` text is now exposed on `AppSpell`.
+
+Not yet done: the VTT spellbook and actor projection do not carry
+`classMechanics`, so the VTT neither shows nor applies these effects; pushes and
+Large-or-smaller size limits are reported as notes, not enforced; and Devil's
+Sight, Lessons of the First Ones and other non-cantrip invocations remain
+descriptive. Damaging cantrip damage is parsed from spell text because the 2024
+catalog has no structured dice.
+
 ## Remaining work before closing these tranches
 
 1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices

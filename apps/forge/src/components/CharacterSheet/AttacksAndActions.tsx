@@ -1,5 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { ClassResourceControls } from '@nexus/character-creator';
+import {
+  resolveCantripAction,
+  type CantripAction,
+} from '@nexus/character-creator/services/cantripActions';
 import { recordCharacterResource } from '@nexus/character-contracts';
 import { Character, Equipment } from '../../types/dnd';
 import { loadEquipment, COMBAT_ACTIONS } from '../../services/dataService';
@@ -229,26 +233,80 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
     onDiceRoll(roll);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _handleCantripAttack = (cantripSlug: string) => {
-    if (!character.spellcasting) return;
+  // Known damaging cantrips with the saved invocation effects already applied
+  // (Agonizing Blast, Eldritch Spear, Repelling Blast...).
+  const cantripActions: CantripAction[] = character.spellcasting
+    ? (character.spellcasting.cantripsKnown ?? [])
+        .map((slug) =>
+          resolveCantripAction({
+            edition: character.edition,
+            characterLevel: character.level,
+            slug: typeof slug === 'string' ? slug : String(slug),
+            spellAttackBonus: character.spellcasting!.spellAttackBonus,
+            spellSaveDC: character.spellcasting!.spellSaveDC,
+            cantripEffects: character.classMechanics?.cantripEffects,
+          }),
+        )
+        .filter((action): action is CantripAction =>
+          Boolean(action?.damageNotation),
+        )
+    : [];
 
-    const attackBonus = character.spellcasting.spellAttackBonus;
-    const attackRoll = `1d20${attackBonus >= 0 ? '+' : ''}${attackBonus}`;
+  const describeCantrip = (action: CantripAction): string => {
+    const parts = [
+      action.kind === 'attack'
+        ? `${action.attackBonus! >= 0 ? '+' : ''}${action.attackBonus} to hit`
+        : action.kind === 'save'
+          ? `DC ${action.saveDC} ${action.saveAbility} save`
+          : '',
+      `${action.damageNotation} ${action.damageType ?? ''}`.trim(),
+      action.attacks > 1 ? `${action.attacks} beams` : '',
+      action.rangeFeet ? `${action.rangeFeet} ft` : action.range,
+      action.pushFeet ? `push ${action.pushFeet} ft on a hit` : '',
+    ];
+    return parts.filter(Boolean).join(' · ');
+  };
 
-    const roll: CustomRoll = {
-      id: `cantrip-attack-${cantripSlug}-${crypto.randomUUID()}`,
-      notation: attackRoll,
+  const handleCantripAction = (slug: string) => {
+    const action = cantripActions.find((entry) => entry.slug === slug);
+    if (!action) return;
+    if (action.kind === 'attack') {
+      // One attack roll (with its own damage roll) per beam.
+      for (let beam = 1; beam <= action.attacks; beam += 1) {
+        const label =
+          action.attacks > 1
+            ? `${action.name} beam ${beam}/${action.attacks}`
+            : `${action.name} Attack`;
+        const bonus = action.attackBonus!;
+        onDiceRoll({
+          id: `cantrip-attack-${slug}-${beam}-${crypto.randomUUID()}`,
+          notation: `1d20${bonus >= 0 ? '+' : ''}${bonus}`,
+          type: 'attack' as const,
+          description: `${label}${action.notes.length ? ` (${action.notes.join(' ')})` : ''}`,
+          damageNotation: action.damageNotation,
+          damageType: action.damageType,
+          label,
+          diceResults: [],
+          modifier: bonus,
+          total: bonus,
+          timestamp: Date.now(),
+        });
+      }
+      return;
+    }
+    // Save cantrips have no attack roll; roll the damage and show the DC.
+    onDiceRoll({
+      id: `cantrip-damage-${slug}-${crypto.randomUUID()}`,
+      notation: action.damageNotation!,
       type: 'complex' as const,
-      description: `${cantripSlug} Attack`,
-      label: `${cantripSlug} Attack`,
+      description: `${action.name}: DC ${action.saveDC} ${action.saveAbility} save`,
+      damageType: action.damageType,
+      label: `${action.name} damage`,
       diceResults: [],
-      modifier: attackBonus,
-      total: attackBonus,
+      modifier: 0,
+      total: 0,
       timestamp: Date.now(),
-    };
-
-    onDiceRoll(roll);
+    });
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -768,9 +826,22 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
               hasButton: false,
               category: 'offense',
             },
+            ...cantripActions.map((action) => ({
+              id: `cantrip:${action.slug}`,
+              name: action.name,
+              type: 'spell-attack' as const,
+              description: describeCantrip(action),
+              actionCost: 'Action' as const,
+              hasButton: true,
+              buttonText:
+                action.kind === 'attack' ? 'Roll Attack' : 'Roll Damage',
+              category: 'offense' as const,
+            })),
           ]}
           onAction={(actionId) => {
             if (actionId === 'spell-attack') handleSpellAttack();
+            if (actionId.startsWith('cantrip:'))
+              handleCantripAction(actionId.slice('cantrip:'.length));
           }}
           layoutMode={layoutMode}
         />
