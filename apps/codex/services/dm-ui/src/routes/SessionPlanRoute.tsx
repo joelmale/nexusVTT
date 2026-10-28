@@ -30,6 +30,8 @@ interface SessionPlanContentProps {
   /** Only bundles with publishing enabled call the prep API. */
   canPublish: boolean;
   store?: BundleStore;
+  bundle?: import('@/demo/fixture-registry').CampaignFixtureBundle;
+  session?: import('@/demo/fixture-registry').CampaignSession;
 }
 
 function buildPlanPatchFromSteps(
@@ -45,6 +47,13 @@ function buildPlanPatchFromSteps(
     'Decision point': 'choice',
     'Closing beat': 'closing',
     Reminder: 'note',
+    reminder: 'note',
+    'open-scene': 'scene',
+    'activate-scene': 'scene',
+    'deploy-encounter': 'encounter',
+    'share-handout': 'handout',
+    'reveal-entry': 'note',
+    'open-entry': 'note',
   };
 
   const planSteps: SessionPlanStep[] = steps.map((s, idx) => ({
@@ -90,6 +99,8 @@ function SessionPlanContent({
   model,
   canPublish,
   store,
+  bundle,
+  session,
 }: SessionPlanContentProps) {
   const { notifyCapability } = useCapabilityNotice();
   const [persistedRevision, setPersistedRevision] = useState<number>();
@@ -319,6 +330,7 @@ function SessionPlanContent({
   return (
     <SessionPlan
       activateState={activateState}
+      bundle={bundle}
       isDirty={isDirty}
       isSaving={isSaving}
       model={activeModel}
@@ -339,6 +351,7 @@ function SessionPlanContent({
       persistedRevision={persistedRevision}
       publishMessage={publishMessage}
       publishState={publishState}
+      session={session}
     />
   );
 }
@@ -346,6 +359,10 @@ function SessionPlanContent({
 function SessionPlanPage() {
   const { bundle, basePath, store } = useSectionBundle();
   const { sessionId = '' } = useParams();
+  const session = useMemo(
+    () => bundle.sessions.find((item) => item.id === sessionId),
+    [bundle, sessionId],
+  );
   const model = useMemo(
     () => buildSessionPlanModel(bundle, sessionId, basePath),
     [bundle, sessionId, basePath],
@@ -365,12 +382,14 @@ function SessionPlanPage() {
 
   return (
     <SessionPlanContent
+      bundle={bundle}
       campaignId={bundle.campaignId}
       canPublish={
         store?.editable === true || bundle.features.publishSessionPlans
       }
       key={`${bundle.slug}/${sessionId}`}
       model={model}
+      session={session}
       sessionId={sessionId}
       store={store}
     />

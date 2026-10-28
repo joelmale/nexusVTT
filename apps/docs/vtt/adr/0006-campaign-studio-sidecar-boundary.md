@@ -59,3 +59,21 @@ objects whose dependencies are unavailable or unauthorized.
 This introduces explicit schema versions and revisions on preparation objects.
 Writers must perform expected-revision checks, and schema migrations must be
 reviewed before older offline drafts or persisted revisions are accepted.
+
+## Addendum (2026-10-28): Ratified Authoring Primitives (CS-77, CS-78, CS-79, CS-80)
+
+1. **Client-Bundle Search Indexing (`CS-77`)**: Rather than round-tripping to a
+   dedicated server `/prep/search` route for every keystroke in an open campaign,
+   Campaign Studio indexes the loaded `CampaignFixtureBundle` in memory
+   (`searchCampaign.ts`), composing entities, secrets, inbox notes, items, and
+   homebrew monsters. Server search is reserved for compendium lookups.
+2. **MentionToken Serialization (`CS-78`)**: Prose fields support markdown
+   `@[Label](ref:id)` tokens authored through `MentionTextarea.tsx`. On persistence,
+   tokens are mapped to `CampaignObjectRef` objects and wrapped in a standard
+   Lexical JSON envelope.
+3. **Workspace Location (`CS-79`)**: `@nexuscodex/dm-ui` remains situated at
+   `apps/codex/services/dm-ui` to preserve Docker/Caddy homelab routing, with shared
+   runtime and authoring contracts maintained in `packages/game-contracts`.
+4. **Realtime Boundaries (`CS-80`)**: Authoring persistence relies on transactional
+   compare-and-swap (HTTP 409 conflict detection). Real-time co-DM WebSocket fanout
+   is scoped to Phase 5.

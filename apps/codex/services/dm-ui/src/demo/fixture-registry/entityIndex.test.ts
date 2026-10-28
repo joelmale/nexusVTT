@@ -103,4 +103,112 @@ describe('entity index', () => {
     // The original bundle is untouched.
     expect(getBacklinks(ashes, 'missing-id')).toEqual([]);
   });
+
+  it('indexes secrets, inboxNotes, homebrewMonsters, and items with expected routes and backlinks', () => {
+    const targetNpc = ashes.npcs[0]!;
+    const longSecretText =
+      'The harbor watch captain secretly sold the lighthouse cipher to the Crimson Wake before the storm.';
+    const bundle = {
+      ...ashes,
+      secrets: [
+        {
+          id: 'secret-harbor-cipher',
+          campaignId: ashes.campaignId,
+          text: `${longSecretText} @[${targetNpc.name}](ref:${targetNpc.id})`,
+          attachedTo: [{ kind: 'npc', id: targetNpc.id }],
+          revealed: false,
+          revealedInSessionId: ashes.sessions[0]!.id,
+        },
+      ],
+      inboxNotes: [
+        {
+          id: 'inbox-dockside-rumor',
+          campaignId: ashes.campaignId,
+          text: `Check dockside rumor about @[${targetNpc.name}](ref:${targetNpc.id})`,
+          createdAt: '2026-10-01T00:00:00Z',
+          triagedTo: { kind: 'npc', id: targetNpc.id },
+        },
+      ],
+      homebrewMonsters: [
+        {
+          id: 'monster-ash-horror',
+          campaignId: ashes.campaignId,
+          name: 'Ash-Stained Horror',
+          size: 'Large',
+          type: 'aberration',
+          cr: '5',
+          ac: 15,
+          hp: 95,
+          speed: 30,
+          abilities: [18, 12, 16, 8, 14, 10] as [
+            number,
+            number,
+            number,
+            number,
+            number,
+            number,
+          ],
+          edition: '2024' as const,
+          notes: `Hunts @[${targetNpc.name}](ref:${targetNpc.id}) across the fog.`,
+        },
+      ],
+      items: [
+        {
+          id: 'item-lighthouse-key',
+          campaignId: ashes.campaignId,
+          name: 'Lighthouse Brass Key',
+          itemType: 'treasure' as const,
+          rarity: 'rare' as const,
+          requiresAttunement: false,
+          quantity: 1,
+          description: `Held by @[${targetNpc.name}](ref:${targetNpc.id}).`,
+          holder: { kind: 'npc' as const, id: targetNpc.id },
+          discovered: true,
+          identified: true,
+          questIds: [ashes.quests[0]!.id],
+          sessionId: ashes.sessions[0]!.id,
+        },
+      ],
+    };
+
+    expect(resolveEntity(bundle, 'secret-harbor-cipher')).toEqual({
+      id: 'secret-harbor-cipher',
+      kind: 'secret',
+      label: `${longSecretText} @[${targetNpc.name}](ref:${targetNpc.id})`.slice(
+        0,
+        60,
+      ),
+      href: '/notes?tab=secrets',
+    });
+
+    expect(resolveEntity(bundle, 'inbox-dockside-rumor')).toEqual({
+      id: 'inbox-dockside-rumor',
+      kind: 'note',
+      label: `Check dockside rumor about @[${targetNpc.name}](ref:${targetNpc.id})`.slice(
+        0,
+        60,
+      ),
+      href: '/notes?tab=inbox',
+    });
+
+    expect(resolveEntity(bundle, 'monster-ash-horror')).toEqual({
+      id: 'monster-ash-horror',
+      kind: 'encounter',
+      label: 'Ash-Stained Horror',
+      href: '/encounters?tab=bestiary',
+    });
+
+    expect(resolveEntity(bundle, 'item-lighthouse-key')).toEqual({
+      id: 'item-lighthouse-key',
+      kind: 'item',
+      label: 'Lighthouse Brass Key',
+      href: '/items/item-lighthouse-key',
+    });
+
+    const npcBacklinkIds = getBacklinks(bundle, targetNpc.id).map((r) => r.id);
+    expect(npcBacklinkIds).toContain('secret-harbor-cipher');
+    expect(npcBacklinkIds).toContain('inbox-dockside-rumor');
+    expect(npcBacklinkIds).toContain('monster-ash-horror');
+    expect(npcBacklinkIds).toContain('item-lighthouse-key');
+  });
 });

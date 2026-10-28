@@ -139,3 +139,11 @@ export async function updateCampaign(
     method: 'PUT',
   });
 }
+
+export async function deleteCampaign(campaignId: string): Promise<void> {
+  const id = campaignId.trim();
+  if (!id) throw new Error('Campaign ID is required.');
+  await campaignRequest(`/api/campaigns/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}

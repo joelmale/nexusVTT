@@ -45,23 +45,97 @@ export interface StructuredData {
   searchText?: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeDocument(hit: unknown): Document {
+  const item = isRecord(hit) ? hit : {};
+  return {
+    id: String(item.documentId || item.id || ''),
+    title: String(item.title || 'Untitled Document'),
+    description:
+      typeof item.snippet === 'string'
+        ? item.snippet
+        : typeof item.description === 'string'
+          ? item.description
+          : undefined,
+    type: String(item.type || 'other'),
+    tags: Array.isArray(item.tags)
+      ? item.tags.filter((t): t is string => typeof t === 'string')
+      : [],
+    fileSize: typeof item.fileSize === 'number' ? item.fileSize : 0,
+    uploadedBy: String(item.uploadedBy || 'system'),
+    uploadedAt: String(item.uploadedAt || new Date().toISOString()),
+    status: String(item.status || 'ready'),
+    metadata: isRecord(item.metadata) ? item.metadata : undefined,
+  };
+}
+
+function normalizeSearchResult(data: unknown): SearchResult {
+  if (!isRecord(data)) {
+    if (Array.isArray(data)) {
+      return {
+        documents: data.map(normalizeDocument),
+        total: data.length,
+      };
+    }
+    return { documents: [], total: 0 };
+  }
+
+  // If the API returned { documents, total } directly
+  if (Array.isArray(data.documents)) {
+    return {
+      documents: data.documents.map(normalizeDocument),
+      total:
+        typeof data.total === 'number'
+          ? data.total
+          : data.documents.length,
+    };
+  }
+
+  // If the API returned doc-api QuickSearch response: { query, results }
+  if (Array.isArray(data.results)) {
+    const documents = data.results.map(normalizeDocument);
+    return {
+      documents,
+      total: typeof data.total === 'number' ? data.total : documents.length,
+    };
+  }
+
+  return { documents: [], total: 0 };
+}
+
 /**
- * Search documents
+ * Search documents using doc-api /api/search/quick
  */
 export async function searchDocuments(params: {
   term?: string;
+  query?: string;
   type?: string;
   tags?: string[];
   limit?: number;
+  size?: number;
   offset?: number;
 }): Promise<SearchResult> {
-  const queryParams = new URLSearchParams();
+  const query = (params.query ?? params.term ?? '').trim();
+  if (!query) {
+    return { documents: [], total: 0 };
+  }
 
-  if (params.term) queryParams.append('term', params.term);
-  if (params.type) queryParams.append('type', params.type);
-  if (params.tags) params.tags.forEach(tag => queryParams.append('tags', tag));
-  if (params.limit) queryParams.append('limit', params.limit.toString());
-  if (params.offset) queryParams.append('offset', params.offset.toString());
+  const queryParams = new URLSearchParams();
+  queryParams.append('query', query);
+
+  const size = params.size ?? params.limit;
+  if (size !== undefined) {
+    queryParams.append('size', size.toString());
+  }
+  if (params.type) {
+    queryParams.append('type', params.type);
+  }
+  if (params.tags) {
+    params.tags.forEach((tag) => queryParams.append('tags', tag));
+  }
 
   const response = await fetch(`${API_URL}/api/search/quick?${queryParams}`);
 
@@ -69,7 +143,38 @@ export async function searchDocuments(params: {
     throw new Error(`Search failed: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = (await response.json()) as unknown;
+  return normalizeSearchResult(data);
+}
+
+/**
+ * List documents with optional filters
+ */
+export async function listDocuments(params: {
+  type?: string;
+  tag?: string;
+  campaign?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<SearchResult> {
+  const queryParams = new URLSearchParams();
+
+  if (params.type) queryParams.append('type', params.type);
+  if (params.tag) queryParams.append('tag', params.tag);
+  if (params.campaign) queryParams.append('campaign', params.campaign);
+  if (params.search) queryParams.append('search', params.search);
+  if (params.limit !== undefined) queryParams.append('limit', params.limit.toString());
+  if (params.offset !== undefined) queryParams.append('offset', params.offset.toString());
+
+  const response = await fetch(`${API_URL}/api/documents?${queryParams}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to list documents: ${response.statusText}`);
+  }
+
+  const data = (await response.json()) as unknown;
+  return normalizeSearchResult(data);
 }
 
 /**
@@ -82,7 +187,8 @@ export async function getDocument(id: string): Promise<Document> {
     throw new Error(`Failed to fetch document: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = (await response.json()) as unknown;
+  return normalizeDocument(data);
 }
 
 /**
@@ -108,8 +214,14 @@ export async function getStructuredData(documentId: string): Promise<StructuredD
     throw new Error(`Failed to fetch structured data: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data.data || [];
+  const data = (await response.json()) as unknown;
+  if (Array.isArray(data)) {
+    return data as StructuredData[];
+  }
+  if (isRecord(data) && Array.isArray(data.data)) {
+    return data.data as StructuredData[];
+  }
+  return [];
 }
 
 /**
@@ -132,42 +244,77 @@ export async function searchStructuredData(params: {
     throw new Error(`Search failed: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data.data || [];
+  const data = (await response.json()) as unknown;
+  if (Array.isArray(data)) {
+    return data as StructuredData[];
+  }
+  if (isRecord(data) && Array.isArray(data.data)) {
+    return data.data as StructuredData[];
+  }
+  return [];
 }
+
+export const DEFAULT_DOCUMENT_TYPES: readonly string[] = [
+  'srd_content',
+  'rulebook',
+  'adventure',
+  'supplement',
+  'homebrew',
+  'other',
+];
 
 /**
  * Get document types (for filtering)
  */
 export async function getDocumentTypes(): Promise<string[]> {
-  // This would ideally come from the API, but for now we'll use known types
-  return [
-    'srd_content',
-    'rulebook',
-    'adventure',
-    'supplement',
-    'homebrew',
-    'other'
-  ];
+  try {
+    const { documents } = await listDocuments({ limit: 100 });
+    const types = new Set<string>();
+    for (const doc of documents) {
+      if (doc.type) types.add(doc.type);
+    }
+    if (types.size > 0) {
+      return Array.from(types).sort();
+    }
+  } catch {
+    // Fall back to known default types
+  }
+  return [...DEFAULT_DOCUMENT_TYPES];
 }
+
+export const DEFAULT_TAGS: readonly string[] = [
+  'srd',
+  'spell',
+  'monster',
+  'magic-item',
+  'equipment',
+  'class',
+  'race',
+  'background',
+  'feat',
+  'condition',
+  'rule',
+];
 
 /**
  * Get available tags
  */
 export async function getAvailableTags(): Promise<string[]> {
-  // TODO: Implement when admin API endpoint is available
-  // For now, return common SRD tags
-  return [
-    'srd',
-    'spell',
-    'monster',
-    'magic-item',
-    'equipment',
-    'class',
-    'race',
-    'background',
-    'feat',
-    'condition',
-    'rule'
-  ];
+  try {
+    const { documents } = await listDocuments({ limit: 100 });
+    const tags = new Set<string>();
+    for (const doc of documents) {
+      if (Array.isArray(doc.tags)) {
+        for (const tag of doc.tags) {
+          if (tag) tags.add(tag);
+        }
+      }
+    }
+    if (tags.size > 0) {
+      return Array.from(tags).sort();
+    }
+  } catch {
+    // Fall back to default tags
+  }
+  return [...DEFAULT_TAGS];
 }

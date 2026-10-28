@@ -171,3 +171,36 @@
   display: inline-block;
   flex-shrink: 0;
 }
+
+.editableRelationshipRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--studio-border, #d7d3c9);
+}
+
+.editableRelationshipRow:last-child {
+  border-bottom: none;
+}
+
+.targetName {
+  font-weight: 600;
+  color: var(--studio-text, #222626);
+}
+
+.relationSelect {
+  background: var(--studio-surface-raised, #ffffff);
+  border: 1px solid var(--studio-border-strong, #8d928d);
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-text, #222626);
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+}
+
+.inspectorSummaryInline {
+  color: var(--studio-text-muted, #696d69);
+  font-size: 0.75rem;
+}

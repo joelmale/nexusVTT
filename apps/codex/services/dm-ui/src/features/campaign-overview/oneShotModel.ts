@@ -26,6 +26,7 @@ export interface OneShotBeat {
   entityId?: string;
   entityKind?: EntityKind;
   entityLabel?: string;
+  isTemplate?: boolean;
 }
 
 export interface OneShotModel {
@@ -45,6 +46,7 @@ export interface OneShotModel {
   rewards: OneShotBeat;
   scheduledLootCount: number;
   unrevealedSecretsCount: number;
+  isTemplateSuggestion: boolean;
 }
 
 export function formatDuration(minutes: number): string {
@@ -54,6 +56,51 @@ export function formatDuration(minutes: number): string {
   if (m === 0) return `${h}h`;
   return `${h}h ${m}m`;
 }
+
+export const ONE_SHOT_TEMPLATE_STEPS = [
+  {
+    id: 'step-hook',
+    kind: 'scene' as const,
+    title: 'Call to Adventure (The Hook)',
+    durationMinutes: 20,
+    body: 'The party arrives and encounters the inciting incident.',
+  },
+  {
+    id: 'step-scene-1',
+    kind: 'exploration' as const,
+    title: 'Initial Investigation & Clues',
+    durationMinutes: 45,
+    body: 'The party uncovers initial clues and follows the trail.',
+  },
+  {
+    id: 'step-scene-2',
+    kind: 'combat' as const,
+    title: 'Midpoint Escalation & Encounter',
+    durationMinutes: 50,
+    body: 'A combat encounter that raises the stakes.',
+  },
+  {
+    id: 'step-scene-3',
+    kind: 'exploration' as const,
+    title: 'Infiltration / The Approach',
+    durationMinutes: 40,
+    body: 'Navigating hazards or infiltrating the stronghold.',
+  },
+  {
+    id: 'step-climax',
+    kind: 'combat' as const,
+    title: 'The Showdown (Climax)',
+    durationMinutes: 65,
+    body: 'The final boss confrontation or pivotal challenge.',
+  },
+  {
+    id: 'step-rewards',
+    kind: 'closing' as const,
+    title: 'Resolution, Treasure & Epilogue',
+    durationMinutes: 20,
+    body: 'Distribute treasure, award experience, and resolve loose ends.',
+  },
+];
 
 export const DEFAULT_TARGET_BUDGET_MINUTES = 240; // 4 hours standard one-shot
 
@@ -83,6 +130,7 @@ export function buildOneShotModel(
     : [];
 
   const steps = session?.plan?.steps ?? [];
+  const isTemplateSuggestion = steps.length === 0;
 
   let hook: OneShotBeat;
   let scenes: OneShotBeat[] = [];
@@ -90,7 +138,7 @@ export function buildOneShotModel(
   let rewards: OneShotBeat;
 
   if (steps.length === 0) {
-    // Generate default structured scaffolding for blank one-shot
+    // Generate default structured scaffolding for blank one-shot (template suggestions)
     hook = {
       id: 'default-hook',
       phase: 'hook',
@@ -99,6 +147,7 @@ export function buildOneShotModel(
       description:
         session?.summary ||
         'The party arrives and encounters the inciting incident.',
+      isTemplate: true,
     };
     scenes = [
       {
@@ -107,6 +156,7 @@ export function buildOneShotModel(
         title: 'Initial Investigation & Clues',
         kind: 'exploration',
         durationMinutes: 45,
+        isTemplate: true,
       },
       {
         id: 'default-scene-2',
@@ -114,6 +164,7 @@ export function buildOneShotModel(
         title: 'Midpoint Escalation & Encounter',
         kind: 'combat',
         durationMinutes: 50,
+        isTemplate: true,
       },
       {
         id: 'default-scene-3',
@@ -121,6 +172,7 @@ export function buildOneShotModel(
         title: 'Infiltration / The Approach',
         kind: 'puzzle',
         durationMinutes: 40,
+        isTemplate: true,
       },
     ];
     climax = {
@@ -129,12 +181,14 @@ export function buildOneShotModel(
       title: 'The Showdown (Climax)',
       kind: 'combat',
       durationMinutes: 65,
+      isTemplate: true,
     };
     rewards = {
       id: 'default-rewards',
       phase: 'rewards',
       title: 'Resolution, Treasure & Epilogue',
       durationMinutes: 20,
+      isTemplate: true,
     };
   } else if (steps.length === 1) {
     hook = {
@@ -346,5 +400,6 @@ export function buildOneShotModel(
     rewards,
     scheduledLootCount: scheduledLoot.length,
     unrevealedSecretsCount: unrevealedSecrets.length,
+    isTemplateSuggestion,
   };
 }

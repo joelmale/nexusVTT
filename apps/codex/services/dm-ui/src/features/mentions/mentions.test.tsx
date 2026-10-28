@@ -1,7 +1,8 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import * as registry from '@/demo/fixture-registry';
 import { MarkdownBody } from '@/features/notes/MarkdownBody';
 import { renderInSection } from '@/features/section-shell/testUtils';
 
@@ -26,6 +27,10 @@ const body = () => screen.getByLabelText('Note body') as HTMLTextAreaElement;
 const value = () => screen.getByTestId('value').textContent;
 
 describe('MentionTextarea', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('suggests campaign objects after @ and inserts a stable token on Enter', async () => {
     const { user } = renderInSection(<Field />);
     await user.type(body(), 'Ask @serin');
@@ -65,7 +70,7 @@ describe('MentionTextarea', () => {
     expect(value()).toMatch(/^@\[.+\]\(ref:[\w-]+\) $/);
   });
 
-  it('closes on Escape and offers nothing for a query with no match', async () => {
+  it('closes on Escape and offers nothing for a query with no match when read-only', async () => {
     const { user } = renderInSection(<Field />);
     await user.type(body(), '@ser');
     expect(screen.getByRole('listbox')).toBeVisible();
@@ -138,7 +143,24 @@ describe('MentionTextarea', () => {
     expect(value()).toBe('Speak to @[Varis](ref:npc-new-123) ');
   });
 
-  it('does not offer create options when matching entities exist', async () => {
+  it('does not offer create options when an exact match exists (CS-26)', async () => {
+    vi.spyOn(registry, 'listEntities').mockReturnValue([
+      { id: 'npc-1', kind: 'npc', label: 'Varis' },
+    ]);
+    const addItem = vi.fn();
+    const { user } = renderInSection(<Field />, {
+      store: { editable: true, addItem },
+    });
+
+    await user.type(body(), '@Varis');
+    expect(screen.getByRole('listbox')).toBeVisible();
+    expect(
+      screen.getByRole('option', { name: /^Varis/i }),
+    ).toBeVisible();
+    expect(screen.queryByRole('option', { name: /Create NPC/i })).toBeNull();
+  });
+
+  it('offers create options when only partial matches exist (CS-26)', async () => {
     const addItem = vi.fn();
     const { user } = renderInSection(<Field />, {
       store: { editable: true, addItem },
@@ -147,9 +169,28 @@ describe('MentionTextarea', () => {
     await user.type(body(), '@serin');
     expect(screen.getByRole('listbox')).toBeVisible();
     expect(
-      screen.getByRole('option', { name: /Captain Serin Dhal/i }),
+      screen.getByRole('option', { name: /^Captain Serin Dhal/i }),
     ).toBeVisible();
-    expect(screen.queryByRole('option', { name: /Create NPC/i })).toBeNull();
+    expect(
+      screen.getByRole('option', { name: /Create NPC “serin”/i }),
+    ).toBeVisible();
+  });
+
+  it('displays role="alert" when quick create fails (CS-27)', async () => {
+    const addItem = vi.fn().mockResolvedValue({ ok: false, error: 'Database constraint violation' });
+    const { user } = renderInSection(<Field />, {
+      store: { editable: true, addItem },
+    });
+
+    await user.type(body(), 'Meet @UnknownNpc');
+    const createNpcOption = screen.getByRole('option', {
+      name: /Create NPC “UnknownNpc”/i,
+    });
+    await user.click(createNpcOption);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toBeVisible();
+    expect(alert).toHaveTextContent('Database constraint violation');
   });
 });
 

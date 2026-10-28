@@ -1,7 +1,17 @@
-import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
-import { generateSessionSpine } from '@/features/sessions/sessionSpineGenerator';
+import { SRD_MONSTERS } from '@/data/srdMonsters';
+import type {
+  CampaignFixtureBundle,
+  CampaignItemRarity,
+  CampaignItemType,
+} from '@/demo/fixture-registry';
 import { buildMonsterCatalog } from '@/features/encounters/monsterCatalog';
+import {
+  ITEM_TYPE_LABELS,
+  RARITY_LABELS,
+} from '@/features/items/itemsModel';
+import { getFallbackSrdCatalog } from '@/features/items/srdFallbackCatalog';
 import { resolveMapImage } from '@/features/map-preparation/buildMapPreparationModel';
+import { generateSessionSpine } from '@/features/sessions/sessionSpineGenerator';
 
 import type {
   LibraryObject,
@@ -9,32 +19,78 @@ import type {
   SessionPlanViewModel,
 } from './sessionPlanModels';
 
-const COMPENDIUM_OBJECTS: LibraryObject[] = [
-  {
-    id: 'srd-bandit',
-    title: 'Bandit',
-    subtitle: 'CR 1/8 humanoid',
+function formatItemSubtitle(
+  itemType: CampaignItemType,
+  rarity: CampaignItemRarity,
+): string {
+  const typeLabel = ITEM_TYPE_LABELS[itemType] ?? itemType;
+  if (rarity === 'none') {
+    return typeLabel;
+  }
+  const rarityLabel = RARITY_LABELS[rarity] ?? rarity;
+  return `${typeLabel} · ${rarityLabel}`;
+}
+
+/**
+ * Builds the Compendium library entries for the Session Plan sidebar from
+ * canonical SRD monsters, campaign homebrew monsters, campaign items, and
+ * bundled SRD fallback items with deterministic IDs and labels.
+ */
+export function buildCompendiumObjects(
+  bundle?: Pick<
+    CampaignFixtureBundle,
+    'homebrewMonsters' | 'items' | 'campaign' | 'catalog'
+  >,
+): LibraryObject[] {
+  const ruleset = /2014|5\.1/.test(
+    bundle?.campaign?.edition ?? bundle?.catalog?.edition ?? '',
+  )
+    ? '2014'
+    : '2024';
+
+  const homebrewEntries: LibraryObject[] = (bundle?.homebrewMonsters ?? []).map(
+    (monster) => ({
+      id: monster.id.startsWith('homebrew-')
+        ? monster.id
+        : `homebrew-${monster.id}`,
+      title: monster.name,
+      subtitle: `CR ${monster.cr} ${monster.type}`,
+      type: 'encounter',
+    }),
+  );
+
+  const campaignItemEntries: LibraryObject[] = (bundle?.items ?? []).map(
+    (item) => ({
+      id: item.id,
+      title: item.name,
+      subtitle: formatItemSubtitle(item.itemType, item.rarity),
+      type: 'handout',
+    }),
+  );
+
+  const srdMonsterEntries: LibraryObject[] = SRD_MONSTERS.map((monster) => ({
+    id: `srd-${monster.id}`,
+    title: monster.name,
+    subtitle: `CR ${monster.cr} ${monster.type}`,
     type: 'encounter',
-  },
-  {
-    id: 'srd-guard',
-    title: 'Guard',
-    subtitle: 'CR 1/8 humanoid',
-    type: 'encounter',
-  },
-  {
-    id: 'srd-fog-cloud',
-    title: 'Fog Cloud',
-    subtitle: '1st-level conjuration',
-    type: 'lore',
-  },
-  {
-    id: 'srd-rope',
-    title: 'Hempen Rope',
-    subtitle: 'Adventuring gear',
-    type: 'handout',
-  },
-];
+  }));
+
+  const srdItemEntries: LibraryObject[] = getFallbackSrdCatalog(ruleset).map(
+    (item) => ({
+      id: item.id,
+      title: item.name,
+      subtitle: formatItemSubtitle(item.itemType, item.rarity),
+      type: 'handout',
+    }),
+  );
+
+  return [
+    ...homebrewEntries,
+    ...campaignItemEntries,
+    ...srdMonsterEntries,
+    ...srdItemEntries,
+  ];
+}
 
 const KIND_LABELS: Record<LibraryObjectType, string> = {
   encounter: 'Encounter',
@@ -165,7 +221,7 @@ export function buildSessionPlanModel(
     campaignDescription: campaign.premise,
     campaignTitle: campaign.title,
     checklist: plan.readiness,
-    compendiumObjects: COMPENDIUM_OBJECTS,
+    compendiumObjects: buildCompendiumObjects(bundle),
     counts: [
       { count: campaign.objectCounts.all, label: 'All Objects', type: 'all' },
       { count: campaign.objectCounts.scenes, label: 'Scenes', type: 'scene' },

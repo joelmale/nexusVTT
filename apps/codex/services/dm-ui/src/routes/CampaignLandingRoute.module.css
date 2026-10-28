@@ -39,3 +39,43 @@
   min-height: 38px;
   padding: 0 16px;
 }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.card .actions button {
+  margin-top: 0;
+}
+
+.primaryButton {
+  background: var(--studio-positive);
+  border: 1px solid var(--studio-positive);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-positive-contrast);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  min-height: 38px;
+  padding: 0 16px;
+}
+
+.secondaryButton {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  font: inherit;
+  min-height: 38px;
+  padding: 0 16px;
+}
+
+.secondaryButton:hover {
+  background: var(--studio-surface);
+  border-color: var(--studio-text-muted);
+}

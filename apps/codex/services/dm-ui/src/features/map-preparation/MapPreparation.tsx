@@ -2,6 +2,7 @@ import Boxes from 'lucide-react/dist/esm/icons/boxes';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import CircleDot from 'lucide-react/dist/esm/icons/circle-dot';
 import Compass from 'lucide-react/dist/esm/icons/compass';
+import Edit2 from 'lucide-react/dist/esm/icons/edit-2';
 import Eye from 'lucide-react/dist/esm/icons/eye';
 import EyeOff from 'lucide-react/dist/esm/icons/eye-off';
 import Layers from 'lucide-react/dist/esm/icons/layers';
@@ -10,9 +11,10 @@ import MapPin from 'lucide-react/dist/esm/icons/map-pin';
 import Minus from 'lucide-react/dist/esm/icons/minus';
 import MoreHorizontal from 'lucide-react/dist/esm/icons/more-horizontal';
 import MousePointer2 from 'lucide-react/dist/esm/icons/mouse-pointer-2';
-import Plus from 'lucide-react/dist/esm/icons/plus';
 import PanelRight from 'lucide-react/dist/esm/icons/panel-right';
+import Plus from 'lucide-react/dist/esm/icons/plus';
 import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw';
+import Sliders from 'lucide-react/dist/esm/icons/sliders';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import X from 'lucide-react/dist/esm/icons/x';
@@ -27,10 +29,15 @@ import {
 import { Link } from 'react-router-dom';
 
 import type { CapabilityId } from '@/features/capability-notice';
+import { StartFromExample } from '@/features/section-shell/StartFromExample';
 
 import type {
   LinkedObjectViewModel,
   LocationViewModel,
+  MapFogPreset,
+  MapGridConfig,
+  MapLayerViewModel,
+  MapLightingConfig,
   MapPinViewModel,
   MapPreparationViewModel,
 } from './mapPreparationModels';
@@ -45,6 +52,11 @@ interface MapPreparationProps {
   onCreateScene?: (
     map: MapPreparationViewModel,
     selectedPin?: MapPinViewModel,
+    sceneSettings?: {
+      grid: MapGridConfig;
+      lighting: MapLightingConfig;
+      fogPreset: MapFogPreset;
+    },
   ) => Promise<void> | void;
   onCreateLocation?: (
     name: string,
@@ -54,7 +66,7 @@ interface MapPreparationProps {
   headerActions?: ReactNode;
 }
 
-type InspectorTab = 'details' | 'objects' | 'notes';
+type InspectorTab = 'details' | 'objects' | 'notes' | 'settings';
 
 const PRESET_COLORS = [
   '#22c55e',
@@ -75,13 +87,20 @@ function buildMapPayload(
   model: MapPreparationViewModel,
   pins: MapPinViewModel[],
   visibleLayers: Record<string, boolean>,
+  layers: MapLayerViewModel[] = model.layers,
+  grid: MapGridConfig = model.grid ?? { type: 'square', size: 100, snapToGrid: true },
+  lighting: MapLightingConfig = model.lighting ?? { ambientLight: 0.35, darkness: 0.65 },
+  fogPreset: MapFogPreset = model.fogPreset ?? 'unexplored',
 ): Record<string, unknown> {
   return {
     title: model.title,
     description: model.description,
     imageAssetRef: model.imageAssetRef,
     dimensions: model.dimensions,
-    layers: model.layers.map((l) => ({
+    grid,
+    lighting,
+    fogPreset,
+    layers: layers.map((l) => ({
       id: l.id,
       label: l.label,
       visibleByDefault: visibleLayers[l.id] ?? true,
@@ -116,6 +135,20 @@ export function MapPreparation({
   headerActions,
 }: MapPreparationProps) {
   const [pins, setPins] = useState<MapPinViewModel[]>(model.pins);
+  const [layers, setLayers] = useState<MapLayerViewModel[]>(model.layers);
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
+  const [editingLayerLabel, setEditingLayerLabel] = useState('');
+  const [isAddingLayer, setIsAddingLayer] = useState(false);
+  const [newLayerLabel, setNewLayerLabel] = useState('');
+  const [grid, setGrid] = useState<MapGridConfig>(
+    model.grid ?? { type: 'square', size: 100, snapToGrid: true },
+  );
+  const [lighting, setLighting] = useState<MapLightingConfig>(
+    model.lighting ?? { ambientLight: 0.35, darkness: 0.65 },
+  );
+  const [fogPreset, setFogPreset] = useState<MapFogPreset>(
+    model.fogPreset ?? 'unexplored',
+  );
   const [selectedPinId, setSelectedPinId] = useState(model.selectedPinId);
   const [visibleLayers, setVisibleLayers] = useState<Record<string, boolean>>(
     Object.fromEntries(model.layers.map((layer) => [layer.id, layer.visible])),
@@ -138,14 +171,32 @@ export function MapPreparation({
 
   // Autosave: edits bump `changeVersion`; `persist` saves until
   // `savedVersion` catches up, never running two onSave calls at once.
-  const latest = useRef({ model, pins, visibleLayers, onSave });
+  const latest = useRef({
+    model,
+    pins,
+    visibleLayers,
+    layers,
+    grid,
+    lighting,
+    fogPreset,
+    onSave,
+  });
   const changeVersion = useRef(0);
   const savedVersion = useRef(0);
   const saving = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    latest.current = { model, pins, visibleLayers, onSave };
+    latest.current = {
+      model,
+      pins,
+      visibleLayers,
+      layers,
+      grid,
+      lighting,
+      fogPreset,
+      onSave,
+    };
   });
 
   const persist = useCallback(async () => {
@@ -159,11 +210,19 @@ export function MapPreparation({
     try {
       while (savedVersion.current < changeVersion.current) {
         const version = changeVersion.current;
-        const { model: m, pins: p, visibleLayers: v, onSave: save } =
-          latest.current;
+        const {
+          model: m,
+          pins: p,
+          visibleLayers: v,
+          layers: l,
+          grid: g,
+          lighting: li,
+          fogPreset: f,
+          onSave: save,
+        } = latest.current;
         setSaveStatus('saving');
         try {
-          await save?.(buildMapPayload(m, p, v));
+          await save?.(buildMapPayload(m, p, v, l, g, li, f));
         } catch (err) {
           console.error('Failed to save map', err);
           setSaveStatus('error');
@@ -183,6 +242,9 @@ export function MapPreparation({
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => void persist(), AUTOSAVE_DELAY_MS);
   }, [persist]);
+
+  const scaleDistance = Math.round(grid.size);
+  const scaleText = `${scaleDistance} ft`;
 
   // Flush edits made just before leaving the map.
   useEffect(
@@ -239,7 +301,7 @@ export function MapPreparation({
       label: `Pin ${pins.length + 1}`,
       x,
       y,
-      layerIds: [model.layers[0]?.id ?? 'locations'],
+      layerIds: [layers[0]?.id ?? 'locations'],
       color: '#22c55e',
       visibility: 'players',
       linkedObjects: [],
@@ -251,10 +313,21 @@ export function MapPreparation({
     markDirty();
   }
 
+  function handlePinClick(pin: MapPinViewModel) {
+    setSelectedPinId(pin.id);
+    if (mode === 'visibility' && editable) {
+      const nextVis = pin.visibility === 'dm-only' ? 'players' : 'dm-only';
+      setPins((current) =>
+        current.map((p) => (p.id === pin.id ? { ...p, visibility: nextVis } : p)),
+      );
+      markDirty();
+    }
+  }
+
   function handlePinPointerDown(e: React.PointerEvent, pinId: string) {
     e.stopPropagation();
     setSelectedPinId(pinId);
-    if (!editable) return;
+    if (!editable || mode === 'visibility') return;
 
     const mapEl = mapTransformRef.current;
     if (!mapEl) return;
@@ -280,6 +353,69 @@ export function MapPreparation({
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     window.addEventListener('pointercancel', onPointerUp);
+  }
+
+  function handleAddLayer() {
+    const trimmed = newLayerLabel.trim();
+    if (!trimmed || !editable) return;
+    const newId = `layer-${Date.now()}`;
+    const newLayer: MapLayerViewModel = {
+      id: newId,
+      label: trimmed,
+      visible: true,
+      order: layers.length + 1,
+    };
+    setLayers((prev) => [...prev, newLayer]);
+    setVisibleLayers((prev) => ({ ...prev, [newId]: true }));
+    setNewLayerLabel('');
+    setIsAddingLayer(false);
+    markDirty();
+  }
+
+  function handleSaveLayerRename(layerId: string) {
+    const trimmed = editingLayerLabel.trim();
+    if (trimmed) {
+      setLayers((prev) =>
+        prev.map((l) => (l.id === layerId ? { ...l, label: trimmed } : l)),
+      );
+      markDirty();
+    }
+    setEditingLayerId(null);
+  }
+
+  function handleDeleteLayer(layerId: string) {
+    if (!editable || layers.length <= 1) return;
+    setLayers((prev) => prev.filter((l) => l.id !== layerId));
+    setVisibleLayers((prev) => {
+      const next = { ...prev };
+      delete next[layerId];
+      return next;
+    });
+    setPins((prev) =>
+      prev.map((p) => ({
+        ...p,
+        layerIds: p.layerIds.filter((id) => id !== layerId),
+      })),
+    );
+    markDirty();
+  }
+
+  function updateGrid(patch: Partial<MapGridConfig>) {
+    if (!editable) return;
+    setGrid((prev) => ({ ...prev, ...patch }));
+    markDirty();
+  }
+
+  function updateLighting(patch: Partial<MapLightingConfig>) {
+    if (!editable) return;
+    setLighting((prev) => ({ ...prev, ...patch }));
+    markDirty();
+  }
+
+  function updateFogPreset(preset: MapFogPreset) {
+    if (!editable) return;
+    setFogPreset(preset);
+    markDirty();
   }
 
   function handlePinKeyDown(e: React.KeyboardEvent, pinId: string) {
@@ -376,7 +512,10 @@ export function MapPreparation({
     if (onCreateScene) {
       setIsCreatingScene(true);
       try {
-        await onCreateScene(model, selectedPin);
+        await onCreateScene(
+          { ...model, grid, lighting, fogPreset },
+          selectedPin,
+        );
         setSceneCreatedMessage(`Scene created from "${model.title}"!`);
         setTimeout(() => setSceneCreatedMessage(null), 4000);
       } catch (err) {
@@ -427,6 +566,14 @@ export function MapPreparation({
 
   return (
     <div className={styles.layout}>
+      {!editable && (
+        <div className={styles.demoNotice} role="region" aria-label="Demo mode notice">
+          <p>
+            Map changes in demo mode are in-memory only and will not be saved.
+          </p>
+          <StartFromExample />
+        </div>
+      )}
       {drawer ? (
         <button
           aria-label="Close panel"
@@ -450,7 +597,18 @@ export function MapPreparation({
                 <span className={styles.sceneNotice}>{sceneCreatedMessage}</span>
               )}
             </span>
-            <h1>{model.title}</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h1>{model.title}</h1>
+              <button
+                aria-label="Open map options"
+                className={styles.iconButton}
+                onClick={() => onCapability('map.options.open')}
+                title="Map Options"
+                type="button"
+              >
+                <MoreHorizontal size={14} />
+              </button>
+            </div>
           </div>
           <div className={styles.headerActions}>
             {onSave && saveStatus !== 'idle' ? (
@@ -478,30 +636,132 @@ export function MapPreparation({
         <section className={styles.layersSection}>
           <div className={styles.sectionHeading}>
             <span>Layers</span>
-            <span>{model.layers.length}</span>
+            <span>{layers.length}</span>
           </div>
-          {model.layers.map((layer) => {
-            const visible = visibleLayers[layer.id];
+          {layers.map((layer) => {
+            const visible = visibleLayers[layer.id] ?? true;
+            const isEditing = editingLayerId === layer.id;
             return (
-              <button
-                aria-pressed={visible}
-                className={styles.layerRow}
+              <div
                 key={layer.id}
-                onClick={() => {
-                  setVisibleLayers((current) => ({
-                    ...current,
-                    [layer.id]: !current[layer.id],
-                  }));
-                  if (editable) markDirty();
-                }}
-                type="button"
+                style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '4px' }}
               >
-                <span className={styles.layerSwatch} />
-                <span>{layer.label}</span>
-                {visible ? <Eye size={15} /> : <EyeOff size={15} />}
-              </button>
+                {isEditing ? (
+                  <form
+                    className={styles.layerEditForm}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSaveLayerRename(layer.id);
+                    }}
+                  >
+                    <input
+                      autoFocus
+                      aria-label="Edit layer name"
+                      className={styles.layerEditInput}
+                      onBlur={() => handleSaveLayerRename(layer.id)}
+                      onChange={(e) => setEditingLayerLabel(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setEditingLayerId(null);
+                      }}
+                      value={editingLayerLabel}
+                    />
+                  </form>
+                ) : (
+                  <button
+                    aria-pressed={visible}
+                    className={styles.layerRow}
+                    onClick={() => {
+                      setVisibleLayers((current) => ({
+                        ...current,
+                        [layer.id]: !current[layer.id],
+                      }));
+                      if (editable) markDirty();
+                    }}
+                    type="button"
+                  >
+                    <span className={styles.layerSwatch} />
+                    <span>{layer.label}</span>
+                    {visible ? <Eye size={15} /> : <EyeOff size={15} />}
+                  </button>
+                )}
+                {editable && !isEditing && (
+                  <div className={styles.layerActions}>
+                    <button
+                      aria-label={`Rename layer ${layer.label}`}
+                      className={styles.layerActionBtn}
+                      onClick={() => {
+                        setEditingLayerId(layer.id);
+                        setEditingLayerLabel(layer.label);
+                      }}
+                      title="Rename layer"
+                      type="button"
+                    >
+                      <Edit2 size={12} />
+                    </button>
+                    {layers.length > 1 && (
+                      <button
+                        aria-label={`Delete layer ${layer.label}`}
+                        className={styles.layerActionBtn}
+                        onClick={() => handleDeleteLayer(layer.id)}
+                        title="Delete layer"
+                        type="button"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
+          {editable && (
+            <div className={styles.addLayerRow}>
+              {isAddingLayer ? (
+                <form
+                  className={styles.inlineCreateForm}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleAddLayer();
+                  }}
+                  style={{ width: '100%' }}
+                >
+                  <input
+                    autoFocus
+                    aria-label="New layer name"
+                    className={styles.formInput}
+                    placeholder="Layer name..."
+                    value={newLayerLabel}
+                    onChange={(e) => setNewLayerLabel(e.target.value)}
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newLayerLabel.trim()}
+                    className={styles.primaryButton}
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingLayer(false);
+                      setNewLayerLabel('');
+                    }}
+                    className={styles.cancelButton}
+                  >
+                    Cancel
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.addLayerButton}
+                  onClick={() => setIsAddingLayer(true)}
+                >
+                  <Plus size={13} /> <span>Add Layer</span>
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         <section className={styles.locationsSection}>
@@ -556,6 +816,11 @@ export function MapPreparation({
                 style={{ background: 'var(--studio-surface-sunken, #2a2a2a)' }}
               />
             )}
+            {mode === 'visibility' && (
+              <div className={styles.visibilityBanner}>
+                Visibility Mode: Click a pin to toggle between Players and GM-only
+              </div>
+            )}
             {visiblePins.map((pin, index) => {
               const isSelected = pin.id === selectedPinId;
               const isGmOnly = pin.visibility === 'dm-only';
@@ -564,7 +829,10 @@ export function MapPreparation({
                   aria-label={`Select ${pin.label}`}
                   className={`${styles.mapPin} ${isSelected ? styles.selectedPin : ''} ${isGmOnly ? styles.pinGmOnly : ''}`}
                   key={pin.id}
-                  onClick={() => setSelectedPinId(pin.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePinClick(pin);
+                  }}
                   onKeyDown={(e) => handlePinKeyDown(e, pin.id)}
                   onPointerDown={(e) => handlePinPointerDown(e, pin.id)}
                   style={
@@ -574,7 +842,7 @@ export function MapPreparation({
                       '--pin-color': pin.color ?? (isSelected ? '#ef4444' : '#22c55e'),
                     } as React.CSSProperties
                   }
-                  title={`${pin.label} (${Math.round(pin.x * 100)}%, ${Math.round(pin.y * 100)}%)${isGmOnly ? ' - GM Only' : ''}`}
+                  title={`${pin.label} (${Math.round(pin.x * 100)}%, ${Math.round(pin.y * 100)}%)${isGmOnly ? ' - GM Only' : ' - Players'}`}
                   type="button"
                 >
                   <span>{String(index + 1).padStart(2, '0')}</span>
@@ -632,9 +900,9 @@ export function MapPreparation({
               <RotateCcw size={15} />
             </button>
           </div>
-          <div className={styles.scale}>
+          <div className={styles.scale} aria-label={`Scale: ${scaleText}`}>
             <span />
-            100 ft
+            {scaleText}
           </div>
           <div className={styles.minimap}>
             {model.imagePath ? (
@@ -682,6 +950,18 @@ export function MapPreparation({
               <Eye size={15} /> <span>Visibility</span>
             </button>
             <button
+              className={inspectorTab === 'settings' ? styles.activeTool : ''}
+              onClick={() => {
+                setInspectorTab('settings');
+                if (window.matchMedia?.('(max-width: 840px)').matches) {
+                  setDrawer('inspector');
+                }
+              }}
+              type="button"
+            >
+              <Sliders size={15} /> <span>Grid & Lighting</span>
+            </button>
+            <button
               disabled={isCreatingScene}
               onClick={handleCreateScene}
               type="button"
@@ -706,6 +986,12 @@ export function MapPreparation({
         onUpdatePin={updateSelectedPin}
         pin={selectedPin}
         selectedTab={inspectorTab}
+        grid={grid}
+        onUpdateGrid={updateGrid}
+        lighting={lighting}
+        onUpdateLighting={updateLighting}
+        fogPreset={fogPreset}
+        onUpdateFogPreset={updateFogPreset}
       />
 
       {isObjectModalOpen && (
@@ -821,6 +1107,12 @@ interface LocationInspectorProps {
   onRemoveLinkedObject: (objectId: string) => void;
   isDrawerOpen: boolean;
   selectedTab: InspectorTab;
+  grid: MapGridConfig;
+  onUpdateGrid: (patch: Partial<MapGridConfig>) => void;
+  lighting: MapLightingConfig;
+  onUpdateLighting: (patch: Partial<MapLightingConfig>) => void;
+  fogPreset: MapFogPreset;
+  onUpdateFogPreset: (preset: MapFogPreset) => void;
 }
 
 function LocationInspector({
@@ -837,9 +1129,17 @@ function LocationInspector({
   onRemoveLinkedObject,
   isDrawerOpen,
   selectedTab,
+  grid,
+  onUpdateGrid,
+  lighting,
+  onUpdateLighting,
+  fogPreset,
+  onUpdateFogPreset,
 }: LocationInspectorProps) {
   const inspectorClass = `${styles.inspector} ${isDrawerOpen ? styles.drawerOpen : ''}`;
-  if (!location && !pin) return <aside className={inspectorClass} />;
+  if (!location && !pin && selectedTab !== 'settings') {
+    return <aside className={inspectorClass} />;
+  }
 
   const linkedObjects = pin?.linkedObjects ?? location?.linkedObjects ?? [];
 
@@ -851,6 +1151,7 @@ function LocationInspector({
             ['details', 'Details'],
             ['objects', `Linked Objects (${linkedObjects.length})`],
             ['notes', 'Map Notes'],
+            ['settings', 'Grid & Fog'],
           ] as Array<[InspectorTab, string]>
         ).map(([tab, label]) => (
           <button
@@ -867,6 +1168,130 @@ function LocationInspector({
       </div>
 
       <div className={styles.inspectorScroll}>
+        {selectedTab === 'settings' && (
+          <div className={styles.settingsSection}>
+            <h2>Grid & Environment</h2>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="grid-type-select">Grid Type</label>
+              <select
+                aria-label="Grid Type"
+                className={styles.formSelect}
+                disabled={!editable}
+                id="grid-type-select"
+                onChange={(e) =>
+                  onUpdateGrid({ type: e.target.value as 'square' | 'hex' })
+                }
+                value={grid.type}
+              >
+                <option value="square">Square</option>
+                <option value="hex">Hexagonal</option>
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="grid-size-input">Grid Size (pixels)</label>
+              <input
+                aria-label="Grid Size"
+                className={styles.formInput}
+                disabled={!editable}
+                id="grid-size-input"
+                max={200}
+                min={50}
+                onBlur={onCommitPin}
+                onChange={(e) =>
+                  onUpdateGrid({ size: Number(e.target.value) || 100 })
+                }
+                type="number"
+                value={grid.size}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.checkboxRow}>
+                <input
+                  aria-label="Snap to grid"
+                  checked={grid.snapToGrid}
+                  disabled={!editable}
+                  onChange={(e) =>
+                    onUpdateGrid({ snapToGrid: e.target.checked })
+                  }
+                  type="checkbox"
+                />
+                <span>Snap to grid</span>
+              </label>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="ambient-light-slider">
+                Ambient Light ({Math.round(lighting.ambientLight * 100)}%)
+              </label>
+              <div className={styles.sliderRow}>
+                <input
+                  aria-label="Ambient Light"
+                  disabled={!editable}
+                  id="ambient-light-slider"
+                  max={1}
+                  min={0}
+                  onBlur={onCommitPin}
+                  onChange={(e) =>
+                    onUpdateLighting({ ambientLight: parseFloat(e.target.value) })
+                  }
+                  step={0.05}
+                  type="range"
+                  value={lighting.ambientLight}
+                />
+                <span className={styles.sliderValue}>
+                  {Math.round(lighting.ambientLight * 100)}%
+                </span>
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="darkness-slider">
+                Darkness ({Math.round(lighting.darkness * 100)}%)
+              </label>
+              <div className={styles.sliderRow}>
+                <input
+                  aria-label="Darkness"
+                  disabled={!editable}
+                  id="darkness-slider"
+                  max={1}
+                  min={0}
+                  onBlur={onCommitPin}
+                  onChange={(e) =>
+                    onUpdateLighting({ darkness: parseFloat(e.target.value) })
+                  }
+                  step={0.05}
+                  type="range"
+                  value={lighting.darkness}
+                />
+                <span className={styles.sliderValue}>
+                  {Math.round(lighting.darkness * 100)}%
+                </span>
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label htmlFor="fog-preset-select">Fog Preset</label>
+              <select
+                aria-label="Fog Preset"
+                className={styles.formSelect}
+                disabled={!editable}
+                id="fog-preset-select"
+                onChange={(e) =>
+                  onUpdateFogPreset(e.target.value as MapFogPreset)
+                }
+                value={fogPreset}
+              >
+                <option value="clear">Clear (No fog)</option>
+                <option value="unexplored">Unexplored</option>
+                <option value="full">Full Fog</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+          </div>
+        )}
         {selectedTab === 'details' && (
           <>
             <div className={styles.locationImage}>

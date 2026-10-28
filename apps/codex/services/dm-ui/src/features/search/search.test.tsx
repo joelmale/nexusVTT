@@ -87,6 +87,109 @@ describe('searchCampaign', () => {
     expect(hit.snippet).toContain(`@${target.name}`);
     expect(hit.snippet).not.toContain('ref:');
   });
+
+  it('searches items, secrets, inboxNotes, and homebrewMonsters and respects includeSecrets', () => {
+    const bundle = {
+      ...ashes,
+      items: [
+        {
+          id: 'item-chrono-compass',
+          campaignId: ashes.campaignId,
+          name: 'Chrono Compass',
+          playerName: 'Old Brass Compass',
+          itemType: 'wondrous_item' as const,
+          rarity: 'very_rare' as const,
+          requiresAttunement: true,
+          attunementNote: 'by a chronurgy wizard',
+          quantity: 1,
+          description: 'Spins backward near temporal rifts.',
+          mechanics: 'Grants +2 initiative and temporal echo.',
+          holder: { kind: 'none' as const },
+          discovered: true,
+          identified: false,
+          questIds: [],
+        },
+      ],
+      secrets: [
+        {
+          id: 'secret-obsidian-vault',
+          campaignId: ashes.campaignId,
+          text: 'A hidden vault beneath the lighthouse holds the obsidian phylactery.',
+          attachedTo: [],
+          revealed: false,
+        },
+      ],
+      inboxNotes: [
+        {
+          id: 'inbox-tavern-brawl',
+          campaignId: ashes.campaignId,
+          text: 'Players started a tavern brawl with the clockwork automaton.',
+          createdAt: '2026-10-01T00:00:00Z',
+        },
+      ],
+      homebrewMonsters: [
+        {
+          id: 'monster-void-leviathan',
+          campaignId: ashes.campaignId,
+          name: 'Void Leviathan',
+          size: 'Gargantuan',
+          type: 'aberration',
+          cr: '17',
+          ac: 19,
+          hp: 310,
+          speed: 50,
+          abilities: [24, 10, 22, 16, 14, 18] as [
+            number,
+            number,
+            number,
+            number,
+            number,
+            number,
+          ],
+          edition: '2024' as const,
+          notes: 'Swallows ships whole in the astral tide.',
+        },
+      ],
+    };
+
+    const itemByMechanics = searchCampaign(bundle, 'temporal echo');
+    expect(itemByMechanics[0]?.entity).toMatchObject({
+      id: 'item-chrono-compass',
+      kind: 'item',
+      href: '/items/item-chrono-compass',
+    });
+
+    const itemByPlayerName = searchCampaign(bundle, 'Old Brass Compass');
+    expect(itemByPlayerName[0]?.entity.id).toBe('item-chrono-compass');
+
+    const secretHits = searchCampaign(bundle, 'phylactery');
+    expect(secretHits[0]?.entity).toMatchObject({
+      id: 'secret-obsidian-vault',
+      kind: 'secret',
+      href: '/notes?tab=secrets',
+    });
+
+    expect(
+      searchCampaign(bundle, 'phylactery', { includeSecrets: false }),
+    ).toEqual([]);
+    expect(
+      searchCampaign(bundle, 'phylactery', 20, { includeSecrets: false }),
+    ).toEqual([]);
+
+    const inboxHits = searchCampaign(bundle, 'clockwork automaton');
+    expect(inboxHits[0]?.entity).toMatchObject({
+      id: 'inbox-tavern-brawl',
+      kind: 'note',
+      href: '/notes?tab=inbox',
+    });
+
+    const monsterHits = searchCampaign(bundle, 'astral tide');
+    expect(monsterHits[0]?.entity).toMatchObject({
+      id: 'monster-void-leviathan',
+      kind: 'encounter',
+      href: '/encounters?tab=bestiary',
+    });
+  });
 });
 
 describe('CampaignSearchDialog', () => {

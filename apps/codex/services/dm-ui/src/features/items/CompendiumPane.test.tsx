@@ -157,7 +157,7 @@ describe('CompendiumPane', () => {
         expect.objectContaining({
           name: 'Potion of Healing',
           quantity: 3,
-          holder: { kind: 'party-member', entityId: firstPc.id },
+          holder: { kind: 'party-member', id: firstPc.id },
           source: { ruleset: '2024', entityId: 'srd-potion-healing' },
         }),
       );
@@ -301,6 +301,150 @@ describe('CompendiumPane', () => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       expect(screen.getByText(/Using bundled 2024 SRD catalog/)).toBeInTheDocument();
       expect(screen.getByText('Longsword')).toBeInTheDocument();
+    });
+  });
+
+  it('uses bundled catalog offline without network calls in read-only demo mode', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderInSection(<CompendiumPane />, {
+      path: '/demo/ashes-of-veyra/items?tab=compendium',
+      store: { editable: false },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Using bundled 2024 SRD catalog/)).toBeInTheDocument();
+      expect(screen.getByText('Longsword')).toBeInTheDocument();
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('assigns NPC, location, encounter holders and session when adding to campaign', async () => {
+    const user = userEvent.setup();
+    const mockAddItem = vi.fn().mockResolvedValue({ ok: true, id: 'new-item-2' });
+
+    renderInSection(<CompendiumPane />, {
+      path: '/demo/ashes-of-veyra/items?tab=compendium',
+      store: { editable: true, addItem: mockAddItem },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Potion of Healing')).toBeInTheDocument();
+    });
+
+    const holderKindSelect = screen.getByLabelText('Give to');
+    await user.selectOptions(holderKindSelect, 'npc');
+    const firstNpc = base.npcs[0];
+    await user.selectOptions(screen.getByLabelText('Select entity'), firstNpc.id);
+
+    const sessionSelect = screen.getByLabelText('Hand out in session');
+    const firstSession = base.sessions[0];
+    await user.selectOptions(sessionSelect, firstSession.id);
+
+    await user.click(screen.getByRole('button', { name: 'Add to Campaign' }));
+
+    await waitFor(() => {
+      expect(mockAddItem).toHaveBeenCalledWith(
+        'item',
+        expect.objectContaining({
+          holder: { kind: 'npc', id: firstNpc.id },
+          sessionId: firstSession.id,
+        }),
+      );
+    });
+  });
+
+  it('implements aria-activedescendant listbox pattern with Arrow navigation and Enter select (CS-46)', async () => {
+    const user = userEvent.setup();
+    renderInSection(<CompendiumPane />, {
+      path: '/demo/ashes-of-veyra/items?tab=compendium',
+      store: { editable: true },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Potion of Healing')).toBeInTheDocument();
+    });
+
+    const listbox = screen.getByRole('listbox', { name: 'Compendium items list' });
+    expect(listbox).toHaveAttribute('aria-activedescendant', 'compendium-option-srd-bag-holding');
+
+    // Press ArrowDown to move to next item
+    await user.keyboard('{ArrowDown}');
+    expect(listbox).toHaveAttribute('aria-activedescendant', 'compendium-option-srd-flame-tongue');
+
+    // Press Enter to select Flame Tongue
+    await user.keyboard('{Enter}');
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Flame Tongue' }),
+    ).toBeInTheDocument();
+
+    // Press ArrowUp to move back
+    await user.keyboard('{ArrowUp}');
+    expect(listbox).toHaveAttribute('aria-activedescendant', 'compendium-option-srd-bag-holding');
+  });
+
+  it('focuses search input when / is pressed (CS-46)', async () => {
+    const user = userEvent.setup();
+    renderInSection(<CompendiumPane />, {
+      path: '/demo/ashes-of-veyra/items?tab=compendium',
+      store: { editable: true },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Potion of Healing')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByRole('searchbox');
+    expect(searchInput).not.toHaveFocus();
+
+    await user.keyboard('/');
+    expect(searchInput).toHaveFocus();
+  });
+
+  it('clears search query when Escape is pressed (CS-46)', async () => {
+    const user = userEvent.setup();
+    renderInSection(<CompendiumPane />, {
+      path: '/demo/ashes-of-veyra/items?tab=compendium&q=potion',
+      store: { editable: true },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Potion of Healing')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByRole('searchbox');
+    expect(searchInput).toHaveValue('potion');
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(screen.getByRole('searchbox')).toHaveValue('');
+    });
+  });
+
+  it('adds selected item to treasury when a/A is pressed (CS-46)', async () => {
+    const user = userEvent.setup();
+    const mockAddItem = vi.fn().mockResolvedValue({ ok: true, id: 'added-via-key' });
+
+    renderInSection(<CompendiumPane />, {
+      path: '/demo/ashes-of-veyra/items?tab=compendium',
+      store: { editable: true, addItem: mockAddItem },
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Bag of Holding').length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Press 'a'
+    await user.keyboard('a');
+
+    await waitFor(() => {
+      expect(mockAddItem).toHaveBeenCalledWith(
+        'item',
+        expect.objectContaining({
+          name: 'Bag of Holding',
+        }),
+      );
     });
   });
 });

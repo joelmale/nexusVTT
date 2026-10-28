@@ -26,6 +26,7 @@ interface StudioTopBarProps {
   /** Opens the campaign navigation drawer (shown at tablet-portrait widths). */
   onOpenNavigation?: () => void;
   onRelationshipWeb?: () => void;
+  onProfile?: () => void;
 }
 
 export function StudioTopBar({
@@ -37,6 +38,7 @@ export function StudioTopBar({
   onRestoreNavigation,
   onOpenNavigation,
   onRelationshipWeb,
+  onProfile,
 }: StudioTopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,6 +61,14 @@ export function StudioTopBar({
   function restoreCampaignRail() {
     onRestoreNavigation?.();
     navigate(overviewPath);
+  }
+
+  function handleProfileClick() {
+    if (onProfile) {
+      onProfile();
+    } else {
+      window.location.assign('/');
+    }
   }
 
   return (
@@ -117,15 +127,17 @@ export function StudioTopBar({
             <Inbox size={16} />
           </button>
         ) : null}
-        <button
-          aria-label="Search campaign"
-          className={styles.iconButton}
-          onClick={onSearch}
-          title="Search campaign"
-          type="button"
-        >
-          <Search size={16} />
-        </button>
+        {onSearch ? (
+          <button
+            aria-label="Search campaign"
+            className={styles.iconButton}
+            onClick={onSearch}
+            title="Search campaign"
+            type="button"
+          >
+            <Search size={16} />
+          </button>
+        ) : null}
         {onRelationshipWeb ? (
           <button
             aria-label="Open relationship web"
@@ -137,28 +149,33 @@ export function StudioTopBar({
             <Network size={16} />
           </button>
         ) : null}
+        {onTheme ? (
+          <button
+            aria-label={`Change theme (${activeOption.label})`}
+            className={styles.iconButton}
+            onClick={onTheme}
+            title={`Change theme (${activeOption.label})`}
+            type="button"
+          >
+            <Moon size={16} />
+          </button>
+        ) : null}
+        {onSettings ? (
+          <button
+            aria-label="Campaign settings"
+            className={styles.iconButton}
+            onClick={onSettings}
+            title="Campaign settings"
+            type="button"
+          >
+            <Settings size={16} />
+          </button>
+        ) : null}
         <button
-          aria-label={`Change theme (${activeOption.label})`}
-          className={styles.iconButton}
-          onClick={onTheme}
-          title={`Change theme (${activeOption.label})`}
-          type="button"
-        >
-          <Moon size={16} />
-        </button>
-        <button
-          aria-label="Campaign settings"
-          className={styles.iconButton}
-          onClick={onSettings}
-          title="Campaign settings"
-          type="button"
-        >
-          <Settings size={16} />
-        </button>
-        <button
-          aria-label="Open profile"
+          aria-label="Return to Nexus VTT"
           className={styles.avatar}
-          title="Open profile"
+          onClick={handleProfileClick}
+          title="Return to Nexus VTT"
           type="button"
         >
           NV

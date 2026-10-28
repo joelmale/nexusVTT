@@ -6,6 +6,7 @@ import X from 'lucide-react/dist/esm/icons/x';
 import ZoomIn from 'lucide-react/dist/esm/icons/zoom-in';
 import ZoomOut from 'lucide-react/dist/esm/icons/zoom-out';
 
+import { usePlayerView } from '@/features/player-view';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import styles from './RelationshipWebModal.module.css';
 import {
@@ -13,6 +14,7 @@ import {
   filterGraph,
   layoutGraphNodes,
   RELATIONSHIP_LABELS,
+  type GraphEdge,
   type GraphNode,
   type GraphNodeKind,
   type RelationshipKind,
@@ -32,6 +34,7 @@ const NODE_KIND_COLORS: Record<GraphNodeKind, string> = {
   quest: 'var(--studio-warning)',
   item: 'var(--studio-gold)',
   encounter: 'var(--studio-danger)',
+  secret: 'var(--studio-accent, #8b5cf6)',
 };
 
 const RELATIONSHIP_COLORS: Record<RelationshipKind, string> = {
@@ -41,6 +44,7 @@ const RELATIONSHIP_COLORS: Record<RelationshipKind, string> = {
   'located-in': 'var(--studio-info)',
   holds: 'var(--studio-gold)',
   wants: 'var(--studio-warning)',
+  'attached-to': 'var(--studio-accent, #8b5cf6)',
 };
 
 const NODE_KIND_LETTERS: Record<GraphNodeKind, string> = {
@@ -50,6 +54,7 @@ const NODE_KIND_LETTERS: Record<GraphNodeKind, string> = {
   quest: 'Q',
   item: 'I',
   encounter: 'E',
+  secret: 'S',
 };
 
 export function RelationshipWebModal({
@@ -58,7 +63,8 @@ export function RelationshipWebModal({
   initialFocusedNodeId,
   onNavigateToEntity,
 }: RelationshipWebModalProps) {
-  const { bundle } = useSectionBundle();
+  const { bundle, store } = useSectionBundle();
+  const { isPlayerView } = usePlayerView();
 
   const [query, setQuery] = useState('');
   const [nodeKind, setNodeKind] = useState('all');
@@ -70,6 +76,12 @@ export function RelationshipWebModal({
     initialFocusedNodeId,
   );
   const [hoveredNodeId, setHoveredNodeId] = useState<string | undefined>();
+
+  // Link authoring state
+  const [linkTargetId, setLinkTargetId] = useState('');
+  const [linkRelKind, setLinkRelKind] = useState<RelationshipKind>('ally');
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [isLinking, setIsLinking] = useState(false);
 
   // Pan and Zoom
   const [zoom, setZoom] = useState(1);
@@ -85,6 +97,11 @@ export function RelationshipWebModal({
   }, [initialFocusedNodeId]);
 
   useEffect(() => {
+    setLinkTargetId('');
+    setLinkError(null);
+  }, [selectedNodeId]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     function handleKeyDown(e: KeyboardEvent) {
@@ -97,7 +114,10 @@ export function RelationshipWebModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const rawGraph = useMemo(() => buildRelationshipGraph(bundle), [bundle]);
+  const rawGraph = useMemo(
+    () => buildRelationshipGraph(bundle, { includeSecrets: !isPlayerView }),
+    [bundle, isPlayerView],
+  );
 
   const filteredGraph = useMemo(
     () =>
@@ -134,6 +154,11 @@ export function RelationshipWebModal({
       (e) => e.source === selectedNodeId || e.target === selectedNodeId,
     );
   }, [selectedNodeId, rawGraph.edges]);
+
+  const availableLinkTargets = useMemo(() => {
+    if (!selectedNodeId) return [];
+    return rawGraph.nodes.filter((node) => node.id !== selectedNodeId);
+  }, [selectedNodeId, rawGraph.nodes]);
 
   // Connected nodes map for hover/selection highlight
   const highlightedNodeIds = useMemo(() => {
@@ -174,6 +199,195 @@ export function RelationshipWebModal({
     setFocusedNodeId(undefined);
     setSelectedNodeId(undefined);
   }
+
+  const handleAddLink = async () => {
+    if (!selectedNode || !linkTargetId || !store.editable) return;
+    setLinkError(null);
+    setIsLinking(true);
+
+    try {
+      const targetNode = rawGraph.nodes.find((n) => n.id === linkTargetId);
+      if (!targetNode) return;
+
+      if (selectedNode.kind === 'secret') {
+        const secret = bundle.secrets?.find((s) => s.id === selectedNode.id);
+        if (secret) {
+          const current = secret.attachedTo ?? [];
+          if (!current.some((a) => a.id === targetNode.id)) {
+            const res = await store.updateItem('secret', secret.id, {
+              attachedTo: [...current, { kind: targetNode.kind, id: targetNode.id }],
+            });
+            if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+          }
+        }
+      } else if (targetNode.kind === 'secret') {
+        const secret = bundle.secrets?.find((s) => s.id === targetNode.id);
+        if (secret) {
+          const current = secret.attachedTo ?? [];
+          if (!current.some((a) => a.id === selectedNode.id)) {
+            const res = await store.updateItem('secret', secret.id, {
+              attachedTo: [...current, { kind: selectedNode.kind, id: selectedNode.id }],
+            });
+            if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+          }
+        }
+      } else if (selectedNode.kind === 'npc') {
+        const npc = bundle.npcs?.find((n) => n.id === selectedNode.id);
+        if (npc) {
+          if (targetNode.kind === 'faction') {
+            const current = npc.factionIds ?? [];
+            if (!current.includes(targetNode.id)) {
+              const res = await store.updateItem('npc', npc.id, {
+                factionIds: [...current, targetNode.id],
+              });
+              if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+            }
+          } else if (targetNode.kind === 'location') {
+            const current = npc.locationIds ?? [];
+            if (!current.includes(targetNode.id)) {
+              const res = await store.updateItem('npc', npc.id, {
+                locationIds: [...current, targetNode.id],
+              });
+              if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+            }
+          } else if (targetNode.kind === 'npc') {
+            const prefix = linkRelKind === 'rival' ? 'Rival' : 'Ally';
+            const updatedRel = npc.relationship
+              ? `${npc.relationship}. ${prefix} of ${targetNode.label}.`
+              : `${prefix} of ${targetNode.label}.`;
+            const res = await store.updateItem('npc', npc.id, {
+              relationship: updatedRel,
+            });
+            if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+          }
+        }
+      } else if (selectedNode.kind === 'faction') {
+        const faction = bundle.factions?.find((f) => f.id === selectedNode.id);
+        if (faction) {
+          if (targetNode.kind === 'faction') {
+            if (linkRelKind === 'rival') {
+              const current = faction.rivalFactionIds ?? [];
+              if (!current.includes(targetNode.id)) {
+                const res = await store.updateItem('faction', faction.id, {
+                  rivalFactionIds: [...current, targetNode.id],
+                });
+                if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+              }
+            } else {
+              const current = faction.alliedFactionIds ?? [];
+              if (!current.includes(targetNode.id)) {
+                const res = await store.updateItem('faction', faction.id, {
+                  alliedFactionIds: [...current, targetNode.id],
+                });
+                if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+              }
+            }
+          } else if (targetNode.kind === 'location') {
+            const current = faction.locationIds ?? [];
+            if (!current.includes(targetNode.id)) {
+              const res = await store.updateItem('faction', faction.id, {
+                locationIds: [...current, targetNode.id],
+              });
+              if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+            }
+          }
+        }
+      } else if (selectedNode.kind === 'item') {
+        if (targetNode.kind === 'npc' || targetNode.kind === 'location') {
+          const res = await store.updateItem('item', selectedNode.id, {
+            holder: { kind: targetNode.kind, id: targetNode.id },
+          });
+          if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+        } else if (targetNode.kind === 'quest') {
+          const item = bundle.items?.find((i) => i.id === selectedNode.id);
+          if (item) {
+            const current = item.questIds ?? [];
+            if (!current.includes(targetNode.id)) {
+              const res = await store.updateItem('item', selectedNode.id, {
+                questIds: [...current, targetNode.id],
+              });
+              if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+            }
+          }
+        }
+      } else if (selectedNode.kind === 'quest') {
+        const quest = bundle.quests?.find((q) => q.id === selectedNode.id);
+        if (quest) {
+          if (targetNode.kind === 'npc') {
+            const res = await store.updateItem('quest', quest.id, {
+              giverNpcId: targetNode.id,
+            });
+            if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+          } else if (targetNode.kind === 'location') {
+            const current = quest.locationIds ?? [];
+            if (!current.includes(targetNode.id)) {
+              const res = await store.updateItem('quest', quest.id, {
+                locationIds: [...current, targetNode.id],
+              });
+              if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+            }
+          } else if (targetNode.kind === 'faction') {
+            const current = quest.factionIds ?? [];
+            if (!current.includes(targetNode.id)) {
+              const res = await store.updateItem('quest', quest.id, {
+                factionIds: [...current, targetNode.id],
+              });
+              if (!res.ok) setLinkError(res.error || 'Failed to link entity');
+            }
+          }
+        }
+      }
+      setLinkTargetId('');
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const handleRemoveLink = async (edge: GraphEdge) => {
+    if (!store.editable) return;
+    const isSource = edge.source === selectedNodeId;
+    const partnerId = isSource ? edge.target : edge.source;
+
+    if (edge.kind === 'attached-to') {
+      const secretId = edge.source;
+      const attachedId = edge.target;
+      const secret = bundle.secrets?.find((s) => s.id === secretId);
+      if (secret) {
+        const updated = (secret.attachedTo ?? []).filter((a) => a.id !== attachedId);
+        await store.updateItem('secret', secret.id, { attachedTo: updated });
+      }
+    } else if (edge.kind === 'member-of') {
+      const npc = bundle.npcs?.find((n) => n.id === edge.source);
+      if (npc && npc.factionIds) {
+        await store.updateItem('npc', npc.id, {
+          factionIds: npc.factionIds.filter((id) => id !== edge.target),
+        });
+      }
+    } else if (edge.kind === 'located-in') {
+      const npc = bundle.npcs?.find((n) => n.id === edge.source);
+      if (npc && npc.locationIds) {
+        await store.updateItem('npc', npc.id, {
+          locationIds: npc.locationIds.filter((id) => id !== edge.target),
+        });
+      }
+      const faction = bundle.factions?.find((f) => f.id === edge.source);
+      if (faction && faction.locationIds) {
+        await store.updateItem('faction', faction.id, {
+          locationIds: faction.locationIds.filter((id) => id !== edge.target),
+        });
+      }
+    } else if (edge.kind === 'holds') {
+      const item = bundle.items?.find((i) => i.id === edge.target);
+      if (item) {
+        await store.updateItem('item', item.id, { holder: { kind: 'none' } });
+      }
+    } else if (edge.kind === 'wants') {
+      const quest = bundle.quests?.find((q) => q.id === edge.target || q.id === edge.source);
+      if (quest && quest.giverNpcId === partnerId) {
+        await store.updateItem('quest', quest.id, { giverNpcId: undefined });
+      }
+    }
+  };
 
   return (
     <div className={styles.backdrop} role="dialog" aria-modal="true" aria-label="Campaign Relationship Web">
@@ -229,6 +443,7 @@ export function RelationshipWebModal({
             <option value="quest">Quests</option>
             <option value="item">Items</option>
             <option value="encounter">Encounters</option>
+            {!isPlayerView && <option value="secret">Secrets</option>}
           </select>
 
           <select
@@ -244,6 +459,7 @@ export function RelationshipWebModal({
             <option value="located-in">Located in</option>
             <option value="holds">Holds</option>
             <option value="wants">Wants</option>
+            {!isPlayerView && <option value="attached-to">Attached to</option>}
           </select>
 
           <div className={styles.controlGroup}>
@@ -450,19 +666,90 @@ export function RelationshipWebModal({
                             {edge.label || label}
                           </div>
                         </div>
-                        <span
-                          className={styles.relationKind}
-                          style={{
-                            backgroundColor: color,
-                            color: 'var(--studio-surface-raised)',
-                          }}
-                        >
-                          {label}
-                        </span>
+                        <div className={styles.relationBadgeGroup}>
+                          <span
+                            className={styles.relationKind}
+                            style={{
+                              backgroundColor: color,
+                              color: 'var(--studio-surface-raised)',
+                            }}
+                          >
+                            {label}
+                          </span>
+                          {store.editable && (
+                            <button
+                              type="button"
+                              className={styles.unlinkButton}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleRemoveLink(edge);
+                              }}
+                              aria-label={`Remove relationship with ${partner?.label ?? partnerId}`}
+                              title="Remove relationship link"
+                            >
+                              <X size={13} aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
                       </li>
                     );
                   })}
                 </ul>
+              )}
+
+              {/* Authoring: Add Relationship / Attachment */}
+              {store.editable && (
+                <div className={styles.linkAuthoringSection}>
+                  <div className={styles.inspectorSectionTitle}>
+                    Link Relationship
+                  </div>
+                  <div className={styles.linkAuthoringForm}>
+                    <select
+                      className={styles.linkSelect}
+                      value={linkTargetId}
+                      onChange={(e) => setLinkTargetId(e.target.value)}
+                      aria-label="Target entity to link"
+                    >
+                      <option value="">-- Choose entity to link --</option>
+                      {availableLinkTargets.map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {node.label} ({node.kind})
+                        </option>
+                      ))}
+                    </select>
+
+                    {selectedNode.kind !== 'secret' && (
+                      <select
+                        className={styles.linkSelect}
+                        value={linkRelKind}
+                        onChange={(e) => setLinkRelKind(e.target.value as RelationshipKind)}
+                        aria-label="Relationship kind"
+                      >
+                        <option value="ally">Ally</option>
+                        <option value="rival">Rival</option>
+                        <option value="member-of">Member of</option>
+                        <option value="located-in">Located in</option>
+                        <option value="holds">Holds</option>
+                        <option value="wants">Wants</option>
+                        <option value="attached-to">Attached to</option>
+                      </select>
+                    )}
+
+                    <button
+                      type="button"
+                      className={styles.addLinkButton}
+                      disabled={!linkTargetId || isLinking}
+                      onClick={() => void handleAddLink()}
+                    >
+                      {isLinking ? 'Linking...' : 'Add Link'}
+                    </button>
+                  </div>
+                  {linkError && (
+                    <div className={styles.linkError} role="alert">
+                      {linkError}
+                    </div>
+                  )}
+                </div>
               )}
             </aside>
           )}

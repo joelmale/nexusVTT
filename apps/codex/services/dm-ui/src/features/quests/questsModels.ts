@@ -194,6 +194,7 @@ export interface ObjectiveDraft {
   title: string;
   status: ObjectiveStatus;
   locationIds: string[];
+  clueIds: string[];
 }
 
 export interface ServerObjective {
@@ -202,6 +203,7 @@ export interface ServerObjective {
   status: ObjectiveStatus;
   order: number;
   locationIds: string[];
+  clueIds: string[];
 }
 
 export function toObjectiveDrafts(
@@ -212,7 +214,8 @@ export function toObjectiveDrafts(
     id: objective.id,
     title: objective.title,
     status: objective.status,
-    locationIds: [...objective.locationIds],
+    locationIds: [...(objective.locationIds ?? [])],
+    clueIds: [...(objective.clueIds ?? [])],
   }));
 }
 
@@ -227,15 +230,18 @@ export function toServerObjectives(
       title: draft.title.trim(),
       status: draft.status,
       order: index + 1,
-      locationIds: draft.locationIds,
+      locationIds: draft.locationIds ?? [],
+      clueIds: draft.clueIds ?? [],
     }));
 }
 
 export interface QuestDraft extends Record<string, unknown> {
   title: string;
   status: QuestStatus;
+  priority: CampaignQuest['priority'];
   summary: string;
   giverNpcId: string;
+  resolution: string;
   objectives: ObjectiveDraft[];
 }
 
@@ -246,8 +252,10 @@ export function toQuestDraft(
   return {
     title: quest.title,
     status: quest.status,
-    summary: quest.summary,
+    priority: quest.priority ?? 'medium',
+    summary: quest.summary ?? '',
     giverNpcId: quest.giverNpcId ?? '',
+    resolution: quest.resolution ?? '',
     objectives: toObjectiveDrafts(objectivesFor(bundle, quest)),
   };
 }
@@ -263,9 +271,13 @@ export function buildQuestPatch(
   const title = next.title.trim();
   if (title && title !== before.title) patch.title = title;
   if (next.status !== before.status) patch.status = next.status;
+  if (next.priority && next.priority !== before.priority) patch.priority = next.priority;
   if (next.summary !== before.summary) patch.summary = next.summary;
   if (next.giverNpcId !== before.giverNpcId) {
     patch.giverNpcId = next.giverNpcId;
+  }
+  if (next.resolution !== before.resolution) {
+    patch.resolution = next.resolution.trim();
   }
   const nextObjectives = toServerObjectives(next.objectives);
   if (

@@ -112,4 +112,32 @@ describe('questsModels', () => {
     });
     expect(objectives.at(-1)).not.toHaveProperty('id');
   });
+
+  it('diffs priority, resolution, and objective clueIds in buildQuestPatch', () => {
+    const quest = ashes.quests.find((q) => q.objectiveIds.length > 0)!;
+    const initial = toQuestDraft(ashes, quest);
+    const newPriority = initial.priority === 'low' ? 'high' : 'low';
+
+    const withPriorityAndRes = {
+      ...initial,
+      priority: newPriority as const,
+      resolution: 'The mystery was resolved completely.',
+    };
+    const patch = buildQuestPatch(withPriorityAndRes, initial);
+    expect(patch.priority).toBe(newPriority);
+    expect(patch.resolution).toBe('The mystery was resolved completely.');
+
+    const withClueIds = {
+      ...initial,
+      objectives: initial.objectives.map((obj, i) =>
+        i === 0 ? { ...obj, clueIds: ['clue-1', 'clue-2'] } : obj,
+      ),
+    };
+    const patchClues = buildQuestPatch(withClueIds, initial);
+    expect(patchClues.objectives).toBeDefined();
+    const serverObjectives = patchClues.objectives as ReturnType<
+      typeof toServerObjectives
+    >;
+    expect(serverObjectives[0].clueIds).toEqual(['clue-1', 'clue-2']);
+  });
 });

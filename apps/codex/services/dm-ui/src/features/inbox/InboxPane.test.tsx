@@ -266,4 +266,49 @@ describe('InboxPane', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Quick Capture')).toBeInTheDocument();
   });
+
+  it('handles triage failure gracefully, displays error alert, and prevents duplicate on retry', async () => {
+    const user = userEvent.setup();
+
+    (mockStore.addItem as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      id: 'npc-triage-unique-1',
+    });
+    (mockStore.updateItem as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+    });
+
+    renderInSection(<InboxPane />, {
+      path: '/demo/ashes-of-veyra/notes?tab=inbox',
+      store: mockStore,
+    });
+
+    const npcButtons = screen.getAllByRole('button', { name: /NPC/i });
+    await user.click(npcButtons[0]);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/failed to update note status/i);
+
+    (mockStore.updateItem as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+    });
+    await user.click(npcButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    const npcCalls = (
+      mockStore.addItem as ReturnType<typeof vi.fn>
+    ).mock.calls.filter((call) => call[0] === 'npc');
+    expect(npcCalls).toHaveLength(1);
+
+    expect(mockStore.updateItem).toHaveBeenCalledWith(
+      'inbox-note',
+      'note-unfiled',
+      {
+        triagedTo: { kind: 'npc', id: 'npc-triage-unique-1' },
+      },
+    );
+  });
 });

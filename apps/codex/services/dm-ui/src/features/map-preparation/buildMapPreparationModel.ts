@@ -268,5 +268,18 @@ export function buildMapPreparationModel(
       pins.find((pin) => pin.selectedByDefault)?.id ??
       pins[0]?.id ??
       '',
+    grid: (map as unknown as { grid?: MapPreparationViewModel['grid'] }).grid ?? {
+      type: 'square',
+      size: 100,
+      snapToGrid: true,
+    },
+    lighting: (map as unknown as { lighting?: MapPreparationViewModel['lighting'] })
+      .lighting ?? {
+      ambientLight: 0.35,
+      darkness: 0.65,
+    },
+    fogPreset:
+      (map as unknown as { fogPreset?: MapPreparationViewModel['fogPreset'] })
+        .fogPreset ?? 'unexplored',
   };
 }

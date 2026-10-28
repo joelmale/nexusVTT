@@ -1,4 +1,9 @@
 import { useMemo, useState } from 'react';
+import type {
+  EncounterFaction,
+  EncounterHpPolicy,
+  EncounterInitiativePolicy,
+} from '@nexus/game-contracts';
 
 import type { TrapComplexity, TrapDetails } from '@/demo/fixture-registry';
 import { useEditableCommit } from '@/features/section-shell/EditableCommitContext';
@@ -25,6 +30,12 @@ import {
 } from './monsterCatalog';
 
 type Draft = Record<string, unknown>;
+
+export interface ExtendedEncounterComponent extends EncounterComponent {
+  customName?: string;
+  faction?: EncounterFaction;
+  fixedHp?: number;
+}
 
 const RESULT_LIMIT = 8;
 const KINDS = Object.keys(ENCOUNTER_KIND_LABELS);
@@ -56,11 +67,11 @@ export function EncounterEditor({
   const { bundle } = useSectionBundle();
   const commit = useEditableCommit();
   const { catalog, rating, party, edition } = useDraftRating(bundle, draft);
-  const composition = compositionOf(draft);
+  const composition = compositionOf(draft) as ExtendedEncounterComponent[];
 
-  const setComposition = (next: EncounterComponent[]) =>
+  const setComposition = (next: ExtendedEncounterComponent[]) =>
     setDraft({ ...draft, composition: next });
-  const updateRow = (index: number, patch: Partial<EncounterComponent>) =>
+  const updateRow = (index: number, patch: Partial<ExtendedEncounterComponent>) =>
     setComposition(
       composition.map((row, at) => (at === index ? { ...row, ...patch } : row)),
     );
@@ -116,6 +127,44 @@ export function EncounterEditor({
           ))}
         </select>
       </label>
+
+      <div className={styles.gridTwo}>
+        <label>
+          HP Policy
+          <select
+            aria-label="HP Policy"
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                hpPolicy: event.target.value as EncounterHpPolicy,
+              })
+            }
+            value={String(draft.hpPolicy ?? 'average')}
+          >
+            <option value="average">Average (Default catalog HP)</option>
+            <option value="roll-on-deploy">Roll on Deploy (Randomized Hit Dice)</option>
+            <option value="fixed">Fixed (Author-specified HP)</option>
+          </select>
+        </label>
+        <label>
+          Initiative Policy
+          <select
+            aria-label="Initiative Policy"
+            onChange={(event) =>
+              setDraft({
+                ...draft,
+                initiativePolicy: event.target.value as EncounterInitiativePolicy,
+              })
+            }
+            value={String(draft.initiativePolicy ?? 'individual')}
+          >
+            <option value="individual">Individual (Roll per Token)</option>
+            <option value="group">Group (Shared Roll per Group)</option>
+            <option value="manual">Manual (DM prompts / rolls)</option>
+          </select>
+        </label>
+      </div>
+
       <label>
         Trigger
         <textarea
@@ -273,62 +322,148 @@ export function EncounterEditor({
           <p className={styles.muted}>No monsters yet. Add one below.</p>
         ) : (
           <ul aria-label="Encounter composition" className={styles.rows}>
-            {composition.map((row, index) => (
-              <li className={styles.compRow} key={`${row.name}-${index}`}>
-                <span className={styles.compName}>
-                  {row.name}
-                  <span className={styles.compMeta}>
-                    {row.cr ? `CR ${row.cr} · ` : ''}
-                    {row.nonCreature
-                      ? 'Hazard, not a creature'
-                      : row.monsterKey?.startsWith('homebrew:')
-                        ? 'Homebrew'
-                        : (RULESET_LABELS[row.ruleset] ?? row.ruleset)}
-                  </span>
-                </span>
-                <label className={styles.inline}>
-                  <span className={styles.srOnly}>Count for {row.name}</span>
-                  <input
-                    aria-label={`Count for ${row.name}`}
-                    min={1}
-                    onBlur={() =>
-                      row.count < 1 && updateRow(index, { count: 1 })
-                    }
-                    onChange={(event) =>
-                      updateRow(index, {
-                        count: Math.max(
-                          0,
-                          Math.floor(Number(event.target.value) || 0),
-                        ),
-                      })
-                    }
-                    type="number"
-                    value={row.count}
-                  />
-                </label>
-                <label className={styles.inline}>
-                  <span className={styles.srOnly}>Role for {row.name}</span>
-                  <input
-                    aria-label={`Role for ${row.name}`}
-                    onChange={(event) =>
-                      updateRow(index, { role: event.target.value })
-                    }
-                    placeholder="Role"
-                    value={row.role}
-                  />
-                </label>
-                <button
-                  aria-label={`Remove ${row.name}`}
-                  onClick={() => {
-                    setComposition(composition.filter((_, at) => at !== index));
-                    commit();
+            {composition.map((row, index) => {
+              const isFixedHp = draft.hpPolicy === 'fixed';
+              return (
+                <li
+                  className={styles.compRow}
+                  key={`${row.name}-${index}`}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
+                    gap: '8px',
+                    padding: '8px 10px',
+                    background: 'var(--studio-surface-raised, rgba(255, 255, 255, 0.03))',
+                    border: '1px solid var(--studio-border)',
+                    borderRadius: 'var(--studio-radius-control)',
                   }}
-                  type="button"
                 >
-                  Remove
-                </button>
-              </li>
-            ))}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                    }}
+                  >
+                    <span className={styles.compName}>
+                      {row.name}
+                      <span className={styles.compMeta}>
+                        {row.cr ? `CR ${row.cr} · ` : ''}
+                        {row.nonCreature
+                          ? 'Hazard, not a creature'
+                          : row.monsterKey?.startsWith('homebrew:')
+                            ? 'Homebrew'
+                            : (RULESET_LABELS[row.ruleset] ?? row.ruleset)}
+                      </span>
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <label className={styles.inline} style={{ width: '80px' }}>
+                        <span className={styles.srOnly}>Count for {row.name}</span>
+                        <input
+                          aria-label={`Count for ${row.name}`}
+                          min={1}
+                          onBlur={() =>
+                            row.count < 1 && updateRow(index, { count: 1 })
+                          }
+                          onChange={(event) =>
+                            updateRow(index, {
+                              count: Math.max(
+                                0,
+                                Math.floor(Number(event.target.value) || 0),
+                              ),
+                            })
+                          }
+                          type="number"
+                          value={row.count}
+                        />
+                      </label>
+                      <button
+                        aria-label={`Remove ${row.name}`}
+                        onClick={() => {
+                          setComposition(composition.filter((_, at) => at !== index));
+                          commit();
+                        }}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: isFixedHp
+                        ? 'minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 0.8fr)'
+                        : 'minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.2fr)',
+                      gap: '8px',
+                    }}
+                  >
+                    <label className={styles.inline}>
+                      <span className={styles.srOnly}>Custom name for {row.name}</span>
+                      <input
+                        aria-label={`Custom name for ${row.name}`}
+                        onChange={(event) =>
+                          updateRow(index, {
+                            customName: event.target.value.trim() || undefined,
+                          })
+                        }
+                        placeholder="Custom Name (e.g. Boss / Scout)"
+                        value={row.customName ?? ''}
+                      />
+                    </label>
+                    <label className={styles.inline}>
+                      <span className={styles.srOnly}>Faction for {row.name}</span>
+                      <select
+                        aria-label={`Faction for ${row.name}`}
+                        onChange={(event) =>
+                          updateRow(index, {
+                            faction: event.target.value as EncounterFaction,
+                          })
+                        }
+                        value={row.faction ?? 'hostile'}
+                      >
+                        <option value="hostile">Hostile</option>
+                        <option value="neutral">Neutral</option>
+                        <option value="allied">Allied</option>
+                      </select>
+                    </label>
+                    <label className={styles.inline}>
+                      <span className={styles.srOnly}>Role for {row.name}</span>
+                      <input
+                        aria-label={`Role for ${row.name}`}
+                        onChange={(event) =>
+                          updateRow(index, { role: event.target.value })
+                        }
+                        placeholder="Role / Tactics"
+                        value={row.role}
+                      />
+                    </label>
+                    {isFixedHp ? (
+                      <label className={styles.inline}>
+                        <span className={styles.srOnly}>Fixed HP for {row.name}</span>
+                        <input
+                          aria-label={`Fixed HP for ${row.name}`}
+                          min={1}
+                          onChange={(event) =>
+                            updateRow(index, {
+                              fixedHp: event.target.value
+                                ? Number(event.target.value)
+                                : undefined,
+                            })
+                          }
+                          placeholder="Fixed HP"
+                          type="number"
+                          value={row.fixedHp ?? ''}
+                        />
+                      </label>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
         <DifficultyHint
@@ -339,7 +474,11 @@ export function EncounterEditor({
         <MonsterPicker
           catalog={catalog}
           onAdd={(monster) => {
-            setComposition([...composition, componentFromMonster(monster)]);
+            const component: ExtendedEncounterComponent = {
+              ...componentFromMonster(monster),
+              faction: 'hostile',
+            };
+            setComposition([...composition, component]);
             commit();
           }}
         />

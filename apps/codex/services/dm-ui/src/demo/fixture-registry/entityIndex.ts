@@ -117,6 +117,30 @@ function buildIndex(bundle: CampaignFixtureBundle): EntityIndex {
   for (const t of bundle.sceneTemplates) {
     add({ id: t.id, kind: 'scene', label: t.title });
   }
+  for (const secret of bundle.secrets ?? []) {
+    add({
+      id: secret.id,
+      kind: 'secret',
+      label: secret.text.slice(0, 60) || 'Secret',
+      href: '/notes?tab=secrets',
+    });
+  }
+  for (const inboxNote of bundle.inboxNotes ?? []) {
+    add({
+      id: inboxNote.id,
+      kind: 'note',
+      label: inboxNote.text.slice(0, 60) || 'Inbox note',
+      href: '/notes?tab=inbox',
+    });
+  }
+  for (const monster of bundle.homebrewMonsters ?? []) {
+    add({
+      id: monster.id,
+      kind: 'encounter',
+      label: monster.name,
+      href: '/encounters?tab=bestiary',
+    });
+  }
 
   const backlinks = new Map<string, EntityRef[]>();
   const link = (sourceId: string, targets: readonly (string | undefined)[]) => {
@@ -205,7 +229,16 @@ function buildIndex(bundle: CampaignFixtureBundle): EntityIndex {
     link(m.id, m.locationIds);
   }
   for (const item of bundle.items ?? []) {
-    link(item.id, [item.holder.id, ...item.questIds]);
+    link(item.id, [item.holder.id, item.sessionId, ...item.questIds]);
+  }
+  for (const secret of bundle.secrets ?? []) {
+    link(secret.id, [
+      secret.revealedInSessionId,
+      ...secret.attachedTo.map((att) => att.id),
+    ]);
+  }
+  for (const inboxNote of bundle.inboxNotes ?? []) {
+    link(inboxNote.id, [inboxNote.triagedTo?.id]);
   }
 
   // `@` mentions in free text count as links from the object that holds them.
@@ -248,6 +281,18 @@ export function mentionSources(
     ...(bundle.items ?? []).map((item): [string, string[]] => [
       item.id,
       text(item.description, item.mechanics),
+    ]),
+    ...(bundle.secrets ?? []).map((secret): [string, string[]] => [
+      secret.id,
+      text(secret.text),
+    ]),
+    ...(bundle.inboxNotes ?? []).map((note): [string, string[]] => [
+      note.id,
+      text(note.text),
+    ]),
+    ...(bundle.homebrewMonsters ?? []).map((monster): [string, string[]] => [
+      monster.id,
+      text(monster.notes),
     ]),
   ];
 }

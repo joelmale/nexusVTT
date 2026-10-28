@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
@@ -16,14 +16,16 @@ import Swords from 'lucide-react/dist/esm/icons/swords';
 import Users from 'lucide-react/dist/esm/icons/users';
 import type { LucideIcon } from 'lucide-react';
 
-import { useCapabilityNotice } from '@/features/capability-notice';
+import type { PlayerCharacter } from '@/demo/fixture-registry';
 import { ENTITY_ICONS } from '@/features/section-shell/entityMeta';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
+import type { EditableKind } from '@/features/section-shell/bundleStore';
 import { RunSheetExportModal } from '@/features/sessions/export/RunSheetExportModal';
 
 import { OverviewPanel } from './OverviewPanel';
 import { OneShotHub } from './OneShotHub';
 import { BalanceGlance } from './BalanceGlance';
+import { PartyMemberModal } from './PartyMemberModal';
 import {
   buildOverviewModel,
   type OverviewPanelId,
@@ -81,9 +83,94 @@ function writeCollapsed(campaignId: string, state: CollapsedState) {
  * server campaigns alike. Renders inside `SectionRoute`.
  */
 export function CampaignOverview() {
-  const { bundle, basePath } = useSectionBundle();
-  const { notifyCapability } = useCapabilityNotice();
+  const { bundle, basePath, store } = useSectionBundle();
+  const navigate = useNavigate();
   const model = useMemo(() => buildOverviewModel(bundle), [bundle]);
+
+  const [partyModalOpen, setPartyModalOpen] = useState(false);
+  const [partyModalMode, setPartyModalMode] = useState<
+    'create' | 'edit' | 'manage'
+  >('manage');
+  const [selectedPartyMember, setSelectedPartyMember] =
+    useState<PlayerCharacter | null>(null);
+
+  const handleRecordClick = useCallback(
+    (record: OverviewRecord, panelId: OverviewPanelId) => {
+      if (panelId === 'party') {
+        const pc = bundle.campaign?.playerCharacters?.find(
+          (p) => p.id === record.id,
+        );
+        setSelectedPartyMember(pc ?? null);
+        setPartyModalMode('edit');
+        setPartyModalOpen(true);
+      }
+    },
+    [bundle.campaign?.playerCharacters],
+  );
+
+  const handleAddPartyMember = useCallback(() => {
+    setSelectedPartyMember(null);
+    setPartyModalMode('create');
+    setPartyModalOpen(true);
+  }, []);
+
+  const handleManageParty = useCallback(() => {
+    setSelectedPartyMember(null);
+    setPartyModalMode('manage');
+    setPartyModalOpen(true);
+  }, []);
+
+  const handleOpenInSection = useCallback(
+    (record: OverviewRecord, panelId: OverviewPanelId) => {
+      if (panelId === 'party') {
+        const pc = bundle.campaign?.playerCharacters?.find(
+          (p) => p.id === record.id,
+        );
+        setSelectedPartyMember(pc ?? null);
+        setPartyModalMode('edit');
+        setPartyModalOpen(true);
+      } else if (record.href) {
+        navigate(`${basePath}${record.href}`);
+      } else {
+        const targetPanel = model.panels.find((p) => p.id === panelId);
+        if (targetPanel && targetPanel.viewAllHref) {
+          navigate(`${basePath}${targetPanel.viewAllHref}`);
+        }
+      }
+    },
+    [basePath, bundle.campaign?.playerCharacters, model.panels, navigate],
+  );
+
+  const handleTogglePin = useCallback(
+    async (record: OverviewRecord) => {
+      if (store?.togglePin) {
+        await store.togglePin(record.id);
+        if (store.reload) await store.reload();
+      }
+    },
+    [store],
+  );
+
+  const handleArchive = useCallback(
+    async (record: OverviewRecord, panelId: OverviewPanelId) => {
+      if (!store?.removeItem) return;
+      let kind: EditableKind;
+      if (panelId === 'party') {
+        kind = 'party-member';
+      } else if (panelId === 'quests') {
+        kind = 'quest';
+      } else if (panelId === 'encounters') {
+        kind = 'encounter';
+      } else if (panelId === 'clues') {
+        kind = record.kind === 'secret' ? 'secret' : 'note';
+      } else {
+        kind = record.kind as EditableKind;
+      }
+      await store.removeItem(kind, record.id);
+      if (store.reload) await store.reload();
+    },
+    [store],
+  );
 
   const [collapsedState, setCollapsedState] = useState<{
     campaignId: string;
@@ -320,13 +407,18 @@ export function CampaignOverview() {
             {model.panels.map((panel) => (
               <OverviewPanel
                 basePath={basePath}
+                canAddParty={Boolean(store?.editable)}
                 collapsed={
                   focused ? focused !== panel.id : Boolean(collapsed[panel.id])
                 }
                 focused={focused === panel.id}
                 icon={PANEL_ICONS[panel.id]}
                 key={panel.id}
-                onMore={() => notifyCapability('campaign.object.actions')}
+                onAddPartyMember={handleAddPartyMember}
+                onArchive={handleArchive}
+                onManageParty={handleManageParty}
+                onOpenInSection={handleOpenInSection}
+                onRecordClick={handleRecordClick}
                 onSelect={setSelected}
                 onToggleCollapsed={() => toggleCollapsed(panel.id)}
                 onToggleFocus={() =>
@@ -334,6 +426,7 @@ export function CampaignOverview() {
                     current === panel.id ? null : panel.id,
                   )
                 }
+                onTogglePin={handleTogglePin}
                 panel={panel}
                 selectedId={selectedRecord?.id}
                 showKindIcons={KIND_ICON_PANELS.has(panel.id)}
@@ -398,6 +491,16 @@ export function CampaignOverview() {
           session={nextSession.rawSession}
         />
       ) : null}
+      {partyModalOpen && (
+        <PartyMemberModal
+          bundle={bundle}
+          character={selectedPartyMember}
+          initialMode={partyModalMode}
+          isOpen={partyModalOpen}
+          onClose={() => setPartyModalOpen(false)}
+          store={store}
+        />
+      )}
     </main>
   );
 }

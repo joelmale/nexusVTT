@@ -53,14 +53,14 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
   'campaign.object.create': {
     id: 'campaign.object.create',
     label: 'Create campaign object',
-    status: 'planned',
+    status: 'implemented',
     targetPhase: 'Campaign prep API',
     description: 'Create an object or add a dependency to campaign prep.',
   },
   'campaign.object.history': {
     id: 'campaign.object.history',
     label: 'Campaign object history',
-    status: 'planned',
+    status: 'implemented',
     targetPhase: 'Versioned campaign objects',
     description: 'View prior versions and revision details for this object.',
   },
@@ -82,7 +82,7 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
   'campaign.example.seed': {
     id: 'campaign.example.seed',
     label: 'Start from this example',
-    status: 'planned',
+    status: 'implemented',
     targetPhase: 'Full example clone',
     description:
       'Create a new editable campaign seeded from this example. Needs a server-backed build; this one is not connected to a campaign server.',
@@ -98,7 +98,7 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
   'campaign.theme.change': {
     id: 'campaign.theme.change',
     label: 'Change studio theme',
-    status: 'planned',
+    status: 'implemented',
     targetPhase: 'Studio preferences',
     description: 'Choose the visual theme used by Campaign Studio.',
   },

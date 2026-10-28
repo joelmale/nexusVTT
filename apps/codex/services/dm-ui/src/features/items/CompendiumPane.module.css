@@ -328,3 +328,12 @@
   font-weight: 600;
   padding: 2px 8px;
 }
+
+.itemRow.activeDescendant {
+  outline: 2px solid var(--studio-primary, #2f6b45);
+  outline-offset: -2px;
+}
+
+.listColumn:focus-visible {
+  outline: none;
+}

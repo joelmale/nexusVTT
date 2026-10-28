@@ -206,4 +206,161 @@ describe('CampaignOverview panels', () => {
     expect(screen.getByLabelText('One-Shot Adventure Hub')).toBeInTheDocument();
     expect(screen.getByText('One-Shot Mode')).toBeInTheDocument();
   });
+
+  it('opens PartyMemberModal in edit mode when clicking a party member row (CS-18)', async () => {
+    const user = userEvent.setup();
+    const character = bundle.campaign.playerCharacters[0];
+    const mockStore = {
+      ...createReadOnlyStore(bundle),
+      editable: true,
+    };
+
+    render(
+      <MemoryRouter>
+        <SectionContext.Provider
+          value={{
+            basePath: `/demo/${SLUG}`,
+            bundle,
+            store: mockStore,
+          }}
+        >
+          <CampaignOverview />
+        </SectionContext.Provider>
+      </MemoryRouter>,
+    );
+
+    // Expand party panel
+    const partyToggle = panelToggle(/Party/);
+    await user.click(partyToggle);
+
+    // Click on the party member row
+    const partyMemberText = within(panel(/Party/)).getByText(character.name);
+    await user.click(partyMemberText);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByText(`Edit Party Member: ${character.name}`),
+    ).toBeInTheDocument();
+  });
+
+  it('renders Add Party Member button on editable campaigns and opens create modal (CS-18)', async () => {
+    const user = userEvent.setup();
+    const mockStore = {
+      ...createReadOnlyStore(bundle),
+      editable: true,
+    };
+
+    render(
+      <MemoryRouter>
+        <SectionContext.Provider
+          value={{
+            basePath: `/demo/${SLUG}`,
+            bundle,
+            store: mockStore,
+          }}
+        >
+          <CampaignOverview />
+        </SectionContext.Provider>
+      </MemoryRouter>,
+    );
+
+    // Expand party panel
+    const partyToggle = panelToggle(/Party/);
+    await user.click(partyToggle);
+
+    const addBtn = within(panel(/Party/)).getByRole('button', {
+      name: 'Add Party Member',
+    });
+    expect(addBtn).toBeInTheDocument();
+
+    await user.click(addBtn);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Add Party Member')).toBeInTheDocument();
+  });
+
+  it('opens party management roster when clicking View All on Party panel instead of navigating (CS-18)', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SectionContext.Provider
+          value={{
+            basePath: `/demo/${SLUG}`,
+            bundle,
+            store: createReadOnlyStore(bundle),
+          }}
+        >
+          <CampaignOverview />
+        </SectionContext.Provider>
+      </MemoryRouter>,
+    );
+
+    // Party panel View All button
+    const viewAllBtn = within(panel(/Party/)).getByRole('button', {
+      name: /View All/i,
+    });
+    await user.click(viewAllBtn);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Party Management')).toBeInTheDocument();
+  });
+
+  it('provides a row action menu with Open in section, Pin / Unpin, and Archive (CS-17)', async () => {
+    const user = userEvent.setup();
+    const mockTogglePin = vi.fn().mockResolvedValue({ ok: true });
+    const mockRemoveItem = vi.fn().mockResolvedValue({ ok: true });
+    const mockStore = {
+      ...createReadOnlyStore(bundle),
+      editable: true,
+      togglePin: mockTogglePin,
+      removeItem: mockRemoveItem,
+    };
+
+    render(
+      <MemoryRouter>
+        <SectionContext.Provider
+          value={{
+            basePath: `/demo/${SLUG}`,
+            bundle,
+            store: mockStore,
+          }}
+        >
+          <CampaignOverview />
+        </SectionContext.Provider>
+      </MemoryRouter>,
+    );
+
+    const firstQuest = bundle.quests[0];
+    const menuBtn = screen.getByRole('button', {
+      name: `More actions for ${firstQuest.title}`,
+    });
+    await user.click(menuBtn);
+
+    const menu = screen.getByRole('menu', {
+      name: `Actions for ${firstQuest.title}`,
+    });
+    expect(menu).toBeInTheDocument();
+
+    const openItem = within(menu).getByRole('menuitem', {
+      name: 'Open in section',
+    });
+    const pinItem = within(menu).getByRole('menuitem', {
+      name: 'Pin / Unpin',
+    });
+    const archiveItem = within(menu).getByRole('menuitem', {
+      name: 'Archive',
+    });
+
+    expect(openItem).toBeInTheDocument();
+    expect(pinItem).toBeInTheDocument();
+    expect(archiveItem).toBeInTheDocument();
+
+    await user.click(pinItem);
+    expect(mockTogglePin).toHaveBeenCalledWith(firstQuest.id);
+
+    // Open menu again to test archive
+    await user.click(menuBtn);
+    const archiveItemAgain = screen.getByRole('menuitem', { name: 'Archive' });
+    await user.click(archiveItemAgain);
+    expect(mockRemoveItem).toHaveBeenCalledWith('quest', firstQuest.id);
+  });
 });

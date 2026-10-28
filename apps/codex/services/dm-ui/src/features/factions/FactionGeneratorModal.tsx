@@ -389,12 +389,10 @@ export function FactionGeneratorModal({
           }
         }
 
-        if (alliedFactionIds.length > 0 || rivalFactionIds.length > 0) {
-          await store.updateItem('faction', realId, {
-            alliedFactionIds,
-            rivalFactionIds,
-          });
-        }
+        await store.updateItem('faction', realId, {
+          alliedFactionIds,
+          rivalFactionIds,
+        });
       }
 
       setBusy(false);

@@ -155,3 +155,122 @@ test('Studio authors and reloads a session through real persistence', async ({
     );
   }
 });
+
+test('Studio toolkit persists compendium items with holder, hoard loot, inbox notes, and object pins', async ({
+  context,
+  page,
+  diagnostics,
+}) => {
+  test.skip(!hasManagedSmokeStack(), 'Requires npm run test:e2e.');
+  const userId = randomUUID();
+  const sessionId = randomUUID();
+  const session = JSON.stringify({
+    cookie: {
+      originalMaxAge: 3600000,
+      expires: new Date(Date.now() + 3600000).toISOString(),
+      secure: false,
+      httpOnly: true,
+      path: '/',
+      sameSite: 'lax',
+    },
+    passport: { user: userId },
+  });
+  await smokeSql(
+    `INSERT INTO users (id, name, provider) VALUES ('${userId}', 'Studio smoke author', 'google'); INSERT INTO session (sid, sess, expire) VALUES ('${sessionId}', '${session}'::json, NOW() + INTERVAL '1 hour');`,
+  );
+  const signature = createHmac('sha256', 'smoke-session-secret')
+    .update(sessionId)
+    .digest('base64')
+    .replace(/=+$/, '');
+  await context.addCookies([
+    {
+      name: 'connect.sid',
+      value: `s:${sessionId}.${signature}`,
+      url: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:4173',
+      httpOnly: true,
+      sameSite: 'Lax',
+    },
+  ]);
+  try {
+    const campaignRes = await context.request.post('/api/campaigns', {
+      data: {
+        name: 'Studio Toolkit Persistence Smoke',
+        edition: '2024',
+        mode: 'campaign',
+        mood: 'parchment',
+      },
+    });
+    expect(campaignRes.status()).toBe(201);
+    const campaign: { id: string } = await campaignRes.json();
+
+    // 1. Create NPC holder
+    const npcRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects`, {
+      data: {
+        kind: 'npc',
+        requestId: randomUUID(),
+        data: {
+          name: 'Captain Valen',
+          role: 'Town Guard Captain',
+          ancestry: 'Human',
+          summary: 'Guards the gate',
+        },
+      },
+    });
+    expect(npcRes.status()).toBe(201);
+    const npc: { id: string } = await npcRes.json();
+
+    // 2. Toggle pin on NPC (CS-64)
+    const pinRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects/${npc.id}/pin`, {
+      data: { pinned: true },
+    });
+    expect(pinRes.ok()).toBe(true);
+
+    // 3. Create compendium item assigned to holder (CS-01, CS-02)
+    const itemRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects`, {
+      data: {
+        kind: 'item',
+        requestId: randomUUID(),
+        data: {
+          name: 'Moonblade',
+          itemType: 'weapon',
+          requiresAttunement: true,
+          holderId: npc.id,
+          holderType: 'npc',
+          valueGp: 5000,
+          rarity: 'legendary',
+        },
+      },
+    });
+    expect(itemRes.status()).toBe(201);
+
+    // 4. Create inbox note (CS-65)
+    const inboxRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects`, {
+      data: {
+        kind: 'inbox-note',
+        requestId: randomUUID(),
+        data: {
+          content: 'Secret rendezvous at the docks at midnight',
+          status: 'unfiled',
+          source: 'quick-capture',
+        },
+      },
+    });
+    expect(inboxRes.status()).toBe(201);
+
+    // 5. Navigate to items section in UI and verify persisted entity with holder
+    await page.goto(`/codex-dm/campaigns/${campaign.id}/items`);
+    await expect(page.getByRole('heading', { level: 2, name: 'Moonblade' })).toBeVisible();
+
+    // 6. Verify pin list reflects pinned NPC
+    const pinsRes = await context.request.get(`/api/campaigns/${campaign.id}/prep/pins`);
+    expect(pinsRes.ok()).toBe(true);
+    const pins: { pinnedObjectIds: string[] } = await pinsRes.json();
+    expect(pins.pinnedObjectIds).toContain(npc.id);
+
+    expect(diagnostics.pageErrors).toEqual([]);
+  } finally {
+    await smokeSql(
+      `DELETE FROM session WHERE sid = '${sessionId}'; DELETE FROM users WHERE id = '${userId}';`,
+    );
+  }
+});

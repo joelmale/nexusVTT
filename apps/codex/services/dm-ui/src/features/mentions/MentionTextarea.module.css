@@ -52,3 +52,9 @@
   align-items: center;
   gap: 6px;
 }
+
+.errorAlert {
+  color: var(--studio-danger, #ef4444);
+  font-size: 12px;
+  margin-top: 4px;
+}

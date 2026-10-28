@@ -208,6 +208,37 @@
   opacity: 0.9;
 }
 
+.templateBadge {
+  background: var(--studio-surface-muted);
+  border: 1px dashed var(--studio-warning);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-warning);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+}
+
+.btnSeed {
+  align-items: center;
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-gold);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-gold);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: var(--studio-gap-xs);
+  padding: 6px 12px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btnSeed:hover {
+  background: var(--studio-gold);
+  color: #1a1612;
+}
+
 .beatsGrid {
   display: grid;
   gap: var(--studio-gap-sm);

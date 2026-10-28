@@ -875,3 +875,84 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
 }
+
+.rowActions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rowMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 50;
+  min-width: 150px;
+  background-color: var(--studio-surface-raised, #181512);
+  border: 1px solid var(--studio-border-strong, #3a3228);
+  border-radius: var(--studio-radius-sm, 4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rowMenuItem {
+  background: transparent;
+  border: none;
+  color: var(--studio-text, #f0e6d2);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.rowMenuItem:hover {
+  background-color: var(--studio-surface-hover, rgba(255, 255, 255, 0.08));
+}
+
+.rowMenuItemDanger {
+  color: var(--studio-danger, #e05252);
+}
+
+.rowMenuItemDanger:hover {
+  background-color: rgba(224, 82, 82, 0.15);
+}
+
+.addPartyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid var(--studio-gold, #c89e5a);
+  border-radius: 4px;
+  color: var(--studio-gold, #c89e5a);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.addPartyBtn:hover {
+  background: var(--studio-gold, #c89e5a);
+  color: #1a1612;
+}
+
+.emptyLink {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--studio-positive);
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}

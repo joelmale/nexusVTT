@@ -12,6 +12,11 @@ export interface SearchResult {
   score: number;
 }
 
+export interface SearchCampaignOptions {
+  limit?: number;
+  includeSecrets?: boolean;
+}
+
 const MENTION = /@\[([^\]\n]*)\]\(ref:[\w-]+\)/g;
 const SNIPPET_RADIUS = 48;
 
@@ -23,8 +28,15 @@ function plain(text: string): string {
 /** Searchable text per object id beyond its title. */
 function textsByEntity(bundle: CampaignFixtureBundle): Map<string, string[]> {
   const texts = new Map<string, string[]>();
-  const add = (id: string, values: readonly string[]) => {
-    texts.set(id, [...(texts.get(id) ?? []), ...values.filter(Boolean)]);
+  const add = (id: string, values: readonly (string | undefined)[]) => {
+    const existing = texts.get(id) ?? [];
+    const next = [...existing];
+    for (const value of values) {
+      if (value && !next.includes(value)) {
+        next.push(value);
+      }
+    }
+    texts.set(id, next);
   };
   for (const [id, values] of mentionSources(bundle)) add(id, values);
   for (const encounter of bundle.encounters) {
@@ -39,6 +51,26 @@ function textsByEntity(bundle: CampaignFixtureBundle): Map<string, string[]> {
   }
   for (const clue of bundle.clues) add(clue.id, [clue.meaning]);
   for (const handout of bundle.handouts) add(handout.id, [handout.summary]);
+  for (const item of bundle.items ?? []) {
+    add(item.id, [
+      item.name,
+      item.playerName,
+      item.description,
+      item.mechanics,
+      item.itemType,
+      item.rarity,
+      item.attunementNote,
+    ]);
+  }
+  for (const secret of bundle.secrets ?? []) {
+    add(secret.id, [secret.text, secret.id]);
+  }
+  for (const inboxNote of bundle.inboxNotes ?? []) {
+    add(inboxNote.id, [inboxNote.text]);
+  }
+  for (const monster of bundle.homebrewMonsters ?? []) {
+    add(monster.id, [monster.name, monster.type, monster.cr, monster.notes]);
+  }
   return texts;
 }
 
@@ -59,16 +91,25 @@ function excerpt(text: string, term: string): string | undefined {
 export function searchCampaign(
   bundle: CampaignFixtureBundle,
   query: string,
-  limit = 20,
+  limitOrOptions: number | SearchCampaignOptions = 20,
+  options?: SearchCampaignOptions,
 ): SearchResult[] {
   const phrase = query.trim().toLowerCase();
   if (!phrase) return [];
+  const resolvedOptions: SearchCampaignOptions =
+    typeof limitOrOptions === 'number'
+      ? { ...options, limit: options?.limit ?? limitOrOptions }
+      : { ...limitOrOptions, ...options };
+  const limit = resolvedOptions.limit ?? 20;
+  const includeSecrets = resolvedOptions.includeSecrets ?? true;
+
   const words = phrase.split(/\s+/);
   const texts = textsByEntity(bundle);
 
   const results: SearchResult[] = [];
   for (const entity of listEntities(bundle)) {
     if (!entity.href) continue;
+    if (!includeSecrets && entity.kind === 'secret') continue;
     const label = entity.label.toLowerCase();
     const body = texts.get(entity.id) ?? [];
     const haystack = `${label}\n${body.map(plain).join('\n').toLowerCase()}`;

@@ -6,6 +6,16 @@
   width: 100%;
 }
 
+.errorAlert {
+  background: var(--studio-danger-soft, #fef2f2);
+  border: 1px solid var(--studio-danger, #ef4444);
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-danger, #b91c1c);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+}
+
 .statsBar {
   display: flex;
   align-items: center;

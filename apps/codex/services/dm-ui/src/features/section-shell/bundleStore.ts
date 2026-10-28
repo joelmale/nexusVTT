@@ -25,6 +25,8 @@ export interface SaveResult {
   ok: boolean;
   conflict?: boolean;
   error?: string;
+  id?: string;
+  pinned?: boolean;
 }
 
 /** An item that references another one. */
@@ -62,6 +64,8 @@ export interface BundleStore {
   restoreItem(kind: EditableKind, id: string): Promise<SaveResult>;
   /** Items that reference `id`, for the remove confirmation. */
   getBacklinks(id: string): Promise<BacklinkRef[]>;
+  /** Toggle whether `objectId` is pinned in this campaign. */
+  togglePin?(objectId: string): Promise<SaveResult>;
 }
 
 export const READ_ONLY_ERROR = 'read-only';
@@ -81,6 +85,7 @@ export function createReadOnlyStore(
     removeItem: () => Promise.resolve({ ok: false, error: READ_ONLY_ERROR }),
     restoreItem: () => Promise.resolve({ ok: false, error: READ_ONLY_ERROR }),
     getBacklinks: () => Promise.resolve([]),
+    togglePin: () => Promise.resolve({ ok: false, error: READ_ONLY_ERROR }),
   };
 }
 
@@ -113,6 +118,9 @@ export interface ServerBundleStoreController {
     id: string,
   ): Promise<SaveResult & { bundle?: CampaignFixtureBundle }>;
   getBacklinks?(id: string): Promise<BacklinkRef[]>;
+  togglePin?(
+    objectId: string,
+  ): Promise<SaveResult & { bundle?: CampaignFixtureBundle }>;
   /** False when the current user may only read. Defaults to true. */
   canEdit?: boolean;
 }

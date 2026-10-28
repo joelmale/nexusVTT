@@ -82,6 +82,13 @@ describe('buildNotesModel', () => {
     expect(ids({ q: 'title c' })).toEqual(['c']);
   });
 
+  it('filters out private notes when isPlayerView is true', () => {
+    const model = buildNotesModel(bundle(notes), { isPlayerView: true });
+    // Only note 'a' has audience: 'all'
+    expect(model.rows.map((row) => row.id)).toEqual(['a']);
+    expect(model.total).toBe(1);
+  });
+
   it('offers Campaign-wide plus only the used sessions and scenes', () => {
     expect(filterOptions(bundle(notes)).map((o) => o.value)).toEqual([
       'campaign',

@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createCampaign, listCampaigns, updateCampaign } from './campaign-api';
+import {
+  createCampaign,
+  deleteCampaign,
+  listCampaigns,
+  updateCampaign,
+} from './campaign-api';
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -106,5 +111,28 @@ describe('campaign-api', () => {
         method: 'PUT',
       }),
     );
+  });
+
+  it('deletes a campaign via DELETE /api/campaigns/:id', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(json({ success: true }));
+
+    await deleteCampaign('camp-456');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/campaigns/camp-456',
+      expect.objectContaining({
+        method: 'DELETE',
+      }),
+    );
+  });
+
+  it('rejects blank campaign ID when deleting', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    await expect(deleteCampaign('   ')).rejects.toThrow(
+      'Campaign ID is required.',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -5,7 +5,7 @@ import styles from './EmptyState.module.css';
 interface EmptyStateProps {
   title: string;
   description?: string;
-  /** Usually a stubbed button that fires a capability notice. */
+  /** Primary call-to-action button or control for the empty section. */
   action?: ReactNode;
 }
 

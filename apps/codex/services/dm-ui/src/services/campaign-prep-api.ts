@@ -464,6 +464,25 @@ export interface CreateSceneTemplateInput {
   mapTitle: string;
   assetId?: string;
   pinLabel?: string;
+  grid?: {
+    enabled?: boolean;
+    type?: 'square' | 'hex';
+    size?: number;
+    offsetX?: number;
+    offsetY?: number;
+    snapToGrid?: boolean;
+  };
+  lighting?: {
+    enabled?: boolean;
+    globalIllumination?: boolean;
+    ambientLight?: number;
+    darkness?: number;
+  };
+  fogPreset?: {
+    mode?: 'off' | 'concealed';
+    preset?: 'clear' | 'unexplored' | 'full' | 'custom';
+    revealedShapes?: unknown[];
+  };
 }
 
 /**
@@ -478,6 +497,9 @@ export async function createSceneTemplateFromMap(
     ? `${input.mapTitle} - ${input.pinLabel}`
     : input.mapTitle;
   const assetId = input.assetId ?? 'demo-map-scene';
+  const fogMode =
+    input.fogPreset?.mode ??
+    (input.fogPreset?.preset === 'clear' ? 'off' : 'concealed');
   const data: SceneTemplate = {
     id: crypto.randomUUID(),
     campaignId: input.campaignId,
@@ -486,20 +508,23 @@ export async function createSceneTemplateFromMap(
     name: sceneTitle,
     backgroundAssetRef: { target: 'asset', assetId },
     grid: {
-      enabled: true,
-      type: 'square',
-      size: 100,
-      offsetX: 0,
-      offsetY: 0,
-      snapToGrid: true,
+      enabled: input.grid?.enabled ?? true,
+      type: input.grid?.type ?? 'square',
+      size: input.grid?.size ?? 100,
+      offsetX: input.grid?.offsetX ?? 0,
+      offsetY: input.grid?.offsetY ?? 0,
+      snapToGrid: input.grid?.snapToGrid ?? true,
     },
     lighting: {
-      enabled: true,
-      globalIllumination: false,
-      ambientLight: 0.35,
-      darkness: 0.65,
+      enabled: input.lighting?.enabled ?? true,
+      globalIllumination: input.lighting?.globalIllumination ?? false,
+      ambientLight: input.lighting?.ambientLight ?? 0.35,
+      darkness: input.lighting?.darkness ?? 0.65,
     },
-    fogPreset: { mode: 'concealed', revealedShapes: [] },
+    fogPreset: {
+      mode: fogMode,
+      revealedShapes: (input.fogPreset?.revealedShapes as unknown[]) ?? [],
+    },
     createdAt: now,
     updatedAt: now,
   };

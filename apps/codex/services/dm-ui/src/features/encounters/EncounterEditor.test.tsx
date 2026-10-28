@@ -211,4 +211,53 @@ describe('EncounterEditor', () => {
       }),
     );
   });
+
+  it('configures and persists HP policy, initiative policy, group faction, custom name and fixed HP', async () => {
+    const store = editable();
+    const { user } = renderInSection(<Harness />, { store });
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+    // Select HP Policy: fixed
+    await user.selectOptions(screen.getByLabelText('HP Policy'), 'fixed');
+
+    // Select Initiative Policy: group
+    await user.selectOptions(screen.getByLabelText('Initiative Policy'), 'group');
+
+    // Add a monster
+    await user.type(screen.getByLabelText('Find a monster'), 'goblin');
+    await user.click(screen.getByRole('button', { name: 'Add Goblin' }));
+
+    // Set custom name, faction, and fixed HP on the group
+    await user.type(screen.getByLabelText('Custom name for Goblin'), 'Lookout');
+    await user.selectOptions(screen.getByLabelText('Faction for Goblin'), 'neutral');
+    await user.type(screen.getByLabelText('Fixed HP for Goblin'), '12');
+
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    await waitFor(() => expect(store.updateItem).toHaveBeenCalled());
+
+    expect(store.updateItem).toHaveBeenCalledWith(
+      'encounter',
+      'enc-1',
+      { hpPolicy: 'fixed' },
+    );
+    expect(store.updateItem).toHaveBeenCalledWith(
+      'encounter',
+      'enc-1',
+      { initiativePolicy: 'group' },
+    );
+    expect(store.updateItem).toHaveBeenCalledWith(
+      'encounter',
+      'enc-1',
+      expect.objectContaining({
+        composition: [
+          expect.objectContaining({
+            name: 'Goblin',
+            customName: 'Lookout',
+            faction: 'neutral',
+            fixedHp: 12,
+          }),
+        ],
+      }),
+    );
+  });
 });

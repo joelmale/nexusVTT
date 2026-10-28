@@ -115,4 +115,74 @@ describe('QuestsSection', () => {
       screen.getByRole('button', { name: /Add quest/ }),
     ).toBeInTheDocument();
   });
+
+  it('edits quest priority, resolution, and objective links', async () => {
+    const updateItem = vi.fn().mockResolvedValue({ ok: true });
+    const { user } = renderInSection(withQuestParam('/campaigns/campaign-blank'), {
+      path: '/campaigns/campaign-blank/quests/quest-find-ember-key',
+      store: { editable: true, updateItem },
+      singlePane: false,
+    });
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.selectOptions(screen.getByLabelText('Quest priority'), 'low');
+    await user.type(screen.getByLabelText('Resolution'), 'All keys gathered.');
+
+    const bundle = getFixtureBundle('ashes-of-veyra')!;
+    if (bundle.locations.length > 0) {
+      const locCheckbox = screen.getByLabelText(
+        `Objective 1 location ${bundle.locations[0].name}`,
+      );
+      await user.click(locCheckbox);
+    }
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    expect(updateItem).toHaveBeenCalledWith(
+      'quest',
+      'quest-find-ember-key',
+      { priority: 'low' },
+    );
+    expect(updateItem).toHaveBeenCalledWith(
+      'quest',
+      'quest-find-ember-key',
+      { resolution: 'All keys gathered.' },
+    );
+  });
+
+  it('displays reward items linked to the quest', () => {
+    const bundle = getFixtureBundle('ashes-of-veyra')!;
+    const questWithReward = {
+      ...bundle,
+      items: [
+        {
+          id: 'item-ember-blade',
+          name: 'Ember Blade',
+          questIds: ['quest-find-ember-key'],
+          holder: { id: 'npc-kael', kind: 'npc' },
+          sessionId: 'session-1',
+        },
+      ],
+    };
+    renderInSection(withQuestParam('/demo/ashes-of-veyra'), {
+      slug: 'ashes-of-veyra',
+      path: '/demo/ashes-of-veyra/quests/quest-find-ember-key',
+      store: { bundle: questWithReward },
+      singlePane: false,
+    });
+    const rewardSection = screen.getByRole('region', { name: 'Reward items' });
+    expect(within(rewardSection).getByText('Ember Blade')).toBeInTheDocument();
+  });
+
+  it('toggles pinning on quests', async () => {
+    const togglePin = vi.fn();
+    const { user } = renderInSection(withQuestParam('/campaigns/campaign-blank'), {
+      path: '/campaigns/campaign-blank/quests/quest-find-ember-key',
+      store: { editable: true, togglePin },
+      singlePane: false,
+    });
+    const header = screen
+      .getByRole('heading', { level: 2, name: 'Find the Ember Key' })
+      .closest('article')!;
+    const pinButton = within(header).getByRole('button', { name: 'Pin' });
+    await user.click(pinButton);
+    expect(togglePin).toHaveBeenCalledWith('quest-find-ember-key');
+  });
 });

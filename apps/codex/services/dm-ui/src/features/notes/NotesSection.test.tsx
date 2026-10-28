@@ -13,6 +13,7 @@ import {
   renderInSection,
   renderSection,
 } from '@/features/section-shell/testUtils';
+import { PlayerViewProvider } from '@/features/player-view';
 
 import { NotesSection } from './NotesSection';
 
@@ -254,5 +255,31 @@ describe('NotesSection real campaign', () => {
 
     expect(screen.getByTestId('inbox-pane')).toBeVisible();
     expect(screen.queryByRole('navigation', { name: 'Note list' })).toBeNull();
+  });
+
+  it('hides secrets, inbox, and private notes in player view (CS-29)', () => {
+    const b = editableBundle(); // Has 3 notes: a (private), b (private), c (shared)
+    renderInSection(
+      <PlayerViewProvider initialActive>
+        {ROUTED}
+      </PlayerViewProvider>,
+      {
+        path: NOTES,
+        store: { bundle: b },
+      },
+    );
+
+    // Only "Notes" tab should exist; Secrets & Clues and Inbox are hidden
+    expect(screen.getByRole('tab', { name: /^Notes/i })).toBeVisible();
+    expect(screen.queryByRole('tab', { name: /Secrets & Clues/i })).toBeNull();
+    expect(screen.queryByRole('tab', { name: /Inbox/i })).toBeNull();
+
+    // In note list, only the shared note 'c' is visible
+    const nav = screen.getByRole('navigation', { name: 'Note list' });
+    const links = within(nav).getAllByRole('link');
+    expect(links).toHaveLength(1);
+    expect(within(nav).getByText('Note c')).toBeVisible();
+    expect(within(nav).queryByText('Note a')).toBeNull();
+    expect(within(nav).queryByText('Note b')).toBeNull();
   });
 });

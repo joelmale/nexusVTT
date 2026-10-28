@@ -17,6 +17,7 @@ interface StudioFrameProps {
   onSettings?: () => void;
   onTheme?: () => void;
   onRelationshipWeb?: () => void;
+  onProfile?: () => void;
   onCapability: (capabilityId: CapabilityId) => void;
 }
 
@@ -28,6 +29,7 @@ export function StudioFrame({
   onSettings,
   onTheme,
   onRelationshipWeb,
+  onProfile,
   onCapability,
 }: StudioFrameProps) {
   const { expandCampaignRail, isCampaignRailExpanded } = useStudioNavigation();
@@ -52,6 +54,7 @@ export function StudioFrame({
     <StudioTopBar
       contextLabel={contextLabel}
       onOpenNavigation={() => setNavDrawerOpen(true)}
+      onProfile={onProfile}
       onQuickCapture={onQuickCapture}
       onRelationshipWeb={onRelationshipWeb}
       onRestoreNavigation={expandCampaignRail}
@@ -65,7 +68,14 @@ export function StudioFrame({
     <div className={styles.frame}>
       {isCampaignRailExpanded ? (
         <div className={styles.expandedFrame}>
-          <StudioCampaignRail onCapability={onCapability} onSearch={onSearch} />
+          <StudioCampaignRail
+            onCapability={onCapability}
+            onQuickCapture={onQuickCapture}
+            onRelationshipWeb={onRelationshipWeb}
+            onSearch={onSearch}
+            onSettings={onSettings}
+            onTheme={onTheme}
+          />
           <div className={styles.expandedMain}>
             <div className={styles.mobileTopBar}>{compactTopBar}</div>
             <div className={styles.content}>{children}</div>
@@ -93,7 +103,14 @@ export function StudioFrame({
               }
             }}
           >
-            <StudioCampaignRail onCapability={onCapability} onSearch={onSearch} />
+            <StudioCampaignRail
+              onCapability={onCapability}
+              onQuickCapture={onQuickCapture}
+              onRelationshipWeb={onRelationshipWeb}
+              onSearch={onSearch}
+              onSettings={onSettings}
+              onTheme={onTheme}
+            />
           </div>
         </div>
       ) : null}

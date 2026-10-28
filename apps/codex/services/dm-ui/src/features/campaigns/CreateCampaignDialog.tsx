@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { CAMPAIGN_MOODS, type CampaignMood } from '@/features/moods/moodModel';
 import { useCampaignContext } from './CampaignContext';
 import styles from './CreateCampaignDialog.module.css';
 
@@ -23,6 +24,8 @@ export function CreateCampaignDialog({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [mode, setMode] = useState<'campaign' | 'one-shot'>('campaign');
+  const [edition, setEdition] = useState<'2024' | '2014'>('2024');
+  const [mood, setMood] = useState<CampaignMood>('parchment');
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
@@ -33,12 +36,18 @@ export function CreateCampaignDialog({
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  function closeDialog() {
-    if (pending) return;
+  function resetForm() {
     setName('');
     setDescription('');
     setMode('campaign');
+    setEdition('2024');
+    setMood('parchment');
     setError(undefined);
+  }
+
+  function closeDialog() {
+    if (pending) return;
+    resetForm();
     onClose();
     requestAnimationFrame(() => returnFocusRef.current?.focus());
   }
@@ -56,9 +65,12 @@ export function CreateCampaignDialog({
     try {
       const campaign = await createCampaign({
         description,
+        edition,
         mode,
+        mood,
         name: trimmedName,
       });
+      resetForm();
       onClose();
       navigate(`/campaigns/${encodeURIComponent(campaign.id)}/overview`);
     } catch (creationError) {
@@ -119,6 +131,42 @@ export function CreateCampaignDialog({
         <div
           className={styles.formatGroup}
           role="radiogroup"
+          aria-label="Rules edition"
+        >
+          <span>Rules Edition</span>
+          <div className={styles.formatOptions}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={edition === '2024'}
+              className={`${styles.formatOption} ${edition === '2024' ? styles.formatOptionSelected : ''}`}
+              onClick={() => setEdition('2024')}
+              disabled={pending}
+            >
+              <strong className={styles.formatOptionTitle}>2024 Rules</strong>
+              <span className={styles.formatOptionDesc}>
+                Modern 5e SRD revision
+              </span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={edition === '2014'}
+              className={`${styles.formatOption} ${edition === '2014' ? styles.formatOptionSelected : ''}`}
+              onClick={() => setEdition('2014')}
+              disabled={pending}
+            >
+              <strong className={styles.formatOptionTitle}>2014 Legacy</strong>
+              <span className={styles.formatOptionDesc}>
+                Classic 5e SRD rules
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={styles.formatGroup}
+          role="radiogroup"
           aria-label="Adventure format"
         >
           <span>Format</span>
@@ -151,6 +199,23 @@ export function CreateCampaignDialog({
             </button>
           </div>
         </div>
+
+        <label className={styles.field}>
+          <span>Visual Theme & Mood</span>
+          <select
+            className={styles.select}
+            disabled={pending}
+            name="campaignMood"
+            onChange={(event) => setMood(event.target.value as CampaignMood)}
+            value={mood}
+          >
+            {CAMPAIGN_MOODS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label} — {m.tagline}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <div aria-live="polite" className={styles.message} role="status">
           {error}

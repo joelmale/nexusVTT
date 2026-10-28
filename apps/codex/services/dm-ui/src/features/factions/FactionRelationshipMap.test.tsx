@@ -79,4 +79,29 @@ describe('FactionRelationshipMap', () => {
       screen.getByText(`${web.factions[0].name} Relationships`),
     ).toBeInTheDocument();
   });
+
+  it('allows editing relationships when a faction node is selected (CS-49)', async () => {
+    const user = userEvent.setup();
+    const onChangeRelationship = vi.fn();
+    const web = generateFactionWeb({ count: 2, includeRelationships: true });
+    render(
+      <FactionRelationshipMap
+        factions={web.factions}
+        selectedFactionId={web.factions[0].tempId}
+        onChangeRelationship={onChangeRelationship}
+      />,
+    );
+
+    const select = screen.getByRole('combobox', {
+      name: new RegExp(`Relationship with ${web.factions[1].name}`, 'i'),
+    });
+    expect(select).toBeInTheDocument();
+
+    await user.selectOptions(select, 'rival');
+    expect(onChangeRelationship).toHaveBeenCalledWith(
+      web.factions[0].tempId,
+      web.factions[1].tempId,
+      'rival',
+    );
+  });
 });

@@ -1,21 +1,29 @@
-import { describe, expect, it } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   listFixtureBundles,
+  type CampaignFixtureBundle,
   type HomebrewMonster,
 } from '@/demo/fixture-registry';
 
 import {
   buildMonsterCatalog,
+  catalogMonsterFromEntity,
+  clearMonsterCatalogCache,
   componentFromMonster,
   crValue,
+  fetchServerMonsterCatalog,
   filterMonsters,
   findMonster,
+  formatCr,
+  getFallbackMonsterCatalog,
   homebrewKey,
   matchMonsterByName,
   rateComposition,
   srdKey,
   storedDifficulty,
+  useMonsterCatalog,
 } from './monsterCatalog';
 
 const HOMEBREW: HomebrewMonster = {
@@ -85,6 +93,351 @@ describe('monster catalog', () => {
     expect(crValue('10')).toBe(10);
     expect(crValue('')).toBeUndefined();
     expect(crValue('big')).toBeUndefined();
+  });
+});
+
+describe('buildMonsterCatalog flex options', () => {
+  it('accepts bundle objects with homebrewMonsters', () => {
+    const fakeBundle = { homebrewMonsters: [HOMEBREW] };
+    const result = buildMonsterCatalog(fakeBundle);
+    expect(result.some((m) => m.key === 'homebrew:hb-1')).toBe(true);
+  });
+
+  it('accepts extraMonsters array merged with bundle', () => {
+    const extra: HomebrewMonster = {
+      ...HOMEBREW,
+      id: 'hb-extra',
+      name: 'Extra Fiend',
+    };
+    const result = buildMonsterCatalog([HOMEBREW], [extra]);
+    expect(result.some((m) => m.key === 'homebrew:hb-extra')).toBe(true);
+    expect(result.some((m) => m.key === 'homebrew:hb-1')).toBe(true);
+  });
+
+  it('accepts custom canonical monster list', () => {
+    const customCanonical = [
+      {
+        key: 'srd:custom-goblin',
+        name: 'Custom Goblin',
+        cr: '1',
+        type: 'humanoid',
+        size: 'Small',
+        ac: 15,
+        hp: 12,
+        speed: 30,
+        abilities: [10, 14, 10, 10, 10, 10] as [number, number, number, number, number, number],
+        source: 'canonical' as const,
+        edition: '2024' as const,
+      },
+    ];
+    const result = buildMonsterCatalog([], [], customCanonical);
+    expect(result.length).toBe(1);
+    expect(result[0].key).toBe('srd:custom-goblin');
+  });
+
+  it('handles null or undefined source gracefully', () => {
+    const result = buildMonsterCatalog(null);
+    expect(result.length).toBeGreaterThan(300);
+  });
+});
+
+describe('formatCr and catalogMonsterFromEntity', () => {
+  it('formats fractional and integer challenge ratings correctly', () => {
+    expect(formatCr(0.125)).toBe('1/8');
+    expect(formatCr(0.25)).toBe('1/4');
+    expect(formatCr(0.5)).toBe('1/2');
+    expect(formatCr(5)).toBe('5');
+    expect(formatCr(' 1/4 ')).toBe('1/4');
+    expect(formatCr(undefined)).toBe('0');
+  });
+
+  it('maps 2024 rules entity to CatalogMonster', () => {
+    const entity = {
+      id: 'dire-wolf',
+      ruleset: '2024',
+      data: {
+        name: 'Dire Wolf',
+        challengeRating: 1,
+        type: 'beast',
+        size: 'large',
+        armorClass: [{ value: 14, source: 'natural armor' }],
+        hitPoints: { average: 37, formula: '5d10+10' },
+        speed: { walk: 50 },
+        abilityScores: { str: 17, dex: 15, con: 15, int: 3, wis: 12, cha: 7 },
+      },
+    };
+
+    const monster = catalogMonsterFromEntity(entity);
+    expect(monster).toEqual({
+      key: 'srd:dire-wolf',
+      name: 'Dire Wolf',
+      cr: '1',
+      type: 'beast',
+      size: 'Large',
+      ac: 14,
+      hp: 37,
+      speed: 50,
+      abilities: [17, 15, 15, 3, 12, 7],
+      source: 'canonical',
+      edition: '2024',
+    });
+  });
+
+  it('maps entity with flat numeric ac/hp and array abilities', () => {
+    const entity = {
+      slug: 'ghoul',
+      ruleset: '2014',
+      data: {
+        name: 'Ghoul',
+        cr: '1',
+        type: 'undead',
+        size: 'Medium',
+        ac: 12,
+        hp: 22,
+        speed: 30,
+        abilities: [13, 15, 10, 7, 10, 6],
+      },
+    };
+
+    const monster = catalogMonsterFromEntity(entity);
+    expect(monster).toMatchObject({
+      key: 'srd:ghoul',
+      name: 'Ghoul',
+      ac: 12,
+      hp: 22,
+      speed: 30,
+      abilities: [13, 15, 10, 7, 10, 6],
+      edition: '2014',
+    });
+  });
+
+  it('returns undefined for invalid entity shapes', () => {
+    expect(catalogMonsterFromEntity(null)).toBeUndefined();
+    expect(catalogMonsterFromEntity({})).toBeUndefined();
+    expect(catalogMonsterFromEntity({ data: { name: '' } })).toBeUndefined();
+  });
+});
+
+describe('fetchServerMonsterCatalog (CS-43)', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('queries /api/rules/catalog/entities?type=monster and returns parsed CatalogMonster array', async () => {
+    let requestedUrl = '';
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      requestedUrl = url;
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            catalogVersion: 1,
+            entities: [
+              {
+                id: 'm-2024-1',
+                ruleset: '2024',
+                data: {
+                  name: 'Apex Predator',
+                  challengeRating: 3,
+                  type: 'monstrosity',
+                  size: 'large',
+                  armorClass: [{ value: 16 }],
+                  hitPoints: { average: 52 },
+                  speed: { walk: 40 },
+                  abilityScores: { str: 18, dex: 14, con: 16, int: 4, wis: 12, cha: 8 },
+                },
+              },
+            ],
+          }),
+      } as Response);
+    });
+
+    const result = await fetchServerMonsterCatalog('2024');
+    expect(requestedUrl).toBe('/api/rules/catalog/entities?type=monster&ruleset=2024');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      key: 'srd:m-2024-1',
+      name: 'Apex Predator',
+      cr: '3',
+      edition: '2024',
+    });
+  });
+
+  it('falls back to SRD_MONSTERS on HTTP error', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Error',
+    } as Response);
+
+    const result = await fetchServerMonsterCatalog('2014');
+    expect(result.length).toBeGreaterThan(300);
+    expect(result[0].source).toBe('canonical');
+  });
+
+  it('falls back to SRD_MONSTERS on empty response or network throw', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network failure'));
+
+    const result = await fetchServerMonsterCatalog('2024');
+    expect(result.length).toBeGreaterThan(300);
+    expect(result.every((m) => m.edition === '2024')).toBe(true);
+  });
+});
+
+describe('getFallbackMonsterCatalog', () => {
+  it('returns SRD monsters with specified edition', () => {
+    const fallback2024 = getFallbackMonsterCatalog('2024');
+    expect(fallback2024.length).toBeGreaterThan(300);
+    expect(fallback2024.every((m) => m.edition === '2024')).toBe(true);
+    expect(fallback2024[0].source).toBe('canonical');
+
+    const fallback2014 = getFallbackMonsterCatalog('2014');
+    expect(fallback2014.every((m) => m.edition === '2014')).toBe(true);
+  });
+});
+
+describe('useMonsterCatalog hook (CS-43)', () => {
+  beforeEach(() => {
+    clearMonsterCatalogCache();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    clearMonsterCatalogCache();
+  });
+
+  it('fetches server monsters and caches results', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        entities: [
+          {
+            id: 'server-orc',
+            ruleset: '2024',
+            data: {
+              name: 'Server Orc',
+              challengeRating: 0.5,
+              type: 'humanoid',
+              size: 'medium',
+              armorClass: [{ value: 13 }],
+              hitPoints: { average: 15 },
+              speed: { walk: 30 },
+              abilityScores: { str: 16, dex: 12, con: 14, int: 7, wis: 11, cha: 10 },
+            },
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() =>
+      useMonsterCatalog([HOMEBREW], { ruleset: '2024' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.canonical.length).toBe(1);
+    expect(result.current.canonical[0].name).toBe('Server Orc');
+    expect(result.current.catalog.some((m) => m.name === 'Server Orc')).toBe(true);
+    expect(result.current.catalog.some((m) => m.name === 'Gloomwing')).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // Second render should use cache
+    const { result: secondResult } = renderHook(() =>
+      useMonsterCatalog([HOMEBREW], { ruleset: '2024' }),
+    );
+    expect(secondResult.current.canonical[0].name).toBe('Server Orc');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports offlineOnly mode without fetching', () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() =>
+      useMonsterCatalog([HOMEBREW], { offlineOnly: true }),
+    );
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.isFallback).toBe(true);
+    expect(result.current.catalog.length).toBeGreaterThan(300);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('infers ruleset edition from bundle when options.ruleset is omitted', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ entities: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const bundle2024 = {
+      catalog: { edition: '2024' },
+      homebrewMonsters: [],
+    } as unknown as CampaignFixtureBundle;
+
+    const { result } = renderHook(() => useMonsterCatalog(bundle2024));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.ruleset).toBe('2024');
+  });
+
+  it('allows manual fallback switch and reload', async () => {
+    let callCount = 0;
+    const fetchMock = vi.fn().mockImplementation(() => {
+      callCount++;
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          entities: [
+            {
+              id: `beast-${callCount}`,
+              ruleset: '2024',
+              data: {
+                name: `Beast ${callCount}`,
+                challengeRating: 1,
+                type: 'beast',
+                size: 'medium',
+                ac: 12,
+                hp: 10,
+                speed: 30,
+              },
+            },
+          ],
+        }),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() =>
+      useMonsterCatalog([HOMEBREW], { ruleset: '2024' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.canonical[0].name).toBe('Beast 1');
+
+    act(() => {
+      result.current.useFallbackCatalog();
+    });
+    expect(result.current.isFallback).toBe(true);
+
+    await act(async () => {
+      await result.current.reload();
+    });
+    expect(result.current.canonical[0].name).toBe('Beast 2');
   });
 });
 

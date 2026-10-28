@@ -14,6 +14,8 @@ import {
   type ServerBundleStoreController,
 } from './bundleStore';
 import { ServerBackendContext } from './ServerBackendContext';
+import { loadServerBundleBackend } from './serverStoreAdapter';
+import { loadServerBundleBackend as loadStubBackend } from './serverStoreStub';
 import { TEST_CAMPAIGN } from './testUtils';
 import { useBundleStore } from './useBundleStore';
 
@@ -32,7 +34,25 @@ describe('read-only store', () => {
       ok: false,
       error: 'read-only',
     });
+    await expect(store.togglePin?.('npc-1')).resolves.toEqual({
+      ok: false,
+      error: 'read-only',
+    });
     await expect(store.reload()).resolves.toBeUndefined();
+  });
+});
+
+describe('serverStoreAdapter and serverStoreStub', () => {
+  it('re-exports loadServerBundleBackend and wraps createServerBundleStore with togglePin', async () => {
+    expect(loadStubBackend).toBe(loadServerBundleBackend);
+    const backend = await loadServerBundleBackend();
+    expect(typeof backend.createServerBundleStore).toBe('function');
+    expect(typeof backend.seedFromFixture).toBe('function');
+    const controller = backend.createServerBundleStore(TEST_CAMPAIGN);
+    expect(typeof controller.load).toBe('function');
+    expect(typeof controller.updateItem).toBe('function');
+    expect(typeof controller.addItem).toBe('function');
+    expect(typeof controller.togglePin).toBe('function');
   });
 });
 
@@ -188,5 +208,82 @@ describe('useBundleStore', () => {
     button.click();
     await waitFor(() => expect(controller.load).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(result).toMatchObject({ conflict: true }));
+  });
+
+  it('delegates togglePin to the controller and refreshes the bundle (CS-64)', async () => {
+    const baseBundle = getFixtureBundle('ashes-of-veyra')!;
+    const initialBundle = {
+      ...baseBundle,
+      pinnedObjectIds: [],
+      source: 'server' as const,
+    };
+    const updatedBundle = {
+      ...baseBundle,
+      pinnedObjectIds: ['npc-1'],
+      source: 'server' as const,
+    };
+    const controller: ServerBundleStoreController = {
+      load: vi.fn().mockResolvedValue(initialBundle),
+      updateItem: vi.fn(),
+      addItem: vi.fn(),
+      togglePin: vi.fn().mockResolvedValue({
+        ok: true,
+        id: 'npc-1',
+        bundle: updatedBundle,
+      }),
+    };
+    const backend: ServerBundleBackend = {
+      createServerBundleStore: vi.fn().mockReturnValue(controller),
+      seedFromFixture: vi.fn(),
+    };
+    let toggleRes: unknown;
+    function PinProber() {
+      const state = useBundleStore();
+      if (state.status !== 'ready' || !state.store.editable) return null;
+      return (
+        <div>
+          <span>pins:{state.store.bundle.pinnedObjectIds.join(',')}</span>
+          <button
+            onClick={() => {
+              void state.store.togglePin?.('npc-1').then((r) => {
+                toggleRes = r;
+              });
+            }}
+            type="button"
+          >
+            pin
+          </button>
+        </div>
+      );
+    }
+    const context: CampaignContextValue = {
+      activeCampaign: TEST_CAMPAIGN,
+      campaigns: [],
+      createCampaign: vi.fn(),
+      isDemoCampaign: false,
+      reload: vi.fn(),
+      rememberCampaign: vi.fn(),
+      state: 'ready',
+    };
+    render(
+      <MemoryRouter initialEntries={['/campaigns/c/npcs']}>
+        <CampaignContext.Provider value={context}>
+          <ServerBackendContext.Provider value={backend}>
+            <Routes>
+              <Route path="/campaigns/:campaignId/*" element={<PinProber />} />
+            </Routes>
+          </ServerBackendContext.Provider>
+        </CampaignContext.Provider>
+      </MemoryRouter>,
+    );
+    const button = await screen.findByRole('button', { name: 'pin' });
+    button.click();
+    await waitFor(() =>
+      expect(controller.togglePin).toHaveBeenCalledWith('npc-1'),
+    );
+    await waitFor(() =>
+      expect(toggleRes).toMatchObject({ ok: true, id: 'npc-1' }),
+    );
+    expect(await screen.findByText('pins:npc-1')).toBeInTheDocument();
   });
 });

@@ -56,12 +56,20 @@ const ITEM_SET = [
   mk('sword', {
     name: 'Flame Tongue',
     rarity: 'rare',
+    itemType: 'weapon',
+    requiresAttunement: true,
+    valueGp: 1000,
     holder: { kind: 'npc', id: npc.id },
     discovered: true,
+    questIds: [quest.id],
+    sessionId: base.sessions[0]?.id,
   }),
   mk('ring', {
     name: 'Ring of Mending',
     rarity: 'uncommon',
+    itemType: 'wondrous_item',
+    requiresAttunement: false,
+    valueGp: 150,
     holder: { kind: 'party-member', id: pc.id },
     discovered: true,
   }),
@@ -69,9 +77,17 @@ const ITEM_SET = [
     name: 'Dragon Hoard',
     rarity: 'none',
     itemType: 'treasure',
+    requiresAttunement: false,
+    valueGp: 10000,
     holder: { kind: 'encounter', id: encounter.id },
   }),
-  mk('loose', { name: 'Loose Gem', rarity: 'common' }),
+  mk('loose', {
+    name: 'Loose Gem',
+    rarity: 'common',
+    itemType: 'treasure',
+    requiresAttunement: false,
+    valueGp: 25,
+  }),
 ];
 
 afterEach(() => {
@@ -95,9 +111,49 @@ describe('buildItemsModel', () => {
     expect(buildItemsModel(bundle, { holder: 'npc' }).visibleCount).toBe(1);
     expect(buildItemsModel(bundle, { q: 'gem' }).visibleCount).toBe(1);
   });
+
+  it('filters by itemType, attunement, and valuePreset (CS-47)', () => {
+    const bundle = bundleWith(ITEM_SET);
+    expect(buildItemsModel(bundle, { itemType: 'weapon' }).visibleCount).toBe(1);
+    expect(buildItemsModel(bundle, { attunement: 'attuned' }).visibleCount).toBe(1);
+    expect(buildItemsModel(bundle, { attunement: 'none' }).visibleCount).toBe(3);
+    expect(buildItemsModel(bundle, { valuePreset: 'under-50' }).visibleCount).toBe(1);
+    expect(buildItemsModel(bundle, { valuePreset: '50-500' }).visibleCount).toBe(1);
+    expect(buildItemsModel(bundle, { valuePreset: '500-5000' }).visibleCount).toBe(1);
+    expect(buildItemsModel(bundle, { valuePreset: 'over-5000' }).visibleCount).toBe(1);
+  });
+
+  it('groups items by type, rarity, quest, and session (CS-47)', () => {
+    const bundle = bundleWith(ITEM_SET);
+
+    const typeGrouped = buildItemsModel(bundle, { groupBy: 'type' });
+    expect(typeGrouped.groups.map((g) => g.label)).toContain('Weapon');
+    expect(typeGrouped.groups.map((g) => g.label)).toContain('Treasure');
+
+    const rarityGrouped = buildItemsModel(bundle, { groupBy: 'rarity' });
+    expect(rarityGrouped.groups.map((g) => g.label)).toContain('Rare');
+    expect(rarityGrouped.groups.map((g) => g.label)).toContain('Uncommon');
+
+    const questGrouped = buildItemsModel(bundle, { groupBy: 'quest' });
+    expect(questGrouped.groups.some((g) => g.id === quest.id)).toBe(true);
+
+    const sessionGrouped = buildItemsModel(bundle, { groupBy: 'session' });
+    expect(sessionGrouped.groups.some((g) => g.id === base.sessions[0]?.id)).toBe(true);
+  });
 });
 
 describe('ItemsSection', () => {
+  it('renders select dropdowns for Type, Attunement, Value, and Group by (CS-47)', () => {
+    renderInSection(ROUTED, {
+      path: ITEMS,
+      store: { bundle: bundleWith(ITEM_SET), editable: true },
+    });
+
+    expect(screen.getByRole('combobox', { name: 'Type' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Attunement' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Value' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Group by' })).toBeInTheDocument();
+  });
   it('lists items under their holder with rarity badges', () => {
     renderInSection(ROUTED, {
       path: ITEMS,

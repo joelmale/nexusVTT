@@ -133,4 +133,41 @@ describe('useSrdCatalog', () => {
     expect(result.current.isFallback).toBe(true);
     expect(result.current.catalog.length).toBeGreaterThan(10);
   });
+
+  it('loads bundled catalog immediately without network calls when offlineOnly is true', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() =>
+      useSrdCatalog('2024', { offlineOnly: true }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.isFallback).toBe(true);
+    expect(result.current.catalog.length).toBeGreaterThan(10);
+  });
+
+  it('gracefully falls back to bundled catalog on unauthenticated 401 response', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({}),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useSrdCatalog('2024'));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.isFallback).toBe(true);
+    expect(result.current.catalog.length).toBeGreaterThan(10);
+  });
 });

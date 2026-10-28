@@ -46,7 +46,8 @@
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   background: var(--studio-canvas);
   border: 1px solid var(--studio-border-strong);
   border-radius: var(--studio-radius-control);
@@ -57,7 +58,8 @@
 }
 
 .field input:focus,
-.field textarea:focus {
+.field textarea:focus,
+.field select:focus {
   border-color: var(--studio-positive);
   outline: 2px solid var(--studio-positive-soft);
 }

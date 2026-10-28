@@ -215,36 +215,55 @@ export function buildOverviewModel(
   });
 
   // Clues: open threads first; resolved ones stay listed so a campaign near
-  // its end still shows what the party uncovered.
-  const clues = [...bundle.clues]
-    .sort(
-      (a, b) =>
-        (CLUE_RANK[a.status] ?? 9) - (CLUE_RANK[b.status] ?? 9) ||
-        (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9),
-    )
-    .map((clue): OverviewRecord => ({
-      id: clue.id,
-      kind: 'clue',
-      title: clue.title,
-      subtitle: clue.meaning,
-      meta: clue.status === 'resolved' ? 'Resolved' : humanize(clue.priority),
-      tone:
-        clue.status === 'resolved' ? 'positive' : priorityTone(clue.priority),
-      href: hrefFor(bundle, clue.id),
+  // its end still shows what the party uncovered. If clues are empty, fallback
+  // to bundle.secrets so unrevealed secrets and clues appear on the dashboard.
+  let clues: OverviewRecord[];
+  if (bundle.clues && bundle.clues.length > 0) {
+    clues = [...bundle.clues]
+      .sort(
+        (a, b) =>
+          (CLUE_RANK[a.status] ?? 9) - (CLUE_RANK[b.status] ?? 9) ||
+          (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9),
+      )
+      .map((clue): OverviewRecord => ({
+        id: clue.id,
+        kind: 'clue',
+        title: clue.title,
+        subtitle: clue.meaning,
+        meta: clue.status === 'resolved' ? 'Resolved' : humanize(clue.priority),
+        tone:
+          clue.status === 'resolved' ? 'positive' : priorityTone(clue.priority),
+        href: hrefFor(bundle, clue.id),
+        details: [
+          { label: 'Status', value: humanize(clue.status) },
+          ...(clue.relatedQuestIds.length > 0
+            ? [
+                {
+                  label: 'Related quests',
+                  value: compact(
+                    clue.relatedQuestIds.map((id) => questById.get(id)?.title),
+                  ).join(', '),
+                },
+              ]
+            : []),
+        ],
+      }));
+  } else if (bundle.secrets && bundle.secrets.length > 0) {
+    clues = bundle.secrets.map((secret): OverviewRecord => ({
+      id: secret.id,
+      kind: 'secret',
+      title: secret.text,
+      subtitle: secret.revealed ? 'Revealed secret' : 'Unrevealed secret',
+      meta: secret.revealed ? 'Revealed' : 'Unrevealed',
+      tone: secret.revealed ? 'positive' : 'neutral',
+      href: hrefFor(bundle, secret.id),
       details: [
-        { label: 'Status', value: humanize(clue.status) },
-        ...(clue.relatedQuestIds.length > 0
-          ? [
-              {
-                label: 'Related quests',
-                value: compact(
-                  clue.relatedQuestIds.map((id) => questById.get(id)?.title),
-                ).join(', '),
-              },
-            ]
-          : []),
+        { label: 'Status', value: secret.revealed ? 'Revealed' : 'Unrevealed' },
       ],
     }));
+  } else {
+    clues = [];
+  }
 
   const objects: OverviewRecord[] = [
     ...bundle.npcs.map((npc): OverviewRecord => ({

@@ -946,3 +946,309 @@
   border: 1px solid rgba(251, 191, 36, 0.3);
   vertical-align: middle;
 }
+
+/* ── Selected Library Object Action Panel ── */
+.selectedObjectPanel {
+  margin: 10px 0 14px;
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  padding: 10px;
+}
+
+.selectedObjectHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.selectedObjectBadge {
+  background: var(--studio-surface-muted);
+  color: var(--studio-text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--studio-border);
+}
+
+.selectedObjectTitle {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--studio-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedObjectActions {
+  display: flex;
+  gap: 6px;
+}
+
+.objectActionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--studio-surface-hover);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 8px;
+  cursor: pointer;
+  flex: 1;
+  justify-content: center;
+}
+
+.objectActionButton:hover:not(:disabled) {
+  background: var(--studio-surface-raised);
+  border-color: var(--studio-border-strong);
+}
+
+.objectActionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Sidebar Filters ── */
+.activeTypeFilter {
+  background: var(--studio-surface-raised) !important;
+  border-color: var(--studio-positive) !important;
+  color: var(--studio-positive) !important;
+  font-weight: 700 !important;
+}
+
+.activeFolderChild {
+  background: var(--studio-surface-raised) !important;
+  color: var(--studio-positive) !important;
+  font-weight: 700 !important;
+}
+
+/* ── Inline Step Editing Controls ── */
+.editorField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--studio-text-muted);
+}
+
+.fieldInput,
+.fieldSelect {
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  font-size: 12px;
+  padding: 6px 8px;
+  width: 100%;
+}
+
+.fieldInput:focus,
+.fieldSelect:focus {
+  border-color: var(--studio-focus);
+  outline: none;
+}
+
+.durationInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.durationInputGroup input {
+  flex: 1;
+}
+
+.quickDurationButtons {
+  display: flex;
+  gap: 4px;
+}
+
+.quickDurationButtons button {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 7px;
+}
+
+.quickDurationButtons button:hover {
+  background: var(--studio-surface-hover);
+  color: var(--studio-text);
+}
+
+.deleteStepButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--studio-danger);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-danger);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+}
+
+.deleteStepButton:hover {
+  background: var(--studio-danger-soft);
+}
+
+.stepRowActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* ── References Inspector Pane ── */
+.referencesPane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.referencesList,
+.backlinksList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.referenceItem,
+.backlinkItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--studio-border);
+}
+
+.referenceIcon {
+  align-items: center;
+  background: var(--studio-surface-hover);
+  border-radius: 50%;
+  color: var(--studio-text-muted);
+  display: inline-flex;
+  flex: 0 0 24px;
+  height: 24px;
+  justify-content: center;
+}
+
+.referenceDetails,
+.backlinkItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.referenceDetails strong,
+.backlinkItem strong {
+  font-size: 12px;
+  color: var(--studio-text);
+}
+
+.referenceDetails small,
+.backlinkItem small {
+  font-size: 10px;
+  color: var(--studio-text-muted);
+}
+
+/* ── Chat Prep Experimental Tab ── */
+.chatPrepPane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.experimentalBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--studio-warning-soft);
+  color: var(--studio-warning);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  width: fit-content;
+}
+
+.betaBadge {
+  background: var(--studio-warning-soft);
+  color: var(--studio-warning);
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  margin-left: 5px;
+  padding: 1px 4px;
+  text-transform: uppercase;
+}
+
+/* ── Attachments Workspace ── */
+.attachmentsWorkspace {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 580px;
+  margin-top: 12px;
+}
+
+.attachmentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachmentDetails {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.removeAttachmentButton {
+  background: transparent;
+  border: 0;
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--studio-radius-control);
+}
+
+.removeAttachmentButton:hover {
+  color: var(--studio-danger);
+  background: var(--studio-danger-soft);
+}
+
+.addAttachmentControls {
+  border-top: 1px solid var(--studio-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 14px;
+}
+
+.addAttachmentControls h3 {
+  font-size: 12px;
+  margin: 0;
+  color: var(--studio-text);
+}
+
+.addAttachmentRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

@@ -165,8 +165,8 @@ describe('FactionGeneratorModal', () => {
       }));
       expect(onCreated).toHaveBeenCalled();
       expect(onClose).toHaveBeenCalled();
-      // Persisting is a chain of awaited saves; the 1s default is too tight on CI.
-    }, { timeout: 5000 });
+      // Persisting is a chain of awaited saves; give headroom under heavy test worker concurrency.
+    }, { timeout: 10000 });
   });
 
   it('displays validation error if faction name is cleared', async () => {

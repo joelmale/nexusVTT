@@ -46,10 +46,19 @@ function stripData(object: StoredObject): Omit<StoredObject, 'data'> {
 /** In-memory fake of the prep API, including revision compare-and-swap. */
 class FakeServer {
   objects = new Map<string, StoredObject>();
-  campaigns: { id: string; name: string; description?: string }[] = [];
+  campaigns: {
+    id: string;
+    name: string;
+    description?: string;
+    edition?: string;
+    mode?: string;
+    mood?: string;
+  }[] = [];
   failTitles = new Set<string>();
   bump409 = false;
   failArchive = false;
+  failPins = false;
+  failTogglePin = false;
   backlinks: Record<string, string[]> = {};
   calls: { method: string; path: string; body?: Record<string, unknown> }[] =
     [];
@@ -105,6 +114,9 @@ class FakeServer {
           id,
           name: String(body?.name),
           description: body?.description as string | undefined,
+          edition: body?.edition as string | undefined,
+          mode: body?.mode as string | undefined,
+          mood: body?.mood as string | undefined,
         };
         this.campaigns.push(created);
         return json({
@@ -140,12 +152,14 @@ class FakeServer {
       }
       const pinsMatch = path.match(/^\/api\/campaigns\/[^/]+\/prep\/pins$/);
       if (pinsMatch && method === 'GET') {
+        if (this.failPins) return json({ error: 'pins failed' }, 500);
         return json({ pinnedObjectIds: ['item-1', 'npc-1'] });
       }
       const pinAction = path.match(
         /^\/api\/campaigns\/[^/]+\/prep\/objects\/([^/]+)\/pin$/,
       );
       if (pinAction && method === 'POST') {
+        if (this.failTogglePin) return json({ error: 'pin failed' }, 500);
         return json({ objectId: pinAction[1], pinned: Boolean(body?.pinned) });
       }
       const revMatch = path.match(
@@ -1405,6 +1419,9 @@ describe('seedFromFixture', () => {
       const result = await seedFromFixture(slug);
       expect(result.failed).toEqual([]);
       expect(server.campaigns[0].name).toBe(fixture.campaign.title);
+      expect(server.campaigns[0].edition).toBe(fixture.campaign.edition);
+      expect(server.campaigns[0].mode).toBe(fixture.campaign.mode);
+      expect(server.campaigns[0].mood).toBe(fixture.campaign.mood);
 
       expect(byKind('npc')).toHaveLength(fixture.npcs.length);
       expect(byKind('faction')).toHaveLength(fixture.factions.length);
@@ -1413,6 +1430,14 @@ describe('seedFromFixture', () => {
       expect(byKind('act')).toHaveLength(fixture.acts.length);
       expect(byKind('session')).toHaveLength(fixture.sessions.length);
       expect(byKind('encounter')).toHaveLength(fixture.encounters.length);
+      expect(byKind('item')).toHaveLength((fixture.items ?? []).length);
+      expect(byKind('secret')).toHaveLength((fixture.secrets ?? []).length);
+      expect(byKind('inbox-note')).toHaveLength(
+        (fixture.inboxNotes ?? []).length,
+      );
+      expect(byKind('homebrew-monster')).toHaveLength(
+        (fixture.homebrewMonsters ?? []).length,
+      );
       // The example party is not real; players join the new campaign.
       expect(byKind('party-member')).toHaveLength(0);
       expect(byKind('session-plan')).toHaveLength(
@@ -1583,16 +1608,36 @@ describe('seedFromFixture', () => {
             title: string;
             text?: string;
             entryRef?: { id: string; campaignId: string };
+            sceneTemplateRef?: { id: string; campaignId: string };
+            encounterRef?: { id: string; kind: string };
           }[];
+          authoring?: {
+            steps: {
+              kind: string;
+              objectId?: string;
+            }[];
+          };
         };
         expect(data.status).toBe('draft');
         expect(data.steps.length).toBeGreaterThan(0);
+        expect(data.authoring?.steps.length).toBe(data.steps.length);
         for (const step of data.steps) {
-          expect(['open-entry', 'reminder']).toContain(step.type);
+          expect([
+            'open-entry',
+            'activate-scene',
+            'deploy-encounter',
+            'reminder',
+          ]).toContain(step.type);
           if (step.type === 'open-entry') {
             actualOpenEntryCount++;
             expect(step.entryRef!.campaignId).toBe(result.campaignId);
             expect(objectIds.has(step.entryRef!.id)).toBe(true);
+          } else if (step.type === 'activate-scene') {
+            expect(step.sceneTemplateRef!.campaignId).toBe(result.campaignId);
+            expect(objectIds.has(step.sceneTemplateRef!.id)).toBe(true);
+          } else if (step.type === 'deploy-encounter') {
+            expect(step.encounterRef!.kind).toBe('encounter');
+            expect(objectIds.has(step.encounterRef!.id)).toBe(true);
           } else {
             expect(step.text).toBeTruthy();
           }
@@ -1622,11 +1667,44 @@ describe('seedFromFixture', () => {
         )
       ) {
         expect(
-          plans.some((plan) =>
-            (plan.data as { steps: { text?: string }[] }).steps.some((step) =>
-              step.text?.startsWith('Scene (map pending):'),
-            ),
-          ),
+          plans.some((plan) => {
+            const planData = plan.data as {
+              steps: { type: string; text?: string }[];
+              authoring?: { steps: { kind: string }[] };
+            };
+            return (
+              planData.authoring?.steps.some((step) => step.kind === 'scene') &&
+              planData.steps.some(
+                (step) =>
+                  step.type === 'activate-scene' ||
+                  step.text?.startsWith('Scene (map pending):'),
+              )
+            );
+          }),
+        ).toBe(true);
+      }
+      if (
+        fixture.sessions.some((session) =>
+          session.plan?.steps.some((step) => step.kind === 'encounter'),
+        )
+      ) {
+        expect(
+          plans.some((plan) => {
+            const planData = plan.data as {
+              steps: { type: string; text?: string }[];
+              authoring?: { steps: { kind: string }[] };
+            };
+            return (
+              planData.authoring?.steps.some(
+                (step) => step.kind === 'encounter',
+              ) &&
+              planData.steps.some(
+                (step) =>
+                  step.type === 'deploy-encounter' ||
+                  step.text?.startsWith('Encounter:'),
+              )
+            );
+          }),
         ).toBe(true);
       }
     });
@@ -1828,5 +1906,308 @@ describe('seedFromFixture', () => {
       const ok = await toggleObjectPin(CAMPAIGN.id, 'item-1', true);
       expect(ok).toBe(true);
     });
+
+    it('loads pinnedObjectIds into bundle and toggles pins on the store (CS-64)', async () => {
+      const store = createServerBundleStore(CAMPAIGN);
+      const loaded = await store.load();
+      expect(loaded.pinnedObjectIds).toEqual(['item-1', 'npc-1']);
+
+      const seen: string[][] = [];
+      const unsubscribe = store.subscribe((next) => {
+        seen.push(next.pinnedObjectIds);
+      });
+
+      const unpinned = await store.togglePin('item-1');
+      expect(unpinned).toEqual({ ok: true, id: 'item-1', pinned: false });
+      expect(store.getBundle().pinnedObjectIds).toEqual(['npc-1']);
+
+      const repinned = await store.togglePin('npc-2');
+      expect(repinned).toEqual({ ok: true, id: 'npc-2', pinned: true });
+      expect(store.getBundle().pinnedObjectIds).toEqual(['npc-1', 'npc-2']);
+      expect(seen).toEqual([['npc-1'], ['npc-1', 'npc-2']]);
+
+      server.failTogglePin = true;
+      const failed = await store.togglePin('npc-2');
+      expect(failed).toEqual({
+        ok: false,
+        error: 'Failed to toggle pin.',
+      });
+      expect(store.getBundle().pinnedObjectIds).toEqual(['npc-1', 'npc-2']);
+      unsubscribe();
+    });
+
+    it('falls back to empty pinnedObjectIds when fetching pins fails', async () => {
+      server.failPins = true;
+      const store = createServerBundleStore(CAMPAIGN);
+      const loaded = await store.load();
+      expect(loaded.pinnedObjectIds).toEqual([]);
+    });
+  });
+
+  describe('clue synthesis, custom-creature consolidation, and backlinks (CS-66, CS-72, CS-73)', () => {
+    it('synthesizes bundle.clues from secrets when clues is empty (CS-66)', async () => {
+      const store = createServerBundleStore(CAMPAIGN);
+      await store.load();
+      const quest = await store.addItem('quest', { title: 'Find the Key' });
+      const location = await store.addItem('location', { name: 'Old Vault' });
+      const session = await store.addItem('session', { title: 'Session 1' });
+      const secret1 = await store.addItem('secret', {
+        text: 'The vault key is hidden beneath the hearthstone in the tavern.',
+        revealed: false,
+        attachedTo: [
+          { kind: 'quest', id: quest.id! },
+          { kind: 'location', id: location.id! },
+        ],
+      });
+      const secret2 = await store.addItem('secret', {
+        text: 'Lord Varyn already opened the outer seal.',
+        revealed: true,
+        revealedInSessionId: session.id,
+        attachedTo: [],
+      });
+
+      const bundle = store.getBundle();
+      expect(bundle.secrets).toHaveLength(2);
+      expect(bundle.clues).toHaveLength(2);
+      expect(bundle.clues).toEqual(
+        expect.arrayContaining([
+          {
+            id: secret1.id,
+            campaignId: CAMPAIGN.id,
+            title:
+              'The vault key is hidden beneath the hearthstone in the tavern.',
+            priority: 'medium',
+            status: 'unresolved',
+            meaning:
+              'The vault key is hidden beneath the hearthstone in the tavern.',
+            sourceHandoutIds: [],
+            relatedQuestIds: [quest.id!],
+            locationIds: [location.id!],
+            sessionIds: [],
+          },
+          {
+            id: secret2.id,
+            campaignId: CAMPAIGN.id,
+            title: 'Lord Varyn already opened the outer seal.',
+            priority: 'medium',
+            status: 'resolved',
+            meaning: 'Lord Varyn already opened the outer seal.',
+            sourceHandoutIds: [],
+            relatedQuestIds: [],
+            locationIds: [],
+            sessionIds: [session.id!],
+          },
+        ]),
+      );
+    });
+
+    it('merges custom-creature records into bundle.homebrewMonsters (CS-73)', async () => {
+      const customId = '11111111-1111-4111-8111-111111111111';
+      server.put('custom-creature', {
+        id: customId,
+        campaignId: CAMPAIGN.id,
+        schemaVersion: '1.0.0',
+        revision: 1,
+        title: 'Cinder Stalker',
+        summary: 'Lurks in ash',
+        tags: ['fiend'],
+        status: 'draft',
+        links: [],
+        visibility: 'dm-only',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        content: {
+          format: 'json',
+          value: {
+            nexusStudio: {
+              version: 1,
+              kind: 'homebrew-monster',
+              fields: {
+                name: 'Cinder Stalker',
+                size: 'Medium',
+                creatureType: 'Fiend',
+                cr: '3',
+                ac: 15,
+                hp: 52,
+              },
+            },
+          },
+        },
+      });
+
+      const store = createServerBundleStore(CAMPAIGN);
+      await store.load();
+      await store.addItem('homebrew-monster', {
+        name: 'Ash Wyrmling',
+        size: 'Large',
+        creatureType: 'Dragon',
+        cr: '4',
+        ac: 16,
+        hp: 68,
+      });
+
+      const bundle = store.getBundle();
+      expect(bundle.homebrewMonsters.map((m) => m.name)).toEqual(
+        expect.arrayContaining(['Cinder Stalker', 'Ash Wyrmling']),
+      );
+    });
+
+    it('derives campaign.activity.backlinks from cross-references across loaded entities (CS-72)', async () => {
+      const store = createServerBundleStore(CAMPAIGN);
+      await store.load();
+      const npc = await store.addItem('npc', { name: 'Captain Vance' });
+      const location = await store.addItem('location', { name: 'Watchtower' });
+      const quest = await store.addItem('quest', {
+        title: 'Defend the Tower',
+        giverNpcId: npc.id,
+        objectives: [
+          {
+            id: 'obj-1',
+            title: 'Report to Watchtower',
+            status: 'pending',
+            order: 1,
+            clueIds: [],
+            locationIds: [location.id!],
+          },
+        ],
+      });
+      await store.addItem('item', {
+        name: 'Signet Ring',
+        holder: { kind: 'npc', id: npc.id! },
+        questIds: [quest.id!],
+      });
+
+      const backlinks = store.getBundle().campaign.activity.backlinks;
+      expect(backlinks.length).toBeGreaterThanOrEqual(3);
+      expect(backlinks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            fromId: quest.id,
+            fromKind: 'quest',
+            toId: npc.id,
+            toKind: 'npc',
+            label: 'Captain Vance',
+            targetId: npc.id,
+            objectType: 'npc',
+          }),
+          expect.objectContaining({
+            fromId: quest.id,
+            fromKind: 'quest',
+            toId: location.id,
+            toKind: 'location',
+            label: 'Watchtower',
+            targetId: location.id,
+            objectType: 'location',
+          }),
+        ]),
+      );
+    });
+  });
+
+  it('seeds items, secrets, inboxNotes, and homebrewMonsters with remapped IDs (CS-05)', async () => {
+    const baseFixture = structuredClone(getFixtureBundle('ashes-of-veyra')!);
+    const npcId = baseFixture.npcs[0].id;
+    const questId = baseFixture.quests[0].id;
+    const sessionId = baseFixture.sessions[0].id;
+    const customFixture = {
+      ...baseFixture,
+      items: [
+        {
+          id: 'fixture-item-1',
+          campaignId: baseFixture.campaignId,
+          name: 'Ember Blade',
+          category: 'weapon' as const,
+          rarity: 'rare' as const,
+          attunement: true,
+          magical: true,
+          cursed: false,
+          identified: true,
+          questItem: true,
+          quantity: 1,
+          summary: 'Forged in ash',
+          description: 'Glows warmly',
+          holder: { kind: 'npc' as const, id: npcId },
+          questIds: [questId],
+          sessionId,
+          tags: ['relic'],
+        },
+      ],
+      inboxNotes: [
+        {
+          id: 'fixture-inbox-1',
+          campaignId: baseFixture.campaignId,
+          text: 'Ask Vance about the smuggling tunnel',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          sessionId,
+          triagedTo: { kind: 'npc' as const, id: npcId },
+        },
+      ],
+      homebrewMonsters: [
+        {
+          id: 'fixture-hb-1',
+          campaignId: baseFixture.campaignId,
+          name: 'Cinder Wraith',
+          size: 'Medium' as const,
+          creatureType: 'Undead',
+          alignment: 'Chaotic Evil',
+          ac: 14,
+          hp: 45,
+          hitDice: '6d8+18',
+          speed: '0 ft., fly 40 ft.',
+          cr: '3',
+          abilities: { str: 10, dex: 16, con: 16, int: 12, wis: 14, cha: 15 },
+          senses: 'darkvision 60 ft.',
+          languages: 'Common',
+          traits: [{ name: 'Incorporeal', description: 'Moves through walls' }],
+          actions: [{ name: 'Ash Touch', description: '+5 to hit' }],
+          bonusActions: [],
+          reactions: [],
+          legendaryActions: [],
+        },
+      ],
+    };
+    const registryMod = await import('../demo/fixture-registry/registry');
+    const spy = vi
+      .spyOn(registryMod, 'getFixtureBundle')
+      .mockReturnValue(customFixture);
+
+    const result = await seedFromFixture('ashes-of-veyra');
+    spy.mockRestore();
+
+    expect(result.failed).toEqual([]);
+    const seeded = await createServerBundleStore({
+      ...CAMPAIGN,
+      id: result.campaignId,
+    }).load();
+
+    expect(seeded.items).toHaveLength(1);
+    expect(seeded.items[0].name).toBe('Ember Blade');
+    expect(seeded.items[0].holder?.id).not.toBe(npcId);
+    expect(seeded.npcs.some((n) => n.id === seeded.items[0].holder?.id)).toBe(
+      true,
+    );
+    expect(seeded.items[0].questIds).toHaveLength(1);
+    expect(seeded.quests.some((q) => q.id === seeded.items[0].questIds[0])).toBe(
+      true,
+    );
+    expect(seeded.sessions.some((s) => s.id === seeded.items[0].sessionId)).toBe(
+      true,
+    );
+
+    expect(seeded.inboxNotes).toHaveLength(1);
+    expect(seeded.inboxNotes[0].text).toBe(
+      'Ask Vance about the smuggling tunnel',
+    );
+    expect(
+      seeded.npcs.some((n) => n.id === seeded.inboxNotes[0].triagedTo?.id),
+    ).toBe(true);
+    expect(
+      seeded.sessions.some((s) => s.id === seeded.inboxNotes[0].sessionId),
+    ).toBe(true);
+
+    expect(seeded.homebrewMonsters).toHaveLength(1);
+    expect(seeded.homebrewMonsters[0].name).toBe('Cinder Wraith');
+    expect(seeded.secrets.length).toBe(customFixture.secrets.length);
+    expect(seeded.clues.length).toBe(customFixture.secrets.length);
   });
 });

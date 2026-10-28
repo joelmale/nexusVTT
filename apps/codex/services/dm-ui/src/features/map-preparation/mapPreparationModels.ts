@@ -39,6 +39,19 @@ export interface LocationViewModel {
   linkedObjects: LinkedObjectViewModel[];
 }
 
+export interface MapGridConfig {
+  type: 'square' | 'hex';
+  size: number;
+  snapToGrid: boolean;
+}
+
+export interface MapLightingConfig {
+  ambientLight: number;
+  darkness: number;
+}
+
+export type MapFogPreset = 'clear' | 'unexplored' | 'full' | 'custom';
+
 export interface MapPreparationViewModel {
   id: string;
   /** Owning campaign; needed to build valid campaign-object references. */
@@ -59,4 +72,7 @@ export interface MapPreparationViewModel {
   locations: LocationViewModel[];
   availableObjects?: LinkedObjectViewModel[];
   selectedPinId: string;
+  grid?: MapGridConfig;
+  lighting?: MapLightingConfig;
+  fogPreset?: MapFogPreset;
 }

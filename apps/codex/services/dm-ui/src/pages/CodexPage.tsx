@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Search, Book, Filter, X } from 'lucide-react';
+import Search from 'lucide-react/dist/esm/icons/search';
+import Book from 'lucide-react/dist/esm/icons/book';
+import Filter from 'lucide-react/dist/esm/icons/filter';
+import X from 'lucide-react/dist/esm/icons/x';
 import { useSearchDocuments } from '@/hooks/useCodex';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -163,20 +166,20 @@ export function CodexPage() {
           </div>
         )}
 
-        {searchResults && searchResults.documents.length === 0 && (
+        {searchResults && (searchResults.documents?.length ?? 0) === 0 && (
           <div className="text-center text-muted-foreground">
             No documents found. Try adjusting your search or filters.
           </div>
         )}
 
-        {searchResults && searchResults.documents.length > 0 && (
+        {searchResults && (searchResults.documents?.length ?? 0) > 0 && (
           <>
             <div className="text-sm text-muted-foreground">
               Found {searchResults.total} document{searchResults.total !== 1 ? 's' : ''}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {searchResults.documents.map((doc) => (
+              {(searchResults.documents || []).map((doc) => (
                 <DocumentCard
                   key={doc.id}
                   document={doc}
@@ -208,7 +211,7 @@ export function CodexPage() {
 
               <div className="mt-4 space-y-4">
                 <div className="flex flex-wrap gap-2">
-                  {selectedDocument.tags.map((tag) => (
+                  {(selectedDocument.tags || []).map((tag) => (
                     <span
                       key={tag}
                       className="rounded-full bg-secondary px-2 py-1 text-xs"
@@ -247,6 +250,7 @@ interface DocumentCardProps {
 }
 
 function DocumentCard({ document, onClick }: DocumentCardProps) {
+  const tags = document.tags || [];
   return (
     <button
       onClick={onClick}
@@ -264,7 +268,7 @@ function DocumentCard({ document, onClick }: DocumentCardProps) {
       )}
 
       <div className="flex flex-wrap gap-1">
-        {document.tags.slice(0, 3).map((tag) => (
+        {tags.slice(0, 3).map((tag) => (
           <span
             key={tag}
             className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
@@ -272,9 +276,9 @@ function DocumentCard({ document, onClick }: DocumentCardProps) {
             {tag}
           </span>
         ))}
-        {document.tags.length > 3 && (
+        {tags.length > 3 && (
           <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
-            +{document.tags.length - 3}
+            +{tags.length - 3}
           </span>
         )}
       </div>

@@ -227,6 +227,57 @@ describe('FactionsSection', () => {
       );
     });
 
+    it('edits allied and rival factions in faction form (CS-48)', async () => {
+      const updateItem = vi.fn().mockResolvedValue({ ok: true });
+      const otherFaction = bundle.factions.find((f) => f.id !== testFaction.id)!;
+      const { user } = renderInSection(withFactionParam('/campaigns/campaign-blank'), {
+        path: `/campaigns/campaign-blank/factions/${testFaction.id}`,
+        store: {
+          editable: true,
+          updateItem,
+          bundle,
+        },
+        singlePane: false,
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Edit' }));
+      const form = screen.getByRole('form', { name: 'Edit form' });
+
+      // Look for the other faction under Allied Factions
+      const allyCheckbox = within(form).getByLabelText(`Ally ${otherFaction.name}`);
+      await user.click(allyCheckbox);
+
+      await user.click(screen.getByRole('button', { name: 'Done' }));
+
+      expect(updateItem).toHaveBeenCalledWith(
+        'faction',
+        testFaction.id,
+        expect.objectContaining({
+          alliedFactionIds: expect.arrayContaining([otherFaction.id]),
+        }),
+      );
+    });
+
+    it('wires interactive entity pinning on faction row and detail (CS-64)', async () => {
+      const togglePin = vi.fn().mockResolvedValue({ ok: true, id: testFaction.id, pinned: true });
+      const { user } = renderInSection(withFactionParam('/campaigns/campaign-blank'), {
+        path: `/campaigns/campaign-blank/factions/${testFaction.id}`,
+        store: {
+          editable: true,
+          togglePin,
+          bundle,
+        },
+        singlePane: false,
+      });
+
+      // Pin button on detail pane
+      const pinButtons = screen.getAllByRole('button', { name: 'Pin' });
+      expect(pinButtons.length).toBeGreaterThan(0);
+
+      await user.click(pinButtons[0]);
+      expect(togglePin).toHaveBeenCalled();
+    });
+
     it('renders Generate Factions button and opens modal when clicked', async () => {
       HTMLDialogElement.prototype.showModal = function showModal() {
         this.setAttribute('open', '');

@@ -45,6 +45,11 @@ export function QuickCaptureModal({
   const [text, setText] = useState('');
   const [target, setTarget] = useState<QuickCaptureTarget>('inbox');
   const [isSaving, setIsSaving] = useState(false);
+  const [createdEntity, setCreatedEntity] = useState<{
+    kind: QuickCaptureTarget;
+    id: string;
+  } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const textRef = useRef(text);
   textRef.current = text;
@@ -52,6 +57,8 @@ export function QuickCaptureModal({
   targetRef.current = target;
   const isSavingRef = useRef(isSaving);
   isSavingRef.current = isSaving;
+  const createdEntityRef = useRef(createdEntity);
+  createdEntityRef.current = createdEntity;
   const keyHandlersRef = useRef<{
     onClose: () => void;
     executeSave: () => Promise<void>;
@@ -62,6 +69,8 @@ export function QuickCaptureModal({
     setText('');
     setTarget('inbox');
     setIsSaving(false);
+    setCreatedEntity(null);
+    setErrorMessage(null);
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -82,48 +91,83 @@ export function QuickCaptureModal({
 
     try {
       setIsSaving(true);
+      setErrorMessage(null);
       const createdAt = new Date().toISOString();
       const currentTarget = targetRef.current;
 
       if (currentTarget === 'inbox') {
-        await store.addItem('inbox-note', {
+        const res = await store.addItem('inbox-note', {
           text: trimmed,
           createdAt,
         });
-      } else if (currentTarget === 'npc') {
-        const draft = triageToNpcDraft(trimmed);
-        const res = await store.addItem('npc', draft);
-        await store.addItem('inbox-note', {
-          text: trimmed,
-          createdAt,
-          triagedTo: { kind: 'npc', id: res.id ?? '' },
-        });
-      } else if (currentTarget === 'quest') {
-        const draft = triageToQuestDraft(trimmed);
-        const res = await store.addItem('quest', draft);
-        await store.addItem('inbox-note', {
-          text: trimmed,
-          createdAt,
-          triagedTo: { kind: 'quest', id: res.id ?? '' },
-        });
-      } else if (currentTarget === 'secret') {
-        const draft = triageToSecretDraft(trimmed);
-        const res = await store.addItem('secret', draft);
-        await store.addItem('inbox-note', {
-          text: trimmed,
-          createdAt,
-          triagedTo: { kind: 'secret', id: res.id ?? '' },
-        });
-      } else if (currentTarget === 'note') {
-        const draft = triageToNoteDraft(trimmed);
-        const res = await store.addItem('note', draft);
-        await store.addItem('inbox-note', {
-          text: trimmed,
-          createdAt,
-          triagedTo: { kind: 'note', id: res.id ?? '' },
-        });
+        if (!res || res.ok === false) {
+          setErrorMessage('Failed to save note to inbox. Please retry.');
+          return;
+        }
+        onClose();
+        return;
       }
 
+      // Step 1: Create target entity or reuse existing from failed partial triage
+      let targetId: string | undefined =
+        createdEntityRef.current?.kind === currentTarget
+          ? createdEntityRef.current.id
+          : undefined;
+
+      if (!targetId) {
+        let draft: Record<string, unknown>;
+        if (currentTarget === 'npc') {
+          draft = triageToNpcDraft(trimmed);
+        } else if (currentTarget === 'quest') {
+          draft = triageToQuestDraft(trimmed);
+        } else if (currentTarget === 'secret') {
+          draft = triageToSecretDraft(trimmed);
+        } else {
+          draft = triageToNoteDraft(trimmed);
+        }
+
+        try {
+          const res = await store.addItem(currentTarget, draft);
+          if (!res || res.ok === false || !res.id) {
+            setErrorMessage(`Failed to create ${currentTarget}. Please retry.`);
+            return;
+          }
+          targetId = res.id;
+          setCreatedEntity({ kind: currentTarget, id: targetId });
+        } catch (err) {
+          setErrorMessage(
+            err instanceof Error
+              ? err.message
+              : `Failed to create ${currentTarget}. Please retry.`,
+          );
+          return;
+        }
+      }
+
+      // Step 2: Save to inbox with triage reference
+      try {
+        const res = await store.addItem('inbox-note', {
+          text: trimmed,
+          createdAt,
+          triagedTo: { kind: currentTarget, id: targetId },
+        });
+        if (!res || res.ok === false) {
+          setErrorMessage(
+            'Entity was created, but failed to save inbox note. Retry to finish filing.',
+          );
+          return;
+        }
+      } catch (err) {
+        setErrorMessage(
+          err instanceof Error
+            ? err.message
+            : 'Entity was created, but failed to save inbox note. Retry to finish filing.',
+        );
+        return;
+      }
+
+      setCreatedEntity(null);
+      setErrorMessage(null);
       onClose();
     } finally {
       setIsSaving(false);
@@ -180,11 +224,20 @@ export function QuickCaptureModal({
         </div>
 
         <div className={styles.body}>
+          {errorMessage ? (
+            <div className={styles.errorAlert} role="alert">
+              {errorMessage}
+            </div>
+          ) : null}
+
           <div className={styles.fieldGroup}>
             <label htmlFor="quick-capture-text">Note</label>
             <MentionTextarea
               id="quick-capture-text"
-              onChange={setText}
+              onChange={(nextText) => {
+                setText(nextText);
+                setErrorMessage(null);
+              }}
               placeholder="Capture an idea, secret, or quest lead... Use @ to link entities"
               rows={4}
               value={text}
@@ -200,7 +253,14 @@ export function QuickCaptureModal({
             <select
               className={styles.select}
               id="quick-capture-target"
-              onChange={(e) => setTarget(e.target.value as QuickCaptureTarget)}
+              onChange={(e) => {
+                const nextTarget = e.target.value as QuickCaptureTarget;
+                setTarget(nextTarget);
+                setErrorMessage(null);
+                if (createdEntity && createdEntity.kind !== nextTarget) {
+                  setCreatedEntity(null);
+                }
+              }}
               value={target}
             >
               <option value="inbox">Save to Inbox (unfiled, triage later)</option>

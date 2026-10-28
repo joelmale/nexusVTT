@@ -163,6 +163,46 @@
   padding: 0 4px;
 }
 
+.multiSelectSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+.subHeading {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chipSelectGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.checkboxLabel {
+  align-items: center;
+  background: var(--studio-surface-raised, #ffffff);
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 4px);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 6px;
+  padding: 3px 8px;
+  user-select: none;
+}
+
+.checkboxLabel:hover {
+  background: var(--studio-surface-hover, #f3f4f6);
+}
+
 .objectiveEdit {
   align-items: end;
   display: grid;

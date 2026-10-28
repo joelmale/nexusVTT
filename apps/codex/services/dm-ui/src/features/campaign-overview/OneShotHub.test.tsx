@@ -159,5 +159,111 @@ describe('OneShotHub', () => {
     expect(screen.getByText('Call to Adventure (The Hook)')).toBeInTheDocument();
     expect(screen.getByText('The Showdown (Climax)')).toBeInTheDocument();
     expect(screen.getByText('Resolution, Treasure & Epilogue')).toBeInTheDocument();
+    expect(screen.getByTestId('template-suggestion-badge')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Seed One-Shot Pacing Template' }),
+    ).toBeInTheDocument();
+  });
+
+  it('seeds pacing template steps into session when clicking Seed One-Shot Pacing Template', async () => {
+    const user = userEvent.setup();
+    const mockUpdateItem = vi.fn().mockResolvedValue({ ok: true });
+    const mockStore = {
+      bundle: oneShotBundle,
+      status: 'ready' as const,
+      editable: true,
+      reload: vi.fn().mockResolvedValue(undefined),
+      updateItem: mockUpdateItem,
+      addItem: vi.fn(),
+      reorderNotes: vi.fn(),
+      removeItem: vi.fn(),
+      restoreItem: vi.fn(),
+      getBacklinks: vi.fn(),
+      togglePin: vi.fn(),
+    };
+
+    const emptyStepsBundle: CampaignFixtureBundle = {
+      ...oneShotBundle,
+      sessions: [
+        {
+          id: 'session-empty-seed',
+          number: 1,
+          title: 'Empty One-Shot',
+          summary: 'A short mission',
+          status: 'planned',
+          targetDate: '2026-10-25',
+          prepStatus: 'draft',
+          plan: {
+            steps: [],
+          },
+        },
+      ],
+    };
+
+    render(
+      <MemoryRouter>
+        <OneShotHub
+          bundle={emptyStepsBundle}
+          basePath="/demo/stars-below-kharad"
+          store={mockStore}
+        />
+      </MemoryRouter>,
+    );
+
+    const seedBtn = screen.getByRole('button', {
+      name: 'Seed One-Shot Pacing Template',
+    });
+    await user.click(seedBtn);
+
+    expect(mockUpdateItem).toHaveBeenCalledWith(
+      'session',
+      'session-empty-seed',
+      expect.objectContaining({
+        plan: expect.objectContaining({
+          steps: expect.arrayContaining([
+            expect.objectContaining({ title: 'Call to Adventure (The Hook)' }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('persists target duration changes to the session record via store.updateItem', async () => {
+    const user = userEvent.setup();
+    const mockUpdateItem = vi.fn().mockResolvedValue({ ok: true });
+    const mockStore = {
+      bundle: oneShotBundle,
+      status: 'ready' as const,
+      editable: true,
+      reload: vi.fn().mockResolvedValue(undefined),
+      updateItem: mockUpdateItem,
+      addItem: vi.fn(),
+      reorderNotes: vi.fn(),
+      removeItem: vi.fn(),
+      restoreItem: vi.fn(),
+      getBacklinks: vi.fn(),
+      togglePin: vi.fn(),
+    };
+
+    render(
+      <MemoryRouter>
+        <OneShotHub
+          bundle={oneShotBundle}
+          basePath="/demo/stars-below-kharad"
+          store={mockStore}
+        />
+      </MemoryRouter>,
+    );
+
+    const select = screen.getByRole('combobox', {
+      name: 'Target Time Budget',
+    });
+    await user.selectOptions(select, '180');
+
+    expect(mockUpdateItem).toHaveBeenCalledWith(
+      'session',
+      expect.any(String),
+      { durationHours: 3 },
+    );
   });
 });

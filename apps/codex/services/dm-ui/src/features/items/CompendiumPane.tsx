@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -34,11 +34,16 @@ export function CompendiumPane({ onAddedItem }: CompendiumPaneProps) {
       : '2024';
 
   const [ruleset, setRuleset] = useState<string>(get('ruleset') || campaignEdition);
-  const { catalog, loading, error, isFallback, reload, useFallbackCatalog } = useSrdCatalog(ruleset);
+  const { catalog, loading, error, isFallback, reload, useFallbackCatalog } = useSrdCatalog(
+    ruleset,
+    { offlineOnly: !store.editable },
+  );
 
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [activeIndex, setActiveIndex] = useState<number>(0);
   const [adding, setAdding] = useState(false);
   const [addSuccess, setAddSuccess] = useState<string | undefined>();
+  const listRef = useRef<HTMLDivElement>(null);
 
   // Add form state
   const [holderKind, setHolderKind] = useState<CampaignItemHolderKind>('none');
@@ -76,6 +81,20 @@ export function CompendiumPane({ onAddedItem }: CompendiumPaneProps) {
     return ids;
   }, [bundle.items]);
 
+  // Sync activeIndex with selectedId or bounds
+  useEffect(() => {
+    if (selectedId) {
+      const idx = searchResults.findIndex((r) => r.item.id === selectedId);
+      if (idx !== -1) setActiveIndex(idx);
+    }
+  }, [selectedId, searchResults]);
+
+  useEffect(() => {
+    if (activeIndex >= searchResults.length) {
+      setActiveIndex(Math.max(0, searchResults.length - 1));
+    }
+  }, [searchResults.length, activeIndex]);
+
   // Facets
   const facets: FilterFacet[] = [
     {
@@ -102,16 +121,16 @@ export function CompendiumPane({ onAddedItem }: CompendiumPaneProps) {
     setSelectedId(undefined);
   };
 
-  const handleAdd = async () => {
-    if (!selectedItem || !store.editable) return;
+  const handleAdd = useCallback(async () => {
+    if (!selectedItem || !store.editable || adding) return;
     setAdding(true);
     setAddSuccess(undefined);
 
-    let holder: { kind: CampaignItemHolderKind; entityId?: string } = {
+    let holder: { kind: CampaignItemHolderKind; id?: string } = {
       kind: holderKind,
     };
     if (holderKind !== 'none' && holderEntityId) {
-      holder = { kind: holderKind, entityId: holderEntityId };
+      holder = { kind: holderKind, id: holderEntityId };
     }
 
     const payload = {
@@ -138,7 +157,77 @@ export function CompendiumPane({ onAddedItem }: CompendiumPaneProps) {
       setAddSuccess(result.id);
       onAddedItem?.(result.id);
     }
-  };
+  }, [
+    selectedItem,
+    store,
+    adding,
+    holderKind,
+    holderEntityId,
+    quantity,
+    sessionId,
+    onAddedItem,
+  ]);
+
+  // CS-46: Compendium keyboard navigation
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const isInput =
+        target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+
+      if (e.key === '/' && !isInput) {
+        e.preventDefault();
+        const searchInput = document.querySelector<HTMLInputElement>(
+          'input[aria-label="Search Compendium items"], input[type="search"]',
+        );
+        searchInput?.focus();
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        if (q) {
+          e.preventDefault();
+          set('q', '');
+        }
+        return;
+      }
+
+      if (isInput) {
+        if (
+          e.key === 'ArrowDown' &&
+          (target?.getAttribute('type') === 'search' ||
+            target?.getAttribute('id')?.includes('-q'))
+        ) {
+          e.preventDefault();
+          listRef.current?.focus();
+          setActiveIndex(0);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIndex((prev) => Math.min(searchResults.length - 1, prev + 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIndex((prev) => Math.max(0, prev - 1));
+      } else if (e.key === 'Enter') {
+        if (searchResults[activeIndex]) {
+          e.preventDefault();
+          setSelectedId(searchResults[activeIndex].item.id);
+          setAddSuccess(undefined);
+        }
+      } else if (e.key === 'a' || e.key === 'A') {
+        if (store.editable && selectedItem) {
+          e.preventDefault();
+          void handleAdd();
+        }
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [searchResults, activeIndex, selectedItem, store.editable, q, set, handleAdd]);
 
   return (
     <div className={styles.compendium}>
@@ -206,22 +295,34 @@ export function CompendiumPane({ onAddedItem }: CompendiumPaneProps) {
       {!loading && !error ? (
         <div className={styles.body}>
           <div
+            aria-activedescendant={
+              searchResults[activeIndex]
+                ? `compendium-option-${searchResults[activeIndex].item.id}`
+                : undefined
+            }
             aria-label="Compendium items list"
             className={styles.listColumn}
+            ref={listRef}
             role="listbox"
+            tabIndex={0}
           >
-            {searchResults.map((result) => {
+            {searchResults.map((result, index) => {
               const item = result.item;
               const isSelected = selectedItem?.id === item.id;
+              const isActive = index === activeIndex;
               const inCampaign = inCampaignIds.has(item.id);
 
               return (
                 <button
                   aria-selected={isSelected}
-                  className={`${styles.itemRow} ${isSelected ? styles.selected : ''}`}
+                  className={`${styles.itemRow} ${isSelected ? styles.selected : ''} ${
+                    isActive ? styles.activeDescendant : ''
+                  }`}
+                  id={`compendium-option-${item.id}`}
                   key={item.id}
                   onClick={() => {
                     setSelectedId(item.id);
+                    setActiveIndex(index);
                     setAddSuccess(undefined);
                   }}
                   role="option"

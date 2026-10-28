@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
+import { CampaignSettingsModal } from '@/features/campaigns/CampaignSettingsModal';
 import { useCapabilityNotice } from '@/features/capability-notice';
 import { QuickCaptureModal } from '@/features/inbox/QuickCaptureModal';
 import { MoodPickerModal, MoodProvider } from '@/features/moods';
+import { PlayerViewProvider } from '@/features/player-view/PlayerViewContext';
 import { RelationshipWebModal } from '@/features/relationship-web/RelationshipWebModal';
 import { CampaignSearchDialog } from '@/features/search/CampaignSearchDialog';
 import { StudioFrame } from '@/features/studio-shell/StudioFrame';
@@ -23,11 +26,13 @@ interface SectionRouteProps {
  */
 export function SectionRoute({ title, children }: SectionRouteProps) {
   const { notifyCapability } = useCapabilityNotice();
+  const navigate = useNavigate();
   const state = useBundleStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [moodPickerOpen, setMoodPickerOpen] = useState(false);
   const [relationshipWebOpen, setRelationshipWebOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Ctrl/Cmd+K opens search, Ctrl/Cmd+Shift+N opens quick capture from anywhere in a campaign.
   useEffect(() => {
@@ -43,6 +48,7 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
   const context = useMemo(
     () =>
       state.status === 'ready'
@@ -86,41 +92,65 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
   }
 
   const campaignName = context.bundle.catalog.campaign.name;
+
+  const handleNavigateToEntity = (kind: string, id: string) => {
+    setRelationshipWebOpen(false);
+    const routeMap: Record<string, string> = {
+      npc: 'npcs',
+      faction: 'factions',
+      location: 'world',
+      quest: 'quests',
+      item: 'items',
+      encounter: 'encounters',
+    };
+    const section = routeMap[kind] ?? 'overview';
+    navigate(`${context.basePath}/${section}/${encodeURIComponent(id)}`);
+  };
+
   return (
-    <MoodProvider
-      campaignId={context.bundle.catalog.campaign.id}
-      campaignMood={context.bundle.catalog.campaign.mood}
-      isEditable={context.store.editable}
-    >
-      <StudioFrame
-        contextLabel={title ? `${campaignName} · ${title}` : campaignName}
-        onCapability={notifyCapability}
-        onQuickCapture={() => setQuickCaptureOpen(true)}
-        onRelationshipWeb={() => setRelationshipWebOpen(true)}
-        onSearch={() => setSearchOpen(true)}
-        onSettings={() => notifyCapability('campaign.settings.open')}
-        onTheme={() => setMoodPickerOpen(true)}
+    <PlayerViewProvider>
+      <MoodProvider
+        campaignId={context.bundle.catalog.campaign.id}
+        campaignMood={context.bundle.catalog.campaign.mood}
+        isEditable={context.store.editable}
       >
-        <SectionContext.Provider value={context}>
-          {children}
-          <CampaignSearchDialog
-            onClose={() => setSearchOpen(false)}
-            open={searchOpen}
-          />
-          <QuickCaptureModal
-            isOpen={quickCaptureOpen}
-            onClose={() => setQuickCaptureOpen(false)}
-          />
-          <MoodPickerModal
-            isOpen={moodPickerOpen}
-            onClose={() => setMoodPickerOpen(false)}
-          />
-          <RelationshipWebModal
-            isOpen={relationshipWebOpen}
-            onClose={() => setRelationshipWebOpen(false)}
-          />
-        </SectionContext.Provider>
-      </StudioFrame>
-    </MoodProvider>
+        <StudioFrame
+          contextLabel={title ? `${campaignName} · ${title}` : campaignName}
+          onCapability={notifyCapability}
+          onQuickCapture={() => setQuickCaptureOpen(true)}
+          onRelationshipWeb={() => setRelationshipWebOpen(true)}
+          onSearch={() => setSearchOpen(true)}
+          onSettings={() => setSettingsOpen(true)}
+          onTheme={() => setMoodPickerOpen(true)}
+        >
+          <SectionContext.Provider value={context}>
+            {children}
+            <CampaignSearchDialog
+              onClose={() => setSearchOpen(false)}
+              open={searchOpen}
+            />
+            <QuickCaptureModal
+              isOpen={quickCaptureOpen}
+              onClose={() => setQuickCaptureOpen(false)}
+            />
+            <MoodPickerModal
+              isOpen={moodPickerOpen}
+              onClose={() => setMoodPickerOpen(false)}
+            />
+            <RelationshipWebModal
+              isOpen={relationshipWebOpen}
+              onClose={() => setRelationshipWebOpen(false)}
+              onNavigateToEntity={handleNavigateToEntity}
+            />
+            <CampaignSettingsModal
+              campaign={context.bundle.catalog.campaign}
+              isEditable={context.store.editable}
+              isOpen={settingsOpen}
+              onClose={() => setSettingsOpen(false)}
+            />
+          </SectionContext.Provider>
+        </StudioFrame>
+      </MoodProvider>
+    </PlayerViewProvider>
   );
 }

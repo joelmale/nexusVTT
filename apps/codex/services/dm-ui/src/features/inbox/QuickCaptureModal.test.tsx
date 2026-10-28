@@ -298,4 +298,70 @@ describe('QuickCaptureModal', () => {
     expect(onOpenInbox).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('handles dual-write failure gracefully, displays error alert, and reuses created entity on retry', async () => {
+    const user = userEvent.setup();
+
+    // 1st call for npc succeeds, 2nd call for inbox-note fails
+    let callCount = 0;
+    (mockStore.addItem as ReturnType<typeof vi.fn>).mockImplementation(
+      async (kind: string) => {
+        callCount++;
+        if (kind === 'npc') {
+          return { ok: true, id: 'npc-created-once' };
+        }
+        if (kind === 'inbox-note' && callCount === 2) {
+          return { ok: false };
+        }
+        return { ok: true, id: 'inbox-note-id' };
+      },
+    );
+
+    renderInSection(
+      <QuickCaptureModal
+        bundleOverride={mockBundle}
+        isOpen={true}
+        onClose={onClose}
+        storeOverride={mockStore}
+      />,
+      { path: '/demo/ashes-of-veyra/notes', store: mockStore },
+    );
+
+    const select = screen.getByLabelText(/Destination/i);
+    await user.selectOptions(select, 'npc');
+
+    const textarea = screen.getByPlaceholderText(
+      /Capture an idea, secret, or quest lead/i,
+    );
+    await user.type(textarea, 'Lady Veyra, the exiled sorceress');
+
+    const captureButton = screen.getByRole('button', { name: /Capture/i });
+    await user.click(captureButton);
+
+    // Verify error alert is displayed and modal was NOT closed
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/Entity was created, but failed/i);
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Now retry by clicking capture button again
+    await user.click(captureButton);
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    // Verify 'npc' was only called ONCE despite 2 capture attempts!
+    const npcAddCalls = (
+      mockStore.addItem as ReturnType<typeof vi.fn>
+    ).mock.calls.filter((call) => call[0] === 'npc');
+    expect(npcAddCalls).toHaveLength(1);
+
+    // Verify 'inbox-note' was saved with the same id
+    const inboxAddCalls = (
+      mockStore.addItem as ReturnType<typeof vi.fn>
+    ).mock.calls.filter((call) => call[0] === 'inbox-note');
+    expect(inboxAddCalls.at(-1)?.[1]).toMatchObject({
+      triagedTo: { kind: 'npc', id: 'npc-created-once' },
+    });
+  });
 });

@@ -304,17 +304,19 @@ Individual steps call existing commands such as `DeployEncounter` and
 
 ### Search composition
 
-The VTT backend should return a common `SearchHit` envelope while querying the
-appropriate owners:
+The VTT backend and Studio client compose search results across domain owners:
 
-1. Campaign entries and session plans from VTT PostgreSQL.
+1. Campaign entries and session plans from VTT PostgreSQL (loaded in the client bundle).
 2. Reusable definitions from `library_objects`.
 3. Published rules entities from the rules catalog.
 4. Documents and extracted content from NexusCodex.
 5. Assets from the asset service where an asset picker is requested.
 
-This powers global search and editor mentions without making the Codex search index the
-owner of every result.
+*Architecture Addendum (2026-10-28, CS-77)*: For authoring within an active campaign,
+Studio performs high-performance in-memory client-side indexing over the loaded
+`CampaignFixtureBundle` (`searchCampaign.ts`, including entities, secrets, inbox notes,
+items, and homebrew monsters). The server-side search composition endpoint is reserved
+for global cross-campaign compendium lookups and external document queries.
 
 ## 7. Capability design
 
@@ -330,14 +332,20 @@ Player-visible material is exposed only by an explicit share/reveal action.
 
 ### Smart links and backlinks
 
-Upgrade the Lexical editor with a custom mention node and command menu. Store a
+Upgrade the editor with a custom mention node and command menu. Store a
 typed `CampaignObjectRef`, not just a URL or copied name. Render broken,
 outdated, and unauthorized references as explicit states.
 
-The mention menu should query unified prep search with type filters. Selecting
+The mention menu queries campaign entities with type filters. Selecting
 a rules entity, campaign entry, definition, document, or asset inserts the
 same reference shape used by map pins and session-plan steps. Backlinks then
 come from `campaign_object_links`, not by reparsing editor text on every read.
+
+*Architecture Addendum (2026-10-28, CS-78)*: In `apps/codex/services/dm-ui`, the
+authoring UI uses `MentionTextarea.tsx` supporting markdown token syntax
+(`@[Title](ref:id)`) with auto-suggest dropdowns and inline entity creation.
+On persist, the markdown tokens are parsed, mapped into typed `CampaignObjectRef`
+links, and wrapped in a standard Lexical root envelope for server interoperability.
 
 ### Encounter composition
 
@@ -395,6 +403,12 @@ apps/campaign-studio/            # standalone prep UX, served by VTT gateway
 packages/campaign-features/      # optional host-injected UI extracted by use
 packages/game-contracts/         # shared authored/runtime contracts
 ```
+
+*Architecture Addendum (2026-10-28, CS-79)*: The Studio authoring frontend is
+maintained at `apps/codex/services/dm-ui` (`@nexuscodex/dm-ui`) with shared
+schemas in `packages/game-contracts`. Physical workspace relocation to
+`apps/campaign-studio` is deferred to a future major monorepo reorganization to
+prevent disruption to active container routing, Docker compose files, and Caddy configurations.
 
 Campaign Studio and the VTT should consume services through typed ports such
 as `CampaignPrepRepository`, `DefinitionCatalog`, `RulesCatalog`,

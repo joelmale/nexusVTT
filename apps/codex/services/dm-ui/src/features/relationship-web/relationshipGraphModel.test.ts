@@ -196,6 +196,15 @@ describe('relationshipGraphModel', () => {
         questIds: [],
       },
     ],
+    secrets: [
+      {
+        id: 'sec-1',
+        campaignId: 'camp-1',
+        text: 'The mayor is a doppelganger.',
+        attachedTo: [{ kind: 'npc', id: 'npc-1' }],
+        revealed: false,
+      },
+    ],
     clues: [],
     handouts: [],
     maps: [],
@@ -214,6 +223,7 @@ describe('relationshipGraphModel', () => {
     expect(RELATIONSHIP_LABELS['located-in']).toBe('Located in');
     expect(RELATIONSHIP_LABELS.holds).toBe('Holds');
     expect(RELATIONSHIP_LABELS.wants).toBe('Wants');
+    expect(RELATIONSHIP_LABELS['attached-to']).toBe('Attached to');
   });
 
   describe('buildRelationshipGraph', () => {
@@ -298,6 +308,32 @@ describe('relationshipGraphModel', () => {
       expect(aelar?.degree).toBeGreaterThanOrEqual(4);
     });
 
+    it('includes secrets and attachedTo edges when includeSecrets is true (CS-31)', () => {
+      const graph = buildRelationshipGraph(mockBundle, { includeSecrets: true });
+
+      const sec = graph.nodes.find((n) => n.id === 'sec-1');
+      expect(sec).toBeDefined();
+      expect(sec?.kind).toBe('secret');
+      expect(sec?.label).toBe('The mayor is a doppelganger.');
+      expect(sec?.subtitle).toContain('Secret · Unrevealed');
+
+      const attachEdge = graph.edges.find(
+        (e) => e.source === 'sec-1' && e.target === 'npc-1' && e.kind === 'attached-to',
+      );
+      expect(attachEdge).toBeDefined();
+      expect(attachEdge?.label).toBe('Attached to');
+    });
+
+    it('excludes secrets when includeSecrets is false or omitted (CS-31)', () => {
+      const defaultGraph = buildRelationshipGraph(mockBundle);
+      expect(defaultGraph.nodes.some((n) => n.kind === 'secret')).toBe(false);
+      expect(defaultGraph.edges.some((e) => e.kind === 'attached-to')).toBe(false);
+
+      const explicitFalseGraph = buildRelationshipGraph(mockBundle, { includeSecrets: false });
+      expect(explicitFalseGraph.nodes.some((n) => n.kind === 'secret')).toBe(false);
+      expect(explicitFalseGraph.edges.some((e) => e.kind === 'attached-to')).toBe(false);
+    });
+
     it('handles empty bundle gracefully', () => {
       const emptyBundle = {
         ...mockBundle,
@@ -307,6 +343,7 @@ describe('relationshipGraphModel', () => {
         quests: [],
         encounters: [],
         items: [],
+        secrets: [],
       };
       const graph = buildRelationshipGraph(emptyBundle);
       expect(graph.nodes).toEqual([]);
@@ -374,15 +411,11 @@ describe('relationshipGraphModel', () => {
       const focusedIds = new Set(focused.nodes.map((n) => n.id));
 
       expect(focusedIds.has('npc-1')).toBe(true);
-      // Connected to npc-2 (ally), npc-3 (rival), fac-1 (member-of), loc-1 (located-in), quest-1 (giver)
       expect(focusedIds.has('npc-2')).toBe(true);
       expect(focusedIds.has('fac-1')).toBe(true);
       expect(focusedIds.has('loc-1')).toBe(true);
-
-      // Unconnected node like fac-2 should not be in the direct neighborhood of npc-1
       expect(focusedIds.has('fac-2')).toBe(false);
 
-      // Every edge in the filtered result must connect nodes within this neighborhood
       for (const edge of focused.edges) {
         expect(focusedIds.has(edge.source)).toBe(true);
         expect(focusedIds.has(edge.target)).toBe(true);

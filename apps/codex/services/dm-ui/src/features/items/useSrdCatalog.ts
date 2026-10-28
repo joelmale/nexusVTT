@@ -12,6 +12,10 @@ interface CachedCatalog {
 
 const catalogCache = new Map<string, CachedCatalog>();
 
+export interface UseSrdCatalogOptions {
+  offlineOnly?: boolean;
+}
+
 export interface UseSrdCatalogResult {
   catalog: SrdItem[];
   loading: boolean;
@@ -23,15 +27,35 @@ export interface UseSrdCatalogResult {
   useFallbackCatalog: () => void;
 }
 
-export function useSrdCatalog(targetRuleset = '2024'): UseSrdCatalogResult {
+export function useSrdCatalog(
+  targetRuleset = '2024',
+  options?: UseSrdCatalogOptions | boolean,
+): UseSrdCatalogResult {
   const ruleset = targetRuleset === '2014' ? '2014' : '2024';
+  const offlineOnly =
+    typeof options === 'boolean' ? options : Boolean(options?.offlineOnly);
   const cached = catalogCache.get(ruleset);
 
   const [catalog, setCatalog] = useState<SrdItem[]>(cached?.items ?? []);
-  const [loading, setLoading] = useState<boolean>(!cached);
+  const [loading, setLoading] = useState<boolean>(!cached && !offlineOnly);
   const [error, setError] = useState<string | undefined>();
-  const [isFallback, setIsFallback] = useState<boolean>(Boolean(cached?.isFallback));
+  const [isFallback, setIsFallback] = useState<boolean>(
+    Boolean(cached?.isFallback || (!cached && offlineOnly)),
+  );
   const [catalogVersion, setCatalogVersion] = useState<number>(cached?.fetchedAt ?? 0);
+
+  const applyFallbackCatalog = useCallback(() => {
+    const fallback = getFallbackSrdCatalog(ruleset);
+    if (fallback.length === 0) return false;
+    const now = Date.now();
+    catalogCache.set(ruleset, { items: fallback, fetchedAt: now, isFallback: true });
+    setCatalog(fallback);
+    setIsFallback(true);
+    setCatalogVersion(now);
+    setLoading(false);
+    setError(undefined);
+    return true;
+  }, [ruleset]);
 
   const load = useCallback(
     async (force = false) => {
@@ -47,6 +71,11 @@ export function useSrdCatalog(targetRuleset = '2024'): UseSrdCatalogResult {
         }
       }
 
+      if (offlineOnly && !force) {
+        applyFallbackCatalog();
+        return;
+      }
+
       setLoading(true);
       setError(undefined);
 
@@ -54,21 +83,15 @@ export function useSrdCatalog(targetRuleset = '2024'): UseSrdCatalogResult {
       setLoading(false);
 
       if (!result.ok) {
+        if (/\b(401|403)\b/.test(result.error) && applyFallbackCatalog()) {
+          return;
+        }
         setError(result.error);
         return;
       }
 
       if (result.items.length === 0) {
-        const fallback = getFallbackSrdCatalog(ruleset);
-        if (fallback.length > 0) {
-          const now = Date.now();
-          catalogCache.set(ruleset, { items: fallback, fetchedAt: now, isFallback: true });
-          setCatalog(fallback);
-          setIsFallback(true);
-          setCatalogVersion(now);
-          setError(undefined);
-          return;
-        }
+        if (applyFallbackCatalog()) return;
         setError(`No items found in the ${ruleset} catalog.`);
         return;
       }
@@ -80,7 +103,7 @@ export function useSrdCatalog(targetRuleset = '2024'): UseSrdCatalogResult {
       setCatalogVersion(now);
       setError(undefined);
     },
-    [ruleset],
+    [ruleset, offlineOnly, applyFallbackCatalog],
   );
 
   useEffect(() => {
@@ -92,14 +115,8 @@ export function useSrdCatalog(targetRuleset = '2024'): UseSrdCatalogResult {
   }, [load]);
 
   const useFallbackCatalog = useCallback(() => {
-    const fallback = getFallbackSrdCatalog(ruleset);
-    const now = Date.now();
-    catalogCache.set(ruleset, { items: fallback, fetchedAt: now, isFallback: true });
-    setCatalog(fallback);
-    setIsFallback(true);
-    setCatalogVersion(now);
-    setError(undefined);
-  }, [ruleset]);
+    applyFallbackCatalog();
+  }, [applyFallbackCatalog]);
 
   return {
     catalog,

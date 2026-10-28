@@ -13,7 +13,7 @@ interface SectionLayoutProps {
   /** Route segment of the section, e.g. "npcs"; used for the back link. */
   sectionPath: string;
   count?: number;
-  /** Header actions, e.g. a stubbed "New NPC" button. */
+  /** Header actions, e.g. a "New NPC" button. */
   actions?: ReactNode;
   /** Tab strip for two-tab sections (`SectionTabs`), under the title. */
   tabs?: ReactNode;

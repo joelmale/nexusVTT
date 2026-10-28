@@ -102,28 +102,42 @@ export function getMoodOption(moodId: string): MoodOption {
   return found ?? CAMPAIGN_MOODS[0];
 }
 
-export function loadLocalMood(): CampaignMood | null {
+export function getMoodStorageKey(campaignId?: string | null): string {
+  const trimmed = campaignId?.trim();
+  return trimmed
+    ? `${LOCAL_STORAGE_MOOD_KEY}:${trimmed}`
+    : LOCAL_STORAGE_MOOD_KEY;
+}
+
+export function loadLocalMood(campaignId?: string | null): CampaignMood | null {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return null;
-    const item = window.localStorage.getItem(LOCAL_STORAGE_MOOD_KEY);
+    const item = window.localStorage.getItem(getMoodStorageKey(campaignId));
     return isCampaignMood(item) ? item : null;
   } catch {
     return null;
   }
 }
 
-export function saveLocalMood(mood: CampaignMood | null): void {
+export function saveLocalMood(
+  mood: CampaignMood | null,
+  campaignId?: string | null,
+): void {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return;
+    const key = getMoodStorageKey(campaignId);
     if (mood) {
-      window.localStorage.setItem(LOCAL_STORAGE_MOOD_KEY, mood);
+      window.localStorage.setItem(key, mood);
     } else {
-      window.localStorage.removeItem(LOCAL_STORAGE_MOOD_KEY);
+      window.localStorage.removeItem(key);
     }
   } catch {
     // Ignore storage quota/access errors
   }
 }
+
+export const readStoredMood = loadLocalMood;
+export const writeStoredMood = saveLocalMood;
 
 export function applyMoodToDocument(mood: CampaignMood): void {
   if (typeof document === 'undefined') return;

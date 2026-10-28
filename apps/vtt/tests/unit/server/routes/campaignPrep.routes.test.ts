@@ -50,6 +50,8 @@ describe('campaign prep routes', () => {
     revise: ReturnType<typeof vi.fn>;
     archive: ReturnType<typeof vi.fn>;
     restore: ReturnType<typeof vi.fn>;
+    retire: ReturnType<typeof vi.fn>;
+    retireObject: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -94,6 +96,8 @@ describe('campaign prep routes', () => {
       revise: vi.fn(),
       archive: vi.fn(),
       restore: vi.fn(),
+      retire: vi.fn(),
+      retireObject: vi.fn(),
     };
 
     app = express();
@@ -358,6 +362,34 @@ describe('campaign prep routes', () => {
     expect(response.status).toBe(404);
 
     response = await post('archive', { expectedRevision: 0, requestId: 'x' });
+    expect(response.status).toBe(400);
+
+    author.retire.mockResolvedValue({
+      object: { id: PLAN_ID, status: 'retired' },
+    });
+    response = await post('retire', {
+      expectedRevision: 3,
+      requestId: REQUEST_ID,
+    });
+    expect(response.status).toBe(200);
+    expect(author.retire).toHaveBeenCalledWith({
+      campaignId: CAMPAIGN_ID,
+      objectId: PLAN_ID,
+      expectedRevision: 3,
+    });
+
+    author.retireObject.mockResolvedValue({
+      object: { id: PLAN_ID, status: 'retired' },
+    });
+    response = await post('retire', {});
+    expect(response.status).toBe(200);
+    expect(author.retireObject).toHaveBeenCalledWith(
+      CAMPAIGN_ID,
+      PLAN_ID,
+      USER_ID,
+    );
+
+    response = await post('retire', { expectedRevision: 0, requestId: 'x' });
     expect(response.status).toBe(400);
   });
 

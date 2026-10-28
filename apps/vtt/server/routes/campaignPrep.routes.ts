@@ -74,6 +74,17 @@ interface CampaignPrepAuthor {
     objectId: string;
     expectedRevision: number;
   }): Promise<{ object: CampaignPrepObjectRecord }>;
+  retire?(request: {
+    campaignId: string;
+    objectId: string;
+    expectedRevision: number;
+  }): Promise<{ object: CampaignPrepObjectRecord }>;
+  retireObject?(
+    campaignId: string,
+    objectId: string,
+    actorUserId?: string,
+    expectedRevision?: number,
+  ): Promise<{ object: CampaignPrepObjectRecord }>;
 }
 
 export interface CampaignPrepRouterOptions {
@@ -517,6 +528,78 @@ export function createCampaignPrepRouter({
       },
     );
   }
+
+  router.post(
+    '/campaigns/:campaignId/prep/objects/:objectId/retire',
+    async (req: Request, res: Response) => {
+      const body = (req.body ?? {}) as {
+        expectedRevision?: unknown;
+        requestId?: unknown;
+      };
+      const campaignId = routeParameter(req.params.campaignId);
+      const objectId = routeParameter(req.params.objectId);
+      const hasRevisionOrRequest =
+        body.expectedRevision !== undefined || body.requestId !== undefined;
+
+      if (hasRevisionOrRequest) {
+        if (
+          (body.expectedRevision !== undefined &&
+            !isExpectedRevision(body.expectedRevision)) ||
+          (body.requestId !== undefined && !isUuid(body.requestId))
+        ) {
+          return res.status(400).json({
+            error:
+              'expectedRevision must be positive and requestId must be a UUID',
+          });
+        }
+      }
+
+      try {
+        if (isExpectedRevision(body.expectedRevision)) {
+          if (author.retire) {
+            const result = await author.retire({
+              campaignId,
+              objectId,
+              expectedRevision: body.expectedRevision,
+            });
+            return res.json(result);
+          }
+          if (author.retireObject) {
+            const result = await author.retireObject(
+              campaignId,
+              objectId,
+              sessionUserId(req) ?? undefined,
+              body.expectedRevision,
+            );
+            return res.json(result);
+          }
+        }
+        if (author.retireObject) {
+          const result = await author.retireObject(
+            campaignId,
+            objectId,
+            sessionUserId(req) ?? undefined,
+          );
+          return res.json(result);
+        }
+        const existing = await db.campaignPrep.getObject(campaignId, objectId);
+        if (!existing) {
+          return res.status(404).json({ error: 'Campaign object not found' });
+        }
+        if (author.retire) {
+          const result = await author.retire({
+            campaignId,
+            objectId,
+            expectedRevision: existing.currentRevision,
+          });
+          return res.json(result);
+        }
+        return res.status(501).json({ error: 'Retire action not configured' });
+      } catch (error) {
+        return handleAuthoringError(error, res);
+      }
+    },
+  );
 
   router.post(
     '/campaigns/:campaignId/prep/objects/:objectId/publish',

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, FolderOpen, Archive } from 'lucide-react';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import FolderOpen from 'lucide-react/dist/esm/icons/folder-open';
+import Archive from 'lucide-react/dist/esm/icons/archive';
 import { db, Campaign } from '@/db/schema';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCampaignStore } from '@/stores/campaignStore';
@@ -43,7 +45,7 @@ export function HomePage() {
       {/* Actions */}
       <div className="mb-6 flex items-center justify-between">
         <Link
-          to="/campaigns/new"
+          to="/legacy/campaigns/new"
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
@@ -134,7 +136,7 @@ export function HomePage() {
               Create your first campaign to get started
             </p>
             <Link
-              to="/campaigns/new"
+              to="/legacy/campaigns/new"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Plus className="h-4 w-4" />
@@ -162,7 +164,7 @@ function CampaignCard({ campaign, onSelect }: CampaignCardProps) {
 
   return (
     <Link
-      to={`/campaigns/${campaign.id}`}
+      to={`/legacy/campaigns/${campaign.id}`}
       onClick={() => onSelect(campaign)}
       className="block rounded-lg border bg-card p-4 transition-shadow hover:shadow-md"
     >

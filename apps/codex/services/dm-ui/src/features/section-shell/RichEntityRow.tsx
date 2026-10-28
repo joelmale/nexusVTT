@@ -4,6 +4,8 @@ import Pin from 'lucide-react/dist/esm/icons/pin';
 import styles from './RichEntityRow.module.css';
 
 export interface RichEntityRowProps {
+  /** Entity identifier passed to onTogglePin when available. */
+  id?: string;
   /** Left icon, monogram, or category avatar. */
   icon?: ReactNode;
   /** Primary entity title / name. */
@@ -14,10 +16,14 @@ export interface RichEntityRowProps {
   metaParts?: Array<{ key: string; content: ReactNode }>;
   /** Badges container (rendered right-aligned on the primary line). */
   badges?: ReactNode;
+  /** Whether the entity is pinned to the top (alias for isPinned). */
+  pinned?: boolean;
   /** Whether the entity is pinned to the top. */
   isPinned?: boolean;
   /** Pin toggle handler. When provided, renders a toggleable pin button. */
-  onTogglePin?: (event: MouseEvent<HTMLButtonElement>) => void;
+  onTogglePin?:
+    | ((idOrEvent?: string | MouseEvent<HTMLButtonElement>) => void)
+    | (() => void);
   /** Veiled styling for undiscovered or secret entities. */
   veiled?: boolean;
   /** Custom test ID. */
@@ -30,26 +36,36 @@ export interface RichEntityRowProps {
  * Quests, Encounters, Factions, etc.).
  */
 export function RichEntityRow({
+  id,
   icon,
   title,
   subtitle,
   metaParts = [],
   badges,
+  pinned,
   isPinned,
   onTogglePin,
   veiled,
   testId,
 }: RichEntityRowProps) {
+  const isPinnedState = Boolean(pinned ?? isPinned);
+
   const handlePinClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    onTogglePin?.(event);
+    if (onTogglePin) {
+      if (id !== undefined) {
+        (onTogglePin as (arg?: string | MouseEvent<HTMLButtonElement>) => void)(id);
+      } else {
+        (onTogglePin as (arg?: string | MouseEvent<HTMLButtonElement>) => void)(event);
+      }
+    }
   };
 
   return (
     <div
       className={`${styles.row} ${veiled ? styles.veiled : ''}`}
-      data-pinned={isPinned ? 'true' : undefined}
+      data-pinned={isPinnedState ? 'true' : undefined}
       data-testid={testId}
     >
       <div className={styles.primaryLine}>
@@ -66,16 +82,16 @@ export function RichEntityRow({
           {badges}
           {onTogglePin ? (
             <button
-              aria-label={isPinned ? 'Unpin item' : 'Pin item to top'}
-              aria-pressed={isPinned}
-              className={`${styles.pinBtn} ${isPinned ? styles.pinned : ''}`}
+              aria-label={isPinnedState ? 'Unpin' : 'Pin'}
+              aria-pressed={isPinnedState}
+              className={`${styles.pinBtn} ${isPinnedState ? styles.pinned : ''}`}
               onClick={handlePinClick}
-              title={isPinned ? 'Pinned' : 'Pin to top'}
+              title={isPinnedState ? 'Pinned' : 'Pin to top'}
               type="button"
             >
               <Pin size={13} />
             </button>
-          ) : isPinned ? (
+          ) : isPinnedState ? (
             <span
               aria-label="Pinned"
               className={styles.pinIndicator}

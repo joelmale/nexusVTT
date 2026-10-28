@@ -126,6 +126,7 @@ export function useBundleStore(): BundleStoreState {
           ok: result.ok,
           conflict: result.conflict,
           error: result.error,
+          id: result.id,
         };
       } catch (error) {
         return { ok: false, error: errorMessage(error) };
@@ -171,6 +172,7 @@ export function useBundleStore(): BundleStoreState {
           ok: result.ok,
           conflict: result.conflict,
           error: result.error,
+          id: result.id,
         };
       } catch (error) {
         return { ok: false, error: errorMessage(error) };
@@ -192,6 +194,7 @@ export function useBundleStore(): BundleStoreState {
           ok: result.ok,
           conflict: result.conflict,
           error: result.error,
+          id: result.id,
         };
       } catch (error) {
         await reload();
@@ -213,6 +216,7 @@ export function useBundleStore(): BundleStoreState {
           ok: result.ok,
           conflict: result.conflict,
           error: result.error,
+          id: result.id,
         };
       } catch (error) {
         return { ok: false, error: errorMessage(error) };
@@ -227,6 +231,26 @@ export function useBundleStore(): BundleStoreState {
       return current?.getBacklinks ? current.getBacklinks(id) : [];
     },
     [],
+  );
+
+  const togglePin = useCallback(
+    async (objectId: string): Promise<SaveResult> => {
+      const current = controllerRef.current;
+      if (!current?.togglePin) return { ok: false, error: READ_ONLY_ERROR };
+      try {
+        const result = await current.togglePin(objectId);
+        if (result.ok) await applyResult(current, result);
+        return {
+          ok: result.ok,
+          conflict: result.conflict,
+          error: result.error,
+          id: result.id,
+        };
+      } catch (error) {
+        return { ok: false, error: errorMessage(error) };
+      }
+    },
+    [applyResult],
   );
 
   const baseBundle = base.status === 'ready' ? base.bundle : undefined;
@@ -246,6 +270,7 @@ export function useBundleStore(): BundleStoreState {
       removeItem,
       restoreItem,
       getBacklinks,
+      togglePin,
     };
   }, [
     baseBundle,
@@ -258,6 +283,7 @@ export function useBundleStore(): BundleStoreState {
     removeItem,
     restoreItem,
     getBacklinks,
+    togglePin,
   ]);
 
   if (base.status !== 'ready') return base;

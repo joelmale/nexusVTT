@@ -9,6 +9,7 @@ import {
 } from '@/features/campaigns/CampaignContext';
 import { MoodPickerModal } from './MoodPickerModal';
 import { MoodProvider } from './MoodContext';
+import { getMoodStorageKey } from './moodModel';
 import { updateCampaign } from '@/services/campaign-api';
 
 vi.mock('@/services/campaign-api', async () => {
@@ -21,22 +22,27 @@ vi.mock('@/services/campaign-api', async () => {
   };
 });
 
-const mockCampaignContext: CampaignContextValue = {
-  activeCampaign: {
+function createMockCampaignContext(): CampaignContextValue {
+  const activeCampaign = {
     id: 'camp-test-1',
     name: 'Ashes of Veyra',
     description: 'Test Campaign',
     createdAt: '2026-01-01',
     updatedAt: '2026-01-01',
-    mood: 'parchment',
-  },
-  campaigns: [],
-  error: null,
-  isDemoCampaign: false,
-  reload: vi.fn(),
-  selectCampaign: vi.fn(),
-  state: 'ready',
-};
+    mood: 'parchment' as const,
+  };
+  return {
+    activeCampaign,
+    activeCampaignId: activeCampaign.id,
+    campaigns: [activeCampaign],
+    createCampaign: vi.fn(),
+    error: undefined,
+    isDemoCampaign: false,
+    reload: vi.fn(),
+    rememberCampaign: vi.fn(),
+    state: 'ready',
+  };
+}
 
 describe('MoodPickerModal', () => {
   let values: Map<string, string>;
@@ -66,8 +72,8 @@ describe('MoodPickerModal', () => {
     const onClose = props.onClose ?? vi.fn();
     const isOpen = props.isOpen ?? true;
 
-    const context = {
-      ...mockCampaignContext,
+    const context: CampaignContextValue = {
+      ...createMockCampaignContext(),
       ...contextOverrides,
     };
 
@@ -83,7 +89,7 @@ describe('MoodPickerModal', () => {
       </CampaignContext.Provider>,
     );
 
-    return { ...utils, onClose };
+    return { ...utils, context, onClose };
   }
 
   it('renders nothing when isOpen is false', () => {
@@ -113,6 +119,41 @@ describe('MoodPickerModal', () => {
     expect(grimdarkBtn).toHaveAttribute('aria-pressed', 'true');
     expect(document.documentElement.getAttribute('data-mood')).toBe('grimdark');
     expect(document.documentElement.style.colorScheme).toBe('dark');
+    expect(values.get(getMoodStorageKey('camp-test-1'))).toBe('grimdark');
+  });
+
+  it('scopes mood override per campaign so Campaign A does not override Campaign B', async () => {
+    const user = userEvent.setup();
+    const { rerender, onClose } = renderModal({ isOpen: true });
+
+    await user.click(screen.getByRole('button', { name: /Grimdark/ }));
+    expect(document.documentElement.getAttribute('data-mood')).toBe('grimdark');
+
+    const campBContext: CampaignContextValue = {
+      ...createMockCampaignContext(),
+      activeCampaign: {
+        id: 'camp-test-2',
+        name: 'Crown of Cinders',
+        description: 'Second Campaign',
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+        mood: 'feywild',
+      },
+    };
+
+    rerender(
+      <CampaignContext.Provider value={campBContext}>
+        <MoodProvider
+          campaignId={campBContext.activeCampaign?.id}
+          campaignMood={campBContext.activeCampaign?.mood}
+          isEditable
+        >
+          <MoodPickerModal isOpen onClose={onClose} />
+        </MoodProvider>
+      </CampaignContext.Provider>,
+    );
+
+    expect(document.documentElement.getAttribute('data-mood')).toBe('feywild');
   });
 
   it('calls onClose when clicking Done or the close button', async () => {
@@ -143,11 +184,11 @@ describe('MoodPickerModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('persists to campaign when "Save as campaign default" is checked', async () => {
+  it('persists to campaign and syncs in-memory activeCampaign mood when "Save as campaign default" is checked', async () => {
     const user = userEvent.setup();
     vi.mocked(updateCampaign).mockClear();
 
-    renderModal({ isOpen: true });
+    const { context } = renderModal({ isOpen: true });
 
     const checkbox = screen.getByRole('checkbox', {
       name: 'Save as campaign default for all players',
@@ -161,6 +202,7 @@ describe('MoodPickerModal', () => {
     await user.click(feywildBtn);
 
     expect(updateCampaign).toHaveBeenCalledWith('camp-test-1', { mood: 'feywild' });
+    expect(context.activeCampaign?.mood).toBe('feywild');
   });
 
   it('does not display campaign default checkbox on demo campaigns', () => {

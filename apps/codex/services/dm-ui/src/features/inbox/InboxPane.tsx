@@ -38,6 +38,13 @@ export function InboxPane({ className }: InboxPaneProps) {
 
   const [isQuickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [triagingNoteId, setTriagingNoteId] = useState<string | null>(null);
+  const [partialTriage, setPartialTriage] = useState<
+    Record<string, { kind: string; id: string }>
+  >({});
+  const [triageError, setTriageError] = useState<{
+    noteId: string;
+    message: string;
+  } | null>(null);
 
   const rawNotes = bundle.inboxNotes ?? [];
   const stats = computeInboxStats(rawNotes);
@@ -70,29 +77,82 @@ export function InboxPane({ className }: InboxPaneProps) {
 
     try {
       setTriagingNoteId(note.id);
-      let targetId: string | undefined;
+      setTriageError(null);
 
-      if (target === 'npc') {
-        const draft = triageToNpcDraft(note.text);
-        const res = await store.addItem('npc', draft);
-        targetId = res.id;
-      } else if (target === 'quest') {
-        const draft = triageToQuestDraft(note.text);
-        const res = await store.addItem('quest', draft);
-        targetId = res.id;
-      } else if (target === 'secret') {
-        const draft = triageToSecretDraft(note.text);
-        const res = await store.addItem('secret', draft);
-        targetId = res.id;
-      } else if (target === 'note') {
-        const draft = triageToNoteDraft(note.text);
-        const res = await store.addItem('note', draft);
-        targetId = res.id;
+      // Step 1: Reuse existing targetId if partial failure occurred previously
+      let targetId =
+        partialTriage[note.id]?.kind === target
+          ? partialTriage[note.id].id
+          : undefined;
+
+      if (!targetId) {
+        let draft: Record<string, unknown>;
+        if (target === 'npc') {
+          draft = triageToNpcDraft(note.text);
+        } else if (target === 'quest') {
+          draft = triageToQuestDraft(note.text);
+        } else if (target === 'secret') {
+          draft = triageToSecretDraft(note.text);
+        } else {
+          draft = triageToNoteDraft(note.text);
+        }
+
+        try {
+          const res = await store.addItem(target, draft);
+          if (!res || res.ok === false || !res.id) {
+            setTriageError({
+              noteId: note.id,
+              message: `Failed to create ${target}. Please retry.`,
+            });
+            return;
+          }
+          targetId = res.id;
+          setPartialTriage((prev) => ({
+            ...prev,
+            [note.id]: { kind: target, id: targetId! },
+          }));
+        } catch (err) {
+          setTriageError({
+            noteId: note.id,
+            message:
+              err instanceof Error
+                ? err.message
+                : `Failed to create ${target}. Please retry.`,
+          });
+          return;
+        }
       }
 
-      await store.updateItem('inbox-note', note.id, {
-        triagedTo: { kind: target, id: targetId ?? '' },
+      // Step 2: Update the inbox note triage reference
+      try {
+        const updateRes = await store.updateItem('inbox-note', note.id, {
+          triagedTo: { kind: target, id: targetId },
+        });
+        if (!updateRes || updateRes.ok === false) {
+          setTriageError({
+            noteId: note.id,
+            message: `Created ${target}, but failed to update note status. Retry to complete triage.`,
+          });
+          return;
+        }
+      } catch (err) {
+        setTriageError({
+          noteId: note.id,
+          message:
+            err instanceof Error
+              ? err.message
+              : `Created ${target}, but failed to update note status. Retry to complete triage.`,
+        });
+        return;
+      }
+
+      // Clean up on complete success
+      setPartialTriage((prev) => {
+        const next = { ...prev };
+        delete next[note.id];
+        return next;
       });
+      setTriageError(null);
     } finally {
       setTriagingNoteId(null);
     }
@@ -135,6 +195,12 @@ export function InboxPane({ className }: InboxPaneProps) {
           </button>
         ) : null}
       </div>
+
+      {triageError ? (
+        <div className={styles.errorAlert} role="alert">
+          {triageError.message}
+        </div>
+      ) : null}
 
       <FilterBar
         facets={facets}

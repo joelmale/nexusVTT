@@ -210,9 +210,15 @@ export function QuestsSection() {
 
             return (
               <RichEntityRow
+                id={row.quest.id}
                 badges={badges}
                 icon={<CheckSquare size={14} />}
-                isPinned={bundle.pinnedObjectIds?.includes(row.quest.id)}
+                pinned={Boolean(bundle.pinnedObjectIds?.includes(row.quest.id))}
+                onTogglePin={
+                  store.editable && store.togglePin
+                    ? () => void store.togglePin?.(row.quest.id)
+                    : undefined
+                }
                 metaParts={metaParts}
                 title={row.quest.title}
               />
@@ -250,11 +256,12 @@ export function QuestsSection() {
 }
 
 function QuestDetail({ quest }: { quest: CampaignQuest }) {
-  const { bundle } = useSectionBundle();
+  const { bundle, store } = useSectionBundle();
   const { hash } = useLocation();
   const objectives = objectivesFor(bundle, quest);
   const { done, total } = objectiveProgress(objectives);
   const openThread = isOpenThread(bundle, quest);
+  const rewardItems = bundle.items?.filter((item) => item.questIds?.includes(quest.id)) ?? [];
 
   useEffect(() => {
     if (!hash) return;
@@ -281,6 +288,12 @@ function QuestDetail({ quest }: { quest: CampaignQuest }) {
       heading={quest.title}
       headerActions={<UseInNextSessionButton kind="quest" id={quest.id} />}
       id={quest.id}
+      pinned={Boolean(bundle.pinnedObjectIds?.includes(quest.id))}
+      onTogglePin={
+        store.editable && store.togglePin
+          ? () => void store.togglePin?.(quest.id)
+          : undefined
+      }
       initialDraft={toQuestDraft(bundle, quest)}
       kind="quest"
       renderForm={(draft, setDraft) => (
@@ -300,7 +313,7 @@ function QuestDetail({ quest }: { quest: CampaignQuest }) {
             <EntityLink id={quest.giverNpcId} />
           </p>
         ) : null}
-        {quest.resolution && quest.status === 'complete' ? (
+        {quest.resolution && (quest.status === 'complete' || Boolean(quest.resolution)) ? (
           <section className={styles.resolution}>
             <h3>Resolution</h3>
             <p>{quest.resolution}</p>
@@ -354,14 +367,27 @@ function QuestDetail({ quest }: { quest: CampaignQuest }) {
             </ol>
           )}
         </section>
+        {rewardItems.length > 0 && (
+          <section aria-label="Reward items">
+            <h3 className={styles.objectivesHeading}>Reward Items</h3>
+            <ul className={styles.chips}>
+              {rewardItems.map((item) => (
+                <li key={item.id}>
+                  <EntityLink id={item.id} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <RelatedGroups
           entityId={quest.id}
           forwardIds={[
             ...quest.factionIds,
             ...quest.locationIds,
             ...quest.sessionIds,
+            ...rewardItems.map((item) => item.id),
           ]}
-          kinds={['faction', 'location', 'session']}
+          kinds={['faction', 'location', 'session', 'item']}
         />
       </div>
     </EditableSection>
@@ -393,11 +419,14 @@ function QuestForm({
           title: '',
           status: 'pending',
           locationIds: [],
+          clueIds: [],
         },
       ],
     });
     commit();
   };
+
+  const clues = bundle.clues ?? [];
 
   return (
     <>
@@ -407,6 +436,22 @@ function QuestForm({
           onChange={(event) => update({ title: event.target.value })}
           value={draft.title}
         />
+      </label>
+      <label>
+        Priority
+        <select
+          aria-label="Quest priority"
+          onChange={(event) =>
+            update({ priority: event.target.value as QuestDraft['priority'] })
+          }
+          value={draft.priority}
+        >
+          {PRIORITIES.map((priority) => (
+            <option key={priority} value={priority}>
+              {humanize(priority)}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         Status
@@ -444,6 +489,14 @@ function QuestForm({
             </option>
           ))}
         </select>
+      </label>
+      <label>
+        Resolution
+        <textarea
+          onChange={(event) => update({ resolution: event.target.value })}
+          rows={3}
+          value={draft.resolution}
+        />
       </label>
       <fieldset className={styles.fieldset}>
         <legend>Objectives</legend>
@@ -490,6 +543,66 @@ function QuestForm({
             >
               Remove
             </button>
+            {bundle.locations.length > 0 && (
+              <div className={styles.multiSelectSection}>
+                <span className={styles.subHeading}>
+                  Objective {index + 1} Locations
+                </span>
+                <div className={styles.chipSelectGrid}>
+                  {bundle.locations.map((loc) => {
+                    const checked = objective.locationIds.includes(loc.id);
+                    return (
+                      <label key={loc.id} className={styles.checkboxLabel}>
+                        <input
+                          aria-label={`Objective ${index + 1} location ${loc.name}`}
+                          checked={checked}
+                          onChange={(e) => {
+                            const locationIds = e.target.checked
+                              ? [...objective.locationIds, loc.id]
+                              : objective.locationIds.filter(
+                                  (id) => id !== loc.id,
+                                );
+                            setObjective(index, { locationIds });
+                          }}
+                          type="checkbox"
+                        />
+                        <span>{loc.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {clues.length > 0 && (
+              <div className={styles.multiSelectSection}>
+                <span className={styles.subHeading}>
+                  Objective {index + 1} Clues
+                </span>
+                <div className={styles.chipSelectGrid}>
+                  {clues.map((clue) => {
+                    const checked = objective.clueIds.includes(clue.id);
+                    return (
+                      <label key={clue.id} className={styles.checkboxLabel}>
+                        <input
+                          aria-label={`Objective ${index + 1} clue ${clue.title}`}
+                          checked={checked}
+                          onChange={(e) => {
+                            const clueIds = e.target.checked
+                              ? [...objective.clueIds, clue.id]
+                              : objective.clueIds.filter(
+                                  (id) => id !== clue.id,
+                                );
+                            setObjective(index, { clueIds });
+                          }}
+                          type="checkbox"
+                        />
+                        <span>{clue.title}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         ))}
         <button onClick={addObjective} type="button">

@@ -6,7 +6,8 @@ export type GraphNodeKind =
   | 'location'
   | 'quest'
   | 'item'
-  | 'encounter';
+  | 'encounter'
+  | 'secret';
 
 export interface GraphNode {
   id: string;
@@ -25,7 +26,8 @@ export type RelationshipKind =
   | 'member-of'
   | 'located-in'
   | 'holds'
-  | 'wants';
+  | 'wants'
+  | 'attached-to';
 
 export interface GraphEdge {
   id: string;
@@ -54,12 +56,20 @@ export const RELATIONSHIP_LABELS: Record<RelationshipKind, string> = {
   'located-in': 'Located in',
   holds: 'Holds',
   wants: 'Wants',
+  'attached-to': 'Attached to',
 };
+
+export interface BuildRelationshipGraphOptions {
+  includeSecrets?: boolean;
+}
 
 /**
  * Builds a cross-entity relationship graph from any CampaignBundle.
  */
-export function buildRelationshipGraph(bundle: CampaignFixtureBundle): GraphModel {
+export function buildRelationshipGraph(
+  bundle: CampaignFixtureBundle,
+  options: BuildRelationshipGraphOptions = {},
+): GraphModel {
   const nodeMap = new Map<string, GraphNode>();
   const edges: GraphEdge[] = [];
   const edgeSet = new Set<string>();
@@ -170,6 +180,24 @@ export function buildRelationshipGraph(bundle: CampaignFixtureBundle): GraphMode
     });
   }
 
+  // Secrets (CS-31)
+  if (options.includeSecrets) {
+    for (const secret of bundle.secrets ?? []) {
+      const displayLabel =
+        secret.text.length > 35 ? `${secret.text.slice(0, 35)}...` : secret.text;
+      nodeMap.set(secret.id, {
+        id: secret.id,
+        label: displayLabel,
+        kind: 'secret',
+        subtitle: `Secret · ${secret.revealed ? 'Revealed' : 'Unrevealed'}`,
+        isPinned: pinnedSet.has(secret.id),
+        degree: 0,
+        x: 0,
+        y: 0,
+      });
+    }
+  }
+
   // 2. Populate Edges
   // Faction relations
   for (const faction of bundle.factions ?? []) {
@@ -276,6 +304,17 @@ export function buildRelationshipGraph(bundle: CampaignFixtureBundle): GraphMode
     }
   }
 
+  // Secret relations (CS-31 attachedTo edges)
+  if (options.includeSecrets) {
+    for (const secret of bundle.secrets ?? []) {
+      for (const target of secret.attachedTo ?? []) {
+        if (nodeMap.has(target.id)) {
+          addEdge(secret.id, target.id, 'attached-to', 'Attached to');
+        }
+      }
+    }
+  }
+
   // Calculate degrees
   for (const edge of edges) {
     const src = nodeMap.get(edge.source);
@@ -310,11 +349,12 @@ export function layoutGraphNodes(
   // Group by kind for visual clustering
   const kindAngles: Record<GraphNodeKind, number> = {
     faction: 0,
-    npc: (Math.PI * 2) / 6,
-    quest: (Math.PI * 2 * 2) / 6,
-    item: (Math.PI * 2 * 3) / 6,
-    location: (Math.PI * 2 * 4) / 6,
-    encounter: (Math.PI * 2 * 5) / 6,
+    npc: (Math.PI * 2) / 7,
+    quest: (Math.PI * 2 * 2) / 7,
+    item: (Math.PI * 2 * 3) / 7,
+    location: (Math.PI * 2 * 4) / 7,
+    encounter: (Math.PI * 2 * 5) / 7,
+    secret: (Math.PI * 2 * 6) / 7,
   };
 
   const kindGroups = new Map<GraphNodeKind, GraphNode[]>();

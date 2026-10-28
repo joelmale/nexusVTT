@@ -160,8 +160,8 @@ describe('balanceModel', () => {
     ).toBe(true);
   });
 
-  it('handles fallback bundle with no party gracefully', () => {
-    const blankBundle: CampaignFixtureBundle = {
+  it('uses current session partyLevel when campaign playerCharacters is empty', () => {
+    const sessionLevelBundle: CampaignFixtureBundle = {
       ...baseBundle,
       campaign: {
         ...baseBundle.campaign,
@@ -175,10 +175,46 @@ describe('balanceModel', () => {
       items: [],
     };
 
+    const model = buildBalanceModel(sessionLevelBundle);
+
+    expect(model.partySize).toBe(4);
+    const expectedSession =
+      sessionLevelBundle.sessions.find(
+        (s) =>
+          s.id ===
+          (sessionLevelBundle.campaign.currentSessionId ||
+            sessionLevelBundle.catalog.selectedSessionId),
+      ) ?? sessionLevelBundle.sessions[0];
+    expect(model.averageLevel).toBe(expectedSession.partyLevel);
+    expect(model.partyLevels).toEqual([
+      expectedSession.partyLevel,
+      expectedSession.partyLevel,
+      expectedSession.partyLevel,
+      expectedSession.partyLevel,
+    ]);
+  });
+
+  it('handles fallback bundle with no party and no session gracefully', () => {
+    const blankBundle: CampaignFixtureBundle = {
+      ...baseBundle,
+      campaign: {
+        ...baseBundle.campaign,
+        playerCharacters: [],
+      },
+      catalog: {
+        ...baseBundle.catalog,
+        playerCharacters: [],
+      },
+      sessions: [],
+      encounters: [],
+      items: [],
+    };
+
     const model = buildBalanceModel(blankBundle);
 
     expect(model.partySize).toBe(4); // Default 4 members
     expect(model.averageLevel).toBe(1);
+    expect(model.partyLevels).toEqual([1, 1, 1, 1]);
     expect(model.encounters).toHaveLength(0);
     expect(model.totalEncounterXp).toBe(0);
     expect(model.budgetPerEncounter.high).toBeGreaterThan(0);

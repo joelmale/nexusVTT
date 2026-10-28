@@ -23,7 +23,9 @@ describe('rules catalog BFF', () => {
       }),
   );
 
-  function fakeCache(overrides: Partial<RulesCatalogCache> = {}): RulesCatalogCache {
+  function fakeCache(
+    overrides: Partial<RulesCatalogCache> = {},
+  ): RulesCatalogCache {
     return {
       getManifest: vi.fn(),
       getEntities: vi.fn(),
@@ -43,7 +45,9 @@ describe('rules catalog BFF', () => {
       (req as any).isAuthenticated = () => session === 'authenticated';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (req as any).session =
-        session === 'guest' ? { guestUser: { id: 'guest-1', name: 'Guest', provider: 'guest' } } : {};
+        session === 'guest'
+          ? { guestUser: { id: 'guest-1', name: 'Guest', provider: 'guest' } }
+          : {};
       next();
     });
     app.use(
@@ -66,17 +70,109 @@ describe('rules catalog BFF', () => {
     return `http://127.0.0.1:${address.port}`;
   }
 
-  it('rejects a request with no session at all', async () => {
+  it('rejects a request with no session at all on manifest or mutations', async () => {
     const baseUrl = await startApp({ cache: fakeCache(), session: 'none' });
 
     const response = await fetch(`${baseUrl}/api/rules/catalog/manifest`);
-
     expect(response.status).toBe(401);
+
+    const postResponse = await fetch(`${baseUrl}/api/rules/catalog/entities`, {
+      method: 'POST',
+    });
+    expect(postResponse.status).toBe(401);
+
+    const customResponse = await fetch(
+      `${baseUrl}/api/rules/catalog/entities?scope=custom`,
+    );
+    expect(customResponse.status).toBe(401);
+  });
+
+  it('allows unauthenticated read-only access to canonical SRD catalog entities and entity by id', async () => {
+    const getEntities = vi.fn().mockResolvedValue({
+      status: 200,
+      body: {
+        catalogVersion: 1,
+        since: 0,
+        entities: [
+          {
+            id: 'ent-longsword',
+            slug: 'longsword',
+            entityType: 'item',
+            ruleset: '2024',
+            data: { name: 'Longsword' },
+          },
+        ],
+        removed: [],
+        skipped: [],
+      },
+      etag: 'W/"1"',
+    });
+    const baseUrl = await startApp({
+      cache: fakeCache({ getEntities }),
+      session: 'none',
+    });
+
+    const listResponse = await fetch(
+      `${baseUrl}/api/rules/catalog/entities?type=item&ruleset=2024`,
+    );
+    expect(listResponse.status).toBe(200);
+    await expect(listResponse.json()).resolves.toMatchObject({
+      catalogVersion: 1,
+      entities: [expect.objectContaining({ slug: 'longsword' })],
+    });
+
+    const byIdResponse = await fetch(
+      `${baseUrl}/api/rules/catalog/entities/longsword?type=item&ruleset=2024`,
+    );
+    expect(byIdResponse.status).toBe(200);
+    await expect(byIdResponse.json()).resolves.toMatchObject({
+      id: 'ent-longsword',
+      slug: 'longsword',
+    });
+
+    const missingResponse = await fetch(
+      `${baseUrl}/api/rules/catalog/entities/nonexistent`,
+    );
+    expect(missingResponse.status).toBe(404);
+
+    const invalidQueryResponse = await fetch(
+      `${baseUrl}/api/rules/catalog/entities/longsword?type=bad`,
+    );
+    expect(invalidQueryResponse.status).toBe(400);
+  });
+
+  it('returns 503 on entities/:id when cache is unconfigured or upstream is unreachable', async () => {
+    const unconfiguredUrl = await startApp({
+      docApiUrl: undefined,
+      cache: undefined,
+      session: 'none',
+    });
+    const res1 = await fetch(
+      `${unconfiguredUrl}/api/rules/catalog/entities/longsword`,
+    );
+    expect(res1.status).toBe(503);
+    await new Promise<void>((resolve) => server!.close(() => resolve()));
+    server = undefined;
+
+    const unavailableUrl = await startApp({
+      cache: fakeCache({
+        getEntities: vi.fn().mockResolvedValue({ status: 503 }),
+      }),
+      session: 'none',
+    });
+    const res2 = await fetch(
+      `${unavailableUrl}/api/rules/catalog/entities/longsword`,
+    );
+    expect(res2.status).toBe(503);
   });
 
   it('allows a guest session to read the manifest', async () => {
     const cache = fakeCache({
-      getManifest: vi.fn().mockResolvedValue({ status: 200, body: { catalogVersion: 1 }, etag: 'W/"1"' }),
+      getManifest: vi.fn().mockResolvedValue({
+        status: 200,
+        body: { catalogVersion: 1 },
+        etag: 'W/"1"',
+      }),
     });
     const baseUrl = await startApp({ cache, session: 'guest' });
 
@@ -105,22 +201,40 @@ describe('rules catalog BFF', () => {
     const response = await fetch(`${baseUrl}/api/rules/catalog/manifest`);
 
     expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toEqual({ error: 'rules_catalog_unavailable', useBundled: true });
+    await expect(response.json()).resolves.toEqual({
+      error: 'rules_catalog_unavailable',
+      useBundled: true,
+    });
   });
 
   it('returns 503 with useBundled when the cache reports doc-api is unreachable', async () => {
-    const baseUrl = await startApp({ cache: fakeCache({ getManifest: vi.fn().mockResolvedValue({ status: 503 }) }) });
+    const baseUrl = await startApp({
+      cache: fakeCache({
+        getManifest: vi.fn().mockResolvedValue({ status: 503 }),
+      }),
+    });
 
     const response = await fetch(`${baseUrl}/api/rules/catalog/manifest`);
 
     expect(response.status).toBe(503);
-    await expect(response.json()).resolves.toEqual({ error: 'rules_catalog_unavailable', useBundled: true });
+    await expect(response.json()).resolves.toEqual({
+      error: 'rules_catalog_unavailable',
+      useBundled: true,
+    });
   });
 
   it('reads only the fixed type/ruleset/since query keys for entities', async () => {
-    const getEntities = vi
-      .fn()
-      .mockResolvedValue({ status: 200, body: { catalogVersion: 1, since: 0, entities: [], removed: [], skipped: [] }, etag: 'W/"1"' });
+    const getEntities = vi.fn().mockResolvedValue({
+      status: 200,
+      body: {
+        catalogVersion: 1,
+        since: 0,
+        entities: [],
+        removed: [],
+        skipped: [],
+      },
+      etag: 'W/"1"',
+    });
     const baseUrl = await startApp({ cache: fakeCache({ getEntities }) });
 
     const response = await fetch(
@@ -128,14 +242,19 @@ describe('rules catalog BFF', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(getEntities).toHaveBeenCalledWith({ type: 'spell', ruleset: '2024', since: 3 }, null);
+    expect(getEntities).toHaveBeenCalledWith(
+      { type: 'spell', ruleset: '2024', since: 3 },
+      null,
+    );
   });
 
   it('rejects an invalid entities query without touching the cache', async () => {
     const getEntities = vi.fn();
     const baseUrl = await startApp({ cache: fakeCache({ getEntities }) });
 
-    const response = await fetch(`${baseUrl}/api/rules/catalog/entities?type=not-a-real-type`);
+    const response = await fetch(
+      `${baseUrl}/api/rules/catalog/entities?type=not-a-real-type`,
+    );
 
     expect(response.status).toBe(400);
     expect(getEntities).not.toHaveBeenCalled();
@@ -149,8 +268,13 @@ describe('rules catalog BFF', () => {
       (req as any).isAuthenticated = () => true;
       next();
     });
-    app.use('/api', createRulesCatalogRouter({ docApiUrl: 'http://doc-api.test', cache }));
-    app.get('/api/metrics/multiplayer', (_req, res) => res.json({ status: 'available' }));
+    app.use(
+      '/api',
+      createRulesCatalogRouter({ docApiUrl: 'http://doc-api.test', cache }),
+    );
+    app.get('/api/metrics/multiplayer', (_req, res) =>
+      res.json({ status: 'available' }),
+    );
 
     server = app.listen(0, '127.0.0.1');
     await new Promise<void>((resolve, reject) => {

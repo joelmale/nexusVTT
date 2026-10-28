@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
 import type { Session } from 'express-session';
 import { CatalogEntitiesQuerySchema } from '@nexus/rules-contracts';
-import { RulesCatalogCache, RulesCatalogUpstreamClient } from '../services/rulesCatalogClient.js';
+import {
+  RulesCatalogCache,
+  RulesCatalogUpstreamClient,
+} from '../services/rulesCatalogClient.js';
 
 interface CustomSession extends Session {
   guestUser?: { id: string; name: string; provider: string };
@@ -14,24 +17,41 @@ interface CustomSession extends Session {
  * which this deliberately mirrors: same "disabled when DOC_API_URL is unset"
  * shape, same short-timeout proxy-with-validation pattern.
  *
- * Guest access decision: ALLOWED. Character creation
- * (`@nexus/character-creator`, mounted by both apps at build time) works for
- * guests today with zero server round trip -- it is entirely local, reading
- * only the bundled SRD. Rules-catalog content is the same category of read:
- * public D&D reference data, not account or campaign data. Gating it behind a
- * real account would make guests see stale bundled SRD forever while
- * everyone else sees published corrections, for no privacy or integrity
- * benefit (invariant 9 already makes published content immutable and
- * versioned). We still require *a* session (guest or authenticated) rather
- * than going fully anonymous, matching the rest of `/api` and giving the
- * short in-memory cache below a natural floor against anonymous scraping.
+ * Read-only queries to canonical SRD catalog entities (`/rules/catalog/entities`
+ * and `/rules/catalog/entities/:id`) are permitted without authentication so the
+ * public Campaign Studio demo and character creation flows can load canonical
+ * SRD items, monsters, and spells. Any non-GET mutations or user/custom-scoped
+ * requests still require an authenticated or guest session.
  */
 function hasSession(req: Request): boolean {
-  return req.isAuthenticated() || !!(req.session as CustomSession)?.guestUser;
+  return (
+    req.isAuthenticated?.() === true ||
+    !!(req.session as CustomSession | undefined)?.guestUser
+  );
 }
 
 function getQueryString(value: unknown): string | undefined {
   return typeof value === 'string' ? value.trim() : undefined;
+}
+
+function isPublicCanonicalEntityRead(req: Request): boolean {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return false;
+  }
+  if (!req.path.startsWith('/entities')) {
+    return false;
+  }
+  const scope = getQueryString(req.query.scope);
+  const source = getQueryString(req.query.source);
+  if (
+    scope === 'custom' ||
+    scope === 'user' ||
+    source === 'homebrew' ||
+    source === 'custom'
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export interface RulesCatalogRouterOptions {
@@ -53,33 +73,44 @@ export interface RulesCatalogRouterOptions {
  * query keys are read from the request, and only these two upstream paths
  * are ever requested from doc-api.
  */
-export function createRulesCatalogRouter(options: RulesCatalogRouterOptions): Router {
+export function createRulesCatalogRouter(
+  options: RulesCatalogRouterOptions,
+): Router {
   const router = Router();
   const cache =
     options.cache ??
     (options.docApiUrl
       ? new RulesCatalogCache(
-          new RulesCatalogUpstreamClient({ apiUrl: options.docApiUrl, timeout: options.timeoutMs }),
+          new RulesCatalogUpstreamClient({
+            apiUrl: options.docApiUrl,
+            timeout: options.timeoutMs,
+          }),
           options.cacheTtlMs,
         )
       : null);
 
   router.use('/rules/catalog', (req: Request, res: Response, next) => {
-    if (!hasSession(req)) {
-      return res.status(401).json({ error: 'Authentication required' });
+    if (isPublicCanonicalEntityRead(req) || hasSession(req)) {
+      return next();
     }
-    return next();
+    return res.status(401).json({ error: 'Authentication required' });
   });
 
   router.get('/rules/catalog/manifest', async (req: Request, res: Response) => {
     if (!cache) {
-      return res.status(503).json({ error: 'rules_catalog_unavailable', useBundled: true });
+      return res
+        .status(503)
+        .json({ error: 'rules_catalog_unavailable', useBundled: true });
     }
     const clientEtag = req.headers['if-none-match'];
-    const result = await cache.getManifest(typeof clientEtag === 'string' ? clientEtag : null);
+    const result = await cache.getManifest(
+      typeof clientEtag === 'string' ? clientEtag : null,
+    );
     res.setHeader('Cache-Control', 'no-cache');
     if (result.status === 503) {
-      return res.status(503).json({ error: 'rules_catalog_unavailable', useBundled: true });
+      return res
+        .status(503)
+        .json({ error: 'rules_catalog_unavailable', useBundled: true });
     }
     if (result.status === 304) {
       return res.status(304).end();
@@ -90,7 +121,9 @@ export function createRulesCatalogRouter(options: RulesCatalogRouterOptions): Ro
 
   router.get('/rules/catalog/entities', async (req: Request, res: Response) => {
     if (!cache) {
-      return res.status(503).json({ error: 'rules_catalog_unavailable', useBundled: true });
+      return res
+        .status(503)
+        .json({ error: 'rules_catalog_unavailable', useBundled: true });
     }
     const parsedQuery = CatalogEntitiesQuerySchema.safeParse({
       type: getQueryString(req.query.type),
@@ -98,13 +131,20 @@ export function createRulesCatalogRouter(options: RulesCatalogRouterOptions): Ro
       since: getQueryString(req.query.since),
     });
     if (!parsedQuery.success) {
-      return res.status(400).json({ error: 'invalid_query', issues: parsedQuery.error.issues });
+      return res
+        .status(400)
+        .json({ error: 'invalid_query', issues: parsedQuery.error.issues });
     }
     const clientEtag = req.headers['if-none-match'];
-    const result = await cache.getEntities(parsedQuery.data, typeof clientEtag === 'string' ? clientEtag : null);
+    const result = await cache.getEntities(
+      parsedQuery.data,
+      typeof clientEtag === 'string' ? clientEtag : null,
+    );
     res.setHeader('Cache-Control', 'no-cache');
     if (result.status === 503) {
-      return res.status(503).json({ error: 'rules_catalog_unavailable', useBundled: true });
+      return res
+        .status(503)
+        .json({ error: 'rules_catalog_unavailable', useBundled: true });
     }
     if (result.status === 304) {
       return res.status(304).end();
@@ -112,6 +152,46 @@ export function createRulesCatalogRouter(options: RulesCatalogRouterOptions): Ro
     res.setHeader('ETag', result.etag);
     return res.status(200).json(result.body);
   });
+
+  router.get(
+    '/rules/catalog/entities/:id',
+    async (req: Request, res: Response) => {
+      if (!cache) {
+        return res
+          .status(503)
+          .json({ error: 'rules_catalog_unavailable', useBundled: true });
+      }
+      const parsedQuery = CatalogEntitiesQuerySchema.safeParse({
+        type: getQueryString(req.query.type),
+        ruleset: getQueryString(req.query.ruleset),
+        since: 0,
+      });
+      if (!parsedQuery.success) {
+        return res
+          .status(400)
+          .json({ error: 'invalid_query', issues: parsedQuery.error.issues });
+      }
+      const result = await cache.getEntities(parsedQuery.data, null);
+      res.setHeader('Cache-Control', 'no-cache');
+      if (result.status === 503) {
+        return res
+          .status(503)
+          .json({ error: 'rules_catalog_unavailable', useBundled: true });
+      }
+      if (result.status === 304) {
+        return res.status(304).end();
+      }
+      const entityId = req.params.id;
+      const entity = result.body.entities.find(
+        (item) => item.id === entityId || item.slug === entityId,
+      );
+      if (!entity) {
+        return res.status(404).json({ error: 'entity_not_found' });
+      }
+      res.setHeader('ETag', result.etag);
+      return res.status(200).json(entity);
+    },
+  );
 
   return router;
 }

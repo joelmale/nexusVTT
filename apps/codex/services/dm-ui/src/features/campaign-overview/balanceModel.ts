@@ -5,12 +5,12 @@ import type {
 } from '@/demo/fixture-registry';
 import {
   buildMonsterCatalog,
-  partyLevelsOf,
   rateComposition,
 } from '../encounters/monsterCatalog';
 import {
   calculateItemsWealth,
   evaluatePartyWealth,
+  resolvePartyLevels,
 } from '../items/wealthTracker';
 
 export type EncounterDifficultyTier =
@@ -87,9 +87,11 @@ export function buildBalanceModel(
   const session: CampaignSession | undefined =
     bundle.sessions.find((s) => s.id === sId) ?? bundle.sessions[0];
 
-  // Party stats
-  const detectedParty = partyLevelsOf(bundle);
-  const partyLevels = detectedParty.length > 0 ? detectedParty : [1, 1, 1, 1];
+  // Party stats: bundle.campaign.playerCharacters levels; if empty, use current session's partyLevel before falling back to [1, 1, 1, 1]
+  const partyLevels = resolvePartyLevels(
+    bundle.campaign?.playerCharacters,
+    session?.partyLevel,
+  );
   const partySize = partyLevels.length;
   const averageLevel =
     Math.round(

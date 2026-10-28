@@ -150,6 +150,8 @@ export interface NotesQuery {
   q?: string;
   /** '' (all) | 'campaign' | 'session:<id>' | 'scene:<id>'. */
   anchor?: string;
+  /** When true, only shared handouts and notes with audience !== 'none' are included. */
+  isPlayerView?: boolean;
 }
 
 /**
@@ -175,6 +177,14 @@ export function buildNotesModel(
     .map((entry) => entry.note);
   const rows = sorted
     .filter((note) => {
+      if (
+        query.isPlayerView &&
+        (note.audience === 'none' ||
+          (note as { audience?: string }).audience === 'hidden' ||
+          (note as { visibility?: string }).visibility === 'dm-only')
+      ) {
+        return false;
+      }
       if (query.anchor && anchorKey(note.anchor) !== query.anchor) return false;
       if (!needle) return true;
       return (
@@ -190,7 +200,14 @@ export function buildNotesModel(
       shared: isShared(note),
     }));
   return {
-    total: bundle.notes.length,
+    total: query.isPlayerView
+      ? bundle.notes.filter(
+          (n) =>
+            n.audience !== 'none' &&
+            (n as { audience?: string }).audience !== 'hidden' &&
+            (n as { visibility?: string }).visibility !== 'dm-only',
+        ).length
+      : bundle.notes.length,
     rows,
     anchorOptions: filterOptions(bundle),
   };

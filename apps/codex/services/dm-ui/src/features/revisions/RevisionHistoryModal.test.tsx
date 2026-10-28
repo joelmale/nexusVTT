@@ -185,8 +185,8 @@ describe('RevisionHistoryModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('falls back to synthetic revisions if server returns empty', async () => {
-    vi.spyOn(api, 'fetchObjectRevisions').mockResolvedValue([]);
+  it('renders honest empty state when server campaign returns no revisions (never fabricates synthetic revisions)', async () => {
+    const fetchSpy = vi.spyOn(api, 'fetchObjectRevisions').mockResolvedValue([]);
 
     renderInSection(
       <RevisionHistoryModal
@@ -200,11 +200,78 @@ describe('RevisionHistoryModal', () => {
         onClose={vi.fn()}
         title="Dragon Hoard"
       />,
-      { store: mockStore() },
+      { store: mockStore({ editable: true }) },
+    );
+
+    expect(
+      await screen.findByText('No revision history recorded for this object yet.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Past Snapshots (0)')).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /Restore Rev/i })).not.toBeInTheDocument();
+  });
+
+  it('renders honest error state with Retry button when server fetch throws (never fabricates synthetic revisions)', async () => {
+    const fetchSpy = vi
+      .spyOn(api, 'fetchObjectRevisions')
+      .mockRejectedValueOnce(new Error('Network failure'))
+      .mockResolvedValueOnce(sampleRevisions);
+
+    const { user } = renderInSection(
+      <RevisionHistoryModal
+        currentDraft={{
+          name: 'Vaelin Frost',
+          notes: 'Current working notes.',
+        }}
+        isOpen={true}
+        kind="npc"
+        objectId="npc-1"
+        onClose={vi.fn()}
+        title="Vaelin Frost"
+      />,
+      { store: mockStore({ editable: true }) },
+    );
+
+    expect(
+      await screen.findByText('Unable to load revision history from server.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Past Snapshots (0)')).toBeInTheDocument();
+    expect(screen.queryByText(/Rev #3/)).not.toBeInTheDocument();
+
+    const retryBtn = screen.getByRole('button', { name: 'Retry' });
+    await user.click(retryBtn);
+
+    expect(await screen.findByText('Past Snapshots (2)')).toBeInTheDocument();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses synthetic demo revisions without calling server and disables restore when store is read-only (!store.editable)', async () => {
+    const fetchSpy = vi.spyOn(api, 'fetchObjectRevisions');
+    const updateItem = vi.fn();
+
+    const { user } = renderInSection(
+      <RevisionHistoryModal
+        currentDraft={{
+          title: 'Dragon Hoard',
+          notes: 'Mountains of gold.',
+        }}
+        isOpen={true}
+        kind="encounter"
+        objectId="enc-test"
+        onClose={vi.fn()}
+        title="Dragon Hoard"
+      />,
+      { store: mockStore({ editable: false, updateItem }) },
     );
 
     expect(await screen.findByText('Past Snapshots (3)')).toBeInTheDocument();
     expect(screen.getByText('Rev #3 (Current)')).toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    await user.click(screen.getByText('Rev #2'));
+    const restoreBtn = screen.getByRole('button', { name: 'Restore Rev #2' });
+    expect(restoreBtn).toBeDisabled();
+    expect(updateItem).not.toHaveBeenCalled();
   });
 
   it('closes on close button click', async () => {

@@ -6,13 +6,43 @@ import X from 'lucide-react/dist/esm/icons/x';
 import { useEffect, useId, useState } from 'react';
 
 import type { CampaignFixtureBundle } from '../../../demo/fixture-registry';
-import type { CampaignItemHolderKind } from '../../../demo/fixture-registry/types';
+import type {
+  CampaignItemHolderKind,
+  CampaignItemType,
+} from '../../../demo/fixture-registry/types';
 import type { BundleStore } from '../../section-shell/bundleStore';
 import { RarityBadge } from '../RarityBadge';
 import type { SrdItem } from '../useSrdCatalog';
 import { rollTreasure, type RolledTreasureResult } from './hoardRoller';
 import type { TreasureTier, TreasureType } from './tables2024';
 import styles from './HoardBuilderModal.module.css';
+
+const MAGIC_ITEM_TYPE_MAP: Record<string, CampaignItemType> = {
+  weapon: 'weapon',
+  armor: 'armor',
+  shield: 'shield',
+  wondrous: 'wondrous_item',
+  wondrous_item: 'wondrous_item',
+  ring: 'wondrous_item',
+  rod: 'wondrous_item',
+  staff: 'wondrous_item',
+  wand: 'wondrous_item',
+  potion: 'potion',
+  scroll: 'scroll',
+  spellbook: 'spellbook',
+  tool: 'tool',
+  ammunition: 'ammunition',
+  adventuring_gear: 'adventuring_gear',
+  treasure: 'treasure',
+  other: 'other',
+};
+
+export function mapHoardMagicItemType(
+  rawType: string | undefined,
+): CampaignItemType {
+  if (!rawType) return 'wondrous_item';
+  return MAGIC_ITEM_TYPE_MAP[rawType.toLowerCase()] ?? 'wondrous_item';
+}
 
 export interface HoardBuilderModalProps {
   isOpen: boolean;
@@ -71,7 +101,9 @@ export function HoardBuilderModal({
     if (!result || isAdding) return;
     setIsAdding(true);
 
-    let holder: { kind: CampaignItemHolderKind; id: string } | undefined;
+    let holder: { kind: CampaignItemHolderKind; id?: string } = {
+      kind: 'none',
+    };
     if (selectedHolderId !== 'unassigned') {
       // Check party characters
       const isPc = bundle.campaign.playerCharacters.some((pc) => pc.id === selectedHolderId);
@@ -104,8 +136,9 @@ export function HoardBuilderModal({
 
       await store.addItem('item', {
         name: `Coin Hoard (${result.coins.totalGp.toLocaleString()} gp)`,
-        type: 'loot',
+        itemType: 'treasure',
         rarity: 'common',
+        requiresAttunement: false,
         valueGp: result.coins.totalGp,
         quantity: 1,
         description: `Treasure coins: ${coinDesc}`,
@@ -121,8 +154,9 @@ export function HoardBuilderModal({
     for (const val of result.valuables) {
       await store.addItem('item', {
         name: val.name,
-        type: val.category === 'gem' ? 'gem' : 'loot',
+        itemType: 'treasure',
         rarity: 'common',
+        requiresAttunement: false,
         valueGp: val.unitGp,
         quantity: val.count,
         description: `Rolled from ${result.tier} treasure hoard (${val.totalGp} gp total).`,
@@ -138,10 +172,11 @@ export function HoardBuilderModal({
     for (const item of result.magicItems) {
       await store.addItem('item', {
         name: item.name,
-        type: item.type,
+        itemType: mapHoardMagicItemType(item.type),
         rarity: item.rarity,
+        requiresAttunement: Boolean(item.attunement),
         valueGp: item.valueGp,
-        attunement: item.attunement,
+        quantity: 1,
         description: item.description || `Rolled from ${result.tier} treasure hoard.`,
         source: item.sourceCompendiumId
           ? { ruleset: '2024', entityId: item.sourceCompendiumId }

@@ -94,6 +94,7 @@
 }
 
 .navItem,
+.utilityItem,
 .settings {
   align-items: center;
   background: transparent;
@@ -102,7 +103,7 @@
   color: inherit;
   cursor: pointer;
   display: flex;
-  flex: 0 0 40px;
+  flex: 0 0 38px;
   font-size: 13px;
   gap: 16px;
   padding: 0 10px;
@@ -111,6 +112,7 @@
 }
 
 .navItem:hover,
+.utilityItem:hover,
 .settings:hover,
 .navActive {
   background: var(--studio-chrome-raised);
@@ -148,9 +150,11 @@
   opacity: 0.45;
 }
 
-.settings {
-  border-radius: 0;
+.railFooter {
   border-top: 1px solid var(--studio-chrome-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   margin-top: auto;
-  padding-top: 9px;
+  padding-top: 8px;
 }

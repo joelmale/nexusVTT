@@ -75,17 +75,18 @@ describe('RichEntityRow', () => {
     const handleToggle = vi.fn();
     render(
       <RichEntityRow
+        id="quest-1"
         title="Important Quest"
-        isPinned={false}
+        pinned={false}
         onTogglePin={handleToggle}
       />,
     );
 
-    const pinBtn = screen.getByRole('button', { name: 'Pin item to top' });
+    const pinBtn = screen.getByRole('button', { name: 'Pin' });
     expect(pinBtn).toHaveAttribute('aria-pressed', 'false');
 
     fireEvent.click(pinBtn);
-    expect(handleToggle).toHaveBeenCalledTimes(1);
+    expect(handleToggle).toHaveBeenCalledWith('quest-1');
   });
 
   it('renders interactive pin button when already pinned with proper aria-label', () => {
@@ -93,12 +94,12 @@ describe('RichEntityRow', () => {
     render(
       <RichEntityRow
         title="Important Quest"
-        isPinned={true}
+        pinned={true}
         onTogglePin={handleToggle}
       />,
     );
 
-    const pinBtn = screen.getByRole('button', { name: 'Unpin item' });
+    const pinBtn = screen.getByRole('button', { name: 'Unpin' });
     expect(pinBtn).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.click(pinBtn);

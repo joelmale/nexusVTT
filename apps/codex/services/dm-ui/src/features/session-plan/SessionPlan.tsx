@@ -7,6 +7,7 @@ import Eye from 'lucide-react/dist/esm/icons/eye';
 import FilePenLine from 'lucide-react/dist/esm/icons/file-pen-line';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
+import Link2 from 'lucide-react/dist/esm/icons/link-2';
 import ListFilter from 'lucide-react/dist/esm/icons/list-filter';
 import MessageSquareText from 'lucide-react/dist/esm/icons/message-square-text';
 import MoreHorizontal from 'lucide-react/dist/esm/icons/more-horizontal';
@@ -17,11 +18,24 @@ import Search from 'lucide-react/dist/esm/icons/search';
 import Send from 'lucide-react/dist/esm/icons/send';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Swords from 'lucide-react/dist/esm/icons/swords';
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import UserRound from 'lucide-react/dist/esm/icons/user-round';
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { CapabilityId } from '@/features/capability-notice';
+import {
+  createEmptyBundle,
+  type CampaignFixtureBundle,
+  type CampaignSession,
+} from '@/demo/fixture-registry';
+import { RevisionHistoryModal } from '@/features/revisions/RevisionHistoryModal';
+import { createReadOnlyStore } from '@/features/section-shell/bundleStore';
+import {
+  SectionContext,
+  type SectionContextValue,
+} from '@/features/section-shell/SectionContext';
+import { RunSheetExportModal } from '@/features/sessions/export/RunSheetExportModal';
 
 import type {
   LibraryObject,
@@ -32,6 +46,8 @@ import type {
 import styles from './SessionPlan.module.css';
 
 interface SessionPlanProps {
+  bundle?: CampaignFixtureBundle;
+  session?: CampaignSession;
   onAuthoringChange?: (
     patch: Partial<import('@/demo/ashes-of-veyra/types').SessionPlan>,
   ) => void;
@@ -54,6 +70,51 @@ interface SessionPlanProps {
 type WorkspaceTab = 'run-sheet' | 'notes' | 'player-facing' | 'attachments';
 type InspectorTab = 'details' | 'references' | 'chat-prep';
 
+export type StepCommandType =
+  | 'reminder'
+  | 'open-scene'
+  | 'deploy-encounter'
+  | 'share-handout'
+  | 'reveal-entry';
+
+export function toCommandSelectValue(command: string): StepCommandType {
+  const norm = command.toLowerCase().trim();
+  if (
+    norm === 'deploy encounter' ||
+    norm === 'deploy-encounter' ||
+    norm === 'encounter'
+  ) {
+    return 'deploy-encounter';
+  }
+  if (
+    norm === 'activate scene' ||
+    norm === 'open-scene' ||
+    norm === 'activate-scene' ||
+    norm === 'scene'
+  ) {
+    return 'open-scene';
+  }
+  if (
+    norm === 'share handout' ||
+    norm === 'share-handout' ||
+    norm === 'handout'
+  ) {
+    return 'share-handout';
+  }
+  if (
+    norm === 'reveal-entry' ||
+    norm === 'reveal entry' ||
+    norm === 'open-entry' ||
+    norm === 'open note' ||
+    norm === 'opening recap' ||
+    norm === 'lore' ||
+    norm === 'npc'
+  ) {
+    return 'reveal-entry';
+  }
+  return 'reminder';
+}
+
 const TYPE_ICONS: Record<LibraryObjectType, typeof FileText> = {
   encounter: Swords,
   handout: FileText,
@@ -62,7 +123,23 @@ const TYPE_ICONS: Record<LibraryObjectType, typeof FileText> = {
   scene: Sparkles,
 };
 
+interface ReferencedEntityItem {
+  id: string;
+  title: string;
+  kind: string;
+  type: LibraryObjectType;
+  source: string;
+}
+
+interface BacklinkItem {
+  id: string;
+  title: string;
+  kind: string;
+}
+
 export function SessionPlan({
+  bundle,
+  session,
   onAuthoringChange,
   onSaveDraft,
   isSaving = false,
@@ -79,12 +156,16 @@ export function SessionPlan({
   publishState = 'idle',
   activateState = 'idle',
 }: SessionPlanProps) {
+  const sectionContext = useContext(SectionContext);
   const [libraryTab, setLibraryTab] = useState<'campaign' | 'compendium'>(
     'campaign',
   );
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('run-sheet');
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('details');
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<LibraryObjectType | 'all'>('all');
+  const [folderFilter, setFolderFilter] = useState<string | null>(null);
+
   const [selectedObjectId, setSelectedObjectId] = useState(
     model.recentObjects[0]?.id ?? '',
   );
@@ -103,18 +184,239 @@ export function SessionPlan({
   );
   const [notes, setNotes] = useState(model.notes);
   const [playerFacing, setPlayerFacing] = useState(model.playerFacing);
+  const [attachments, setAttachments] = useState<LibraryObject[]>(
+    model.attachments,
+  );
+
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const libraryObjects =
     libraryTab === 'campaign' ? model.recentObjects : model.compendiumObjects;
+
+  const availableEntities = useMemo(() => {
+    const map = new Map<string, LibraryObject>();
+    model.recentObjects.forEach((o) => map.set(o.id, o));
+    model.compendiumObjects.forEach((o) => map.set(o.id, o));
+    if (bundle) {
+      bundle.libraryObjects.forEach((o) => {
+        if (!map.has(o.id)) {
+          map.set(o.id, {
+            id: o.id,
+            title: o.title,
+            subtitle:
+              (o as { subtitle?: string }).subtitle ??
+              (o as { updatedLabel?: string }).updatedLabel ??
+              o.kind,
+            type:
+              o.kind === 'faction' || o.kind === 'quest'
+                ? 'lore'
+                : (o.kind as LibraryObjectType),
+          });
+        }
+      });
+    }
+    return Array.from(map.values());
+  }, [model.recentObjects, model.compendiumObjects, bundle]);
+
   const filteredObjects = useMemo(() => {
+    let list = libraryObjects;
+    if (typeFilter !== 'all') {
+      list = list.filter((item) => item.type === typeFilter);
+    }
+    if (folderFilter) {
+      const childLabel = (folderFilter.includes('::')
+        ? folderFilter.split('::')[1]
+        : folderFilter.split('-').pop() || '')
+        .toLowerCase();
+      const singular = childLabel.replace(/s$/, '');
+      list = list.filter((item) => {
+        return (
+          item.type.toLowerCase() === singular ||
+          item.title.toLowerCase().includes(singular) ||
+          item.subtitle.toLowerCase().includes(singular)
+        );
+      });
+    }
     const query = search.trim().toLowerCase();
-    if (!query) return libraryObjects;
-    return libraryObjects.filter((item) =>
-      `${item.title} ${item.subtitle} ${item.type}`
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [libraryObjects, search]);
+    if (query) {
+      list = list.filter((item) =>
+        `${item.title} ${item.subtitle} ${item.type}`
+          .toLowerCase()
+          .includes(query),
+      );
+    }
+    return list;
+  }, [libraryObjects, typeFilter, folderFilter, search]);
+
+  const selectedObject = useMemo(
+    () => filteredObjects.find((item) => item.id === selectedObjectId),
+    [filteredObjects, selectedObjectId],
+  );
+
+  const referencedEntities = useMemo<ReferencedEntityItem[]>(() => {
+    const map = new Map<string, ReferencedEntityItem>();
+
+    for (const step of steps) {
+      if (step.objectId) {
+        const found = availableEntities.find((o) => o.id === step.objectId);
+        map.set(step.objectId, {
+          id: step.objectId,
+          kind: found?.subtitle ?? found?.type ?? 'Object',
+          source: `Step: ${step.title}`,
+          title: found?.title ?? step.referenceLabel ?? step.objectId,
+          type: found?.type ?? 'lore',
+        });
+      }
+      if (step.encounterId && step.encounterId !== step.objectId) {
+        const found = availableEntities.find((o) => o.id === step.encounterId);
+        map.set(step.encounterId, {
+          id: step.encounterId,
+          kind: 'Encounter',
+          source: `Step: ${step.title}`,
+          title: found?.title ?? 'Encounter',
+          type: 'encounter',
+        });
+      }
+      if (step.sceneTemplateId && step.sceneTemplateId !== step.objectId) {
+        const found = availableEntities.find(
+          (o) => o.id === step.sceneTemplateId,
+        );
+        map.set(step.sceneTemplateId, {
+          id: step.sceneTemplateId,
+          kind: 'Scene',
+          source: `Step: ${step.title}`,
+          title: found?.title ?? 'Scene',
+          type: 'scene',
+        });
+      }
+      if (step.mapId && !map.has(step.mapId)) {
+        map.set(step.mapId, {
+          id: step.mapId,
+          kind: 'Map',
+          source: `Step: ${step.title}`,
+          title: `Map: ${step.mapId}`,
+          type: 'scene',
+        });
+      }
+      if (step.referenceLabel && !step.objectId) {
+        const key = `ref-${step.referenceLabel}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            id: key,
+            kind: 'Mentioned entity',
+            source: `Step: ${step.title}`,
+            title: step.referenceLabel,
+            type: 'npc',
+          });
+        }
+      }
+    }
+
+    for (const dep of dependencies) {
+      if (!map.has(dep.id)) {
+        map.set(dep.id, {
+          id: dep.id,
+          kind: dep.kind,
+          source: 'Dependency',
+          title: dep.label,
+          type:
+            dep.kind === 'encounter'
+              ? 'encounter'
+              : dep.kind === 'scene'
+                ? 'scene'
+                : 'lore',
+        });
+      }
+    }
+
+    for (const att of attachments) {
+      if (!map.has(att.id)) {
+        map.set(att.id, {
+          id: att.id,
+          kind: att.subtitle || 'Attachment',
+          source: 'Attachment',
+          title: att.title,
+          type: att.type,
+        });
+      }
+    }
+
+    return Array.from(map.values());
+  }, [steps, availableEntities, dependencies, attachments]);
+
+  const backlinks = useMemo<BacklinkItem[]>(() => {
+    const list: BacklinkItem[] = [];
+    list.push({
+      id: 'campaign-root',
+      kind: 'Campaign',
+      title: model.campaignTitle,
+    });
+    if (model.breadcrumb) {
+      list.push({
+        id: 'session-nav',
+        kind: 'Navigation',
+        title: model.breadcrumb,
+      });
+    }
+    for (const folder of model.folders) {
+      list.push({
+        id: folder.id,
+        kind: 'Campaign Structure',
+        title: folder.title,
+      });
+    }
+    return list;
+  }, [model.campaignTitle, model.breadcrumb, model.folders]);
+
+  const effectiveSession: CampaignSession = useMemo(() => {
+    if (session) return session;
+    return {
+      actId: 'act-1',
+      campaignId: 'campaign-1',
+      clueIds: [],
+      encounterIds: [],
+      factionIds: [],
+      handoutIds: [],
+      id: model.sessionId ?? 'session-1',
+      locationIds: [],
+      npcIds: [],
+      number: 1,
+      partyLevel: model.partyLevel,
+      plannedDate: model.dateLabel,
+      questIds: [],
+      status: 'planned',
+      summary: '',
+      tags: model.tags,
+      title: model.title,
+    };
+  }, [session, model]);
+
+  const effectiveBundle: CampaignFixtureBundle = useMemo(() => {
+    if (bundle) return bundle;
+    const empty = createEmptyBundle({
+      createdAt: new Date().toISOString(),
+      description: model.campaignDescription ?? '',
+      edition: '2024',
+      id: 'campaign-1',
+      name: model.campaignTitle,
+      updatedAt: new Date().toISOString(),
+    });
+    return {
+      ...empty,
+      features: { publishSessionPlans: true },
+      sessions: [effectiveSession],
+    };
+  }, [bundle, model, effectiveSession]);
+
+  const effectiveContext: SectionContextValue = useMemo(() => {
+    if (sectionContext) return sectionContext;
+    return {
+      basePath: model.backHref ? model.backHref.replace(/\/sessions$/, '') : '',
+      bundle: effectiveBundle,
+      store: createReadOnlyStore(effectiveBundle),
+    };
+  }, [sectionContext, effectiveBundle, model.backHref]);
 
   const completedChecks = checklist.filter((item) => item.complete).length;
   const publishDisabled =
@@ -167,6 +469,16 @@ export function SessionPlan({
     onDirty?.();
   }
 
+  function deleteStep(stepId: string) {
+    const next = steps.filter((step) => step.id !== stepId);
+    setSteps(next);
+    if (selectedStepId === stepId) {
+      setSelectedStepId(next[0]?.id ?? '');
+    }
+    onStepsChange?.(next);
+    onDirty?.();
+  }
+
   function setStepTrack(stepId: string, track: SessionStepViewModel['track']) {
     const next = steps.map((step) =>
       step.id === stepId ? { ...step, track } : step,
@@ -182,6 +494,105 @@ export function SessionPlan({
     );
     setSteps(next);
     onStepsChange?.(next);
+    onDirty?.();
+  }
+
+  function handleInsertObjectIntoPlan() {
+    if (!selectedObject) return;
+    const cmd: StepCommandType =
+      selectedObject.type === 'encounter'
+        ? 'deploy-encounter'
+        : selectedObject.type === 'scene'
+          ? 'open-scene'
+          : selectedObject.type === 'handout'
+            ? 'share-handout'
+            : 'reveal-entry';
+
+    const newStep: SessionStepViewModel = {
+      body: `Reference: ${selectedObject.title}`,
+      command: cmd,
+      durationMinutes: 10,
+      id: `inserted-step-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      objectId: selectedObject.id,
+      referenceLabel: selectedObject.title,
+      title: selectedObject.title,
+      track: 'main',
+      visibility,
+      ...(selectedObject.type === 'encounter'
+        ? { encounterId: selectedObject.id }
+        : {}),
+      ...(selectedObject.type === 'scene'
+        ? { sceneTemplateId: selectedObject.id }
+        : {}),
+    };
+
+    const next = [...steps, newStep];
+    setSteps(next);
+    setSelectedStepId(newStep.id);
+    onStepsChange?.(next);
+    onDirty?.();
+  }
+
+  function handleLinkObjectToActiveStep() {
+    if (!selectedObject || !selectedStepId) return;
+    const cmd: StepCommandType =
+      selectedObject.type === 'encounter'
+        ? 'deploy-encounter'
+        : selectedObject.type === 'scene'
+          ? 'open-scene'
+          : selectedObject.type === 'handout'
+            ? 'share-handout'
+            : 'reveal-entry';
+
+    const next = steps.map((step) => {
+      if (step.id !== selectedStepId) return step;
+      return {
+        ...step,
+        command: cmd,
+        objectId: selectedObject.id,
+        referenceLabel: selectedObject.title,
+        ...(selectedObject.type === 'encounter'
+          ? { encounterId: selectedObject.id }
+          : {}),
+        ...(selectedObject.type === 'scene'
+          ? { sceneTemplateId: selectedObject.id }
+          : {}),
+      };
+    });
+    setSteps(next);
+    onStepsChange?.(next);
+    onDirty?.();
+  }
+
+  function handleEstimateAll() {
+    const updatedSteps = steps.map((step) => {
+      if (!step.durationMinutes || step.durationMinutes <= 0) {
+        return { ...step, durationMinutes: 10 };
+      }
+      return step;
+    });
+    const sumMinutes = updatedSteps.reduce(
+      (acc, step) => acc + (step.durationMinutes || 0),
+      0,
+    );
+    setSteps(updatedSteps);
+    onStepsChange?.(updatedSteps);
+    onAuthoringChange?.({ estimatedMinutes: sumMinutes });
+    onDirty?.();
+  }
+
+  function handleRemoveAttachment(id: string) {
+    const next = attachments.filter((att) => att.id !== id);
+    setAttachments(next);
+    onAuthoringChange?.({ attachments: next.map((a) => a.id) });
+    onDirty?.();
+  }
+
+  function handleAddAttachment(objectToAdd: LibraryObject) {
+    if (attachments.some((a) => a.id === objectToAdd.id)) return;
+    const next = [...attachments, objectToAdd];
+    setAttachments(next);
+    onAuthoringChange?.({ attachments: next.map((a) => a.id) });
     onDirty?.();
   }
 
@@ -216,13 +627,59 @@ export function SessionPlan({
 
         <div className={styles.libraryScroll}>
           <section className={styles.typeList} aria-label="Object types">
-            {model.counts.map((count) => (
-              <button key={count.type} type="button">
-                <span>{count.label}</span>
-                <span className={styles.count}>{count.count}</span>
-              </button>
-            ))}
+            {model.counts.map((count) => {
+              const isSelected =
+                typeFilter === count.type && folderFilter === null;
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={isSelected ? styles.activeTypeFilter : ''}
+                  key={count.type}
+                  onClick={() => {
+                    setTypeFilter(count.type);
+                    setFolderFilter(null);
+                  }}
+                  type="button"
+                >
+                  <span>{count.label}</span>
+                  <span className={styles.count}>{count.count}</span>
+                </button>
+              );
+            })}
           </section>
+
+          {selectedObject && (
+            <div
+              aria-label={`Selected: ${selectedObject.title}`}
+              className={styles.selectedObjectPanel}
+            >
+              <div className={styles.selectedObjectHeader}>
+                <span className={styles.selectedObjectBadge}>
+                  {selectedObject.type}
+                </span>
+                <span className={styles.selectedObjectTitle}>
+                  {selectedObject.title}
+                </span>
+              </div>
+              <div className={styles.selectedObjectActions}>
+                <button
+                  className={styles.objectActionButton}
+                  onClick={handleInsertObjectIntoPlan}
+                  type="button"
+                >
+                  <Plus size={13} /> Insert into Plan
+                </button>
+                <button
+                  className={styles.objectActionButton}
+                  disabled={!selectedStepId}
+                  onClick={handleLinkObjectToActiveStep}
+                  type="button"
+                >
+                  <Link2 size={13} /> Link to active step
+                </button>
+              </div>
+            </div>
+          )}
 
           <section className={styles.librarySection}>
             <div className={styles.sectionLabel}>Recent objects</div>
@@ -240,7 +697,10 @@ export function SessionPlan({
           </section>
 
           {libraryTab === 'campaign' && (
-            <section className={styles.librarySection}>
+            <section
+              aria-label="Campaign structure"
+              className={styles.librarySection}
+            >
               <div className={styles.sectionLabel}>Campaign structure</div>
               {model.folders.map((folder) => {
                 const expanded = expandedFolders.has(folder.id);
@@ -264,12 +724,31 @@ export function SessionPlan({
                     </button>
                     {expanded && folder.childCounts && (
                       <div className={styles.folderChildren}>
-                        {folder.childCounts.map((child) => (
-                          <button key={child.label} type="button">
-                            <span>{child.label}</span>
-                            <span>{child.count}</span>
-                          </button>
-                        ))}
+                        {folder.childCounts.map((child) => {
+                          const key = `${folder.id}::${child.label}`;
+                          const isChildSelected = folderFilter === key;
+                          return (
+                            <button
+                              aria-pressed={isChildSelected}
+                              className={
+                                isChildSelected ? styles.activeFolderChild : ''
+                              }
+                              key={child.label}
+                              onClick={() => {
+                                if (isChildSelected) {
+                                  setFolderFilter(null);
+                                } else {
+                                  setFolderFilter(key);
+                                  setTypeFilter('all');
+                                }
+                              }}
+                              type="button"
+                            >
+                              <span>{child.label}</span>
+                              <span>{child.count}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -348,6 +827,7 @@ export function SessionPlan({
             ))}
           </div>
         </header>
+
         <div className={styles.commandBar}>
           {onSaveDraft && (
             <button
@@ -360,6 +840,7 @@ export function SessionPlan({
             </button>
           )}
         </div>
+
         {workspaceTab === 'run-sheet' ? (
           <div className={styles.runSheet}>
             <div className={styles.commandBar}>
@@ -382,14 +863,14 @@ export function SessionPlan({
               </button>
               <button
                 className={styles.secondaryButton}
-                onClick={() => onCapability('session-plan.preview')}
+                onClick={handleEstimateAll}
                 type="button"
               >
                 <Clock3 size={15} /> Estimate All
               </button>
               <button
                 className={styles.secondaryButton}
-                onClick={() => onCapability('session-plan.preview')}
+                onClick={() => setIsPreviewOpen(true)}
                 type="button"
               >
                 <Eye size={15} /> Preview
@@ -404,16 +885,18 @@ export function SessionPlan({
                   const selected = step.id === selectedStepId;
                   return (
                     <StepRow
+                      availableEntities={availableEntities}
                       index={index}
                       isSelected={selected}
                       key={step.id}
-                      onSelect={() => setSelectedStepId(step.id)}
-                      onMoveUp={() => moveStep(step.id, -1)}
+                      onDelete={() => deleteStep(step.id)}
+                      onEdit={(patch) => editStep(step.id, patch)}
                       onMoveDown={() => moveStep(step.id, 1)}
+                      onMoveUp={() => moveStep(step.id, -1)}
+                      onSelect={() => setSelectedStepId(step.id)}
+                      onTrackChange={(track) => setStepTrack(step.id, track)}
                       reorderMode={reorderMode}
                       step={step}
-                      onTrackChange={(track) => setStepTrack(step.id, track)}
-                      onEdit={(patch) => editStep(step.id, patch)}
                       totalMainSteps={
                         steps.filter((s) => s.track === 'main').length
                       }
@@ -436,19 +919,21 @@ export function SessionPlan({
                       const selected = step.id === selectedStepId;
                       return (
                         <StepRow
+                          availableEntities={availableEntities}
                           index={index}
-                          isSelected={selected}
                           isParallel
+                          isSelected={selected}
                           key={step.id}
-                          onSelect={() => setSelectedStepId(step.id)}
-                          onMoveUp={() => moveStep(step.id, -1)}
+                          onDelete={() => deleteStep(step.id)}
+                          onEdit={(patch) => editStep(step.id, patch)}
                           onMoveDown={() => moveStep(step.id, 1)}
-                          reorderMode={reorderMode}
-                          step={step}
+                          onMoveUp={() => moveStep(step.id, -1)}
+                          onSelect={() => setSelectedStepId(step.id)}
                           onTrackChange={(track) =>
                             setStepTrack(step.id, track)
                           }
-                          onEdit={(patch) => editStep(step.id, patch)}
+                          reorderMode={reorderMode}
+                          step={step}
                           totalMainSteps={
                             steps.filter((s) => s.track === 'parallel').length
                           }
@@ -461,6 +946,16 @@ export function SessionPlan({
           </div>
         ) : (
           <WorkspacePlaceholder
+            attachments={attachments}
+            availableObjects={availableEntities}
+            body={
+              workspaceTab === 'notes'
+                ? notes
+                : workspaceTab === 'player-facing'
+                  ? playerFacing
+                  : undefined
+            }
+            onAddAttachment={handleAddAttachment}
             onChange={
               workspaceTab === 'notes'
                 ? (value) => {
@@ -476,14 +971,7 @@ export function SessionPlan({
                     }
                   : undefined
             }
-            attachments={model.attachments}
-            body={
-              workspaceTab === 'notes'
-                ? notes
-                : workspaceTab === 'player-facing'
-                  ? playerFacing
-                  : undefined
-            }
+            onRemoveAttachment={handleRemoveAttachment}
             tab={workspaceTab}
           />
         )}
@@ -580,6 +1068,9 @@ export function SessionPlan({
               type="button"
             >
               {label}
+              {tab === 'chat-prep' && (
+                <span className={styles.betaBadge}>Experimental</span>
+              )}
             </button>
           ))}
         </div>
@@ -591,94 +1082,171 @@ export function SessionPlan({
             <p>{model.lastEditedLabel}</p>
             <button
               className={styles.textButton}
-              onClick={() => onCapability('campaign.object.history')}
+              onClick={() => setIsHistoryOpen(true)}
               type="button"
             >
               View history
             </button>
           </div>
 
-          <InspectorSection title="Dependencies">
-            {dependencies.map((dependency) => (
-              <div className={styles.checkRow} key={dependency.id}>
-                <span
-                  className={
-                    dependency.ready ? styles.checkOn : styles.checkOff
-                  }
-                >
-                  {dependency.ready && <Check size={12} />}
-                </span>
-                <span>
-                  <strong>{dependency.label}</strong>
-                  <small>{dependency.kind}</small>
-                </span>
-              </div>
-            ))}
-          </InspectorSection>
+          {inspectorTab === 'references' ? (
+            <div
+              aria-label="References inspector"
+              className={styles.referencesPane}
+              role="region"
+            >
+              <InspectorSection
+                title={`Referenced Entities (${referencedEntities.length})`}
+              >
+                {referencedEntities.length === 0 ? (
+                  <p className={styles.empty}>
+                    No entities referenced in this plan.
+                  </p>
+                ) : (
+                  <div className={styles.referencesList}>
+                    {referencedEntities.map((entity) => {
+                      const Icon = TYPE_ICONS[entity.type] ?? FileText;
+                      return (
+                        <div
+                          className={styles.referenceItem}
+                          key={entity.id}
+                        >
+                          <span className={styles.referenceIcon}>
+                            <Icon size={14} />
+                          </span>
+                          <div className={styles.referenceDetails}>
+                            <strong>{entity.title}</strong>
+                            <small>
+                              {entity.kind} · {entity.source}
+                            </small>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </InspectorSection>
 
-          <InspectorSection
-            title={`Readiness ${completedChecks}/${checklist.length}`}
-          >
-            <div className={styles.progressTrack}>
-              <span
-                style={{
-                  width: `${(completedChecks / checklist.length) * 100}%`,
-                }}
-              />
+              <InspectorSection
+                title={`Backlinks (${backlinks.length})`}
+              >
+                <div className={styles.backlinksList}>
+                  {backlinks.map((link) => (
+                    <div className={styles.backlinkItem} key={link.id}>
+                      <strong>{link.title}</strong>
+                      <small>{link.kind}</small>
+                    </div>
+                  ))}
+                </div>
+              </InspectorSection>
             </div>
-            {checklist.map((item) => (
-              <label className={styles.checklistRow} key={item.id}>
-                <input
-                  checked={item.complete}
-                  onChange={() => {
-                    const next = checklist.map((check) =>
-                      check.id === item.id
-                        ? { ...check, complete: !check.complete }
-                        : check,
-                    );
-                    setChecklist(next);
-                    onAuthoringChange?.({ readiness: next });
-                    onDirty?.();
-                  }}
-                  type="checkbox"
-                />
-                {item.label}
-              </label>
-            ))}
-          </InspectorSection>
+          ) : inspectorTab === 'chat-prep' ? (
+            <div
+              aria-label="Chat prep experimental tab"
+              className={styles.chatPrepPane}
+            >
+              <div className={styles.experimentalBadge}>
+                <Sparkles size={14} /> Experimental Feature
+              </div>
+              <h3>AI Chat Preparation</h3>
+              <p>
+                Conversational session prep with the Codex AI assistant is
+                currently experimental. You can brainstorm encounters,
+                develop NPC personas, and refine narrative pacing.
+              </p>
+              <button
+                className={styles.secondaryButton}
+                onClick={() => onCapability('session-plan.chat-prep')}
+                type="button"
+              >
+                Launch Chat Prep Assistant
+              </button>
+            </div>
+          ) : (
+            <>
+              <InspectorSection title="Dependencies">
+                {dependencies.map((dependency) => (
+                  <div className={styles.checkRow} key={dependency.id}>
+                    <span
+                      className={
+                        dependency.ready ? styles.checkOn : styles.checkOff
+                      }
+                    >
+                      {dependency.ready && <Check size={12} />}
+                    </span>
+                    <span>
+                      <strong>{dependency.label}</strong>
+                      <small>{dependency.kind}</small>
+                    </span>
+                  </div>
+                ))}
+              </InspectorSection>
 
-          <InspectorSection title="Default visibility for new steps">
-            <label className={styles.radioRow}>
-              <input
-                checked={visibility === 'dm-only'}
-                onChange={() => {
-                  setVisibility('dm-only');
-                  onAuthoringChange?.({ defaultVisibility: 'dm-only' });
-                  onDirty?.();
-                }}
-                type="radio"
-              />
-              <span>
-                <strong>DM only</strong>
-                <small>Keep planning details private</small>
-              </span>
-            </label>
-            <label className={styles.radioRow}>
-              <input
-                checked={visibility === 'shared'}
-                onChange={() => {
-                  setVisibility('shared');
-                  onAuthoringChange?.({ defaultVisibility: 'shared' });
-                  onDirty?.();
-                }}
-                type="radio"
-              />
-              <span>
-                <strong>Shared with players</strong>
-                <small>Expose player-facing sections</small>
-              </span>
-            </label>
-          </InspectorSection>
+              <InspectorSection
+                title={`Readiness ${completedChecks}/${checklist.length}`}
+              >
+                <div className={styles.progressTrack}>
+                  <span
+                    style={{
+                      width: `${(completedChecks / checklist.length) * 100}%`,
+                    }}
+                  />
+                </div>
+                {checklist.map((item) => (
+                  <label className={styles.checklistRow} key={item.id}>
+                    <input
+                      checked={item.complete}
+                      onChange={() => {
+                        const next = checklist.map((check) =>
+                          check.id === item.id
+                            ? { ...check, complete: !check.complete }
+                            : check,
+                        );
+                        setChecklist(next);
+                        onAuthoringChange?.({ readiness: next });
+                        onDirty?.();
+                      }}
+                      type="checkbox"
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </InspectorSection>
+
+              <InspectorSection title="Default visibility for new steps">
+                <label className={styles.radioRow}>
+                  <input
+                    checked={visibility === 'dm-only'}
+                    onChange={() => {
+                      setVisibility('dm-only');
+                      onAuthoringChange?.({ defaultVisibility: 'dm-only' });
+                      onDirty?.();
+                    }}
+                    type="radio"
+                  />
+                  <span>
+                    <strong>DM only</strong>
+                    <small>Keep planning details private</small>
+                  </span>
+                </label>
+                <label className={styles.radioRow}>
+                  <input
+                    checked={visibility === 'shared'}
+                    onChange={() => {
+                      setVisibility('shared');
+                      onAuthoringChange?.({ defaultVisibility: 'shared' });
+                      onDirty?.();
+                    }}
+                    type="radio"
+                  />
+                  <span>
+                    <strong>Shared with players</strong>
+                    <small>Expose player-facing sections</small>
+                  </span>
+                </label>
+              </InspectorSection>
+            </>
+          )}
         </div>
 
         <div className={styles.publishArea}>
@@ -743,6 +1311,37 @@ export function SessionPlan({
           )}
         </div>
       </aside>
+
+      {isPreviewOpen && (
+        <RunSheetExportModal
+          bundle={effectiveBundle}
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          session={effectiveSession}
+        />
+      )}
+
+      {isHistoryOpen && (
+        <SectionContext.Provider value={effectiveContext}>
+          <RevisionHistoryModal
+            currentDraft={
+              model.authoring
+                ? (model.authoring as unknown as Record<string, unknown>)
+                : {
+                    checklist,
+                    notes,
+                    playerFacing,
+                    steps,
+                  }
+            }
+            isOpen={isHistoryOpen}
+            kind="session"
+            objectId={model.planId ?? model.sessionId ?? 'session-plan-1'}
+            onClose={() => setIsHistoryOpen(false)}
+            title={model.title}
+          />
+        </SectionContext.Provider>
+      )}
     </div>
   );
 }
@@ -787,24 +1386,38 @@ function InspectorSection({ children, title }: InspectorSectionProps) {
 }
 
 interface WorkspacePlaceholderProps {
-  onChange?: (value: string) => void;
   attachments: LibraryObject[];
+  availableObjects?: LibraryObject[];
   body?: string;
+  onAddAttachment?: (objectToAdd: LibraryObject) => void;
+  onChange?: (value: string) => void;
+  onRemoveAttachment?: (id: string) => void;
   tab: Exclude<WorkspaceTab, 'run-sheet'>;
 }
 
 function WorkspacePlaceholder({
-  onChange,
   attachments,
+  availableObjects = [],
   body,
+  onAddAttachment,
+  onChange,
+  onRemoveAttachment,
   tab,
 }: WorkspacePlaceholderProps) {
+  const [selectedAttachmentId, setSelectedAttachmentId] = useState('');
   const title =
     tab === 'notes'
       ? 'Session Notes'
       : tab === 'player-facing'
         ? 'Player Facing'
         : 'Attachments';
+
+  const unattachedObjects = useMemo(() => {
+    return availableObjects.filter(
+      (obj) => !attachments.some((att) => att.id === obj.id),
+    );
+  }, [availableObjects, attachments]);
+
   return (
     <div className={styles.placeholder}>
       <div className={styles.placeholderIcon}>
@@ -820,54 +1433,187 @@ function WorkspacePlaceholder({
           {title}
           <textarea
             aria-label={title}
-            value={body ?? ''}
             onChange={(event) => onChange(event.target.value)}
+            value={body ?? ''}
           />
         </label>
       ) : (
         body && <p>{body}</p>
       )}
-      {tab === 'attachments' &&
-        attachments.map((item) => (
-          <div className={styles.attachment} key={item.id}>
-            <FileText size={15} />
-            <span>
-              <strong>{item.title}</strong>
-              <small>{item.subtitle}</small>
-            </span>
+      {tab === 'attachments' && (
+        <div className={styles.attachmentsWorkspace}>
+          <div className={styles.attachmentsList}>
+            {attachments.length === 0 ? (
+              <p className={styles.empty}>
+                No attachments in this session plan yet.
+              </p>
+            ) : (
+              attachments.map((item) => {
+                const Icon = TYPE_ICONS[item.type] ?? FileText;
+                return (
+                  <div className={styles.attachment} key={item.id}>
+                    <Icon size={15} />
+                    <span className={styles.attachmentDetails}>
+                      <strong>{item.title}</strong>
+                      <small>{item.subtitle}</small>
+                    </span>
+                    {onRemoveAttachment && (
+                      <button
+                        aria-label={`Remove attachment ${item.title}`}
+                        className={styles.removeAttachmentButton}
+                        onClick={() => onRemoveAttachment(item.id)}
+                        title="Remove attachment"
+                        type="button"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
-        ))}
+          {onAddAttachment && unattachedObjects.length > 0 && (
+            <div className={styles.addAttachmentControls}>
+              <h3>Add Attachment</h3>
+              <div className={styles.addAttachmentRow}>
+                <select
+                  aria-label="Select object to attach"
+                  className={styles.fieldSelect}
+                  onChange={(e) => setSelectedAttachmentId(e.target.value)}
+                  value={selectedAttachmentId}
+                >
+                  <option value="">Choose an object to attach...</option>
+                  {unattachedObjects.map((obj) => (
+                    <option key={obj.id} value={obj.id}>
+                      {obj.title} ({obj.type})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className={styles.secondaryButton}
+                  disabled={!selectedAttachmentId}
+                  onClick={() => {
+                    const obj = unattachedObjects.find(
+                      (o) => o.id === selectedAttachmentId,
+                    );
+                    if (obj) {
+                      onAddAttachment(obj);
+                      setSelectedAttachmentId('');
+                    }
+                  }}
+                  type="button"
+                >
+                  <Plus size={14} /> Attach
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 interface StepRowProps {
-  onEdit?: (patch: Partial<SessionStepViewModel>) => void;
+  availableEntities?: LibraryObject[];
   index: number;
-  isSelected: boolean;
   isParallel?: boolean;
-  onSelect: () => void;
-  onMoveUp: () => void;
+  isSelected: boolean;
+  onDelete?: () => void;
+  onEdit?: (patch: Partial<SessionStepViewModel>) => void;
   onMoveDown: () => void;
+  onMoveUp: () => void;
+  onSelect: () => void;
+  onTrackChange: (track: SessionStepViewModel['track']) => void;
   reorderMode: boolean;
   step: SessionStepViewModel;
-  onTrackChange: (track: SessionStepViewModel['track']) => void;
   totalMainSteps: number;
 }
 
 function StepRow({
-  onEdit,
+  availableEntities,
   index,
-  isSelected,
   isParallel = false,
-  onSelect,
-  onMoveUp,
+  isSelected,
+  onDelete,
+  onEdit,
   onMoveDown,
+  onMoveUp,
+  onSelect,
   onTrackChange,
   reorderMode,
   step,
   totalMainSteps,
 }: StepRowProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const cmdValue = toCommandSelectValue(step.command);
+
+  const availableEntitiesForCmd = useMemo(() => {
+    if (!availableEntities) return [];
+    switch (cmdValue) {
+      case 'deploy-encounter': {
+        const filtered = availableEntities.filter((e) => e.type === 'encounter');
+        return filtered.length > 0 ? filtered : availableEntities;
+      }
+      case 'open-scene': {
+        const filtered = availableEntities.filter((e) => e.type === 'scene');
+        return filtered.length > 0 ? filtered : availableEntities;
+      }
+      case 'share-handout': {
+        const filtered = availableEntities.filter((e) => e.type === 'handout');
+        return filtered.length > 0 ? filtered : availableEntities;
+      }
+      case 'reveal-entry': {
+        const filtered = availableEntities.filter(
+          (e) => e.type === 'lore' || e.type === 'npc',
+        );
+        return filtered.length > 0 ? filtered : availableEntities;
+      }
+      default:
+        return availableEntities;
+    }
+  }, [availableEntities, cmdValue]);
+
+  function handleFormat(wrapper: string) {
+    const textarea = textareaRef.current;
+    if (!textarea || !onEdit) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const val = step.body ?? '';
+    const selectedText = val.substring(start, end);
+    const replacement = selectedText
+      ? `${wrapper}${selectedText}${wrapper}`
+      : `${wrapper}text${wrapper}`;
+    const nextVal =
+      val.substring(0, start) + replacement + val.substring(end);
+    onEdit({ body: nextVal });
+    setTimeout(() => {
+      textarea.focus();
+      const selStart = start + wrapper.length;
+      const selEnd = selStart + (selectedText ? selectedText.length : 4);
+      textarea.setSelectionRange(selStart, selEnd);
+    }, 0);
+  }
+
+  function handleInsertReference() {
+    const textarea = textareaRef.current;
+    if (!textarea || !onEdit) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const val = step.body ?? '';
+    const selectedText = val.substring(start, end);
+    const replacement = selectedText ? `@[${selectedText}]` : '@[';
+    const nextVal =
+      val.substring(0, start) + replacement + val.substring(end);
+    onEdit({ body: nextVal });
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = start + replacement.length;
+      textarea.setSelectionRange(newPos, newPos);
+    }, 0);
+  }
+
   return (
     <article
       className={`${styles.step} ${isSelected ? styles.selectedStep : ''} ${isParallel ? styles.parallelStep : ''}`}
@@ -896,6 +1642,7 @@ function StepRow({
           <span>{step.visibility === 'shared' ? 'Shared' : 'DM only'}</span>
         </span>
       </button>
+
       {reorderMode && (
         <div className={styles.reorderControls}>
           <button disabled={index === 0} onClick={onMoveUp} type="button">
@@ -910,6 +1657,7 @@ function StepRow({
           </button>
         </div>
       )}
+
       {isSelected && (
         <div className={styles.editor}>
           <div className={styles.trackControl}>
@@ -931,47 +1679,178 @@ function StepRow({
               </button>
             </div>
           </div>
+
           {onEdit && (
-            <label>
-              Step visibility
-              <select
-                aria-label={`Visibility for ${step.title}`}
-                value={step.visibility}
-                onChange={(event) =>
-                  onEdit({
-                    visibility: event.target
-                      .value as SessionStepViewModel['visibility'],
-                  })
-                }
-              >
-                <option value="dm-only">DM only</option>
-                <option value="shared">Shared with players</option>
-              </select>
-            </label>
+            <>
+              <label className={styles.editorField}>
+                Step title
+                <input
+                  aria-label={`Title for ${step.title}`}
+                  className={styles.fieldInput}
+                  onChange={(event) => onEdit({ title: event.target.value })}
+                  placeholder="Step title"
+                  type="text"
+                  value={step.title}
+                />
+              </label>
+
+              <label className={styles.editorField}>
+                Duration (minutes)
+                <div className={styles.durationInputGroup}>
+                  <input
+                    aria-label={`Duration for ${step.title}`}
+                    className={styles.fieldInput}
+                    max={480}
+                    min={0}
+                    onChange={(event) =>
+                      onEdit({
+                        durationMinutes: Math.max(
+                          0,
+                          parseInt(event.target.value, 10) || 0,
+                        ),
+                      })
+                    }
+                    type="number"
+                    value={step.durationMinutes}
+                  />
+                  <div className={styles.quickDurationButtons}>
+                    <button
+                      onClick={() =>
+                        onEdit({
+                          durationMinutes: (step.durationMinutes || 0) + 5,
+                        })
+                      }
+                      type="button"
+                    >
+                      +5m
+                    </button>
+                    <button
+                      onClick={() =>
+                        onEdit({
+                          durationMinutes: (step.durationMinutes || 0) + 15,
+                        })
+                      }
+                      type="button"
+                    >
+                      +15m
+                    </button>
+                  </div>
+                </div>
+              </label>
+
+              <label className={styles.editorField}>
+                Command type
+                <select
+                  aria-label={`Command for ${step.title}`}
+                  className={styles.fieldSelect}
+                  onChange={(event) => {
+                    const nextCmd = event.target.value as StepCommandType;
+                    onEdit({
+                      command: nextCmd,
+                    });
+                  }}
+                  value={cmdValue}
+                >
+                  <option value="reminder">Reminder</option>
+                  <option value="open-scene">Activate scene</option>
+                  <option value="deploy-encounter">Deploy encounter</option>
+                  <option value="share-handout">Share handout</option>
+                  <option value="reveal-entry">Reveal entry</option>
+                </select>
+              </label>
+
+              {cmdValue !== 'reminder' && (
+                <label className={styles.editorField}>
+                  Target object
+                  <select
+                    aria-label={`Target entity for ${step.title}`}
+                    className={styles.fieldSelect}
+                    onChange={(event) => {
+                      const selectedId = event.target.value;
+                      if (!selectedId) {
+                        onEdit({
+                          encounterId: undefined,
+                          objectId: undefined,
+                          referenceLabel: undefined,
+                          sceneTemplateId: undefined,
+                        });
+                        return;
+                      }
+                      const targetEntity = availableEntities?.find(
+                        (e) => e.id === selectedId,
+                      );
+                      onEdit({
+                        ...(cmdValue === 'deploy-encounter'
+                          ? { encounterId: selectedId }
+                          : {}),
+                        ...(cmdValue === 'open-scene'
+                          ? { sceneTemplateId: selectedId }
+                          : {}),
+                        objectId: selectedId,
+                        referenceLabel: targetEntity?.title,
+                      });
+                    }}
+                    value={
+                      step.objectId ||
+                      step.encounterId ||
+                      step.sceneTemplateId ||
+                      ''
+                    }
+                  >
+                    <option value="">None / Unlinked</option>
+                    {availableEntitiesForCmd.map((entity) => (
+                      <option key={entity.id} value={entity.id}>
+                        {entity.title} ({entity.type})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              <label className={styles.editorField}>
+                Step visibility
+                <select
+                  aria-label={`Visibility for ${step.title}`}
+                  className={styles.fieldSelect}
+                  onChange={(event) =>
+                    onEdit({
+                      visibility: event.target
+                        .value as SessionStepViewModel['visibility'],
+                    })
+                  }
+                  value={step.visibility}
+                >
+                  <option value="dm-only">DM only</option>
+                  <option value="shared">Shared with players</option>
+                </select>
+              </label>
+            </>
           )}
-          {(step.body || onEdit) && (
+
+          {(step.body !== undefined || onEdit) && (
             <>
               <div className={styles.editorToolbar}>
                 <button
-                  disabled
-                  aria-label="Bold (planned)"
-                  title="Formatting is planned"
+                  aria-label="Bold"
+                  onClick={() => handleFormat('**')}
+                  title="Bold formatting (**bold**)"
                   type="button"
                 >
                   <strong>B</strong>
                 </button>
                 <button
-                  disabled
-                  aria-label="Italic (planned)"
-                  title="Formatting is planned"
+                  aria-label="Italic"
+                  onClick={() => handleFormat('*')}
+                  title="Italic formatting (*italic*)"
                   type="button"
                 >
                   <em>I</em>
                 </button>
                 <span />
                 <button
-                  disabled
-                  title="Reference editing is planned"
+                  aria-label="Insert reference"
+                  onClick={handleInsertReference}
+                  title="Insert @ reference"
                   type="button"
                 >
                   @ Reference
@@ -980,11 +1859,25 @@ function StepRow({
               <textarea
                 aria-label="Session step notes"
                 className={styles.editorBody}
-                value={step.body ?? ''}
                 onChange={(event) => onEdit?.({ body: event.target.value })}
                 readOnly={!onEdit}
+                ref={textareaRef}
+                value={step.body ?? ''}
               />
             </>
+          )}
+
+          {onDelete && (
+            <div className={styles.stepRowActions}>
+              <button
+                aria-label={`Delete ${step.title}`}
+                className={styles.deleteStepButton}
+                onClick={onDelete}
+                type="button"
+              >
+                <Trash2 size={13} /> Delete step
+              </button>
+            </div>
           )}
         </div>
       )}

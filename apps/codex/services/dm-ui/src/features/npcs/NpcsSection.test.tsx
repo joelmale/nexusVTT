@@ -1,9 +1,17 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { Route, Routes } from 'react-router-dom';
+import { describe, expect, it, vi } from 'vitest';
 
-import { renderSection } from '@/features/section-shell/testUtils';
+import { getFixtureBundle } from '@/demo/fixture-registry';
+import { renderInSection, renderSection } from '@/features/section-shell/testUtils';
 
-import { npcDraftToPatch } from './NpcsSection';
+import { NpcsSection, npcDraftToPatch } from './NpcsSection';
+
+const withNpcParam = (prefix: string) => (
+  <Routes>
+    <Route path={`${prefix}/npcs/:npcId`} element={<NpcsSection />} />
+  </Routes>
+);
 
 describe('NpcsSection', () => {
   it('lists NPCs grouped by faction and selects from the URL', () => {
@@ -91,6 +99,77 @@ describe('NpcsSection', () => {
       screen.queryByRole('region', { name: 'Player view preview notice' }),
     ).toBeNull();
   });
+
+  it('opens and closes monster stat block preview popover', async () => {
+    const bundle = getFixtureBundle('ashes-of-veyra')!;
+    const withMonsterRef = {
+      ...bundle,
+      npcs: bundle.npcs.map((npc) =>
+        npc.id === 'npc-captain-serin'
+          ? { ...npc, statBlockRef: { slug: 'guard', ruleset: '2014' as const } }
+          : npc,
+      ),
+    };
+    const { user } = renderInSection(withNpcParam('/demo/ashes-of-veyra'), {
+      slug: 'ashes-of-veyra',
+      path: '/demo/ashes-of-veyra/npcs/npc-captain-serin',
+      store: { bundle: withMonsterRef },
+      singlePane: false,
+    });
+
+    const trigger = screen.getByRole('button', {
+      name: 'Preview guard stat block',
+    });
+    expect(trigger).toBeInTheDocument();
+    await user.click(trigger);
+
+    const dialog = screen.getByRole('dialog', {
+      name: 'guard stat block details',
+    });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('Guard')).toBeInTheDocument();
+    expect(within(dialog).getByText('Medium humanoid, CR 1/8')).toBeInTheDocument();
+
+    await user.click(trigger);
+    expect(screen.queryByRole('dialog', { name: 'guard stat block details' })).toBeNull();
+  });
+
+  it('renders portrait image when portraitUrl is present', () => {
+    const bundle = getFixtureBundle('ashes-of-veyra')!;
+    const withPortrait = {
+      ...bundle,
+      npcs: bundle.npcs.map((npc) =>
+        npc.id === 'npc-captain-serin'
+          ? { ...npc, portraitUrl: 'https://example.com/serin.jpg' }
+          : npc,
+      ),
+    };
+    renderInSection(withNpcParam('/demo/ashes-of-veyra'), {
+      slug: 'ashes-of-veyra',
+      path: '/demo/ashes-of-veyra/npcs/npc-captain-serin',
+      store: { bundle: withPortrait },
+      singlePane: false,
+    });
+
+    const portraits = screen.getAllByRole('img', { name: 'Captain Serin Dhal' });
+    expect(portraits.length).toBeGreaterThan(0);
+    expect(portraits[0]).toHaveAttribute('src', 'https://example.com/serin.jpg');
+  });
+
+  it('toggles pinning on NPCs', async () => {
+    const togglePin = vi.fn();
+    const { user } = renderInSection(withNpcParam('/campaigns/campaign-blank'), {
+      path: '/campaigns/campaign-blank/npcs/npc-captain-serin',
+      store: { editable: true, togglePin },
+      singlePane: false,
+    });
+    const header = screen
+      .getByRole('heading', { level: 2, name: 'Captain Serin Dhal' })
+      .closest('article')!;
+    const pinButton = within(header).getByRole('button', { name: 'Pin' });
+    await user.click(pinButton);
+    expect(togglePin).toHaveBeenCalledWith('npc-captain-serin');
+  });
 });
 
 describe('npcDraftToPatch', () => {
@@ -142,6 +221,20 @@ describe('npcDraftToPatch', () => {
     ).toEqual({
       combatSummary: undefined,
       statBlockRef: undefined,
+    });
+  });
+
+  it('derives ruleset 2024 when campaign edition is 2024 and diffs portraitUrl', () => {
+    expect(
+      npcDraftToPatch(
+        { ...initial, statBlockSlug: 'guard', portraitUrl: 'https://img.test/pic.png' },
+        initial,
+        { factionIds: [] },
+        '2024 revision',
+      ),
+    ).toEqual({
+      statBlockRef: { slug: 'guard', ruleset: '2024' },
+      portraitUrl: 'https://img.test/pic.png',
     });
   });
 });

@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import {
+  campaignObjectStatusSchema,
+  encounterTemplateDataSchema,
+} from '@nexus/game-contracts';
 
 import {
   EncounterMaterializationError,
@@ -30,9 +34,21 @@ const ASH_HOUND = {
   abilities: [13, 15, 12, 6, 12, 7],
 };
 
-function encounterData(composition: unknown[]) {
+function encounterData(
+  composition: unknown[],
+  extraFields: Record<string, unknown> = {},
+) {
   return {
-    content: { value: { nexusStudio: { fields: { composition } } } },
+    content: {
+      value: {
+        nexusStudio: {
+          fields: {
+            composition,
+            ...extraFields,
+          },
+        },
+      },
+    },
   };
 }
 
@@ -52,7 +68,13 @@ interface LibraryRevision {
   data: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
-function setup(options: { composition?: unknown[]; kind?: string } = {}) {
+function setup(
+  options: {
+    composition?: unknown[];
+    kind?: string;
+    extraFields?: Record<string, unknown>;
+  } = {},
+) {
   const library = new Map<string, LibraryRecord>();
   const revisions = new Map<string, LibraryRevision[]>();
   const libraryObjects = {
@@ -106,8 +128,14 @@ function setup(options: { composition?: unknown[]; kind?: string } = {}) {
       data: encounterData(
         options.composition ?? [
           { name: 'Goblin', count: 3, monsterKey: 'srd:goblin', cr: '1/4' },
-          { name: 'Ash Hound', count: 1, monsterKey: 'srd:ash-hound', cr: '1/2' },
+          {
+            name: 'Ash Hound',
+            count: 1,
+            monsterKey: 'srd:ash-hound',
+            cr: '1/2',
+          },
         ],
+        options.extraFields,
       ),
     })),
   };
@@ -170,6 +198,93 @@ describe('EncounterMaterializer', () => {
       armorClass: [{ value: 13 }],
       speed: { walk: 40 },
     });
+  });
+
+  it('forwards edition, customName, faction, hpPolicy, and initiativePolicy into materialized payloads', async () => {
+    const { run, revisions } = setup({
+      composition: [
+        {
+          name: 'Goblin',
+          count: 2,
+          monsterKey: 'srd:goblin',
+          cr: '1/4',
+          customName: 'Dock Lookout',
+          faction: 'neutral',
+          fixedHp: 11,
+        },
+        {
+          name: 'Ash Hound',
+          count: 1,
+          monsterKey: 'srd:ash-hound',
+          cr: '1/2',
+          faction: 'allied',
+        },
+      ],
+      extraFields: {
+        edition: '2024',
+        hpPolicy: 'fixed',
+        initiativePolicy: 'group',
+      },
+    });
+    await run();
+
+    const encounter = revisions.get(ENCOUNTER)![0].data;
+    expect(encounter.ruleset).toMatchObject({
+      system: 'dnd5e',
+      edition: '2024',
+    });
+    expect(encounter.hpPolicy).toBe('fixed');
+    expect(encounter.hitPoints).toEqual({ policy: 'fixed' });
+    expect(encounter.initiativePolicy).toBe('group');
+    expect(encounter.metadata).toEqual({
+      hpPolicy: 'fixed',
+      initiativePolicy: 'group',
+    });
+    expect(encounter.groups[0]).toMatchObject({
+      count: 2,
+      faction: 'neutral',
+      customName: 'Dock Lookout',
+    });
+    expect(encounter.groups[1]).toMatchObject({
+      count: 1,
+      faction: 'allied',
+    });
+
+    const goblinId = encounter.groups[0].monsterRef.id;
+    expect(revisions.get(goblinId)![0].data.hitPoints).toEqual({
+      average: 11,
+      policy: 'fixed',
+      fixed: 11,
+    });
+  });
+
+  it('supports participants array and falls back to 2014 edition and hostile faction', async () => {
+    const { run, revisions } = setup({
+      composition: undefined,
+      extraFields: {
+        composition: undefined,
+        participants: [
+          {
+            name: 'Goblin',
+            count: 1,
+            monsterKey: 'srd:goblin',
+            cr: '1/4',
+          },
+        ],
+        hpPolicy: 'roll-on-deploy',
+        initiativePolicy: 'individual',
+      },
+    });
+    await run([GOBLIN]);
+
+    const encounter = revisions.get(ENCOUNTER)![0].data;
+    expect(encounter.ruleset.edition).toBe('2014');
+    expect(encounter.groups[0]).toMatchObject({
+      count: 1,
+      faction: 'hostile',
+    });
+    expect(encounter.hpPolicy).toBe('roll-on-deploy');
+    expect(encounter.initiativePolicy).toBe('individual');
   });
 
   it('never spawns hazards or lair actions', async () => {
@@ -276,7 +391,9 @@ describe('EncounterMaterializer', () => {
     expect(secondEncounterData.groups[0].monsterRef.revision).toBe(2);
 
     // Verify first encounter still has its pinned reference to revision 1
-    expect(revisions.get(ENCOUNTER)![0].data.groups[0].monsterRef.revision).toBe(1);
+    expect(
+      revisions.get(ENCOUNTER)![0].data.groups[0].monsterRef.revision,
+    ).toBe(1);
     expect(revisions.get(goblinId)![0].data.hitPoints.average).toBe(7);
     expect(revisions.get(goblinId)![1].data.hitPoints.average).toBe(25);
   });
@@ -285,22 +402,29 @@ describe('EncounterMaterializer', () => {
     const { run, libraryObjects, library, revisions } = setup();
 
     const originalCreate = libraryObjects.createObject.getMockImplementation();
-    libraryObjects.createObject.mockImplementation(async (object, initial, id) => {
-      if (id === ENCOUNTER) {
-        const record = {
-          ...object,
-          id,
-          currentRevision: 1,
-          isArchived: false,
-        };
-        library.set(id, record);
-        revisions.set(id, [{ objectId: id, revision: 1, data: initial.data }]);
-        throw Object.assign(new Error('duplicate key value violates unique constraint'), {
-          code: '23505',
-        });
-      }
-      return originalCreate!(object, initial, id);
-    });
+    libraryObjects.createObject.mockImplementation(
+      async (object, initial, id) => {
+        if (id === ENCOUNTER) {
+          const record = {
+            ...object,
+            id,
+            currentRevision: 1,
+            isArchived: false,
+          };
+          library.set(id, record);
+          revisions.set(id, [
+            { objectId: id, revision: 1, data: initial.data },
+          ]);
+          throw Object.assign(
+            new Error('duplicate key value violates unique constraint'),
+            {
+              code: '23505',
+            },
+          );
+        }
+        return originalCreate!(object, initial, id);
+      },
+    );
 
     const result = await run();
     expect(result).toMatchObject({
@@ -314,23 +438,30 @@ describe('EncounterMaterializer', () => {
 
     const originalCreate = libraryObjects.createObject.getMockImplementation();
     let collidedOnce = false;
-    libraryObjects.createObject.mockImplementation(async (object, initial, id) => {
-      if (object.kind === 'monster' && !collidedOnce) {
-        collidedOnce = true;
-        const record = {
-          ...object,
-          id,
-          currentRevision: 1,
-          isArchived: false,
-        };
-        library.set(id, record);
-        revisions.set(id, [{ objectId: id, revision: 1, data: initial.data }]);
-        throw Object.assign(new Error('duplicate key value violates unique constraint'), {
-          code: '23505',
-        });
-      }
-      return originalCreate!(object, initial, id);
-    });
+    libraryObjects.createObject.mockImplementation(
+      async (object, initial, id) => {
+        if (object.kind === 'monster' && !collidedOnce) {
+          collidedOnce = true;
+          const record = {
+            ...object,
+            id,
+            currentRevision: 1,
+            isArchived: false,
+          };
+          library.set(id, record);
+          revisions.set(id, [
+            { objectId: id, revision: 1, data: initial.data },
+          ]);
+          throw Object.assign(
+            new Error('duplicate key value violates unique constraint'),
+            {
+              code: '23505',
+            },
+          );
+        }
+        return originalCreate!(object, initial, id);
+      },
+    );
 
     const result = await run();
     expect(result).toMatchObject({
@@ -341,7 +472,9 @@ describe('EncounterMaterializer', () => {
 
   it('re-throws non-collision errors from createObject', async () => {
     const { run, libraryObjects } = setup();
-    libraryObjects.createObject.mockRejectedValueOnce(new Error('database failure'));
+    libraryObjects.createObject.mockRejectedValueOnce(
+      new Error('database failure'),
+    );
     await expect(run()).rejects.toThrow('database failure');
   });
 
@@ -356,6 +489,34 @@ describe('EncounterMaterializer', () => {
     await run();
     library.get(ENCOUNTER)!.ownerId = '99999999-9999-4999-8999-999999999999';
     await expect(run()).rejects.toMatchObject({ code: 'forbidden' });
+  });
+});
+
+describe('encounterTemplateDataSchema & campaignObjectStatusSchema', () => {
+  it('validates encounter template data with policies, edition, customName, and faction', () => {
+    const parsed = encounterTemplateDataSchema.parse({
+      title: 'Bridge Ambush',
+      edition: '2024',
+      hpPolicy: 'roll-on-deploy',
+      initiativePolicy: 'group',
+      composition: [
+        {
+          name: 'Goblin',
+          count: 3,
+          monsterKey: 'srd:goblin',
+          customName: 'Bridge Archer',
+          faction: 'hostile',
+        },
+      ],
+    });
+    expect(parsed.edition).toBe('2024');
+    expect(parsed.hpPolicy).toBe('roll-on-deploy');
+    expect(parsed.initiativePolicy).toBe('group');
+    expect(parsed.composition?.[0]).toMatchObject({
+      customName: 'Bridge Archer',
+      faction: 'hostile',
+    });
+    expect(campaignObjectStatusSchema.parse('retired')).toBe('retired');
   });
 });
 

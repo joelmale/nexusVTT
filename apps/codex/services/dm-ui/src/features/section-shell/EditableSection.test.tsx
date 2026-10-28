@@ -300,4 +300,45 @@ describe('AddRow', () => {
       screen.queryByRole('region', { name: 'Player view preview notice' }),
     ).toBeNull();
   });
+
+  it('renders pin button and calls store.togglePin when editable', async () => {
+    const togglePin = vi.fn().mockResolvedValue({ ok: true, id: 'npc-1', pinned: true });
+    const { user } = renderInSection(<Section />, {
+      store: { editable: true, togglePin },
+      bundle: { pinnedObjectIds: [] },
+    });
+
+    const pinBtn = screen.getByRole('button', { name: 'Pin' });
+    expect(pinBtn).toBeVisible();
+    expect(pinBtn).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(pinBtn);
+    expect(togglePin).toHaveBeenCalledWith('npc-1');
+  });
+
+  it('renders unpin button when item is already pinned', async () => {
+    const togglePin = vi.fn().mockResolvedValue({ ok: true, id: 'npc-1', pinned: false });
+    const { user } = renderInSection(
+      <EditableSection
+        id="npc-1"
+        initialDraft={initial}
+        heading="Captain Serin"
+        kind="npc"
+        pinned={true}
+        renderForm={() => null}
+      >
+        <p>read view</p>
+      </EditableSection>,
+      {
+        store: { editable: true, togglePin },
+      },
+    );
+
+    const pinBtn = screen.getByRole('button', { name: 'Unpin' });
+    expect(pinBtn).toBeVisible();
+    expect(pinBtn).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(pinBtn);
+    expect(togglePin).toHaveBeenCalledWith('npc-1');
+  });
 });

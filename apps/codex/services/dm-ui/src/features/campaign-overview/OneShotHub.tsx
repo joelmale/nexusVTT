@@ -1,16 +1,20 @@
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import Printer from 'lucide-react/dist/esm/icons/printer';
-import { useId, useMemo, useState } from 'react';
+import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
+import { useContext, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
+import { SectionContext } from '@/features/section-shell/SectionContext';
+import type { BundleStore } from '@/features/section-shell/bundleStore';
 import { RunSheetExportModal } from '../sessions/export/RunSheetExportModal';
 import { BalanceGlance } from './BalanceGlance';
 import {
   buildOneShotModel,
   DEFAULT_TARGET_BUDGET_MINUTES,
   formatDuration,
+  ONE_SHOT_TEMPLATE_STEPS,
 } from './oneShotModel';
 import styles from './OneShotHub.module.css';
 
@@ -18,14 +22,27 @@ export interface OneShotHubProps {
   bundle: CampaignFixtureBundle;
   basePath: string;
   onExportRunSheet?: () => void;
+  store?: BundleStore;
+  onSeedTemplate?: () => void;
 }
 
 export function OneShotHub({
   bundle,
   basePath,
   onExportRunSheet,
+  store: propStore,
+  onSeedTemplate,
 }: OneShotHubProps) {
   const budgetSelectId = useId();
+  const sectionContext = useContext(SectionContext);
+  const store = propStore ?? sectionContext?.store;
+
+  const session = useMemo(() => {
+    const sId =
+      bundle.campaign.currentSessionId || bundle.catalog.selectedSessionId;
+    return bundle.sessions.find((s) => s.id === sId) ?? bundle.sessions[0];
+  }, [bundle]);
+
   const [targetBudgetMinutes, setTargetBudgetMinutes] = useState(
     DEFAULT_TARGET_BUDGET_MINUTES,
   );
@@ -35,12 +52,6 @@ export function OneShotHub({
     () => buildOneShotModel(bundle, targetBudgetMinutes),
     [bundle, targetBudgetMinutes],
   );
-
-  const session = useMemo(() => {
-    const sId =
-      bundle.campaign.currentSessionId || bundle.catalog.selectedSessionId;
-    return bundle.sessions.find((s) => s.id === sId) ?? bundle.sessions[0];
-  }, [bundle]);
 
   const pacingBadgeClass =
     model.pacingStatus === 'balanced'
@@ -57,12 +68,47 @@ export function OneShotHub({
     }
   };
 
+  const handleBudgetChange = (minutes: number) => {
+    setTargetBudgetMinutes(minutes);
+    if (session && store?.updateItem) {
+      void store.updateItem('session', session.id, {
+        durationHours: minutes / 60,
+      });
+    }
+  };
+
+  const handleSeedTemplate = async () => {
+    if (onSeedTemplate) {
+      onSeedTemplate();
+      return;
+    }
+    if (session && store?.updateItem) {
+      await store.updateItem('session', session.id, {
+        plan: {
+          ...session.plan,
+          steps: ONE_SHOT_TEMPLATE_STEPS,
+        },
+      });
+      if (store.reload) {
+        await store.reload();
+      }
+    }
+  };
+
   return (
     <section className={styles.container} aria-label="One-Shot Adventure Hub">
       <div className={styles.headerCard}>
         <div className={styles.topRow}>
           <div className={styles.badgeGroup}>
             <span className={styles.modeBadge}>One-Shot Mode</span>
+            {model.isTemplateSuggestion && (
+              <span
+                className={styles.templateBadge}
+                data-testid="template-suggestion-badge"
+              >
+                Template Suggestions
+              </span>
+            )}
             <span
               className={`${styles.pacingBadge} ${pacingBadgeClass}`}
               data-testid="pacing-badge"
@@ -85,7 +131,7 @@ export function OneShotHub({
               id={budgetSelectId}
               className={styles.budgetSelect}
               value={targetBudgetMinutes}
-              onChange={(e) => setTargetBudgetMinutes(Number(e.target.value))}
+              onChange={(e) => handleBudgetChange(Number(e.target.value))}
               aria-label="Target Time Budget"
             >
               <option value={120}>2 hours (120 min)</option>
@@ -181,6 +227,17 @@ export function OneShotHub({
         </div>
 
         <div className={styles.actionsRow}>
+          {model.isTemplateSuggestion && (
+            <button
+              type="button"
+              className={styles.btnSeed}
+              onClick={handleSeedTemplate}
+              aria-label="Seed One-Shot Pacing Template"
+            >
+              <Sparkles aria-hidden="true" size={15} />
+              <span>Seed One-Shot Pacing Template</span>
+            </button>
+          )}
           {session && (
             <button
               type="button"

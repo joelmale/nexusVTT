@@ -5,11 +5,14 @@ import {
   CAMPAIGN_MOODS,
   DEFAULT_MOOD,
   getMoodOption,
+  getMoodStorageKey,
   isCampaignMood,
   loadLocalMood,
   LOCAL_STORAGE_MOOD_KEY,
+  readStoredMood,
   resolveCampaignMood,
   saveLocalMood,
+  writeStoredMood,
 } from './moodModel';
 
 describe('moodModel', () => {
@@ -94,6 +97,25 @@ describe('moodModel', () => {
       saveLocalMood('feywild');
       expect(values.get(LOCAL_STORAGE_MOOD_KEY)).toBe('feywild');
       expect(loadLocalMood()).toBe('feywild');
+    });
+
+    it('scopes localStorage keys by campaignId so campaigns do not collide', () => {
+      expect(getMoodStorageKey()).toBe(LOCAL_STORAGE_MOOD_KEY);
+      expect(getMoodStorageKey('camp-a')).toBe(
+        `${LOCAL_STORAGE_MOOD_KEY}:camp-a`,
+      );
+
+      writeStoredMood('grimdark', 'camp-a');
+      writeStoredMood('feywild', 'camp-b');
+
+      expect(readStoredMood('camp-a')).toBe('grimdark');
+      expect(readStoredMood('camp-b')).toBe('feywild');
+      expect(readStoredMood('camp-c')).toBeNull();
+      expect(readStoredMood()).toBeNull();
+
+      writeStoredMood(null, 'camp-a');
+      expect(readStoredMood('camp-a')).toBeNull();
+      expect(readStoredMood('camp-b')).toBe('feywild');
     });
 
     it('clears mood from localStorage when passed null', () => {

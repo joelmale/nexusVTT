@@ -4,6 +4,7 @@ export interface ObjectRevision {
   createdBy: string;
   snapshot: Record<string, unknown>;
   changeSummary?: string;
+  synthetic?: boolean;
 }
 
 export interface FieldDiff {
@@ -131,6 +132,7 @@ export function generateSyntheticRevisions(
     createdBy: 'Dungeon Master',
     snapshot: { ...currentDraft },
     changeSummary: `Updated ${title} details and notes`,
+    synthetic: true,
   };
 
   // Rev 2 (Earlier edit with slightly different notes/fields)
@@ -151,6 +153,7 @@ export function generateSyntheticRevisions(
     createdBy: 'Dungeon Master',
     snapshot: rev2Snapshot,
     changeSummary: `Refined rules and description`,
+    synthetic: true,
   };
 
   // Rev 1 (Creation snapshot)
@@ -166,6 +169,7 @@ export function generateSyntheticRevisions(
     createdBy: 'Dungeon Master',
     snapshot: rev1Snapshot,
     changeSummary: `Created ${title}`,
+    synthetic: true,
   };
 
   return [rev3, rev2, rev1];

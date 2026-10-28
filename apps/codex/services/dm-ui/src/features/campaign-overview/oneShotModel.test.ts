@@ -53,6 +53,9 @@ describe('oneShotModel', () => {
     expect(model.climax.title).toBe('The Showdown (Climax)');
     expect(model.rewards.title).toBe('Resolution, Treasure & Epilogue');
     expect(model.sceneCountStatus).toBe('ideal');
+    expect(model.isTemplateSuggestion).toBe(true);
+    expect(model.hook.isTemplate).toBe(true);
+    expect(model.scenes[0].isTemplate).toBe(true);
   });
 
   it('handles sessions with 1 or 2 steps gracefully', () => {

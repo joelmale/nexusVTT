@@ -11,11 +11,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import History from 'lucide-react/dist/esm/icons/history';
+import Pin from 'lucide-react/dist/esm/icons/pin';
 
 import {
   PlayerViewBanner,
   PlayerViewContext,
   PlayerViewToggle,
+  usePlayerView,
 } from '@/features/player-view';
 import { RevisionHistoryModal } from '@/features/revisions/RevisionHistoryModal';
 
@@ -108,6 +110,10 @@ interface EditableSectionProps {
   allowPlayerView?: boolean;
   playerHeading?: ReactNode;
   playerHeaderExtras?: ReactNode;
+  /** Whether the entity is pinned. Defaults to checking bundle.pinnedObjectIds. */
+  pinned?: boolean;
+  /** Toggle pinning handler. */
+  onTogglePin?: () => void;
 }
 
 /**
@@ -160,9 +166,12 @@ export function EditableSection({
   allowPlayerView = true,
   playerHeading,
   playerHeaderExtras,
+  pinned,
+  onTogglePin,
 }: EditableSectionProps) {
-  const { store } = useSectionBundle();
-  const [playerView, setPlayerView] = useState(false);
+  const { bundle, store } = useSectionBundle();
+  const contextPlayerView = usePlayerView();
+  const [playerView, setPlayerView] = useState(contextPlayerView.isPlayerView);
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [draft, setDraftState] = useState<Draft>(initialDraft);
@@ -173,6 +182,21 @@ export function EditableSection({
   const headingId = useId();
   const sessionRef = useRef<Session | null>(null);
   const commitRequested = useRef(false);
+
+  useEffect(() => {
+    setPlayerView(contextPlayerView.isPlayerView);
+  }, [contextPlayerView.isPlayerView]);
+
+  const updatePlayerView = useCallback(
+    (action: boolean | ((prev: boolean) => boolean)) => {
+      setPlayerView((prev) => {
+        const next = typeof action === 'function' ? action(prev) : action;
+        contextPlayerView.setPlayerView(next);
+        return next;
+      });
+    },
+    [contextPlayerView],
+  );
 
   const live = (session: Session) => sessionRef.current === session;
 
@@ -391,13 +415,20 @@ export function EditableSection({
   else if (dirty) status = 'Unsaved changes';
   else if (state === 'saved') status = 'Saved';
 
+  const isPinned = pinned ?? Boolean(bundle.pinnedObjectIds?.includes(id));
+  const handleTogglePin =
+    onTogglePin ??
+    (store.editable && store.togglePin
+      ? () => void store.togglePin?.(id)
+      : undefined);
+
   const playerViewValue = useMemo(
     () => ({
       isPlayerView: playerView,
-      setPlayerView,
-      togglePlayerView: () => setPlayerView((prev) => !prev),
+      setPlayerView: updatePlayerView,
+      togglePlayerView: () => updatePlayerView((prev) => !prev),
     }),
-    [playerView],
+    [playerView, updatePlayerView],
   );
 
   return (
@@ -417,6 +448,19 @@ export function EditableSection({
             </span>
           ) : null}
           {allowPlayerView && !editing ? <PlayerViewToggle /> : null}
+          {handleTogglePin && !playerView && !editing ? (
+            <button
+              aria-label={isPinned ? 'Unpin' : 'Pin'}
+              aria-pressed={isPinned}
+              className={styles.pinButton}
+              onClick={handleTogglePin}
+              title={isPinned ? 'Unpin' : 'Pin'}
+              type="button"
+            >
+              <Pin size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+              <span>{isPinned ? 'Unpin' : 'Pin'}</span>
+            </button>
+          ) : null}
           {!playerView && !editing ? (
             <button
               aria-label="View revision history"

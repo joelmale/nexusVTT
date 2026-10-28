@@ -225,4 +225,48 @@ describe('buildOverviewModel', () => {
     expect(model.nextSession?.npcs.length).toBeGreaterThan(0);
     expect(model.nextSession?.encounters.length).toBeGreaterThan(0);
   });
+
+  it('maps bundle.secrets into the Clues panel when bundle.clues is empty (CS-66)', () => {
+    const base = bundles[0];
+    const bundleWithSecretsOnly = {
+      ...base,
+      clues: [],
+      secrets: [
+        {
+          id: 'sec-secret-1',
+          campaignId: base.campaignId,
+          text: 'The steward is a doppleganger in disguise',
+          attachedTo: [],
+          revealed: false,
+        },
+        {
+          id: 'sec-secret-2',
+          campaignId: base.campaignId,
+          text: 'The vault key is hidden in the fountain',
+          attachedTo: [],
+          revealed: true,
+        },
+      ],
+    };
+
+    const model = buildOverviewModel(bundleWithSecretsOnly);
+    const cluesPanel = model.panels.find((p) => p.id === 'clues');
+
+    expect(cluesPanel).toBeDefined();
+    expect(cluesPanel?.records).toHaveLength(2);
+    expect(cluesPanel?.records[0]).toMatchObject({
+      id: 'sec-secret-1',
+      kind: 'secret',
+      title: 'The steward is a doppleganger in disguise',
+      meta: 'Unrevealed',
+      tone: 'neutral',
+    });
+    expect(cluesPanel?.records[1]).toMatchObject({
+      id: 'sec-secret-2',
+      kind: 'secret',
+      title: 'The vault key is hidden in the fountain',
+      meta: 'Revealed',
+      tone: 'positive',
+    });
+  });
 });

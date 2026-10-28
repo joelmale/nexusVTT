@@ -47,6 +47,10 @@ describe('capability registry', () => {
         id === 'session-plan.activate' ||
         id === 'campaign.section.open' ||
         id === 'campaign.search' ||
+        id === 'campaign.object.create' ||
+        id === 'campaign.object.history' ||
+        id === 'campaign.example.seed' ||
+        id === 'campaign.theme.change' ||
         id === 'encounter.deploy' ||
         id === 'map.pin.create' ||
         id === 'map.object.link' ||

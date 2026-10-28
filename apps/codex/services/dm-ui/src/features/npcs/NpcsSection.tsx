@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Dices from 'lucide-react/dist/esm/icons/dices';
 
 import type { CampaignNpc } from '@/demo/ashes-of-veyra/types';
+import { SRD_MONSTERS } from '@/data/srdMonsters';
 import { MentionTextarea } from '@/features/mentions/MentionTextarea';
 import { MentionText } from '@/features/mentions/MentionText';
 import { EmptyState } from '@/features/section-shell/EmptyState';
@@ -38,6 +39,10 @@ import {
 
 const NO_FACTION = '';
 
+export interface NpcWithPortrait extends CampaignNpc {
+  portraitUrl?: string;
+}
+
 function toDraft(npc: CampaignNpc): Record<string, unknown> {
   return {
     name: npc.name,
@@ -51,6 +56,7 @@ function toDraft(npc: CampaignNpc): Record<string, unknown> {
     ac: npc.combatSummary?.ac ?? '',
     cr: npc.combatSummary?.cr ?? '',
     statBlockSlug: npc.statBlockRef?.slug ?? '',
+    portraitUrl: (npc as NpcWithPortrait).portraitUrl ?? '',
   };
 }
 
@@ -60,6 +66,7 @@ export function npcDraftToPatch(
   draft: Record<string, unknown>,
   initial: Record<string, unknown>,
   npc: Pick<CampaignNpc, 'factionIds' | 'combatSummary' | 'statBlockRef'>,
+  campaignEdition?: string,
 ): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
   for (const key of [
@@ -99,7 +106,13 @@ export function npcDraftToPatch(
   }
   if (draft.statBlockSlug !== initial.statBlockSlug) {
     const slug = String(draft.statBlockSlug ?? '').trim();
-    patch.statBlockRef = slug ? { slug, ruleset: '2014' as const } : undefined;
+    const ruleset = campaignEdition?.includes('2024')
+      ? ('2024' as const)
+      : ('2014' as const);
+    patch.statBlockRef = slug ? { slug, ruleset } : undefined;
+  }
+  if (draft.portraitUrl !== initial.portraitUrl) {
+    patch.portraitUrl = String(draft.portraitUrl ?? '').trim();
   }
   return patch;
 }
@@ -111,8 +124,10 @@ function NpcRowContent({
   row: NpcRow;
   isPinned?: boolean;
 }) {
-  const { bundle } = useSectionBundle();
-  const fullNpc = bundle.npcs.find((npc) => npc.id === row.id);
+  const { bundle, store } = useSectionBundle();
+  const fullNpc = bundle.npcs.find((npc) => npc.id === row.id) as
+    | NpcWithPortrait
+    | undefined;
 
   const metaParts: Array<{ key: string; content: React.ReactNode }> = [];
   if (fullNpc?.ancestry) {
@@ -163,13 +178,27 @@ function NpcRowContent({
 
   return (
     <RichEntityRow
+      id={row.id}
       badges={badges}
       icon={
-        <span aria-hidden="true" className={styles.monogram}>
-          {row.monogram}
-        </span>
+        fullNpc?.portraitUrl ? (
+          <img
+            alt={row.name}
+            className={styles.portrait}
+            src={fullNpc.portraitUrl}
+          />
+        ) : (
+          <span aria-hidden="true" className={styles.monogram}>
+            {row.monogram}
+          </span>
+        )
       }
       isPinned={isPinned}
+      onTogglePin={
+        store.editable && store.togglePin
+          ? () => void store.togglePin?.(row.id)
+          : undefined
+      }
       metaParts={metaParts}
       subtitle={row.role}
       title={row.name}
@@ -178,7 +207,7 @@ function NpcRowContent({
 }
 
 function NpcDetail({ npc }: { npc: CampaignNpc }) {
-  const { bundle } = useSectionBundle();
+  const { bundle, store } = useSectionBundle();
   const appearances = npcAppearances(bundle, npc);
   const questsGiven = npcQuestsGiven(bundle, npc.id);
   const factions = npcFactions(bundle, npc);
@@ -204,6 +233,12 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
       }
       headerActions={<UseInNextSessionButton kind="npc" id={npc.id} />}
       id={npc.id}
+      pinned={Boolean(bundle.pinnedObjectIds?.includes(npc.id))}
+      onTogglePin={
+        store.editable && store.togglePin
+          ? () => void store.togglePin?.(npc.id)
+          : undefined
+      }
       initialDraft={draft}
       kind="npc"
       renderForm={(current, setDraft) => (
@@ -233,6 +268,16 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
                 setDraft({ ...current, ancestry: event.target.value })
               }
               value={String(current.ancestry ?? '')}
+            />
+          </label>
+          <label>
+            Portrait URL
+            <input
+              onChange={(event) =>
+                setDraft({ ...current, portraitUrl: event.target.value })
+              }
+              placeholder="https://... or /assets/..."
+              value={String(current.portraitUrl ?? '')}
             />
           </label>
           <label>
@@ -301,16 +346,26 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
           <label>
             Statblock Ref (Monster Slug)
             <input
+              list="srd-monsters-datalist"
               onChange={(event) =>
                 setDraft({ ...current, statBlockSlug: event.target.value })
               }
               placeholder="e.g. commoner, guard"
               value={String(current.statBlockSlug ?? '')}
             />
+            <datalist id="srd-monsters-datalist">
+              {SRD_MONSTERS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} (CR {m.cr}, {m.size} {m.type})
+                </option>
+              ))}
+            </datalist>
           </label>
         </>
       )}
-      toPatch={(current, initial) => npcDraftToPatch(current, initial, npc)}
+      toPatch={(current, initial) =>
+        npcDraftToPatch(current, initial, npc, bundle.campaign?.edition)
+      }
     >
       <NpcDetailContent
         factions={factions}
@@ -318,6 +373,63 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
         npc={npc}
       />
     </EditableSection>
+  );
+}
+
+function StatBlockPreviewPopover({ slug }: { slug: string }) {
+  const [open, setOpen] = useState(false);
+  const monster = useMemo(
+    () => SRD_MONSTERS.find((m) => m.id === slug),
+    [slug],
+  );
+
+  return (
+    <div className={styles.statBlockContainer}>
+      <button
+        aria-expanded={open}
+        aria-label={`Preview ${slug} stat block`}
+        className={styles.statBlockButton}
+        onClick={() => setOpen((prev) => !prev)}
+        type="button"
+      >
+        Ref: {slug}
+      </button>
+      {open && (
+        <div
+          aria-label={`${slug} stat block details`}
+          className={styles.statBlockPopover}
+          role="dialog"
+        >
+          {monster ? (
+            <>
+              <div className={styles.statBlockHeader}>
+                <h4 className={styles.statBlockTitle}>{monster.name}</h4>
+                <p className={styles.statBlockMeta}>
+                  {monster.size} {monster.type}, CR {monster.cr}
+                </p>
+              </div>
+              <div className={styles.statBlockStats}>
+                <span>AC: <strong>{monster.ac}</strong></span>
+                <span>HP: <strong>{monster.hp}</strong></span>
+                <span>Speed: <strong>{monster.speed} ft</strong></span>
+              </div>
+              <div className={styles.statBlockAbilities}>
+                {['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].map((ab, i) => (
+                  <div key={ab} className={styles.abilityBox}>
+                    <div>{ab}</div>
+                    <strong>{monster.abilities[i]}</strong>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className={styles.statBlockMeta}>
+              Monster &quot;{slug}&quot; not found in SRD catalog.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -337,8 +449,19 @@ function NpcDetailContent({
     ? npc.tags.filter((tag) => !tag.toLowerCase().startsWith('dm:'))
     : npc.tags;
 
+  const fullNpc = npc as NpcWithPortrait;
+
   return (
     <>
+      {fullNpc.portraitUrl ? (
+        <div className={styles.portraitContainer}>
+          <img
+            alt={npc.name}
+            className={styles.detailPortrait}
+            src={fullNpc.portraitUrl}
+          />
+        </div>
+      ) : null}
       <p className={styles.subtitle}>
         {[npc.role, npc.ancestry].filter(Boolean).join(' · ') ||
           'No role or ancestry yet'}
@@ -355,7 +478,7 @@ function NpcDetailContent({
             </>
           ) : null}
           {npc.statBlockRef ? (
-            <span className={styles.combatBadge}>Ref: {npc.statBlockRef.slug}</span>
+            <StatBlockPreviewPopover slug={npc.statBlockRef.slug} />
           ) : null}
         </div>
       ) : null}

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   activateSessionPlan,
   AuthenticationRequiredError,
+  createSceneTemplateFromMap,
   ensureSession,
   fetchSessionPlanStatus,
   MAP_IMAGE_MAX_BYTES,
@@ -905,5 +906,122 @@ describe('map image upload', () => {
     await expect(
       uploadMapImage(new File(['x'], 'm.png', { type: 'image/png' }), 'M'),
     ).rejects.toThrow('Quota exceeded');
+  });
+});
+
+describe('createSceneTemplateFromMap', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('creates scene template with authored grid, lighting, and fog preset values', async () => {
+    let createdPayload: Record<string, unknown> | undefined;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request, requestInit) => {
+      const path = String(request);
+      if (path === '/api/users/profile') return json({ id: 'dm-1' });
+      if (path.includes('/prep/objects')) {
+        const body = JSON.parse(String(requestInit?.body));
+        createdPayload = body.data;
+        return json({
+          object: {
+            id: 'scene-789',
+            kind: 'scene-template',
+            title: body.data.name,
+            currentRevision: 1,
+            status: 'draft',
+          },
+        });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    const res = await createSceneTemplateFromMap({
+      campaignId: CAMPAIGN_ID,
+      mapTitle: 'Sunken Ruins',
+      pinLabel: 'Entrance Arch',
+      assetId: 'map-asset-ruins',
+      grid: {
+        type: 'hex',
+        size: 150,
+        snapToGrid: false,
+      },
+      lighting: {
+        ambientLight: 0.8,
+        darkness: 0.2,
+      },
+      fogPreset: {
+        preset: 'clear',
+      },
+    });
+
+    expect(res.id).toBe('scene-789');
+    expect(createdPayload).toBeDefined();
+    expect(createdPayload?.name).toBe('Sunken Ruins - Entrance Arch');
+    expect(createdPayload?.grid).toEqual({
+      enabled: true,
+      type: 'hex',
+      size: 150,
+      offsetX: 0,
+      offsetY: 0,
+      snapToGrid: false,
+    });
+    expect(createdPayload?.lighting).toEqual({
+      enabled: true,
+      globalIllumination: false,
+      ambientLight: 0.8,
+      darkness: 0.2,
+    });
+    expect(createdPayload?.fogPreset).toEqual({
+      mode: 'off',
+      revealedShapes: [],
+    });
+  });
+
+  it('falls back to default grid, lighting, and unexplored fog when omitted', async () => {
+    let createdPayload: Record<string, unknown> | undefined;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request, requestInit) => {
+      const path = String(request);
+      if (path === '/api/users/profile') return json({ id: 'dm-1' });
+      if (path.includes('/prep/objects')) {
+        const body = JSON.parse(String(requestInit?.body));
+        createdPayload = body.data;
+        return json({
+          object: {
+            id: 'scene-def',
+            kind: 'scene-template',
+            title: body.data.name,
+            currentRevision: 1,
+            status: 'draft',
+          },
+        });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    await createSceneTemplateFromMap({
+      campaignId: CAMPAIGN_ID,
+      mapTitle: 'Default Grove',
+    });
+
+    expect(createdPayload).toBeDefined();
+    expect(createdPayload?.name).toBe('Default Grove');
+    expect(createdPayload?.grid).toEqual({
+      enabled: true,
+      type: 'square',
+      size: 100,
+      offsetX: 0,
+      offsetY: 0,
+      snapToGrid: true,
+    });
+    expect(createdPayload?.lighting).toEqual({
+      enabled: true,
+      globalIllumination: false,
+      ambientLight: 0.35,
+      darkness: 0.65,
+    });
+    expect(createdPayload?.fogPreset).toEqual({
+      mode: 'concealed',
+      revealedShapes: [],
+    });
   });
 });

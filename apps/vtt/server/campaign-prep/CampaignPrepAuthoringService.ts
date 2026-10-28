@@ -272,6 +272,43 @@ export class CampaignPrepAuthoringService {
     return this.setStatus(request, 'draft');
   }
 
+  /** Marks the object retired without creating a revision. */
+  async retire(
+    request: SetCampaignPrepObjectStatusRequest,
+  ): Promise<{ object: CampaignPrepObjectRecord }> {
+    return this.setStatus(request, 'retired');
+  }
+
+  /** Retires an object by campaignId and objectId (with optional expectedRevision). */
+  async retireObject(
+    campaignId: string,
+    objectId: string,
+    _actorUserId?: string,
+    expectedRevision?: number,
+  ): Promise<{ object: CampaignPrepObjectRecord }> {
+    if (expectedRevision !== undefined) {
+      return this.setStatus(
+        { campaignId, objectId, expectedRevision },
+        'retired',
+      );
+    }
+    const object = await this.repository.getObject(campaignId, objectId);
+    if (!object) {
+      throw new CampaignPrepAuthoringError(
+        'not-found',
+        `Campaign object ${objectId} was not found`,
+      );
+    }
+    return this.setStatus(
+      {
+        campaignId,
+        objectId,
+        expectedRevision: object.currentRevision,
+      },
+      'retired',
+    );
+  }
+
   private async setStatus(
     request: SetCampaignPrepObjectStatusRequest,
     status: CampaignPrepObjectStatus,

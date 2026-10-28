@@ -70,10 +70,26 @@ export function getExpectedWealthRange(partySize: number, averageLevel: number):
   };
 }
 
-export function getPartyAverageLevel(pcs: readonly PlayerCharacter[]): number {
-  if (pcs.length === 0) return 1;
-  const sum = pcs.reduce((acc, pc) => acc + (pc.level || 1), 0);
-  return Math.round((sum / pcs.length) * 10) / 10;
+export function resolvePartyLevels(
+  pcs?: readonly PlayerCharacter[],
+  sessionPartyLevel?: number,
+): number[] {
+  if (pcs && pcs.length > 0) {
+    return pcs.map((pc) => pc.level || 1);
+  }
+  if (typeof sessionPartyLevel === 'number' && sessionPartyLevel > 0) {
+    return [sessionPartyLevel, sessionPartyLevel, sessionPartyLevel, sessionPartyLevel];
+  }
+  return [1, 1, 1, 1];
+}
+
+export function getPartyAverageLevel(
+  pcs: readonly PlayerCharacter[],
+  sessionPartyLevel?: number,
+): number {
+  const levels = resolvePartyLevels(pcs, sessionPartyLevel);
+  const sum = levels.reduce((acc, lvl) => acc + lvl, 0);
+  return Math.round((sum / levels.length) * 10) / 10;
 }
 
 export function evaluatePartyWealth(

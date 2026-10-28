@@ -373,3 +373,78 @@
   height: 10px;
   border-radius: 50%;
 }
+
+.relationBadgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unlinkButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--studio-text-muted);
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--studio-radius-sm);
+}
+
+.unlinkButton:hover {
+  color: var(--studio-danger);
+  background: var(--studio-surface-hover);
+}
+
+.linkAuthoringSection {
+  margin-top: var(--studio-gap-md);
+  padding-top: var(--studio-gap-sm);
+  border-top: 1px solid var(--studio-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-xs);
+}
+
+.linkAuthoringForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-xs);
+}
+
+.linkSelect {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--studio-radius-sm);
+  border: 1px solid var(--studio-border);
+  background: var(--studio-surface);
+  color: var(--studio-text);
+  font-size: 0.8125rem;
+}
+
+.addLinkButton {
+  padding: 6px 12px;
+  border-radius: var(--studio-radius-sm);
+  border: 1px solid var(--studio-border);
+  background: var(--studio-primary, var(--studio-positive));
+  color: var(--studio-surface-raised, #fff);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.addLinkButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.addLinkButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.linkError {
+  color: var(--studio-danger, #ef4444);
+  font-size: 0.75rem;
+  margin-top: 4px;
+}

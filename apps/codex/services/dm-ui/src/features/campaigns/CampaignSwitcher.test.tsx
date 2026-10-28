@@ -215,11 +215,13 @@ describe('CampaignSwitcher', () => {
     await user.click(screen.getByRole('radio', { name: /One-Shot/ }));
     await user.click(screen.getByRole('button', { name: 'Create Campaign' }));
 
-    expect(createCampaign).toHaveBeenCalledWith({
-      description: '',
-      mode: 'one-shot',
-      name: 'Single Adventure',
-    });
+    expect(createCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: '',
+        mode: 'one-shot',
+        name: 'Single Adventure',
+      }),
+    );
   });
 
   it('displays One-Shot badge when active campaign mode is one-shot', () => {

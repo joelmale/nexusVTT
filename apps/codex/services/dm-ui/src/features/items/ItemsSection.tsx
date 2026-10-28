@@ -29,6 +29,7 @@ import {
   RARITY_LABELS,
   buildItemsModel,
   holderName,
+  type ItemsGroupBy,
 } from './itemsModel';
 import { ItemCard } from './ItemCard';
 import { ItemRow } from './ItemRow';
@@ -70,12 +71,38 @@ export function ItemsSection() {
   const holder = get('holder');
   const discovery = get('discovery');
   const session = get('session');
+  const itemType = get('type') || get('itemType');
+  const attunement = get('attunement');
+  const valuePreset = get('valuePreset') || get('value');
+  const groupBy = (get('group') || get('groupBy') || 'holder') as ItemsGroupBy;
   const q = get('q');
   const activeTab = get('tab') === 'compendium' ? 'compendium' : 'items';
 
   const model = useMemo(
-    () => buildItemsModel(bundle, { q, rarity, holder, discovery, session }),
-    [bundle, q, rarity, holder, discovery, session],
+    () =>
+      buildItemsModel(bundle, {
+        q,
+        rarity,
+        holder,
+        discovery,
+        session,
+        itemType,
+        attunement,
+        valuePreset,
+        groupBy,
+      }),
+    [
+      bundle,
+      q,
+      rarity,
+      holder,
+      discovery,
+      session,
+      itemType,
+      attunement,
+      valuePreset,
+      groupBy,
+    ],
   );
   const selected = itemId
     ? (bundle.items ?? []).find((item) => item.id === itemId)
@@ -200,10 +227,28 @@ export function ItemsSection() {
                 options: model.holderOptions,
               },
               {
+                allLabel: 'All types',
+                key: 'type',
+                label: 'Type',
+                options: model.itemTypeOptions,
+              },
+              {
                 allLabel: 'All rarities',
                 key: 'rarity',
                 label: 'Rarity',
                 options: model.rarityOptions,
+              },
+              {
+                allLabel: 'All attunement',
+                key: 'attunement',
+                label: 'Attunement',
+                options: model.attunementOptions,
+              },
+              {
+                allLabel: 'All values',
+                key: 'valuePreset',
+                label: 'Value',
+                options: model.valuePresetOptions,
               },
               {
                 allLabel: 'All items',
@@ -222,6 +267,8 @@ export function ItemsSection() {
                   ]
                 : []),
             ]}
+            groupByKey="group"
+            groupByOptions={model.groupByOptions}
             plural="items"
             resultCount={model.visibleCount}
             searchLabel="Search items"

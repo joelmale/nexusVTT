@@ -9,6 +9,12 @@ export interface FactionRelationshipMapProps {
   onSelectFaction?: (factionId: string) => void;
   title?: string;
   className?: string;
+  /** Callback to update/toggle relationship type between two factions. */
+  onChangeRelationship?: (
+    sourceId: string,
+    targetId: string,
+    nextType: FactionRelationshipType,
+  ) => void;
 }
 
 interface NodePosition {
@@ -88,6 +94,7 @@ export function FactionRelationshipMap({
   onSelectFaction,
   title = 'Faction Ecosystem Relationship Web',
   className,
+  onChangeRelationship,
 }: FactionRelationshipMapProps) {
   const [activeEdgeId, setActiveEdgeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -304,16 +311,39 @@ export function FactionRelationshipMap({
             <span className={styles.inspectorTitle}>
               {activeEdge.source.faction.name} ↔ {activeEdge.target.faction.name}
             </span>
-            <span
-              className={styles.typeBadge}
-              style={{
-                backgroundColor: `${TYPE_CONFIG[activeEdge.type].color}20`,
-                color: TYPE_CONFIG[activeEdge.type].color,
-                border: `1px solid ${TYPE_CONFIG[activeEdge.type].color}`,
-              }}
-            >
-              {TYPE_CONFIG[activeEdge.type].label}
-            </span>
+            {onChangeRelationship ? (
+              <select
+                aria-label={`Relationship between ${activeEdge.source.faction.name} and ${activeEdge.target.faction.name}`}
+                className={styles.relationSelect}
+                value={activeEdge.type}
+                onChange={(e) =>
+                  onChangeRelationship(
+                    activeEdge.source.faction.tempId,
+                    activeEdge.target.faction.tempId,
+                    e.target.value as FactionRelationshipType,
+                  )
+                }
+              >
+                <option value="ally">Allies</option>
+                <option value="rival">Rivals</option>
+                <option value="ambivalent">Ambivalent</option>
+                <option value="uneasy-truce">Uneasy Truce</option>
+                <option value="infiltrated">Infiltrated / Espionage</option>
+                <option value="transactional">Transactional</option>
+                <option value="willful-ignorance">Willful Ignorance</option>
+              </select>
+            ) : (
+              <span
+                className={styles.typeBadge}
+                style={{
+                  backgroundColor: `${TYPE_CONFIG[activeEdge.type].color}20`,
+                  color: TYPE_CONFIG[activeEdge.type].color,
+                  border: `1px solid ${TYPE_CONFIG[activeEdge.type].color}`,
+                }}
+              >
+                {TYPE_CONFIG[activeEdge.type].label}
+              </span>
+            )}
           </div>
           {activeEdge.sourceSummary && (
             <p className={styles.inspectorSummary}>
@@ -333,19 +363,50 @@ export function FactionRelationshipMap({
               {factions.find((f) => f.tempId === activeFocusId)?.name} Relationships
             </span>
           </div>
-          {selectedNodeRelationships.map((rel) => (
-            <p key={rel.targetTempId} className={styles.inspectorSummary}>
-              <strong
-                style={{
-                  color: TYPE_CONFIG[rel.type]?.color || 'inherit',
-                  textTransform: 'capitalize',
-                }}
-              >
-                [{rel.type.replace('-', ' ')}]
-              </strong>{' '}
-              {rel.summary}
-            </p>
-          ))}
+          {selectedNodeRelationships.map((rel) => {
+            const targetFaction = factions.find((f) => f.tempId === rel.targetTempId);
+            const targetName =
+              rel.targetFactionName || targetFaction?.name || rel.targetTempId;
+            return (
+              <div key={rel.targetTempId} className={styles.editableRelationshipRow}>
+                <span className={styles.targetName}>{targetName}:</span>
+                {onChangeRelationship ? (
+                  <select
+                    aria-label={`Relationship with ${targetName}`}
+                    className={styles.relationSelect}
+                    value={rel.type}
+                    onChange={(e) =>
+                      onChangeRelationship(
+                        activeFocusId,
+                        rel.targetTempId,
+                        e.target.value as FactionRelationshipType,
+                      )
+                    }
+                  >
+                    <option value="ally">Ally</option>
+                    <option value="rival">Rival</option>
+                    <option value="ambivalent">Ambivalent</option>
+                    <option value="uneasy-truce">Uneasy Truce</option>
+                    <option value="infiltrated">Infiltrated / Espionage</option>
+                    <option value="transactional">Transactional</option>
+                    <option value="willful-ignorance">Willful Ignorance</option>
+                  </select>
+                ) : (
+                  <strong
+                    style={{
+                      color: TYPE_CONFIG[rel.type]?.color || 'inherit',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    [{rel.type.replace('-', ' ')}]
+                  </strong>
+                )}
+                {rel.summary ? (
+                  <span className={styles.inspectorSummaryInline}>{rel.summary}</span>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className={styles.legend}>

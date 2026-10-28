@@ -4,6 +4,7 @@ import {
   evaluatePartyWealth,
   getExpectedWealthRange,
   getPartyAverageLevel,
+  resolvePartyLevels,
 } from './wealthTracker';
 import type { CampaignItem, PlayerCharacter } from '../../demo/fixture-registry/types';
 
@@ -46,17 +47,26 @@ describe('wealthTracker', () => {
     });
   });
 
-  describe('getPartyAverageLevel', () => {
-    it('calculates average level accurately', () => {
+  describe('resolvePartyLevels and getPartyAverageLevel', () => {
+    it('uses player characters levels when present', () => {
       const pcs: PlayerCharacter[] = [
         { id: 'p1', name: 'Althea', ancestry: 'Elf', className: 'Wizard', level: 3, hook: '' },
         { id: 'p2', name: 'Brog', ancestry: 'Dwarf', className: 'Fighter', level: 5, hook: '' },
       ];
-      expect(getPartyAverageLevel(pcs)).toBe(4);
+      expect(resolvePartyLevels(pcs, 9)).toEqual([3, 5]);
+      expect(getPartyAverageLevel(pcs, 9)).toBe(4);
     });
 
-    it('defaults to 1 for empty party', () => {
-      expect(getPartyAverageLevel([])).toBe(1);
+    it('falls back to session partyLevel for 4 members when pcs is empty', () => {
+      expect(resolvePartyLevels([], 7)).toEqual([7, 7, 7, 7]);
+      expect(getPartyAverageLevel([], 7)).toBe(7);
+    });
+
+    it('falls back to [1, 1, 1, 1] when pcs is empty and session partyLevel is missing', () => {
+      expect(resolvePartyLevels([], undefined)).toEqual([1, 1, 1, 1]);
+      expect(getPartyAverageLevel([], undefined)).toBe(1);
+      expect(resolvePartyLevels(undefined, 0)).toEqual([1, 1, 1, 1]);
+      expect(getPartyAverageLevel([], 0)).toBe(1);
     });
   });
 

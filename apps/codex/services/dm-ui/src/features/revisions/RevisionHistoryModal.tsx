@@ -39,6 +39,8 @@ export function RevisionHistoryModal({
 
   const [revisions, setRevisions] = useState<ObjectRevision[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string>();
+  const [retryCount, setRetryCount] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'diff' | 'raw'>('diff');
   const [restoring, setRestoring] = useState(false);
@@ -48,8 +50,18 @@ export function RevisionHistoryModal({
     if (!isOpen) return;
 
     let mounted = true;
-    setLoading(true);
     setError(undefined);
+    setLoadError(undefined);
+
+    if (!store.editable) {
+      setLoading(false);
+      setRevisions(generateSyntheticRevisions(objectId, currentDraft));
+      return () => {
+        mounted = false;
+      };
+    }
+
+    setLoading(true);
 
     async function load() {
       try {
@@ -66,14 +78,16 @@ export function RevisionHistoryModal({
                 ? (f.snapshot as Record<string, unknown>)
                 : { ...currentDraft },
             changeSummary: `Revision #${f.revision}`,
+            synthetic: false,
           }));
           setRevisions(mapped);
         } else {
-          setRevisions(generateSyntheticRevisions(objectId, currentDraft));
+          setRevisions([]);
         }
       } catch {
         if (mounted) {
-          setRevisions(generateSyntheticRevisions(objectId, currentDraft));
+          setRevisions([]);
+          setLoadError('Unable to load revision history from server.');
         }
       } finally {
         if (mounted) setLoading(false);
@@ -85,10 +99,16 @@ export function RevisionHistoryModal({
     return () => {
       mounted = false;
     };
-  }, [isOpen, bundle.campaignId, objectId, currentDraft]);
+  }, [isOpen, store.editable, bundle.campaignId, objectId, currentDraft, retryCount]);
 
   const selectedRevision = revisions[selectedIndex] as ObjectRevision | undefined;
   const isCurrent = selectedIndex === 0;
+  const canRestore = Boolean(
+    selectedRevision &&
+      !isCurrent &&
+      store.editable &&
+      !selectedRevision.synthetic,
+  );
 
   const diffs = useMemo(() => {
     if (!selectedRevision) return [];
@@ -96,20 +116,18 @@ export function RevisionHistoryModal({
   }, [selectedRevision, currentDraft]);
 
   const handleRestore = async () => {
-    if (!selectedRevision) return;
+    if (!selectedRevision || !store.editable || selectedRevision.synthetic) return;
 
     setRestoring(true);
     setError(undefined);
 
     try {
-      if (store.editable) {
-        const patch = restoreRevisionPatch(selectedRevision.snapshot, currentDraft);
-        const result = await store.updateItem(kind, objectId, patch);
-        if (!result.ok) {
-          setError(result.error ?? 'Failed to restore revision.');
-          setRestoring(false);
-          return;
-        }
+      const patch = restoreRevisionPatch(selectedRevision.snapshot, currentDraft);
+      const result = await store.updateItem(kind, objectId, patch);
+      if (!result.ok) {
+        setError(result.error ?? 'Failed to restore revision.');
+        setRestoring(false);
+        return;
       }
 
       onRestore?.(selectedRevision.snapshot);
@@ -219,11 +237,11 @@ export function RevisionHistoryModal({
                       {viewMode === 'diff' ? 'Show Raw Snapshot' : 'Show Formatted Diff'}
                     </button>
 
-                    {!isCurrent && store.editable ? (
+                    {!isCurrent ? (
                       <button
                         className={styles.restoreButton}
-                        disabled={restoring}
-                        onClick={handleRestore}
+                        disabled={!canRestore || restoring}
+                        onClick={() => void handleRestore()}
                         type="button"
                       >
                         <RotateCcw size={14} />
@@ -288,8 +306,21 @@ export function RevisionHistoryModal({
                   )}
                 </div>
               </>
-            ) : (
-              <p className={styles.emptyState}>No revision selected.</p>
+            ) : loadError ? (
+              <div className={styles.emptyState} role="alert">
+                <p>{loadError}</p>
+                <button
+                  className={styles.toggleButton}
+                  onClick={() => setRetryCount((c) => c + 1)}
+                  type="button"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : loading ? null : (
+              <p className={styles.emptyState}>
+                No revision history recorded for this object yet.
+              </p>
             )}
           </main>
         </div>

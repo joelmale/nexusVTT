@@ -58,6 +58,7 @@ export function MentionTextarea({
   const pendingCaret = useRef<number | undefined>(undefined);
   const [active, setActive] = useState<ActiveMention | null>(null);
   const [highlight, setHighlight] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<{
     left: number;
     top: number;
@@ -75,7 +76,11 @@ export function MentionTextarea({
       entity,
     }));
 
-    if (store.editable && queryTrimmed.length > 0 && entityMatches.length === 0) {
+    const hasExactMatch = entities.some(
+      (entity) => entity.label.trim().toLowerCase() === queryTrimmed.toLowerCase(),
+    );
+
+    if (store.editable && queryTrimmed.length > 0 && !hasExactMatch) {
       items.push(
         { type: 'create', kind: 'npc', name: queryTrimmed },
         { type: 'create', kind: 'location', name: queryTrimmed },
@@ -138,16 +143,22 @@ export function MentionTextarea({
 
       const res = await store.addItem(kind, draft);
       if (res.ok && res.id) {
+        setErrorMessage(null);
         const next = applyMention(value, active, caret, name, res.id);
         pendingCaret.current = next.caret;
         onChange(next.text);
         setActive(null);
         element.focus();
+      } else if (!res.ok) {
+        setErrorMessage(res.error || 'Failed to create entity');
       }
     }
   };
 
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    if (errorMessage) {
+      setErrorMessage(null);
+    }
     onChange(event.target.value);
     refresh(event.target.value, event.target.selectionStart ?? 0);
   };
@@ -199,6 +210,11 @@ export function MentionTextarea({
         role="combobox"
         value={value}
       />
+      {errorMessage ? (
+        <div className={styles.errorAlert} role="alert">
+          {errorMessage}
+        </div>
+      ) : null}
       {open
         ? createPortal(
             // Portalled so the suggestions never become part of the field's label.

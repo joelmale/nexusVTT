@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Dices from 'lucide-react/dist/esm/icons/dices';
 import Network from 'lucide-react/dist/esm/icons/network';
 import Shield from 'lucide-react/dist/esm/icons/shield';
+import type { FactionRelationshipType } from '@nexus/character-creator';
 
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityList } from '@/features/section-shell/EntityList';
@@ -159,7 +160,13 @@ export function FactionsSection() {
             <RichEntityRow
               badges={badges}
               icon={<Shield size={15} />}
-              isPinned={pinnedIds?.includes(faction.id)}
+              id={faction.id}
+              pinned={Boolean(bundle.pinnedObjectIds?.includes(faction.id))}
+              onTogglePin={
+                store.editable && store.togglePin
+                  ? () => void store.togglePin?.(faction.id)
+                  : undefined
+              }
               metaParts={metaParts}
               title={faction.name}
             />
@@ -169,75 +176,204 @@ export function FactionsSection() {
       />
     );
 
+  const handleChangeRelationship = useCallback(
+    async (
+      sourceId: string,
+      targetId: string,
+      nextType: FactionRelationshipType,
+    ) => {
+      if (!store.editable) return;
+      const source = bundle.factions.find((f) => f.id === sourceId);
+      if (!source) return;
+      let nextAllies = [...source.alliedFactionIds];
+      let nextRivals = [...source.rivalFactionIds];
+      if (nextType === 'ally') {
+        if (!nextAllies.includes(targetId)) nextAllies.push(targetId);
+        nextRivals = nextRivals.filter((id) => id !== targetId);
+      } else if (nextType === 'rival') {
+        if (!nextRivals.includes(targetId)) nextRivals.push(targetId);
+        nextAllies = nextAllies.filter((id) => id !== targetId);
+      } else {
+        nextAllies = nextAllies.filter((id) => id !== targetId);
+        nextRivals = nextRivals.filter((id) => id !== targetId);
+      }
+      await store.updateItem('faction', sourceId, {
+        alliedFactionIds: nextAllies,
+        rivalFactionIds: nextRivals,
+      });
+    },
+    [bundle.factions, store],
+  );
+
   const detail = selectedFaction ? (
     <EditableSection
       listPath="factions"
       kind="faction"
       id={selectedFaction.id}
       heading={selectedFaction.name}
+      pinned={Boolean(bundle.pinnedObjectIds?.includes(selectedFaction.id))}
+      onTogglePin={
+        store.editable && store.togglePin
+          ? () => void store.togglePin?.(selectedFaction.id)
+          : undefined
+      }
       initialDraft={{
         name: selectedFaction.name,
         status: selectedFaction.status,
         leaderNpcId: selectedFaction.leaderNpcId ?? '',
-        publicFace: selectedFaction.publicFace,
-        hiddenAgenda: selectedFaction.hiddenAgenda,
+        publicFace: selectedFaction.publicFace ?? '',
+        hiddenAgenda: selectedFaction.hiddenAgenda ?? '',
+        alliedFactionIds: selectedFaction.alliedFactionIds ?? [],
+        rivalFactionIds: selectedFaction.rivalFactionIds ?? [],
       }}
-      renderForm={(draft, setDraft) => (
-        <>
-          <div className={styles.public}>
-            <label>
-              <span className={styles.heading}>Name</span>
-              <input
-                type="text"
-                value={String(draft.name ?? '')}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              />
-            </label>
-            <label>
-              <span className={styles.heading}>Status</span>
-              <select
-                value={String(draft.status ?? 'unknown')}
-                onChange={(e) => setDraft({ ...draft, status: e.target.value })}
-              >
-                <option value="opposition">Opposition</option>
-                <option value="unknown">Unknown</option>
-                <option value="neutral">Neutral</option>
-                <option value="ally">Ally</option>
-              </select>
-            </label>
-            <label>
-              <span className={styles.heading}>Leader</span>
-              <select
-                value={String(draft.leaderNpcId ?? '')}
-                onChange={(e) => setDraft({ ...draft, leaderNpcId: e.target.value })}
-              >
-                <option value="">No leader</option>
-                {bundle.npcs.map((npc) => (
-                  <option key={npc.id} value={npc.id}>
-                    {npc.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span className={styles.heading}>Public Face</span>
-              <textarea
-                value={String(draft.publicFace ?? '')}
-                onChange={(e) => setDraft({ ...draft, publicFace: e.target.value })}
-                rows={3}
-              />
-            </label>
-            <label>
-              <span className={styles.heading}>Hidden Agenda</span>
-              <textarea
-                value={String(draft.hiddenAgenda ?? '')}
-                onChange={(e) => setDraft({ ...draft, hiddenAgenda: e.target.value })}
-                rows={3}
-              />
-            </label>
-          </div>
-        </>
-      )}
+      renderForm={(draft, setDraft) => {
+        const alliedIds = (draft.alliedFactionIds as string[]) ?? [];
+        const rivalIds = (draft.rivalFactionIds as string[]) ?? [];
+        const otherFactions = bundle.factions.filter(
+          (f) => f.id !== selectedFaction.id,
+        );
+
+        return (
+          <>
+            <div className={styles.public}>
+              <label>
+                <span className={styles.heading}>Name</span>
+                <input
+                  type="text"
+                  value={String(draft.name ?? '')}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                />
+              </label>
+              <label>
+                <span className={styles.heading}>Status</span>
+                <select
+                  value={String(draft.status ?? 'unknown')}
+                  onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+                >
+                  <option value="opposition">Opposition</option>
+                  <option value="unknown">Unknown</option>
+                  <option value="neutral">Neutral</option>
+                  <option value="ally">Ally</option>
+                </select>
+              </label>
+              <label>
+                <span className={styles.heading}>Leader</span>
+                <select
+                  value={String(draft.leaderNpcId ?? '')}
+                  onChange={(e) =>
+                    setDraft({ ...draft, leaderNpcId: e.target.value })
+                  }
+                >
+                  <option value="">No leader</option>
+                  {bundle.npcs.map((npc) => (
+                    <option key={npc.id} value={npc.id}>
+                      {npc.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className={styles.heading}>Public Face</span>
+                <textarea
+                  value={String(draft.publicFace ?? '')}
+                  onChange={(e) =>
+                    setDraft({ ...draft, publicFace: e.target.value })
+                  }
+                  rows={3}
+                />
+              </label>
+              <label>
+                <span className={styles.heading}>Hidden Agenda</span>
+                <textarea
+                  value={String(draft.hiddenAgenda ?? '')}
+                  onChange={(e) =>
+                    setDraft({ ...draft, hiddenAgenda: e.target.value })
+                  }
+                  rows={3}
+                />
+              </label>
+
+              {otherFactions.length > 0 && (
+                <>
+                  <div className={styles.relationGroup}>
+                    <span className={styles.heading}>Allied Factions</span>
+                    <div className={styles.chipSelectGrid}>
+                      {otherFactions.map((other) => {
+                        const isAllied = alliedIds.includes(other.id);
+                        return (
+                          <label key={other.id} className={styles.checkboxLabel}>
+                            <input
+                              aria-label={`Ally ${other.name}`}
+                              type="checkbox"
+                              checked={isAllied}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setDraft({
+                                    ...draft,
+                                    alliedFactionIds: [...alliedIds, other.id],
+                                    rivalFactionIds: rivalIds.filter(
+                                      (id) => id !== other.id,
+                                    ),
+                                  });
+                                } else {
+                                  setDraft({
+                                    ...draft,
+                                    alliedFactionIds: alliedIds.filter(
+                                      (id) => id !== other.id,
+                                    ),
+                                  });
+                                }
+                              }}
+                            />
+                            <span>{other.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className={styles.relationGroup}>
+                    <span className={styles.heading}>Rival Factions</span>
+                    <div className={styles.chipSelectGrid}>
+                      {otherFactions.map((other) => {
+                        const isRival = rivalIds.includes(other.id);
+                        return (
+                          <label key={other.id} className={styles.checkboxLabel}>
+                            <input
+                              aria-label={`Rival ${other.name}`}
+                              type="checkbox"
+                              checked={isRival}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setDraft({
+                                    ...draft,
+                                    rivalFactionIds: [...rivalIds, other.id],
+                                    alliedFactionIds: alliedIds.filter(
+                                      (id) => id !== other.id,
+                                    ),
+                                  });
+                                } else {
+                                  setDraft({
+                                    ...draft,
+                                    rivalFactionIds: rivalIds.filter(
+                                      (id) => id !== other.id,
+                                    ),
+                                  });
+                                }
+                              }}
+                            />
+                            <span>{other.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        );
+      }}
       toPatch={(draft, initial) => {
         const patch: Record<string, unknown> = {};
         if (draft.name !== initial.name) patch.name = String(draft.name ?? '').trim();
@@ -245,8 +381,24 @@ export function FactionsSection() {
         if (draft.leaderNpcId !== initial.leaderNpcId) {
           patch.leaderNpcId = draft.leaderNpcId ? String(draft.leaderNpcId) : '';
         }
-        if (draft.publicFace !== initial.publicFace) patch.publicFace = String(draft.publicFace ?? '').trim();
-        if (draft.hiddenAgenda !== initial.hiddenAgenda) patch.hiddenAgenda = String(draft.hiddenAgenda ?? '').trim();
+        if (draft.publicFace !== initial.publicFace) {
+          patch.publicFace = String(draft.publicFace ?? '').trim();
+        }
+        if (draft.hiddenAgenda !== initial.hiddenAgenda) {
+          patch.hiddenAgenda = String(draft.hiddenAgenda ?? '').trim();
+        }
+        if (
+          JSON.stringify(draft.alliedFactionIds) !==
+          JSON.stringify(initial.alliedFactionIds)
+        ) {
+          patch.alliedFactionIds = draft.alliedFactionIds;
+        }
+        if (
+          JSON.stringify(draft.rivalFactionIds) !==
+          JSON.stringify(initial.rivalFactionIds)
+        ) {
+          patch.rivalFactionIds = draft.rivalFactionIds;
+        }
         return patch;
       }}
     >
@@ -306,6 +458,9 @@ export function FactionsSection() {
                   onSelectFaction={(id) => {
                     navigate(`${basePath}/factions/${encodeURIComponent(id)}`);
                   }}
+                  onChangeRelationship={
+                    store.editable ? handleChangeRelationship : undefined
+                  }
                 />
               </div>
             )}
@@ -372,6 +527,9 @@ export function FactionsSection() {
             onSelectFaction={(id) => {
               navigate(`${basePath}/factions/${encodeURIComponent(id)}`);
             }}
+            onChangeRelationship={
+              store.editable ? handleChangeRelationship : undefined
+            }
           />
         </div>
       )}

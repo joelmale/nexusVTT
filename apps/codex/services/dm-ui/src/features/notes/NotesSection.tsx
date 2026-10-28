@@ -16,6 +16,7 @@ import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
+import { usePlayerView } from '@/features/player-view';
 
 import { SecretsPane } from '@/features/secrets/SecretsPane';
 import { InboxPane } from '@/features/inbox/InboxPane';
@@ -189,18 +190,28 @@ export function NotesSection() {
   const { bundle, basePath, store } = useSectionBundle();
   const { noteId } = useParams<{ noteId?: string }>();
   const { get, set, clear } = useSectionQuery();
+  const { isPlayerView } = usePlayerView();
 
   const tabParam = get('tab');
   const currentTab =
-    tabParam === 'secrets' ? 'secrets' : tabParam === 'inbox' ? 'inbox' : 'notes';
+    !isPlayerView && tabParam === 'secrets'
+      ? 'secrets'
+      : !isPlayerView && tabParam === 'inbox'
+        ? 'inbox'
+        : 'notes';
   const secretsCount = (bundle.secrets ?? []).length;
   const unrevealedCount = (bundle.secrets ?? []).filter((s) => !s.revealed).length;
   const inboxNotes = bundle.inboxNotes ?? [];
   const unfiledInboxCount = countUnfiled(inboxNotes);
 
   const model = useMemo(
-    () => buildNotesModel(bundle, { q: get('q'), anchor: get('anchor') }),
-    [bundle, get],
+    () =>
+      buildNotesModel(bundle, {
+        q: get('q'),
+        anchor: get('anchor'),
+        isPlayerView,
+      }),
+    [bundle, get, isPlayerView],
   );
 
   const tabsElement = (
@@ -215,37 +226,41 @@ export function NotesSection() {
         <span>Notes</span>
         <span className={tabStyles.count}>{model.total}</span>
       </button>
-      <button
-        aria-selected={currentTab === 'secrets'}
-        className={`${tabStyles.tab} ${currentTab === 'secrets' ? tabStyles.selected : ''}`}
-        onClick={() => {
-          clear();
-          set('tab', 'secrets');
-        }}
-        role="tab"
-        type="button"
-      >
-        <span>Secrets & Clues</span>
-        <span className={tabStyles.count}>
-          {secretsCount} ({unrevealedCount} unrevealed)
-        </span>
-      </button>
-      <button
-        aria-selected={currentTab === 'inbox'}
-        className={`${tabStyles.tab} ${currentTab === 'inbox' ? tabStyles.selected : ''}`}
-        onClick={() => {
-          clear();
-          set('tab', 'inbox');
-        }}
-        role="tab"
-        type="button"
-      >
-        <span>Inbox</span>
-        <span className={tabStyles.count}>
-          {inboxNotes.length}
-          {unfiledInboxCount > 0 ? ` (${unfiledInboxCount} unfiled)` : ''}
-        </span>
-      </button>
+      {!isPlayerView ? (
+        <>
+          <button
+            aria-selected={currentTab === 'secrets'}
+            className={`${tabStyles.tab} ${currentTab === 'secrets' ? tabStyles.selected : ''}`}
+            onClick={() => {
+              clear();
+              set('tab', 'secrets');
+            }}
+            role="tab"
+            type="button"
+          >
+            <span>Secrets & Clues</span>
+            <span className={tabStyles.count}>
+              {secretsCount} ({unrevealedCount} unrevealed)
+            </span>
+          </button>
+          <button
+            aria-selected={currentTab === 'inbox'}
+            className={`${tabStyles.tab} ${currentTab === 'inbox' ? tabStyles.selected : ''}`}
+            onClick={() => {
+              clear();
+              set('tab', 'inbox');
+            }}
+            role="tab"
+            type="button"
+          >
+            <span>Inbox</span>
+            <span className={tabStyles.count}>
+              {inboxNotes.length}
+              {unfiledInboxCount > 0 ? ` (${unfiledInboxCount} unfiled)` : ''}
+            </span>
+          </button>
+        </>
+      ) : null}
     </div>
   );
 
@@ -281,9 +296,15 @@ export function NotesSection() {
     );
   }
 
-  const selected = noteId
+  const rawSelected = noteId
     ? bundle.notes.find((note) => note.id === noteId)
     : undefined;
+  const isSelectedPrivate =
+    Boolean(rawSelected) &&
+    (rawSelected?.audience === 'none' ||
+      (rawSelected as { audience?: string })?.audience === 'hidden' ||
+      (rawSelected as { visibility?: string })?.visibility === 'dm-only');
+  const selected = isPlayerView && isSelectedPrivate ? undefined : rawSelected;
   const readOnlyEmpty = model.total === 0 && !store.editable;
 
   const list =
@@ -333,17 +354,19 @@ export function NotesSection() {
       }
       list={list}
       listFooter={
-        <AddRow
-          defaults={{
-            anchor: anchorFromKey(get('anchor')),
-            audience: 'none',
-            body: '',
-          }}
-          kind="note"
-          label="Add note"
-          nameField="title"
-          sectionPath="notes"
-        />
+        !isPlayerView ? (
+          <AddRow
+            defaults={{
+              anchor: anchorFromKey(get('anchor')),
+              audience: 'none',
+              body: '',
+            }}
+            kind="note"
+            label="Add note"
+            nameField="title"
+            sectionPath="notes"
+          />
+        ) : undefined
       }
       notFound={Boolean(noteId) && !selected}
       sectionPath="notes"
@@ -354,7 +377,9 @@ export function NotesSection() {
             { label: 'Notes', value: model.total },
             {
               label: 'Shared',
-              value: bundle.notes.filter(isShared).length,
+              value: isPlayerView
+                ? model.total
+                : bundle.notes.filter(isShared).length,
             },
           ]}
           title="Notes overview"

@@ -1,11 +1,14 @@
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
+import Compass from 'lucide-react/dist/esm/icons/compass';
 import Gem from 'lucide-react/dist/esm/icons/gem';
 import Images from 'lucide-react/dist/esm/icons/images';
-import Compass from 'lucide-react/dist/esm/icons/compass';
+import Inbox from 'lucide-react/dist/esm/icons/inbox';
 import MapIcon from 'lucide-react/dist/esm/icons/map';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin';
+import Moon from 'lucide-react/dist/esm/icons/moon';
+import Network from 'lucide-react/dist/esm/icons/network';
 import PanelLeftClose from 'lucide-react/dist/esm/icons/panel-left-close';
 import Search from 'lucide-react/dist/esm/icons/search';
 import Settings from 'lucide-react/dist/esm/icons/settings';
@@ -26,6 +29,10 @@ interface StudioCampaignRailProps {
   onCapability: (capabilityId: CapabilityId) => void;
   /** Opens campaign search. Shown on touch devices, which have no Ctrl+K. */
   onSearch?: () => void;
+  onQuickCapture?: () => void;
+  onRelationshipWeb?: () => void;
+  onTheme?: () => void;
+  onSettings?: () => void;
 }
 
 const NAVIGATION_ITEMS = [
@@ -45,6 +52,10 @@ const NAVIGATION_ITEMS = [
 export function StudioCampaignRail({
   onCapability,
   onSearch,
+  onQuickCapture,
+  onRelationshipWeb,
+  onTheme,
+  onSettings,
 }: StudioCampaignRailProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -70,13 +81,21 @@ export function StudioCampaignRail({
     navigate(`${campaignBase}/${route}`);
   }
 
+  function handleBrandClick() {
+    if (campaignBase) {
+      navigate(`${campaignBase}/overview`);
+    } else {
+      navigate('/campaigns');
+    }
+  }
+
   return (
     <aside className={styles.rail} aria-label="Campaign navigation">
       <div className={styles.brandRow}>
         <button
-          aria-label="Return to campaign overview"
+          aria-label={campaignBase ? 'Return to campaign overview' : 'Return to campaigns'}
           className={styles.brand}
-          onClick={() => selectRoute('overview')}
+          onClick={handleBrandClick}
           type="button"
         >
           <span className={styles.brandMark} aria-hidden="true">
@@ -132,14 +151,56 @@ export function StudioCampaignRail({
         })}
       </nav>
 
-      <button
-        className={styles.settings}
-        onClick={() => onCapability('campaign.settings.open')}
-        type="button"
-      >
-        <Settings size={18} />
-        <span>Settings</span>
-      </button>
+      <div className={styles.railFooter}>
+        {onQuickCapture ? (
+          <button
+            aria-label="Quick capture (Ctrl+Shift+N)"
+            className={styles.utilityItem}
+            onClick={onQuickCapture}
+            title="Quick capture (Ctrl+Shift+N)"
+            type="button"
+          >
+            <Inbox size={18} />
+            <span>Quick capture</span>
+          </button>
+        ) : null}
+        {onRelationshipWeb ? (
+          <button
+            aria-label="Relationship web"
+            className={styles.utilityItem}
+            onClick={onRelationshipWeb}
+            title="Relationship web"
+            type="button"
+          >
+            <Network size={18} />
+            <span>Relationship web</span>
+          </button>
+        ) : null}
+        {onTheme ? (
+          <button
+            aria-label="Change theme"
+            className={styles.utilityItem}
+            onClick={onTheme}
+            title="Change theme"
+            type="button"
+          >
+            <Moon size={18} />
+            <span>Change theme</span>
+          </button>
+        ) : null}
+        <button
+          aria-label="Campaign settings"
+          className={styles.settings}
+          onClick={() => {
+            if (onSettings) onSettings();
+            else onCapability('campaign.settings.open');
+          }}
+          type="button"
+        >
+          <Settings size={18} />
+          <span>Settings</span>
+        </button>
+      </div>
     </aside>
   );
 }
