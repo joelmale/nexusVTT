@@ -26,9 +26,9 @@ engineering dispositions, not independent security approval.
 
 There are **eight fixed reference records**, for Fighter, Rogue, Wizard and
 Warlock in both editions. None has the complete independent sign-off required
-by the plan. Barbarian, Monk, Bard, Sorcerer, Cleric and Druid (twelve records) were authored
-on 2026-10-27 and await independent review. **6 records remain to author:**
-Paladin, Ranger and Artificer, each in both editions. Artificer
+by the plan. Barbarian, Monk, Bard, Sorcerer, Cleric, Druid, Paladin and Ranger (sixteen
+records) were authored on 2026-10-27 and await independent review. **2 records
+remain to author:** Artificer in both editions. Artificer
 also needs a supplemental-source support decision.
 
 The user has since authorized broad Artificer support and delegated the source

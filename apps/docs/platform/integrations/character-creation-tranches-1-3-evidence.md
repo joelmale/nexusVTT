@@ -272,6 +272,22 @@ heavy armor proficiency. One authoring error was also caught by validation, not
 the app: Acolyte offers INT/WIS/CHA, so the first DR24 draft's CON increase was
 rightly rejected.
 
+### T-04 batch D: Paladin and Ranger references (2026-10-27)
+
+Four records (PL14, PL24, RG14, RG24), with assertions in
+`paladinRangerReferences.test.ts`: the edition split in spellcasting onset (no
+slots or prepared spells at level one in 2014, two slots and two prepared spells
+in 2024), Lay On Hands, 2014 Divine Sense, Favored Enemy with Hunter's Mark kept
+out of the prepared count, weapon masteries, armor proficiencies, the Wood Elf
+lineage ledger, and each edition's packs. All twelve non-Artificer class
+records now exist for both editions (24 with Fighter, Rogue, Wizard and Warlock)
+and await independent review. Only the two Artificer records remain; they depend
+on the T-01 source work.
+
+No numeric or ledger defect surfaced in this batch. One open gap was recorded:
+the Soldier background's gaming set choice is saved as the placeholder "Gaming
+Set (choose one)" instead of the player's choice (`it.todo` in the test file).
+
 ## Remaining work before closing these tranches
 
 1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices

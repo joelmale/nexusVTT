@@ -21,7 +21,11 @@ export interface ReferenceBuildOracle {
     | 'CL14'
     | 'CL24'
     | 'DR14'
-    | 'DR24';
+    | 'DR24'
+    | 'PL14'
+    | 'PL24'
+    | 'RG14'
+    | 'RG24';
   title: string;
   edition: '2014' | '2024';
   creationData: CharacterCreationData;
@@ -1796,5 +1800,377 @@ REFERENCE_BUILDS.DR24 = {
     },
     features: ['Spellcasting', 'Druidic', 'Primal Order: Magician', 'Drow'],
     currency: { gp: 17 }, // Druid package A 9 + Acolyte package A 8
+  },
+};
+
+// Paladin and Ranger references (tranche T-04 batch D). Expected values are
+// calculated by hand from SRD 5.1 (Paladin, Ranger, Half-Orc, Human, Acolyte)
+// and SRD 5.2.1 (Paladin p48, Ranger p57, Human, Elf, Soldier, Criminal),
+// never from evaluator output. Spellcasting begins at level 1 in SRD 5.2.1 and
+// at level 2 in SRD 5.1. Independent human review of these expectations
+// remains open in the acceptance ledger.
+
+// SRD 5.1: Half-Orc (STR +2, CON +1, Menacing), Acolyte (Insight, Religion,
+// 15 gp), Paladin (d10, saves WIS/CHA, all armor, Divine Sense, Lay on Hands).
+REFERENCE_BUILDS.PL14 = {
+  id: 'PL14',
+  title: 'Half-Orc Paladin/Acolyte (2014)',
+  edition: '2014',
+  creationData: {
+    name: 'Half-Orc Paladin 2014',
+    level: 1,
+    edition: '2014',
+    speciesSlug: 'half-orc',
+    classSlug: 'paladin',
+    background: 'acolyte',
+    abilities: { STR: 15, DEX: 10, CON: 13, INT: 8, WIS: 12, CHA: 14 },
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Athletics', 'Persuasion'],
+    alignment: 'Lawful Good',
+    equipmentChoices: [
+      {
+        choiceId: 'weapons',
+        description: 'SRD 5.1 Paladin (a) a martial weapon and a shield',
+        selected: 0,
+        options: [
+          [
+            { name: 'Longsword', quantity: 1, type: 'weapon' },
+            { name: 'Shield', quantity: 1, type: 'armor' },
+          ],
+        ],
+      },
+      {
+        choiceId: 'ranged',
+        description: 'SRD 5.1 Paladin (a) five javelins',
+        selected: 0,
+        options: [[{ name: 'Javelin', quantity: 5, type: 'weapon' }]],
+      },
+      {
+        choiceId: 'pack',
+        description: "SRD 5.1 Paladin (a) a priest's pack",
+        selected: 0,
+        options: [[{ name: "Priest's Pack", quantity: 1, type: 'gear' }]],
+      },
+      {
+        choiceId: 'fixed',
+        description: 'SRD 5.1 Paladin: chain mail and a holy symbol',
+        selected: 0,
+        options: [
+          [
+            { name: 'Chain Mail', quantity: 1, type: 'armor' },
+            { name: 'Holy Symbol', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: { selectedCantrips: [], knownSpells: [] },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // Half-Orc: STR 15 + 2 = 17 (+3); CON 13 + 1 = 14 (+2); CHA 14 (+2)
+    abilities: { STR: 17, DEX: 10, CON: 14, INT: 8, WIS: 12, CHA: 14 },
+    hp: 12, // 10 + CON 2
+    ac: 18, // Chain mail 16 + shield 2
+    initiative: 0,
+    speed: 30,
+    saves: {
+      proficient: ['WIS', 'CHA'],
+      bonuses: { WIS: 3, CHA: 4 },
+    },
+    attacks: [{ name: 'Longsword', attackBonus: 5, damage: '1d8+3' }],
+    skills: {
+      athletics: { bonus: 5 }, // STR +3 + 2
+      persuasion: { bonus: 4 }, // CHA +2 + 2
+      intimidation: { bonus: 4 }, // Menacing: CHA +2 + 2
+      insight: { bonus: 3 }, // Acolyte: WIS +1 + 2
+      religion: { bonus: 1 }, // Acolyte: INT -1 + 2
+    },
+    features: [
+      'Divine Sense',
+      'Lay on Hands',
+      'Menacing',
+      'Relentless Endurance',
+    ],
+    currency: { gp: 15 }, // Acolyte only; the Paladin kit has no gold
+  },
+};
+
+// SRD 5.2.1: Human (Skillful Perception, Versatile Tough), Soldier (Savage
+// Attacker; STR/DEX/CON; Athletics, Intimidation; package A 14 gp), Paladin
+// package A (Chain Mail, Shield, Longsword, 6 Javelins, Holy Symbol, Priest's
+// Pack, 9 gp). Level 1 adds Lay On Hands, Spellcasting and Weapon Mastery.
+REFERENCE_BUILDS.PL24 = {
+  id: 'PL24',
+  title: 'Human Paladin/Soldier (2024)',
+  edition: '2024',
+  creationData: {
+    name: 'Human Paladin 2024',
+    level: 1,
+    edition: '2024',
+    speciesSlug: 'human-2024',
+    speciesSkillProficiency: 'Perception',
+    humanOriginFeat: 'tough',
+    classSlug: 'paladin',
+    background: 'soldier-2024',
+    abilities: { STR: 15, DEX: 10, CON: 13, INT: 8, WIS: 12, CHA: 14 },
+    backgroundAbilityChoices: { method: '2/1', bonuses: { STR: 2, CON: 1 } },
+    originFeat: 'savage-attacker',
+    weaponMastery: ['Longsword', 'Javelin'],
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Persuasion', 'Religion'],
+    alignment: 'Lawful Good',
+    equipmentChoices: [
+      {
+        choiceId: 'paladin-kit',
+        description: 'SRD 5.2.1 p48 Paladin package A',
+        selected: 0,
+        options: [
+          [
+            { name: 'Chain Mail', quantity: 1, type: 'armor' },
+            { name: 'Shield', quantity: 1, type: 'armor' },
+            { name: 'Longsword', quantity: 1, type: 'weapon' },
+            { name: 'Javelin', quantity: 6, type: 'weapon' },
+            { name: 'Holy Symbol', quantity: 1, type: 'gear' },
+            { name: "Priest's Pack", quantity: 1, type: 'gear' },
+            { name: '9 gp', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: {
+      selectedCantrips: [],
+      knownSpells: [],
+      preparedSpells: ['bless', 'cure-wounds'],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // STR 15 + 2 = 17 (+3); CON 13 + 1 = 14 (+2); CHA 14 (+2); WIS 12 (+1)
+    abilities: { STR: 17, DEX: 10, CON: 14, INT: 8, WIS: 12, CHA: 14 },
+    hp: 14, // 10 + CON 2 + Tough 2
+    ac: 18, // Chain mail 16 + shield 2
+    initiative: 0,
+    speed: 30,
+    saves: {
+      proficient: ['WIS', 'CHA'],
+      bonuses: { WIS: 3, CHA: 4 },
+    },
+    attacks: [{ name: 'Longsword', attackBonus: 5, damage: '1d8+3' }],
+    skills: {
+      persuasion: { bonus: 4 }, // CHA +2 + 2
+      religion: { bonus: 1 }, // INT -1 + 2
+      athletics: { bonus: 5 }, // Soldier: STR +3 + 2
+      intimidation: { bonus: 4 }, // Soldier: CHA +2 + 2
+      perception: { bonus: 3 }, // Human Skillful: WIS +1 + 2
+    },
+    spells: {
+      cantripsCount: 0,
+      knownOrBookCount: 0,
+      preparedCount: 2,
+      spellAttackBonus: 4, // CHA +2 + 2
+      spellSaveDC: 12,
+    },
+    features: [
+      'Lay On Hands',
+      'Spellcasting',
+      'Weapon Mastery',
+      'Savage Attacker',
+    ],
+    currency: { gp: 23 }, // Paladin package A 9 + Soldier package A 14
+  },
+};
+
+// SRD 5.1: Human (+1 all), Acolyte (15 gp), Ranger (d10, saves STR/DEX, three
+// skills, leather armor, Favored Enemy and Natural Explorer). No spellcasting
+// until level 2.
+REFERENCE_BUILDS.RG14 = {
+  id: 'RG14',
+  title: 'Human Ranger/Acolyte (2014)',
+  edition: '2014',
+  creationData: {
+    name: 'Human Ranger 2014',
+    level: 1,
+    edition: '2014',
+    speciesSlug: 'human',
+    variantSlug: 'standard',
+    classSlug: 'ranger',
+    background: 'acolyte',
+    abilities: { STR: 12, DEX: 15, CON: 13, INT: 10, WIS: 14, CHA: 8 },
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Perception', 'Stealth', 'Survival'],
+    alignment: 'Neutral Good',
+    equipmentChoices: [
+      {
+        choiceId: 'armor',
+        description: 'SRD 5.1 Ranger (b) leather armor',
+        selected: 0,
+        options: [[{ name: 'Leather Armor', quantity: 1, type: 'armor' }]],
+      },
+      {
+        choiceId: 'weapons',
+        description: 'SRD 5.1 Ranger (a) two shortswords',
+        selected: 0,
+        options: [[{ name: 'Shortsword', quantity: 2, type: 'weapon' }]],
+      },
+      {
+        choiceId: 'pack',
+        description: "SRD 5.1 Ranger (b) an explorer's pack",
+        selected: 0,
+        options: [[{ name: "Explorer's Pack", quantity: 1, type: 'gear' }]],
+      },
+      {
+        choiceId: 'fixed',
+        description: 'SRD 5.1 Ranger: a longbow and a quiver of 20 arrows',
+        selected: 0,
+        options: [
+          [
+            { name: 'Longbow', quantity: 1, type: 'weapon' },
+            { name: 'Arrow', quantity: 20, type: 'gear' },
+            { name: 'Quiver', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: { selectedCantrips: [], knownSpells: [] },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // Human +1: DEX 16 (+3), WIS 15 (+2), CON 14 (+2), STR 13 (+1),
+    // INT 11 (0), CHA 9 (-1)
+    abilities: { STR: 13, DEX: 16, CON: 14, INT: 11, WIS: 15, CHA: 9 },
+    hp: 12, // 10 + CON 2
+    ac: 14, // Leather armor 11 + DEX 3
+    initiative: 3,
+    speed: 30,
+    saves: {
+      proficient: ['STR', 'DEX'],
+      bonuses: { STR: 3, DEX: 5 },
+    },
+    attacks: [{ name: 'Longbow', attackBonus: 5, damage: '1d8+3' }],
+    skills: {
+      perception: { bonus: 4 }, // WIS +2 + 2
+      stealth: { bonus: 5 }, // DEX +3 + 2
+      survival: { bonus: 4 },
+      insight: { bonus: 4 }, // Acolyte: WIS +2 + 2
+      religion: { bonus: 2 }, // Acolyte: INT 0 + 2
+    },
+    features: ['Favored Enemy', 'Natural Explorer'],
+    currency: { gp: 15 }, // Acolyte only; the Ranger kit has no gold
+  },
+};
+
+// SRD 5.2.1: Elf (Wood Elf lineage: speed 35, Druidcraft; Keen Senses), Criminal
+// (Alert; DEX/CON/INT; Sleight of Hand, Stealth; package A 16 gp), Ranger
+// package A (Studded Leather Armor, Scimitar, Shortsword, Longbow, 20 Arrows,
+// Quiver, Druidic Focus, Explorer's Pack, 7 gp). Favored Enemy: Hunter's Mark
+// always prepared with two free casts.
+REFERENCE_BUILDS.RG24 = {
+  id: 'RG24',
+  title: 'Wood Elf Ranger/Criminal (2024)',
+  edition: '2024',
+  creationData: {
+    name: 'Elf Ranger 2024',
+    level: 1,
+    edition: '2024',
+    speciesSlug: 'elf-2024',
+    selectedLineage: 'wood-elf',
+    speciesSkillProficiency: 'Perception',
+    classSlug: 'ranger',
+    background: 'criminal-2024',
+    abilities: { STR: 12, DEX: 15, CON: 13, INT: 10, WIS: 14, CHA: 8 },
+    backgroundAbilityChoices: { method: '2/1', bonuses: { DEX: 2, CON: 1 } },
+    originFeat: 'alert',
+    weaponMastery: ['Longbow', 'Scimitar'],
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Survival', 'Nature', 'Insight'],
+    alignment: 'Neutral Good',
+    equipmentChoices: [
+      {
+        choiceId: 'ranger-kit',
+        description: 'SRD 5.2.1 p57 Ranger package A',
+        selected: 0,
+        options: [
+          [
+            { name: 'Studded Leather Armor', quantity: 1, type: 'armor' },
+            { name: 'Scimitar', quantity: 1, type: 'weapon' },
+            { name: 'Shortsword', quantity: 1, type: 'weapon' },
+            { name: 'Longbow', quantity: 1, type: 'weapon' },
+            { name: 'Arrow', quantity: 20, type: 'gear' },
+            { name: 'Quiver', quantity: 1, type: 'gear' },
+            { name: "Explorer's Pack", quantity: 1, type: 'gear' },
+            { name: '7 gp', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    additionalCastingSources: [
+      {
+        id: 'species:elf:wood-elf',
+        sourceType: 'species',
+        sourceSlug: 'wood-elf',
+        ability: 'WIS',
+        cantrips: ['druidcraft'],
+        knownSpells: [],
+        preparedSpells: [],
+        freeUses: 1,
+        allowClassSlots: true,
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: {
+      selectedCantrips: [],
+      knownSpells: [],
+      preparedSpells: ['cure-wounds', 'goodberry'],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // DEX 15 + 2 = 17 (+3); CON 13 + 1 = 14 (+2); WIS 14 (+2); STR 12 (+1)
+    abilities: { STR: 12, DEX: 17, CON: 14, INT: 10, WIS: 14, CHA: 8 },
+    hp: 12, // 10 + CON 2
+    ac: 15, // Studded leather 12 + DEX 3
+    initiative: 5, // DEX +3 + Alert (Proficiency Bonus +2)
+    speed: 35,
+    saves: {
+      proficient: ['STR', 'DEX'],
+      bonuses: { STR: 3, DEX: 5 },
+    },
+    attacks: [{ name: 'Longbow', attackBonus: 5, damage: '1d8+3' }],
+    skills: {
+      survival: { bonus: 4 }, // WIS +2 + 2
+      nature: { bonus: 2 }, // INT 0 + 2
+      insight: { bonus: 4 },
+      perception: { bonus: 4 }, // Elf Keen Senses: WIS +2 + 2
+      sleight_of_hand: { bonus: 5 }, // Criminal: DEX +3 + 2
+      stealth: { bonus: 5 },
+    },
+    spells: {
+      cantripsCount: 0,
+      knownOrBookCount: 0,
+      preparedCount: 2, // Hunter's Mark is always prepared and not counted
+      spellAttackBonus: 4, // WIS +2 + 2
+      spellSaveDC: 12,
+    },
+    features: ['Spellcasting', 'Favored Enemy', 'Weapon Mastery', 'Alert'],
+    currency: { gp: 23 }, // Ranger package A 7 + Criminal package A 16
   },
 };
