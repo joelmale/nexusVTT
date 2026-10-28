@@ -206,6 +206,30 @@ two-worker VTT unit run passed 2,610 tests and hit two timeouts. The complete
 single-worker rerun passed **2,612 tests in 240 files** without changing test
 timeouts or assertions. Neither failed attempt is recorded as a pass.
 
+### T-04 batch A: Barbarian and Monk references (2026-10-27)
+
+Four records (B14, B24, M14, M24) were added to `referenceBuilds.ts`. Their
+expected values were calculated by hand from SRD 5.1 and SRD 5.2.1 (class
+tables, species, backgrounds, pack contents) before comparing with the
+evaluator, and a dedicated `barbarianMonkReferences.test.ts` asserts hit dice,
+Rage resources and recovery, kit quantities, masteries and Magic Initiate
+casting separation after a JSON round trip. Independent human review of these
+expectations is still outstanding, so they are not yet counted as approved
+references. Fourteen class/edition records remain.
+
+The independent calculation exposed five defects, each repaired with data or
+code and covered by a regression:
+
+- `criminal-2024` listed 15 gp and Dark Common Clothes; SRD 5.2.1 gives 16 GP
+  and Traveler's Clothes. The existing R24 oracle had inherited the wrong 15 gp
+  (it expected 23 gp); it now expects 24 gp.
+- `half-orc` (SRD 5.1) had empty ability bonuses; it now grants STR +2, CON +1.
+- Half-Orc's Menacing never granted Intimidation proficiency.
+- The 2014 Elf Keen Senses check matched `half-elf`, which has no such trait.
+- 2024 characters received the SRD 5.1 Explorer's Pack and Dungeoneer's Pack
+  contents. Explorer's, Dungeoneer's and Burglar's packs now follow SRD 5.2.1
+  for 2024 characters (the Entertainer's Pack is still unmodeled).
+
 ## Remaining work before closing these tranches
 
 1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices
@@ -228,7 +252,9 @@ timeouts or assertions. Neither failed attempt is recorded as a pass.
    catalog has no spells yet, so Artificer Initiate grants nothing until T-01
    source work lands. Remaining legacy fixed-spell feats (for example Drow High
    Magic and Wood Elf Magic) are fixed by their rules text; confirm that per
-   feat, and add choice UI for the new `featChoices` keys.
+   feat. The Forge level-up ASI/feat step now offers these choices (shared
+   `featSpellChoices` rules) and requires a legal one; the creation wizard does
+   not yet.
 4. Connect promised invocation effects to actual sheet/casting actions; saved
    mechanics metadata alone does not establish attack/damage/range automation.
 5. Finish remaining higher-level real-host journeys.

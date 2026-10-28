@@ -1,7 +1,19 @@
 import { AbilityName, CharacterCreationData } from '../../types/dnd';
 
 export interface ReferenceBuildOracle {
-  id: 'F14' | 'F24' | 'R14' | 'R24' | 'W14' | 'W24' | 'WL14' | 'WL24';
+  id:
+    | 'F14'
+    | 'F24'
+    | 'R14'
+    | 'R24'
+    | 'W14'
+    | 'W24'
+    | 'WL14'
+    | 'WL24'
+    | 'B14'
+    | 'B24'
+    | 'M14'
+    | 'M24';
   title: string;
   edition: '2014' | '2024';
   creationData: CharacterCreationData;
@@ -378,7 +390,7 @@ export const REFERENCE_BUILDS: Record<string, ReferenceBuildOracle> = {
         'Darkvision',
         'Fey Ancestry',
       ],
-      currency: { gp: 23 }, // Class package A (8) + Criminal package A (15).
+      currency: { gp: 24 }, // SRD 5.2.1: Rogue package A (8) + Criminal package A (16).
     },
   },
 
@@ -676,5 +688,296 @@ REFERENCE_BUILDS.WL24 = {
     },
     features: ['Pact Magic', 'Eldritch Invocation: Eldritch Mind'],
     currency: { gp: 29 },
+  },
+};
+
+// Barbarian and Monk references (tranche T-04 batch A). Every expected value is
+// calculated by hand from SRD 5.1 (Barbarian, Monk, Half-Orc, Human, Acolyte)
+// and SRD 5.2.1 (Barbarian p28-29, Monk p49-50, Criminal/Acolyte p83, Orc,
+// Dwarf), never from evaluator output. Independent human sign-off of these
+// expectations remains open in the acceptance ledger.
+const SHARED_DRAFT_TAIL = {
+  selectedMusicalInstruments: [] as string[],
+  spellSelection: {
+    selectedCantrips: [] as string[],
+    knownSpells: [] as string[],
+  },
+  hpCalculationMethod: 'max' as const,
+  personality: '',
+  ideals: '',
+  bonds: '',
+  flaws: '',
+};
+
+// SRD 5.1: Half-Orc (STR +2, CON +1, Menacing), Acolyte (Insight, Religion,
+// 15 gp). Barbarian: d12, saves STR/CON, Unarmored Defense 10 + DEX + CON.
+REFERENCE_BUILDS.B14 = {
+  id: 'B14',
+  title: 'Half-Orc Barbarian/Acolyte (2014)',
+  edition: '2014',
+  creationData: {
+    name: 'Half-Orc Barbarian 2014',
+    level: 1,
+    edition: '2014',
+    speciesSlug: 'half-orc',
+    classSlug: 'barbarian',
+    background: 'acolyte',
+    abilities: { STR: 15, DEX: 13, CON: 14, INT: 8, WIS: 12, CHA: 10 },
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Athletics', 'Perception'],
+    alignment: 'Chaotic Neutral',
+    equipmentChoices: [
+      {
+        choiceId: 'weapon-a',
+        description: 'SRD 5.1 Barbarian (a) a greataxe',
+        selected: 0,
+        options: [[{ name: 'Greataxe', quantity: 1, type: 'weapon' }]],
+      },
+      {
+        choiceId: 'weapon-b',
+        description: 'SRD 5.1 Barbarian (a) two handaxes',
+        selected: 0,
+        options: [[{ name: 'Handaxe', quantity: 2, type: 'weapon' }]],
+      },
+      {
+        choiceId: 'fixed',
+        description: "SRD 5.1 Barbarian: an explorer's pack and four javelins",
+        selected: 0,
+        options: [
+          [
+            { name: "Explorer's Pack", quantity: 1, type: 'gear' },
+            { name: 'Javelin', quantity: 4, type: 'weapon' },
+          ],
+        ],
+      },
+    ],
+    ...SHARED_DRAFT_TAIL,
+  },
+  expected: {
+    // STR 15 + 2 = 17 (+3); CON 14 + 1 = 15 (+2); DEX 13 (+1); WIS 12 (+1)
+    abilities: { STR: 17, DEX: 13, CON: 15, INT: 8, WIS: 12, CHA: 10 },
+    hp: 14, // 12 + CON 2
+    ac: 13, // Unarmored Defense: 10 + DEX 1 + CON 2
+    initiative: 1,
+    speed: 30,
+    saves: {
+      proficient: ['STR', 'CON'],
+      bonuses: { STR: 5, CON: 4 }, // +3 +2; +2 +2
+    },
+    attacks: [{ name: 'Greataxe', attackBonus: 5, damage: '1d12+3' }],
+    skills: {
+      athletics: { bonus: 5 }, // STR +3 + 2
+      perception: { bonus: 3 }, // WIS +1 + 2
+      intimidation: { bonus: 2 }, // Menacing: CHA 0 + 2
+      insight: { bonus: 3 }, // Acolyte: WIS +1 + 2
+      religion: { bonus: 1 }, // Acolyte: INT -1 + 2
+    },
+    features: ['Rage', 'Unarmored Defense', 'Menacing', 'Relentless Endurance'],
+    currency: { gp: 15 }, // Acolyte only; the Barbarian kit has no gold
+  },
+};
+
+// SRD 5.2.1: Orc, Criminal (Alert; DEX/CON/INT; Sleight of Hand, Stealth;
+// package A 16 gp), Barbarian package A (Greataxe, 4 Handaxes, Explorer's
+// Pack, 15 gp). Alert adds Proficiency Bonus to initiative.
+REFERENCE_BUILDS.B24 = {
+  id: 'B24',
+  title: 'Orc Barbarian/Criminal (2024)',
+  edition: '2024',
+  creationData: {
+    name: 'Orc Barbarian 2024',
+    level: 1,
+    edition: '2024',
+    speciesSlug: 'orc-2024',
+    classSlug: 'barbarian',
+    background: 'criminal-2024',
+    abilities: { STR: 15, DEX: 12, CON: 14, INT: 8, WIS: 13, CHA: 10 },
+    backgroundAbilityChoices: { method: '2/1', bonuses: { DEX: 2, CON: 1 } },
+    originFeat: 'alert',
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Athletics', 'Perception'],
+    weaponMastery: ['Greataxe', 'Handaxe'],
+    alignment: 'Chaotic Neutral',
+    equipmentChoices: [
+      {
+        choiceId: 'barbarian-kit',
+        description: 'SRD 5.2.1 p28 Barbarian package A',
+        selected: 0,
+        options: [
+          [
+            { name: 'Greataxe', quantity: 1, type: 'weapon' },
+            { name: 'Handaxe', quantity: 4, type: 'weapon' },
+            { name: "Explorer's Pack", quantity: 1, type: 'gear' },
+            { name: '15 gp', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    ...SHARED_DRAFT_TAIL,
+  },
+  expected: {
+    // DEX 12 + 2 = 14 (+2); CON 14 + 1 = 15 (+2); STR 15 (+2); WIS 13 (+1)
+    abilities: { STR: 15, DEX: 14, CON: 15, INT: 8, WIS: 13, CHA: 10 },
+    hp: 14, // 12 + CON 2
+    ac: 14, // Unarmored Defense: 10 + DEX 2 + CON 2
+    initiative: 4, // DEX +2 + Alert (Proficiency Bonus +2)
+    speed: 30,
+    saves: {
+      proficient: ['STR', 'CON'],
+      bonuses: { STR: 4, CON: 4 },
+    },
+    attacks: [{ name: 'Greataxe', attackBonus: 4, damage: '1d12+2' }],
+    skills: {
+      athletics: { bonus: 4 }, // STR +2 + 2
+      perception: { bonus: 3 }, // WIS +1 + 2
+      sleight_of_hand: { bonus: 4 }, // Criminal: DEX +2 + 2
+      stealth: { bonus: 4 },
+    },
+    features: ['Rage', 'Unarmored Defense', 'Weapon Mastery', 'Alert'],
+    currency: { gp: 31 }, // Barbarian package A 15 + Criminal package A 16
+  },
+};
+
+// SRD 5.1: Human (all scores +1), Acolyte (15 gp). Monk: d8, saves STR/DEX,
+// Unarmored Defense 10 + DEX + WIS, Martial Arts d4.
+REFERENCE_BUILDS.M14 = {
+  id: 'M14',
+  title: 'Human Monk/Acolyte (2014)',
+  edition: '2014',
+  creationData: {
+    name: 'Human Monk 2014',
+    level: 1,
+    edition: '2014',
+    speciesSlug: 'human',
+    variantSlug: 'standard',
+    classSlug: 'monk',
+    background: 'acolyte',
+    abilities: { STR: 12, DEX: 15, CON: 13, INT: 8, WIS: 14, CHA: 10 },
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Acrobatics', 'Stealth'],
+    alignment: 'Lawful Neutral',
+    equipmentChoices: [
+      {
+        choiceId: 'weapon',
+        description: 'SRD 5.1 Monk (a) a shortsword',
+        selected: 0,
+        options: [[{ name: 'Shortsword', quantity: 1, type: 'weapon' }]],
+      },
+      {
+        choiceId: 'pack',
+        description: "SRD 5.1 Monk (b) an explorer's pack",
+        selected: 0,
+        options: [[{ name: "Explorer's Pack", quantity: 1, type: 'gear' }]],
+      },
+      {
+        choiceId: 'darts',
+        description: 'SRD 5.1 Monk: 10 darts',
+        selected: 0,
+        options: [[{ name: 'Dart', quantity: 10, type: 'weapon' }]],
+      },
+    ],
+    ...SHARED_DRAFT_TAIL,
+  },
+  expected: {
+    // Human +1 each: STR 13 (+1), DEX 16 (+3), CON 14 (+2), INT 9 (-1),
+    // WIS 15 (+2), CHA 11 (0)
+    abilities: { STR: 13, DEX: 16, CON: 14, INT: 9, WIS: 15, CHA: 11 },
+    hp: 10, // 8 + CON 2
+    ac: 15, // Unarmored Defense: 10 + DEX 3 + WIS 2
+    initiative: 3,
+    speed: 30,
+    saves: {
+      proficient: ['STR', 'DEX'],
+      bonuses: { STR: 3, DEX: 5 }, // +1 +2; +3 +2
+    },
+    attacks: [{ name: 'Unarmed Strike', attackBonus: 5, damage: '1d4+3' }],
+    skills: {
+      acrobatics: { bonus: 5 }, // DEX +3 + 2
+      stealth: { bonus: 5 },
+      insight: { bonus: 4 }, // Acolyte: WIS +2 + 2
+      religion: { bonus: 1 }, // Acolyte: INT -1 + 2
+    },
+    features: ['Unarmored Defense', 'Martial Arts'],
+    currency: { gp: 15 }, // Acolyte only; the Monk kit has no gold
+  },
+};
+
+// SRD 5.2.1: Dwarf (Dwarven Toughness +1 HP per level), Acolyte (Magic
+// Initiate (Cleric); INT/WIS/CHA; Insight, Religion; package A 8 gp), Monk
+// package A (Spear, 5 Daggers, tools, Explorer's Pack, 11 gp).
+REFERENCE_BUILDS.M24 = {
+  id: 'M24',
+  title: 'Dwarf Monk/Acolyte (2024)',
+  edition: '2024',
+  creationData: {
+    name: 'Dwarf Monk 2024',
+    level: 1,
+    edition: '2024',
+    speciesSlug: 'dwarf-2024',
+    classSlug: 'monk',
+    background: 'acolyte-2024',
+    abilities: { STR: 12, DEX: 15, CON: 13, INT: 8, WIS: 14, CHA: 10 },
+    backgroundAbilityChoices: { method: '2/1', bonuses: { WIS: 2, CHA: 1 } },
+    originFeat: 'magic-initiate-cleric',
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Acrobatics', 'Stealth'],
+    alignment: 'Lawful Neutral',
+    equipmentChoices: [
+      {
+        choiceId: 'monk-kit',
+        description: 'SRD 5.2.1 p49 Monk package A',
+        selected: 0,
+        options: [
+          [
+            { name: 'Spear', quantity: 1, type: 'weapon' },
+            { name: 'Dagger', quantity: 5, type: 'weapon' },
+            { name: "Explorer's Pack", quantity: 1, type: 'gear' },
+            { name: '11 gp', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    additionalCastingSources: [
+      {
+        id: 'feat:magic-initiate:cleric',
+        sourceType: 'feat',
+        sourceSlug: 'magic-initiate-cleric',
+        ability: 'WIS',
+        cantrips: ['guidance', 'sacred-flame'],
+        knownSpells: [],
+        preparedSpells: ['healing-word'],
+        freeUses: 1,
+        allowClassSlots: true,
+      },
+    ],
+    ...SHARED_DRAFT_TAIL,
+  },
+  expected: {
+    // WIS 14 + 2 = 16 (+3); CHA 10 + 1 = 11 (0); DEX 15 (+2); CON 13 (+1)
+    abilities: { STR: 12, DEX: 15, CON: 13, INT: 8, WIS: 16, CHA: 11 },
+    hp: 10, // 8 + CON 1 + Dwarven Toughness 1
+    ac: 15, // Unarmored Defense: 10 + DEX 2 + WIS 3
+    initiative: 2,
+    speed: 30,
+    saves: {
+      proficient: ['STR', 'DEX'],
+      bonuses: { STR: 3, DEX: 4 }, // +1 +2; +2 +2
+    },
+    attacks: [{ name: 'Unarmed Strike', attackBonus: 4, damage: '1d6+2' }],
+    skills: {
+      acrobatics: { bonus: 4 }, // DEX +2 + 2
+      stealth: { bonus: 4 },
+      insight: { bonus: 5 }, // Acolyte: WIS +3 + 2
+      religion: { bonus: 1 }, // Acolyte: INT -1 + 2
+    },
+    spells: {
+      cantripsCount: 2, // Magic Initiate (Cleric): Guidance, Sacred Flame
+      knownOrBookCount: 0,
+      preparedCount: 1, // Healing Word (free use once per Long Rest)
+      spellAttackBonus: 5, // Magic Initiate ability WIS +3 + 2
+      spellSaveDC: 13, // 8 + 3 + 2
+    },
+    features: ['Unarmored Defense', 'Martial Arts', 'Magic Initiate'],
+    currency: { gp: 19 }, // Monk package A 11 + Acolyte package A 8
   },
 };

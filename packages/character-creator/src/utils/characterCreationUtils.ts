@@ -284,12 +284,18 @@ export const calculateCharacterStats = (
     data.selectedSkills ||
     (data as unknown as { skills?: SkillName[] }).skills ||
     [];
+  // SRD 5.1 fixed species skills: Elf Keen Senses (Half-Elf does not have it)
+  // and Half-Orc Menacing.
   const speciesSkills =
-    edition === '2014' && speciesData.slug.includes('elf')
+    edition === '2014' &&
+    speciesData.slug.includes('elf') &&
+    speciesData.slug !== 'half-elf'
       ? ['Perception']
-      : data.speciesSkillProficiency
-        ? [data.speciesSkillProficiency]
-        : [];
+      : edition === '2014' && speciesData.slug === 'half-orc'
+        ? ['Intimidation']
+        : data.speciesSkillProficiency
+          ? [data.speciesSkillProficiency]
+          : [];
   const normalizeSkill = (value: string) =>
     value.toLowerCase().replace(/[^a-z]/g, '');
   const allProficientSkills = [

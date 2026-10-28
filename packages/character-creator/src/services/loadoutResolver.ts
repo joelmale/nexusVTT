@@ -130,6 +130,41 @@ export function resolveLoadout(
 
     // Check for pack expansion
     const revisedPacks: typeof PACK_EXPANSIONS = {
+      // SRD 5.2.1 pp97-99 (Equipment). The legacy table above is SRD 5.1.
+      "explorer's pack": [
+        { name: 'Backpack', quantity: 1 },
+        { name: 'Bedroll', quantity: 1 },
+        { name: 'Oil (flask)', quantity: 2 },
+        { name: 'Rations (1 day)', quantity: 10 },
+        { name: 'Rope', quantity: 1 },
+        { name: 'Tinderbox', quantity: 1 },
+        { name: 'Torch', quantity: 10 },
+        { name: 'Waterskin', quantity: 1 },
+      ],
+      "dungeoneer's pack": [
+        { name: 'Backpack', quantity: 1 },
+        { name: 'Caltrops', quantity: 1 },
+        { name: 'Crowbar', quantity: 1 },
+        { name: 'Oil (flask)', quantity: 2 },
+        { name: 'Rations (1 day)', quantity: 10 },
+        { name: 'Rope', quantity: 1 },
+        { name: 'Tinderbox', quantity: 1 },
+        { name: 'Torch', quantity: 10 },
+        { name: 'Waterskin', quantity: 1 },
+      ],
+      "burglar's pack": [
+        { name: 'Backpack', quantity: 1 },
+        { name: 'Ball Bearings', quantity: 1 },
+        { name: 'Bell', quantity: 1 },
+        { name: 'Candle', quantity: 10 },
+        { name: 'Crowbar', quantity: 1 },
+        { name: 'Hooded Lantern', quantity: 1 },
+        { name: 'Oil (flask)', quantity: 7 },
+        { name: 'Rations (1 day)', quantity: 5 },
+        { name: 'Rope', quantity: 1 },
+        { name: 'Tinderbox', quantity: 1 },
+        { name: 'Waterskin', quantity: 1 },
+      ],
       "priest's pack": [
         { name: 'Backpack', quantity: 1 },
         { name: 'Blanket', quantity: 1 },
