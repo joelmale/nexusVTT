@@ -4380,6 +4380,11 @@
         "index": "druid",
         "name": "Druid",
         "url": "/api/2014/classes/druid"
+      },
+      {
+        "index": "cleric",
+        "name": "Cleric",
+        "url": "/api/2014/classes/cleric"
       }
     ],
     "subclasses": [
@@ -5256,6 +5261,11 @@
         "index": "druid",
         "name": "Druid",
         "url": "/api/2014/classes/druid"
+      },
+      {
+        "index": "bard",
+        "name": "Bard",
+        "url": "/api/2014/classes/bard"
       }
     ],
     "subclasses": [
@@ -10025,6 +10035,11 @@
         "index": "cleric",
         "name": "Cleric",
         "url": "/api/2014/classes/cleric"
+      },
+      {
+        "index": "druid",
+        "name": "Druid",
+        "url": "/api/2014/classes/druid"
       }
     ],
     "subclasses": [

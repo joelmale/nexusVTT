@@ -13,7 +13,11 @@ export interface ReferenceBuildOracle {
     | 'B14'
     | 'B24'
     | 'M14'
-    | 'M24';
+    | 'M24'
+    | 'BD14'
+    | 'BD24'
+    | 'SC14'
+    | 'SC24';
   title: string;
   edition: '2014' | '2024';
   creationData: CharacterCreationData;
@@ -979,5 +983,393 @@ REFERENCE_BUILDS.M24 = {
     },
     features: ['Unarmored Defense', 'Martial Arts', 'Magic Initiate'],
     currency: { gp: 19 }, // Monk package A 11 + Acolyte package A 8
+  },
+};
+
+// Bard and Sorcerer references (tranche T-04 batch B). Expected values are
+// calculated by hand from SRD 5.1 (Bard, Sorcerer, Hill Dwarf, Rock Gnome,
+// Acolyte) and SRD 5.2.1 (Bard p31-32, Sorcerer p64-65, Halfling, Gnome,
+// Soldier, Sage), never from evaluator output. Independent human review of
+// these expectations remains open in the acceptance ledger.
+
+// SRD 5.1: Hill Dwarf (CON +2, WIS +1, speed 25, +1 HP per level), Acolyte
+// (Insight, Religion, 15 gp). Bard: d8, saves DEX/CHA, 2 cantrips and 4 known
+// spells, two 1st-level slots, leather armor and a dagger.
+REFERENCE_BUILDS.BD14 = {
+  id: 'BD14',
+  title: 'Hill Dwarf Bard/Acolyte (2014)',
+  edition: '2014',
+  creationData: {
+    name: 'Dwarf Bard 2014',
+    level: 1,
+    edition: '2014',
+    speciesSlug: 'dwarf',
+    selectedLineage: 'hill-dwarf',
+    classSlug: 'bard',
+    background: 'acolyte',
+    abilities: { STR: 8, DEX: 14, CON: 13, INT: 10, WIS: 12, CHA: 15 },
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Performance', 'Persuasion', 'Deception'],
+    alignment: 'Neutral Good',
+    equipmentChoices: [
+      {
+        choiceId: 'weapon',
+        description: 'SRD 5.1 Bard (a) a rapier',
+        selected: 0,
+        options: [[{ name: 'Rapier', quantity: 1, type: 'weapon' }]],
+      },
+      {
+        choiceId: 'pack',
+        description: "SRD 5.1 Bard (b) an entertainer's pack",
+        selected: 0,
+        options: [[{ name: "Entertainer's Pack", quantity: 1, type: 'gear' }]],
+      },
+      {
+        choiceId: 'fixed',
+        description: 'SRD 5.1 Bard: a lute, leather armor and a dagger',
+        selected: 0,
+        options: [
+          [
+            { name: 'Lute', quantity: 1, type: 'gear' },
+            { name: 'Leather Armor', quantity: 1, type: 'armor' },
+            { name: 'Dagger', quantity: 1, type: 'weapon' },
+          ],
+        ],
+      },
+    ],
+    selectedMusicalInstruments: ['Lute', 'Flute', 'Viol'],
+    spellSelection: {
+      selectedCantrips: ['vicious-mockery', 'minor-illusion'],
+      knownSpells: [
+        'cure-wounds',
+        'faerie-fire',
+        'healing-word',
+        'thunderwave',
+      ],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // CON 13 + 2 = 15 (+2); WIS 12 + 1 = 13 (+1); DEX 14 (+2); CHA 15 (+2)
+    abilities: { STR: 8, DEX: 14, CON: 15, INT: 10, WIS: 13, CHA: 15 },
+    hp: 11, // 8 + CON 2 + Hill Dwarf Toughness 1
+    ac: 13, // Leather armor 11 + DEX 2
+    initiative: 2,
+    speed: 25,
+    saves: {
+      proficient: ['DEX', 'CHA'],
+      bonuses: { DEX: 4, CHA: 4 },
+    },
+    attacks: [{ name: 'Rapier', attackBonus: 4, damage: '1d8+2' }],
+    skills: {
+      performance: { bonus: 4 }, // CHA +2 + 2
+      persuasion: { bonus: 4 },
+      deception: { bonus: 4 },
+      insight: { bonus: 3 }, // Acolyte: WIS +1 + 2
+      religion: { bonus: 2 }, // Acolyte: INT 0 + 2
+    },
+    spells: {
+      cantripsCount: 2,
+      knownOrBookCount: 4,
+      preparedCount: 4,
+      spellAttackBonus: 4, // CHA +2 + 2
+      spellSaveDC: 12, // 8 + 2 + 2
+    },
+    features: ['Spellcasting', 'Bardic Inspiration (d6)', 'Dwarven Resilience'],
+    currency: { gp: 15 }, // Acolyte only; the Bard kit has no gold
+  },
+};
+
+// SRD 5.2.1: Halfling, Soldier (Savage Attacker; STR/DEX/CON; Athletics,
+// Intimidation; package A 14 gp), Bard package A (Leather Armor, 2 Daggers,
+// instrument, Entertainer's Pack, 19 gp).
+REFERENCE_BUILDS.BD24 = {
+  id: 'BD24',
+  title: 'Halfling Bard/Soldier (2024)',
+  edition: '2024',
+  creationData: {
+    name: 'Halfling Bard 2024',
+    level: 1,
+    edition: '2024',
+    speciesSlug: 'halfling-2024',
+    classSlug: 'bard',
+    background: 'soldier-2024',
+    abilities: { STR: 8, DEX: 14, CON: 13, INT: 10, WIS: 12, CHA: 15 },
+    backgroundAbilityChoices: { method: '2/1', bonuses: { DEX: 2, CON: 1 } },
+    originFeat: 'savage-attacker',
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Performance', 'Persuasion', 'Insight'],
+    alignment: 'Chaotic Good',
+    equipmentChoices: [
+      {
+        choiceId: 'bard-kit',
+        description: 'SRD 5.2.1 p31 Bard package A',
+        selected: 0,
+        options: [
+          [
+            { name: 'Leather Armor', quantity: 1, type: 'armor' },
+            { name: 'Dagger', quantity: 2, type: 'weapon' },
+            { name: 'Lute', quantity: 1, type: 'gear' },
+            { name: "Entertainer's Pack", quantity: 1, type: 'gear' },
+            { name: '19 gp', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    selectedMusicalInstruments: ['Lute', 'Flute', 'Viol'],
+    spellSelection: {
+      selectedCantrips: ['vicious-mockery', 'minor-illusion'],
+      knownSpells: [],
+      preparedSpells: [
+        'healing-word',
+        'dissonant-whispers',
+        'faerie-fire',
+        'heroism',
+      ],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // DEX 14 + 2 = 16 (+3); CON 13 + 1 = 14 (+2); CHA 15 (+2); STR 8 (-1)
+    abilities: { STR: 8, DEX: 16, CON: 14, INT: 10, WIS: 12, CHA: 15 },
+    hp: 10, // 8 + CON 2
+    ac: 14, // Leather armor 11 + DEX 3
+    initiative: 3,
+    speed: 30,
+    saves: {
+      proficient: ['DEX', 'CHA'],
+      bonuses: { DEX: 5, CHA: 4 },
+    },
+    attacks: [{ name: 'Dagger', attackBonus: 5, damage: '1d4+3' }],
+    skills: {
+      performance: { bonus: 4 },
+      persuasion: { bonus: 4 },
+      insight: { bonus: 3 }, // WIS +1 + 2
+      athletics: { bonus: 1 }, // Soldier: STR -1 + 2
+      intimidation: { bonus: 4 }, // Soldier: CHA +2 + 2
+    },
+    spells: {
+      cantripsCount: 2,
+      knownOrBookCount: 0,
+      preparedCount: 4,
+      spellAttackBonus: 4,
+      spellSaveDC: 12,
+    },
+    features: ['Spellcasting', 'Bardic Inspiration', 'Savage Attacker', 'Luck'],
+    currency: { gp: 33 }, // Bard package A 19 + Soldier package A 14
+  },
+};
+
+// SRD 5.1: Rock Gnome (INT +2, CON +1, speed 25), Acolyte (15 gp), Draconic
+// Bloodline (+1 HP per level, unarmored AC 13 + DEX). Sorcerer: d6, saves
+// CON/CHA, 4 cantrips and 2 known spells, two 1st-level slots.
+REFERENCE_BUILDS.SC14 = {
+  id: 'SC14',
+  title: 'Rock Gnome Draconic Sorcerer/Acolyte (2014)',
+  edition: '2014',
+  creationData: {
+    name: 'Gnome Sorcerer 2014',
+    level: 1,
+    edition: '2014',
+    speciesSlug: 'gnome',
+    selectedLineage: 'rock-gnome',
+    classSlug: 'sorcerer',
+    subclassSlug: 'draconic',
+    background: 'acolyte',
+    abilities: { STR: 8, DEX: 13, CON: 14, INT: 10, WIS: 12, CHA: 15 },
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Arcana', 'Persuasion'],
+    alignment: 'Chaotic Neutral',
+    equipmentChoices: [
+      {
+        choiceId: 'weapon',
+        description: 'SRD 5.1 Sorcerer (a) a light crossbow and 20 bolts',
+        selected: 0,
+        options: [
+          [
+            { name: 'Crossbow, Light', quantity: 1, type: 'weapon' },
+            { name: 'Crossbow Bolt', quantity: 20, type: 'gear' },
+          ],
+        ],
+      },
+      {
+        choiceId: 'focus',
+        description: 'SRD 5.1 Sorcerer (a) a component pouch',
+        selected: 0,
+        options: [[{ name: 'Component Pouch', quantity: 1, type: 'gear' }]],
+      },
+      {
+        choiceId: 'pack',
+        description: "SRD 5.1 Sorcerer (a) a dungeoneer's pack",
+        selected: 0,
+        options: [[{ name: "Dungeoneer's Pack", quantity: 1, type: 'gear' }]],
+      },
+      {
+        choiceId: 'fixed',
+        description: 'SRD 5.1 Sorcerer: two daggers',
+        selected: 0,
+        options: [[{ name: 'Dagger', quantity: 2, type: 'weapon' }]],
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: {
+      selectedCantrips: ['fire-bolt', 'light', 'mage-hand', 'prestidigitation'],
+      knownSpells: ['shield', 'magic-missile'],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // INT 10 + 2 = 12 (+1); CON 14 + 1 = 15 (+2); CHA 15 (+2); DEX 13 (+1)
+    abilities: { STR: 8, DEX: 13, CON: 15, INT: 12, WIS: 12, CHA: 15 },
+    hp: 9, // 6 + CON 2 + Draconic Resilience 1
+    ac: 14, // Draconic Resilience: 13 + DEX 1
+    initiative: 1,
+    speed: 25,
+    saves: {
+      proficient: ['CON', 'CHA'],
+      bonuses: { CON: 4, CHA: 4 },
+    },
+    attacks: [{ name: 'Light Crossbow', attackBonus: 3, damage: '1d8+1' }],
+    skills: {
+      arcana: { bonus: 3 }, // INT +1 + 2
+      persuasion: { bonus: 4 }, // CHA +2 + 2
+      insight: { bonus: 3 }, // Acolyte: WIS +1 + 2
+      religion: { bonus: 3 }, // Acolyte: INT +1 + 2
+    },
+    spells: {
+      cantripsCount: 4,
+      knownOrBookCount: 2,
+      preparedCount: 2,
+      spellAttackBonus: 4,
+      spellSaveDC: 12,
+    },
+    features: ['Spellcasting', 'Draconic Resilience', 'Gnome Cunning'],
+    currency: { gp: 15 }, // Acolyte only; the Sorcerer kit has no gold
+  },
+};
+
+// SRD 5.2.1: Gnome (Forest Gnome lineage: Minor Illusion and Speak with
+// Animals, CHA casting), Sage (Magic Initiate (Wizard); CON/INT/WIS;
+// Arcana, History; package A 8 gp), Sorcerer package A (Spear, 2 Daggers,
+// Arcane Focus, Dungeoneer's Pack, 28 gp). Innate Sorcery: 2 uses.
+REFERENCE_BUILDS.SC24 = {
+  id: 'SC24',
+  title: 'Forest Gnome Sorcerer/Sage (2024)',
+  edition: '2024',
+  creationData: {
+    name: 'Gnome Sorcerer 2024',
+    level: 1,
+    edition: '2024',
+    speciesSlug: 'gnome-2024',
+    selectedLineage: 'forest-gnome',
+    classSlug: 'sorcerer',
+    background: 'sage-2024',
+    abilities: { STR: 8, DEX: 13, CON: 14, INT: 10, WIS: 12, CHA: 15 },
+    backgroundAbilityChoices: { method: '2/1', bonuses: { CON: 2, INT: 1 } },
+    originFeat: 'magic-initiate-wizard',
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Deception', 'Persuasion'],
+    alignment: 'Chaotic Good',
+    equipmentChoices: [
+      {
+        choiceId: 'sorcerer-kit',
+        description: 'SRD 5.2.1 p64 Sorcerer package A',
+        selected: 0,
+        options: [
+          [
+            { name: 'Spear', quantity: 1, type: 'weapon' },
+            { name: 'Dagger', quantity: 2, type: 'weapon' },
+            { name: 'Crystal', quantity: 1, type: 'gear' },
+            { name: "Dungeoneer's Pack", quantity: 1, type: 'gear' },
+            { name: '28 gp', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    additionalCastingSources: [
+      {
+        id: 'species:gnome:forest',
+        sourceType: 'species',
+        sourceSlug: 'forest-gnome',
+        ability: 'CHA',
+        cantrips: ['minor-illusion'],
+        knownSpells: [],
+        preparedSpells: ['speak-with-animals'],
+        freeUses: 2,
+        allowClassSlots: true,
+      },
+      {
+        id: 'feat:magic-initiate:wizard',
+        sourceType: 'feat',
+        sourceSlug: 'magic-initiate-wizard',
+        ability: 'CHA',
+        cantrips: ['mage-hand', 'ray-of-frost'],
+        knownSpells: [],
+        preparedSpells: ['shield'],
+        freeUses: 1,
+        allowClassSlots: true,
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: {
+      selectedCantrips: [
+        'light',
+        'prestidigitation',
+        'shocking-grasp',
+        'sorcerous-burst',
+      ],
+      knownSpells: [],
+      preparedSpells: ['burning-hands', 'detect-magic'],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // CON 14 + 2 = 16 (+3); INT 10 + 1 = 11 (0); CHA 15 (+2); DEX 13 (+1)
+    abilities: { STR: 8, DEX: 13, CON: 16, INT: 11, WIS: 12, CHA: 15 },
+    hp: 9, // 6 + CON 3
+    ac: 11, // Unarmored 10 + DEX 1
+    initiative: 1,
+    speed: 30,
+    saves: {
+      proficient: ['CON', 'CHA'],
+      bonuses: { CON: 5, CHA: 4 },
+    },
+    attacks: [{ name: 'Spear', attackBonus: 1, damage: '1d6-1' }],
+    skills: {
+      deception: { bonus: 4 }, // CHA +2 + 2
+      persuasion: { bonus: 4 },
+      arcana: { bonus: 2 }, // Sage: INT 0 + 2
+      history: { bonus: 2 },
+    },
+    spells: {
+      cantripsCount: 4, // class cantrips; feat and lineage cantrips are separate
+      knownOrBookCount: 0,
+      preparedCount: 2,
+      spellAttackBonus: 4,
+      spellSaveDC: 12,
+    },
+    features: [
+      'Spellcasting',
+      'Innate Sorcery',
+      'Magic Initiate',
+      'Gnomish Lineage',
+    ],
+    currency: { gp: 36 }, // Sorcerer package A 28 + Sage package A 8
   },
 };

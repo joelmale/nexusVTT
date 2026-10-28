@@ -154,6 +154,40 @@ export function resolveCastingGrants(
       },
     });
   }
+  if (data.speciesSlug === 'gnome-2024' && data.selectedLineage) {
+    // SRD 5.2.1 p85: Gnomish Lineage. Intelligence, Wisdom or Charisma is the
+    // casting ability, chosen when the lineage is selected.
+    const lineage = choiceId(data.selectedLineage).replace(/-gnome$/, '');
+    if (['forest', 'rock'].includes(lineage)) {
+      const id = `species:gnome:${lineage}`;
+      const existing = data.additionalCastingSources?.find(
+        (source) => source.id === id,
+      );
+      const proficiencyBonus = 2 + Math.floor((data.level - 1) / 4);
+      result.push({
+        cantripChoices: 0,
+        spellChoices: 0,
+        source: {
+          id,
+          sourceType: 'species',
+          sourceSlug: `${lineage}-gnome`,
+          ability: existing?.ability ?? ability,
+          cantrips:
+            lineage === 'forest'
+              ? ['minor-illusion']
+              : ['mending', 'prestidigitation'],
+          knownSpells: [],
+          // Forest Gnome always has Speak with Animals prepared and may cast it
+          // Proficiency Bonus times per Long Rest, or with a spell slot.
+          preparedSpells: lineage === 'forest' ? ['speak-with-animals'] : [],
+          ...(lineage === 'forest'
+            ? { freeUses: proficiencyBonus, allowClassSlots: true }
+            : {}),
+        },
+      });
+    }
+  }
+
   if (data.classSlug === 'druid')
     result.push({
       cantripChoices: 0,

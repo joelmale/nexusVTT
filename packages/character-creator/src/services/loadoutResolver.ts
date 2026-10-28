@@ -36,6 +36,17 @@ const PACK_EXPANSIONS: Record<
     { name: 'Waterskin', quantity: 1 },
     { name: 'Hempen Rope (50 feet)', quantity: 1 },
   ],
+  // SRD 5.1 (Equipment: Entertainer's Pack).
+  "entertainer's pack": [
+    { name: 'Backpack', quantity: 1 },
+    { name: 'Bedroll', quantity: 1 },
+    { name: 'Costume', quantity: 2 },
+    { name: 'Candle', quantity: 5 },
+    { name: 'Rations (1 day)', quantity: 5 },
+    { name: 'Waterskin', quantity: 1 },
+    { name: 'Disguise Kit', quantity: 1 },
+  ],
+
   "burglar's pack": [
     { name: 'Backpack', quantity: 1 },
     { name: 'Ball Bearings (bag of 1,000)', quantity: 1 },
@@ -131,6 +142,20 @@ export function resolveLoadout(
     // Check for pack expansion
     const revisedPacks: typeof PACK_EXPANSIONS = {
       // SRD 5.2.1 pp97-99 (Equipment). The legacy table above is SRD 5.1.
+      // SRD 5.2.1 p97.
+      "entertainer's pack": [
+        { name: 'Backpack', quantity: 1 },
+        { name: 'Bedroll', quantity: 1 },
+        { name: 'Bell', quantity: 1 },
+        { name: 'Bullseye Lantern', quantity: 1 },
+        { name: 'Costume', quantity: 3 },
+        { name: 'Mirror', quantity: 1 },
+        { name: 'Oil (flask)', quantity: 8 },
+        { name: 'Rations (1 day)', quantity: 9 },
+        { name: 'Tinderbox', quantity: 1 },
+        { name: 'Waterskin', quantity: 1 },
+      ],
+
       "explorer's pack": [
         { name: 'Backpack', quantity: 1 },
         { name: 'Bedroll', quantity: 1 },

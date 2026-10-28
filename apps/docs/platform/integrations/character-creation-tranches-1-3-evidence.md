@@ -230,6 +230,32 @@ code and covered by a regression:
   contents. Explorer's, Dungeoneer's and Burglar's packs now follow SRD 5.2.1
   for 2024 characters (the Entertainer's Pack is still unmodeled).
 
+### T-04 batch B: Bard and Sorcerer references (2026-10-27)
+
+Four more records (BD14, BD24, SC14, SC24) follow the same method, with
+dedicated assertions in `bardSorcererReferences.test.ts` (hit dice, cantrip and
+slot counts, known versus prepared ledgers, Bardic Inspiration and Innate
+Sorcery, both editions' Entertainer's Packs, and separate lineage/feat/class
+casting ledgers). They await independent review. Ten class/edition records
+remain: Cleric, Druid, Paladin, Ranger and Artificer.
+
+Defects found and repaired:
+
+- SRD 5.2.1 Gnomish Lineage was not modeled. Forest and Rock Gnome now create
+  their own casting sources (Forest: Minor Illusion and Speak with Animals with
+  Proficiency Bonus free casts; Rock: Mending and Prestidigitation), with the
+  casting ability chosen from INT/WIS/CHA.
+- The Entertainer's Pack was unmodeled in both editions; it now expands per
+  SRD 5.1 and SRD 5.2.1.
+- A full comparison of the bundled 2014 class spell lists with the SRD 5.1
+  Spell Lists found three omissions: Faerie Fire (Bard), Divination (Cleric)
+  and Meld into Stone (Druid). They are repaired and pinned by
+  `legacySpellLists.test.ts`. Entries on a list that the SRD does not show (for
+  example Arcane Eye on Cleric, Create Food and Water on Druid) were left in
+  place pending a provenance decision. The same comparison against SRD 5.2.1
+  found the 2024 lists consistent, apart from entries that need a manual check
+  (Phantasmal Force on Bard, Sorcerer and Wizard; Mind Spike on Sorcerer).
+
 ## Remaining work before closing these tranches
 
 1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices
