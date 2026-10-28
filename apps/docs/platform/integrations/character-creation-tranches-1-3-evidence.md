@@ -329,6 +329,32 @@ Invocation selection at level-up is limited to the 2024 rules; 2014 Warlocks
 return a clear error. Mastery counts that grow at a level are not yet required
 by the wizard.
 
+### T-01 Artificer source audit (2026-10-27)
+
+The supplied legacy reference (class page and spell list page) was fetched and
+committed as `artificerLegacyReference.json`, with its limits recorded: it is a
+third-party transcription of Tasha's Cauldron of Everything plus later material
+(Unearthed Arcana, Fizban's, Spelljammer), not the book, and it does not cover
+the revised 2025 class. `artificerReference.test.ts` verifies against it:
+
+- The 20-level slot table matches `classSpellSlots('artificer', '2014', n)` at
+  every level, and the infusion, infused item and cantrip counts already
+  matched.
+- The reference list has **103 spells**; **70 resolve** to spells in the bundled
+  SRD 5.1 catalog (four under their SRD names, for example Faithful Hound), and
+  **33 do not exist in the catalog**. Those 33 (for example Booming Blade,
+  Absorb Elements, Tasha's Caustic Brew, Summon Construct, Bigby's Hand) are
+  non-SRD spells whose text cannot be added without a licensed source.
+- No bundled spell yet carries `artificer` in its class list, and a test keeps
+  that true while the class is blocked, so a partial list cannot appear as
+  supported by accident.
+
+Decision needed from the owner before this can close: either supply or license
+the non-SRD spell text and the revised 2025 Artificer tables, or record an
+explicit scope decision that Artificer supports only the SRD-resolvable subset
+(70 spells) with the rest visibly unsupported. Neither is assumed here, and
+Artificer creation remains blocked.
+
 ## Remaining work before closing these tranches
 
 1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices

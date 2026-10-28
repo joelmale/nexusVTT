@@ -1,0 +1,268 @@
+{
+  "source": "User-supplied legacy Artificer reference (class page and spell list page)",
+  "urls": [
+    "https://dnd5e.wikidot.com/artificer",
+    "https://dnd5e.wikidot.com/spells:artificer"
+  ],
+  "accessed": "2026-10-27",
+  "note": "Third-party transcription of Tasha's Cauldron of Everything (2020) plus later material. Not independently verified against the book; the revised 2025 Artificer is not covered. Entries marked (UA) are Unearthed Arcana.",
+  "spellSlotsByClassLevel": {
+    "1": [
+      2,
+      0,
+      0,
+      0,
+      0
+    ],
+    "2": [
+      2,
+      0,
+      0,
+      0,
+      0
+    ],
+    "3": [
+      3,
+      0,
+      0,
+      0,
+      0
+    ],
+    "4": [
+      3,
+      0,
+      0,
+      0,
+      0
+    ],
+    "5": [
+      4,
+      2,
+      0,
+      0,
+      0
+    ],
+    "6": [
+      4,
+      2,
+      0,
+      0,
+      0
+    ],
+    "7": [
+      4,
+      3,
+      0,
+      0,
+      0
+    ],
+    "8": [
+      4,
+      3,
+      0,
+      0,
+      0
+    ],
+    "9": [
+      4,
+      3,
+      2,
+      0,
+      0
+    ],
+    "10": [
+      4,
+      3,
+      2,
+      0,
+      0
+    ],
+    "11": [
+      4,
+      3,
+      3,
+      0,
+      0
+    ],
+    "12": [
+      4,
+      3,
+      3,
+      0,
+      0
+    ],
+    "13": [
+      4,
+      3,
+      3,
+      1,
+      0
+    ],
+    "14": [
+      4,
+      3,
+      3,
+      1,
+      0
+    ],
+    "15": [
+      4,
+      3,
+      3,
+      2,
+      0
+    ],
+    "16": [
+      4,
+      3,
+      3,
+      2,
+      0
+    ],
+    "17": [
+      4,
+      3,
+      3,
+      3,
+      1
+    ],
+    "18": [
+      4,
+      3,
+      3,
+      3,
+      1
+    ],
+    "19": [
+      4,
+      3,
+      3,
+      3,
+      2
+    ],
+    "20": [
+      4,
+      3,
+      3,
+      3,
+      2
+    ]
+  },
+  "spellList": {
+    "0": [
+      "Acid Splash",
+      "Booming Blade",
+      "Create Bonfire",
+      "Dancing Lights",
+      "Fire Bolt",
+      "Frostbite",
+      "Green-Flame Blade",
+      "Guidance",
+      "Light",
+      "Lightning Lure",
+      "Mage Hand",
+      "Magic Stone",
+      "Mending",
+      "Message",
+      "Poison Spray",
+      "Prestidigitation",
+      "Ray of Frost",
+      "Resistance",
+      "Shocking Grasp",
+      "Spare the Dying",
+      "Sword Burst",
+      "Thorn Whip",
+      "Thunderclap"
+    ],
+    "1": [
+      "Absorb Elements",
+      "Alarm",
+      "Arcane Weapon (UA)",
+      "Catapult",
+      "Cure Wounds",
+      "Detect Magic",
+      "Disguise Self",
+      "Expeditious Retreat",
+      "Faerie Fire",
+      "False Life",
+      "Feather Fall",
+      "Grease",
+      "Identify",
+      "Jump",
+      "Longstrider",
+      "Purify Food and Drink",
+      "Sanctuary",
+      "Snare",
+      "Tasha's Caustic Brew"
+    ],
+    "2": [
+      "Aid",
+      "Air Bubble",
+      "Alter Self",
+      "Arcane Lock",
+      "Blur",
+      "Continual Flame",
+      "Darkvision",
+      "Enhance Ability",
+      "Enlarge/Reduce",
+      "Heat Metal",
+      "Invisibility",
+      "Kinetic Jaunt",
+      "Lesser Restoration",
+      "Levitate",
+      "Magic Mouth",
+      "Magic Weapon",
+      "Protection from Poison",
+      "Pyrotechnics",
+      "Rope Trick",
+      "See Invisibility",
+      "Skywrite",
+      "Spider Climb",
+      "Vortex Warp",
+      "Web"
+    ],
+    "3": [
+      "Ashardalon's Stride",
+      "Blink",
+      "Catnap",
+      "Create Food and Water",
+      "Dispel Magic",
+      "Elemental Weapon",
+      "Flame Arrows",
+      "Flame Stride (UA)",
+      "Fly",
+      "Glyph of Warding",
+      "Haste",
+      "House of Cards (UA)",
+      "Intellect Fortress",
+      "Protection from Energy",
+      "Revivify",
+      "Tiny Servant",
+      "Water Breathing",
+      "Water Walk"
+    ],
+    "4": [
+      "Arcane Eye",
+      "Elemental Bane",
+      "Fabricate",
+      "Freedom of Movement",
+      "Leomund's Secret Chest",
+      "Mordenkainen's Faithful Hound",
+      "Mordenkainen's Private Sanctum",
+      "Otiluke's Resilient Sphere",
+      "Stone Shape",
+      "Stoneskin",
+      "Summon Construct"
+    ],
+    "5": [
+      "Animate Objects",
+      "Bigby's Hand",
+      "Create Spelljamming Helm",
+      "Creation",
+      "Greater Restoration",
+      "Skill Empowerment",
+      "Transmute Rock",
+      "Wall of Stone"
+    ]
+  }
+}
