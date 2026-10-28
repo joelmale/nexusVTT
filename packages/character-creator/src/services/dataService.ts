@@ -2,6 +2,7 @@
 // Transforms 5e SRD JSON format to our app's format
 // Supports both 2014 and 2024 editions with 'year' field to distinguish
 
+import { rollDice } from '@nexus/rules-5e';
 import srdSpells2024 from '../data/srd/2024/5e-SRD-spells.json';
 import { mergeSpellSources } from '../data/mergeSpells';
 import srdSpells2014 from '../data/srd/2014/5e-SRD-Spells.json';
@@ -1787,10 +1788,7 @@ export const randomizeAbilities = (): {
     // Standard roll: 4d6 drop lowest for each ability
     abilities = {};
     ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].forEach((ability) => {
-      const rolls = Array.from(
-        { length: 4 },
-        () => Math.floor(Math.random() * 6) + 1,
-      );
+      const rolls = rollDice(4, 6);
       rolls.sort((a, b) => b - a); // Sort descending
       abilities[ability] = rolls[0] + rolls[1] + rolls[2]; // Drop lowest
     });

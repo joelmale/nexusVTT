@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { rollDie as rollSharedDie } from '@nexus/rules-5e';
 
 interface DieButtonProps {
   dieType: 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20' | 'd100';
@@ -30,7 +31,7 @@ export const DieButton: React.FC<DieButtonProps> = ({
     const maxVal = sides[dieType];
 
     setTimeout(() => {
-      const result = Math.floor(Math.random() * maxVal) + 1;
+      const result = rollSharedDie(maxVal);
       onRoll(dieType, result);
       setIsRolling(false);
     }, 800);

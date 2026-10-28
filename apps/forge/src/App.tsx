@@ -41,7 +41,7 @@ import SettingsModal from './components/SettingsModal';
 import { CharacterEditModal } from './components/CharacterEditModal';
 import { ForgeCharacterCreator } from './components/ForgeCharacterCreator';
 import { RestingScreen } from './components/RestingScreen';
-import { generateUUID, DiceRoll } from './services/diceService';
+import { generateUUID, rollDice as rollDiceFaces, DiceRoll } from './services/diceService';
 import { featureDescriptions } from './utils/featureDescriptions';
 import {
   loadClasses,
@@ -635,7 +635,7 @@ const App: React.FC = () => {
       for (let i = 0; i < diceToSpend; i++) {
         hpRecovered += Math.max(
           1,
-          Math.floor(Math.random() * hitDie) + 1 + conModifier,
+          rollDiceFaces(1, hitDie)[0] + conModifier,
         );
       }
 

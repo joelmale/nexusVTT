@@ -3,6 +3,7 @@
  * Orchestrates attack rolls, damage, and combat state changes
  */
 
+import { parseDiceExpression, rollDice } from '@nexus/rules-5e';
 import type { CharacterState } from '../types/state';
 import type { RollContext, RollResult } from '../types/roll';
 import { createRollContext, makeD20Roll } from '../mechanics/rollMechanics';
@@ -75,16 +76,12 @@ function parseDiceNotation(notation: string): {
   sides: number;
   modifier: number;
 } {
-  const match = notation.match(/^(\d+)d(\d+)(?:([+-]\d+))?$/);
-  if (!match) {
+  const parsed = parseDiceExpression(notation);
+  const pool = parsed?.pools[0];
+  if (!parsed || !pool || parsed.pools.length !== 1 || pool.keep) {
     throw new Error(`Invalid dice notation: ${notation}`);
   }
-
-  return {
-    count: parseInt(match[1], 10),
-    sides: parseInt(match[2], 10),
-    modifier: match[3] ? parseInt(match[3], 10) : 0,
-  };
+  return { count: pool.count, sides: pool.sides, modifier: parsed.modifier };
 }
 
 /**
@@ -105,12 +102,7 @@ export function rollDamage(
 
   // Roll dice (double for crits)
   const diceCount = isCritical ? count * 2 : count;
-  const rolls: number[] = [];
-
-  for (let i = 0; i < diceCount; i++) {
-    const roll = rng ? Math.floor(rng() * sides) + 1 : Math.floor(Math.random() * sides) + 1;
-    rolls.push(roll);
-  }
+  const rolls = rollDice(diceCount, sides, rng);
 
   // Calculate total
   const diceTotal = rolls.reduce((sum, roll) => sum + roll, 0);

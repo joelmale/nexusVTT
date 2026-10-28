@@ -3,6 +3,7 @@
  * Advantage/Disadvantage aggregation and d20 roll resolution
  */
 
+import { rollDie } from '@nexus/rules-5e';
 import type {
   RollContext,
   RollState,
@@ -56,12 +57,7 @@ export function determineRollState(
  * @returns Number between 1 and 20
  */
 export function rollD20(rng?: () => number): number {
-  if (rng) {
-    // Use provided RNG (for testing)
-    return Math.floor(rng() * 20) + 1;
-  }
-  // Default: random
-  return Math.floor(Math.random() * 20) + 1;
+  return rollDie(20, rng);
 }
 
 /**

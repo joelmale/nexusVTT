@@ -26,18 +26,15 @@ Re-validated against the tree on **2026-10-28** (after the primitive-type,
 modifier and dungeon consolidations, while other work was landing in parallel).
 Corrections to the first version of this list are marked.
 
-1. **Dice rolling.** _Mostly done._ Parsing, validation, rolling, keep-highest/
-   lowest, advantage and critical handling are one engine in `@nexus/rules-5e`
-   (`dice.ts`, with an injectable random source and a crypto default). The VTT
-   server, VTT client and `/roll` command, the creator, Forge, the initiative
-   store, the server initiative d20 and dm-ui's `hoardRoller` now call it. Not
-   yet moved: `rulesEngine/resolvers/combatResolver.ts` (its own
-   `parseDiceNotation`), `rulesEngine/mechanics/rollMechanics.ts` (a bare d20),
-   a d6 in creator `dataService.ts`, the hit-die roll in Forge `App.tsx`, and
-   the VTT `DieButton`. Behaviour changes to know about: the server now rejects
-   trailing junk such as `2d6xyz` (the client already did), sums every constant
-   instead of keeping the first, rejects subtracted dice instead of adding
-   them, and takes a critical from the kept d20 under advantage.
+1. **Dice rolling.** _Done._ Parsing, validation, rolling, keep-highest/lowest,
+   advantage and critical handling are one engine in `@nexus/rules-5e`
+   (`dice.ts`, injectable random source, crypto default). The VTT server and
+   client, `/roll`, the creator (including the rules-engine resolvers), Forge,
+   the initiative store, the server initiative roll and dm-ui's `hoardRoller`
+   call it. The 3D dice box in Forge still supplies its own physics results by
+   design. Behaviour changes: the server rejects trailing junk such as `2d6xyz`,
+   sums every constant, rejects subtracted dice, and takes a critical from the
+   kept d20 under advantage.
 2. **Character contracts.** Still accurate, with one addition.
    `character-contracts` (`Character`, `ForgeCharacter`) and
    `game-contracts/src/character.ts` (`CharacterRecord`) both define a
