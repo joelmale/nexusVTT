@@ -8,6 +8,7 @@
 import React, { useEffect } from 'react';
 import type { Character } from '@nexus/character-contracts';
 import { SpellbookPanel } from '@/components/Panels/SpellbookPanel';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface CharacterSheetPopupProps {
   character: Character;
@@ -38,7 +39,7 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
 
   // Calculate ability modifiers
   const getModifier = (score: number): string => {
-    const mod = Math.floor((score - 10) / 2);
+    const mod = calculateAbilityModifier(score);
     return mod >= 0 ? `+${mod}` : `${mod}`;
   };
 
@@ -108,7 +109,7 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
             <h2 className="section-header">Abilities</h2>
             <div className="abilities-grid">
               {Object.entries(character.abilities).map(([key, ability]) => {
-                const modifier = Math.floor((ability.score - 10) / 2);
+                const modifier = calculateAbilityModifier(ability.score);
                 const modifierClass =
                   modifier > 0
                     ? 'modifier-positive'

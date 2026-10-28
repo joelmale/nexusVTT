@@ -4,20 +4,14 @@ import type {
   InventoryItem,
   Weapon,
 } from '@nexus/character-contracts';
+import { ABILITY_KEYS } from '@nexus/character-contracts';
 
 /**
  * Roll and modifier math shared by the full character sheet and the Simple
  * Player Mode sheet, so both show the same numbers.
  */
 
-export const ABILITY_KEYS: AbilityKey[] = [
-  'STR',
-  'DEX',
-  'CON',
-  'INT',
-  'WIS',
-  'CHA',
-];
+export { ABILITY_KEYS };
 
 export function formatModifier(value: number): string {
   return `${value >= 0 ? '+' : ''}${value}`;

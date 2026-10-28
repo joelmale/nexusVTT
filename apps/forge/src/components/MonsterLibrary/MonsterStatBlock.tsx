@@ -3,6 +3,7 @@ import { X, Star, ChevronDown, ChevronUp, Edit2, Trash2, ExternalLink } from 'lu
 import { Monster, UserMonster } from '../../types/dnd';
 import { useMonsterContext } from '../../hooks';
 import { generateMonsterSlug } from '../../utils/monsterUtils';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface MonsterStatBlockProps {
   monster: Monster | UserMonster;
@@ -11,7 +12,7 @@ interface MonsterStatBlockProps {
 }
 
 const getModifier = (score: number): string => {
-  const mod = Math.floor((score - 10) / 2);
+  const mod = calculateAbilityModifier(score);
   return mod >= 0 ? `+${mod}` : `${mod}`;
 };
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EDITIONS } from '@nexus/character-contracts';
 
 /**
  * Supported definition kinds that can be authored and revisioned.
@@ -32,7 +33,7 @@ export type DefinitionRef<K extends DefinitionKind = DefinitionKind> = {
  */
 export const rulesetRefSchema = z.object({
   system: z.literal('dnd5e'),
-  edition: z.enum(['2014', '2024']),
+  edition: z.enum(EDITIONS),
   contentPackId: z.string().min(1),
   contentRevision: z.string().min(1),
   rulesRevision: z.string().min(1),

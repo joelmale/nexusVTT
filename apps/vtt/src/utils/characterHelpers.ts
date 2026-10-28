@@ -1,3 +1,4 @@
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 /**
  * Helper functions for character creation and management
  */
@@ -68,6 +69,6 @@ export const getPrimaryAbilityForClass = (className: string): string => {
  * Quick entry characters get AC 10 + dex modifier (unarmored)
  */
 export const getDefaultArmorClass = (dexterityScore: number): number => {
-  const dexModifier = Math.floor((dexterityScore - 10) / 2);
+  const dexModifier = calculateAbilityModifier(dexterityScore);
   return 10 + dexModifier;
 };

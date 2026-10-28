@@ -9,6 +9,7 @@
 import type { BaseFacts } from '../types/baseFacts';
 import { SKILL_TO_ABILITY, type DerivedState } from '../types/derived';
 import { ABILITIES, SKILLS } from '../types/common';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 /**
  * Initialize an empty derived state from base facts
@@ -171,7 +172,7 @@ export function initializeDerivedState(facts: BaseFacts): DerivedState {
  * This is a mathematical constant, not game logic.
  */
 function calculateModifier(score: number): number {
-  return Math.floor((score - 10) / 2);
+  return calculateAbilityModifier(score);
 }
 
 /**

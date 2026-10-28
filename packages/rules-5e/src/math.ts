@@ -1,3 +1,5 @@
+import { calculateAbilityModifier } from '@nexus/character-contracts';
+
 /**
  * Canonical mathematical formulas for D&D 5th Edition (2014 & 2024 revisions).
  * Pure functions with zero DOM, CSS, or framework dependencies.
@@ -8,7 +10,7 @@
  * Formula: floor((score - 10) / 2)
  */
 export function getAbilityModifier(score: number): number {
-  return Math.floor((score - 10) / 2);
+  return calculateAbilityModifier(score);
 }
 
 /**

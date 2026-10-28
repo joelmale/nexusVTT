@@ -4,6 +4,7 @@ import type {
   CharacterCreationData,
 } from '../types/dnd';
 import { invocationTargets } from './invocations';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 export interface DerivedClassMechanics {
   attacksPerAction: number;
@@ -43,7 +44,7 @@ export function applyClassCapstone(
       edition === '2014' ? 24 : 25,
       abilities[ability].score + 4,
     );
-    abilities[ability] = { score, modifier: Math.floor((score - 10) / 2) };
+    abilities[ability] = { score, modifier: calculateAbilityModifier(score) };
   }
 }
 

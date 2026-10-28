@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ABILITY_KEYS } from '@nexus/character-contracts';
 import { authoredMetadataSchema, rulesetRefSchema } from './identity.js';
 import { abilityScoresSchema } from './character.js';
 
@@ -62,7 +63,7 @@ export const monsterActionSchema = z.object({
     .optional(),
   saveDC: z
     .object({
-      ability: z.enum(['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']),
+      ability: z.enum(ABILITY_KEYS),
       dc: z.number().int().positive(),
       success: z.enum(['none', 'half', 'other']).default('half'),
     })

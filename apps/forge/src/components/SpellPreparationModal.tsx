@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, Check, BookOpen } from 'lucide-react';
 import { Character } from '../types/dnd';
 import { AppSpell } from '../services/dataService';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface SpellPreparationModalProps {
   character: Character;
@@ -25,7 +26,7 @@ export const SpellPreparationModal: React.FC<SpellPreparationModalProps> = ({
 
   // Calculate max prepared spells
   const maxPrepared = character.spellcasting ?
-    Math.max(1, Math.floor((character.abilities[character.spellcasting.ability].score - 10) / 2) + character.level) : 0;
+    Math.max(1, calculateAbilityModifier(character.abilities[character.spellcasting.ability].score) + character.level) : 0;
 
   const handleSpellToggle = (spellSlug: string) => {
     setSelectedSpells(prev => {

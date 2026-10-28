@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Monster, UserMonster } from '../../types/dnd';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface EncounterTabsProps {
   monsters: (Monster | UserMonster)[];
 }
 
 const getModifier = (score: number): string => {
-  const mod = Math.floor((score - 10) / 2);
+  const mod = calculateAbilityModifier(score);
   return mod >= 0 ? `+${mod}` : `${mod}`;
 };
 

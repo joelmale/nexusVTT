@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Monster, UserMonster } from '../../types/dnd';
 import { Eye } from 'lucide-react';
 import { MonsterStatBlock } from '../MonsterLibrary/MonsterStatBlock';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface EncounterGridProps {
   monsters: (Monster | UserMonster)[];
 }
 
 const getModifier = (score: number): string => {
-  const mod = Math.floor((score - 10) / 2);
+  const mod = calculateAbilityModifier(score);
   return mod >= 0 ? `+${mod}` : `${mod}`;
 };
 

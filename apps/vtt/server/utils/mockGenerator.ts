@@ -1,4 +1,5 @@
 import { CampaignRecord, CharacterRecord } from '../repositories/base.js';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 // ─── D&D Thematic Data Tables ────────────────────────────────────────────────
 
@@ -135,7 +136,7 @@ export function generateRandomCharacter(ownerId: string): Omit<CharacterRecord, 
   const abilities: Record<string, { score: number; modifier: number }> = {};
   abilitiesList.forEach((ab, idx) => {
     const score = shuffledScores[idx];
-    const modifier = Math.floor((score - 10) / 2);
+    const modifier = calculateAbilityModifier(score);
     abilities[ab] = { score, modifier };
   });
 

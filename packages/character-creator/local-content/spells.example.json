@@ -1,0 +1,9 @@
+{
+  "spells": {
+    "Example Spell": "Replace this with the text from your own book.",
+    "Another Example": {
+      "description": "Main spell text.",
+      "higherLevels": "Optional upcast text."
+    }
+  }
+}

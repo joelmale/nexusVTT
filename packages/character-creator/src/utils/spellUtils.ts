@@ -22,6 +22,7 @@ import {
   ABILITY_SCORE_BASE,
   ABILITY_MODIFIER_DIVISOR,
 } from '../constants/combat';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 // Map class slugs to spellcasting types
 const SPELLCASTING_TYPE_MAP: Record<string, SpellcastingType> =
@@ -190,7 +191,7 @@ export function getMaxPreparedSpells(
   characterLevel: number,
 ): number {
   const abilityScore = Number(abilities[spellcastingAbility]) || 0;
-  const modifier = Math.floor((abilityScore - 10) / 2);
+  const modifier = calculateAbilityModifier(abilityScore);
   return Math.max(1, modifier + characterLevel);
 }
 

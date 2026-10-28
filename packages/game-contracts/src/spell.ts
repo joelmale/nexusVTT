@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ABILITY_KEYS } from '@nexus/character-contracts';
 import {
   authoredMetadataSchema,
   definitionRefSchema,
@@ -126,7 +127,7 @@ export const spellcastingProfileSchema = z.object({
     'monster',
   ]),
   sourceSlug: z.string(),
-  spellcastingAbility: z.enum(['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']),
+  spellcastingAbility: z.enum(ABILITY_KEYS),
   spellSaveDC: z.number().int().positive(),
   spellAttackBonus: z.number().int(),
   isRitualCaster: z.boolean().default(false),

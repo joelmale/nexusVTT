@@ -15,6 +15,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { PlayerCharacter } from '@/types/game';
 import type { GameStore, GameStoreGet } from '@/stores/game/types';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 export type CharactersSlice = Pick<
   GameStore,
@@ -142,7 +143,7 @@ export const createCharactersSlice = (
         Survival: 'wisdom',
       };
 
-      const abilityMod = (score: number) => Math.floor((score - 10) / 2);
+      const abilityMod = (score: number) => calculateAbilityModifier(score);
       const proficiencyFromLevel = (level: number) =>
         Math.ceil(Math.max(1, level) / 4) + 1;
 

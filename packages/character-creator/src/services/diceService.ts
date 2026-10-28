@@ -1,3 +1,4 @@
+import { calculateAbilityModifier } from '@nexus/character-contracts';
  
 // Dice roll types and utilities for NexusForge
 
@@ -54,7 +55,7 @@ export function rollDice(count: number, sides: number): number[] {
  * @returns Modifier (-5 to +10)
  */
 export function calculateModifier(score: number): number {
-  return Math.floor((score - 10) / 2);
+  return calculateAbilityModifier(score);
 }
 
 /**

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ParchmentPanel } from '../atoms/ParchmentPanel';
 import { SectionDivider } from '../atoms/SectionDivider';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 export interface SpellEntity {
   name: string;
@@ -153,7 +154,7 @@ export const EntityStatCard: React.FC<EntityStatCardProps> = ({
             <SectionDivider className="my-2" />
             <div className="grid grid-cols-6 text-center gap-1">
               {Object.entries(monster.stats).map(([stat, val]) => {
-                const mod = Math.floor((val - 10) / 2);
+                const mod = calculateAbilityModifier(val);
                 const modSign = mod >= 0 ? `+${mod}` : `${mod}`;
                 return (
                   <div key={stat} className="bg-[#2c1e16]/5 p-1 rounded-sm">

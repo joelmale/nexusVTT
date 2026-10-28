@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EDITIONS } from '@nexus/character-contracts';
 
 import { definitionRefSchema } from './identity.js';
 
@@ -25,6 +26,85 @@ export type CampaignEntryKind = z.infer<typeof campaignEntryKindSchema>;
 export const campaignVisibilitySchema = z.enum(['dm-only', 'players']);
 export type CampaignVisibility = z.infer<typeof campaignVisibilitySchema>;
 
+export const campaignObjectStatusSchema = z.enum([
+  'draft',
+  'ready',
+  'active',
+  'archived',
+  'retired',
+]);
+export type CampaignObjectStatus = z.infer<typeof campaignObjectStatusSchema>;
+
+export const encounterHpPolicySchema = z.enum([
+  'average',
+  'roll-on-deploy',
+  'fixed',
+]);
+export type EncounterHpPolicy = z.infer<typeof encounterHpPolicySchema>;
+
+export const encounterInitiativePolicySchema = z.enum([
+  'individual',
+  'group',
+  'manual',
+]);
+export type EncounterInitiativePolicy = z.infer<
+  typeof encounterInitiativePolicySchema
+>;
+
+export const encounterEditionSchema = z.enum(['2014', '2024']);
+export type EncounterEdition = z.infer<typeof encounterEditionSchema>;
+
+export const encounterFactionSchema = z.enum(['hostile', 'neutral', 'allied']);
+export type EncounterFaction = z.infer<typeof encounterFactionSchema>;
+
+export const encounterCompositionEntrySchema = z
+  .object({
+    name: z.string().trim().min(1).optional(),
+    count: z.number().int().positive().default(1),
+    monsterKey: z.string().trim().min(1).optional(),
+    cr: z.string().trim().min(1).optional(),
+    ruleset: z.enum(['2024', '2014', '2014-srd', 'custom']).optional(),
+    role: z.string().optional(),
+    nonCreature: z.boolean().optional(),
+    customName: z.string().optional(),
+    faction: encounterFactionSchema.optional(),
+    fixedHp: z.number().int().positive().optional(),
+  })
+  .passthrough();
+export type EncounterCompositionEntry = z.infer<
+  typeof encounterCompositionEntrySchema
+>;
+
+export const encounterParticipantEntrySchema = encounterCompositionEntrySchema;
+export type EncounterParticipantEntry = EncounterCompositionEntry;
+
+export const encounterTemplateDataSchema = z
+  .object({
+    id: z.string().optional(),
+    campaignId: z.string().optional(),
+    title: z.string().optional(),
+    name: z.string().optional(),
+    kind: z.string().optional(),
+    difficulty: z
+      .enum(['low', 'moderate', 'high', 'trivial', 'deadly'])
+      .optional(),
+    edition: encounterEditionSchema.optional(),
+    hpPolicy: encounterHpPolicySchema.optional(),
+    initiativePolicy: encounterInitiativePolicySchema.optional(),
+    composition: z.array(encounterCompositionEntrySchema).optional(),
+    participants: z.array(encounterParticipantEntrySchema).optional(),
+    trigger: z.string().optional(),
+    intendedUse: z.string().optional(),
+    tactics: z.string().optional(),
+    rulesetNotes: z.string().optional(),
+    locationIds: z.array(z.string()).optional(),
+    factionIds: z.array(z.string()).optional(),
+    sessionIds: z.array(z.string()).optional(),
+    trapDetails: z.record(z.string(), z.unknown()).optional(),
+  })
+  .passthrough();
+export type EncounterTemplateData = z.infer<typeof encounterTemplateDataSchema>;
+
 export const campaignObjectRevisionRefSchema = z.object({
   target: z.literal('campaign-object'),
   campaignId: z.string().uuid(),
@@ -40,7 +120,7 @@ export const definitionObjectRefSchema = z.object({
 export const rulesEntityObjectRefSchema = z.object({
   target: z.literal('rules-entity'),
   entityType: z.enum(['monster', 'spell', 'item']),
-  ruleset: z.enum(['2014', '2024']),
+  ruleset: z.enum(EDITIONS),
   slug: z.string().trim().min(1),
   catalogVersion: z.number().int().positive(),
 });

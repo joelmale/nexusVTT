@@ -7,6 +7,7 @@ import { OverflowMenu, type OverflowMenuItem } from '../atoms/OverflowMenu';
 import { ParchmentTexture } from '../atoms/ParchmentTexture';
 import Play from 'lucide-react/dist/esm/icons/play';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface HeroCardProps {
   hero: CharacterRecord;
@@ -19,7 +20,7 @@ interface HeroCardProps {
 }
 
 const getModifier = (val: number): string => {
-  const mod = Math.floor((val - 10) / 2);
+  const mod = calculateAbilityModifier(val);
   return mod >= 0 ? `+${mod}` : `${mod}`;
 };
 

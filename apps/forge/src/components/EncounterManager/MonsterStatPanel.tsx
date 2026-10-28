@@ -1,5 +1,6 @@
 import React from 'react';
 import { Monster, UserMonster } from '../../types/dnd';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface MonsterStatPanelProps {
   monster: Monster | UserMonster | null;
@@ -11,7 +12,7 @@ export function MonsterStatPanel({ monster, isOpen, onClose }: MonsterStatPanelP
   if (!isOpen || !monster) return null;
 
   const formatAbilityScore = (score: number) => {
-    const modifier = Math.floor((score - 10) / 2);
+    const modifier = calculateAbilityModifier(score);
     return `${score} (${modifier >= 0 ? '+' : ''}${modifier})`;
   };
 

@@ -1,11 +1,9 @@
-import gameConstantsData from '../data/gameConstants.json';
+import { ABILITY_KEYS, type Edition } from '@nexus/character-contracts';
 import type { Level1Feature } from './widgets';
 import type { ResourceTracker, LevelUpRecord } from '../data/classProgression';
 import type { InitiativeEntry, PlayerEntry } from './encounterCombat';
 
-export const ABILITY_SCORES = gameConstantsData.ABILITY_SCORES as readonly (
-  'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA'
-)[];
+export const ABILITY_SCORES = ABILITY_KEYS;
 export type Ability = (typeof ABILITY_SCORES)[number];
 
 export interface Alignment {
@@ -88,7 +86,7 @@ export interface Skill {
   expertise?: boolean; // True if skill has expertise (double proficiency bonus)
 }
 
-export type Edition = '2014' | '2024';
+export type { Edition };
 
 export interface Character {
   castingSources?: import('@nexus/character-contracts').CharacterCastingSource[];

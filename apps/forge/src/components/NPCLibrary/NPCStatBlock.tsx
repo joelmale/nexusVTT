@@ -1,5 +1,6 @@
 import React from 'react';
 import { NPC } from '../../types/dnd';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface NPCStatBlockProps {
   npc: NPC;
@@ -40,7 +41,7 @@ export const NPCStatBlock: React.FC<NPCStatBlockProps> = ({ npc, onClose }) => {
           </h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
             {Object.entries(npc.abilityScores).map(([ability, score]) => {
-              const modifier = Math.floor((score - 10) / 2);
+              const modifier = calculateAbilityModifier(score);
               return (
                 <div key={ability} className="text-center">
                   <div className="text-sm font-semibold text-theme-tertiary">{ability}</div>

@@ -6,7 +6,13 @@ export {
   recordCharacterResource,
 } from './resources.js';
 
-export type AbilityKey = 'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA';
+/** The six abilities, in sheet order. The single runtime source for the list. */
+export const ABILITY_KEYS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'] as const;
+export type AbilityKey = (typeof ABILITY_KEYS)[number];
+
+/** The two supported rules editions. */
+export const EDITIONS = ['2014', '2024'] as const;
+export type Edition = (typeof EDITIONS)[number];
 
 export interface AbilityScore {
   score: number;
@@ -674,8 +680,8 @@ export const CHARACTER_RACES = [
  * These types match the Forge's character schema for import compatibility
  */
 
-export type ForgeEdition = '2014' | '2024';
-export type ForgeAbility = 'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA';
+export type ForgeEdition = Edition;
+export type ForgeAbility = AbilityKey;
 
 export interface ForgeAbilityScore {
   score: number;

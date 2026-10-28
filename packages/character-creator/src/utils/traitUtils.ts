@@ -5,6 +5,7 @@ import { CharacterCreationData } from '../types/dnd';
  */
 import characterTraitsData from '../data/characterTraits.json';
 import backgroundDefaultsData from '../data/backgroundDefaults.json';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 export const randomizePersonality = (): Partial<CharacterCreationData> => {
   const personalityTraits = characterTraitsData.personalities;
@@ -46,7 +47,7 @@ export const calculateStartingHP = (
   method: 'max' | 'rolled',
   rolledValue?: number
 ): number => {
-  const conModifier = Math.floor((constitutionScore - 10) / 2);
+  const conModifier = calculateAbilityModifier(constitutionScore);
 
   if (method === 'max') {
     return hitDie + conModifier;

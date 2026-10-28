@@ -15,6 +15,7 @@ import {
   SUPPLEMENTAL_SPELLS,
   type SpellMechanics,
 } from '../data/supplementalSpells';
+import { withLocalSpellText } from '../data/localContentPack';
 import {
   ARTIFICER_LEGACY_SPELL_NAMES,
   ARTIFICER_SRD_ALIASES,
@@ -82,6 +83,7 @@ import { Level1Feature } from '../types/widgets';
 import { getSelectableLanguages } from '../data/languages';
 import { CORE_SUBCLASSES_2024 } from '../data/coreSubclasses';
 import { isCoreSrdContent, ORIGIN_FEATS_2024 } from '../data/contentProvenance';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 // Local type definitions for dataService
 interface Alignment {
@@ -900,7 +902,7 @@ function legacySpells(): AppSpell[] {
         : transformed;
     }),
     ...supplementalSpells('2014'),
-  ];
+  ].map((spell) => withLocalSpellText(spell));
   return legacyCatalog;
 }
 
@@ -913,7 +915,7 @@ export function loadSpells(edition?: '2014' | '2024'): AppSpell[] {
     // Supplemental spells carry the legacy Artificer list; they are offered for
     // the unfiltered catalog and for 2024 characters taking a legacy feat.
     ...(edition === '2024' ? [] : supplementalSpells('2014')),
-  ];
+  ].map((spell) => withLocalSpellText(spell));
 }
 
 export const SPELL_DATABASE = loadSpells();
@@ -1328,7 +1330,7 @@ export const PROFICIENCY_BONUSES = gameConstantsData.PROFICIENCY_BONUSES;
 export { spellsKnownData as SPELLS_KNOWN_BY_CLASS };
 
 export function getModifier(abilityScore: number): number {
-  return Math.floor((abilityScore - 10) / 2);
+  return calculateAbilityModifier(abilityScore);
 }
 
 export const SKILL_TO_ABILITY: Record<SkillName, AbilityName> =

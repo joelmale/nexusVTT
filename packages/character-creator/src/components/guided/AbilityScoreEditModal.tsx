@@ -1,6 +1,7 @@
 import { CreatorDialog } from '../CreatorDialog';
 import React, { useState, useMemo } from 'react';
 import { X, Check, Plus, Minus } from 'lucide-react';
+import { calculateAbilityModifier, ABILITY_KEYS } from '@nexus/character-contracts';
 
 interface AbilityScoreEditModalProps {
   currentScores: Record<string, number>;
@@ -10,7 +11,7 @@ interface AbilityScoreEditModalProps {
 }
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
-const ABILITY_NAMES = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+const ABILITY_NAMES = ABILITY_KEYS;
 const ABILITY_FULL_NAMES: Record<string, string> = {
   STR: 'Strength',
   DEX: 'Dexterity',
@@ -51,7 +52,7 @@ const AbilityScoreEditModal: React.FC<AbilityScoreEditModalProps> = ({
   const handleDecrease = (ability: string) => swap(ability, -1);
 
   const getModifier = (score: number) => {
-    return Math.floor((score - 10) / 2);
+    return calculateAbilityModifier(score);
   };
 
   const handleSave = () => {

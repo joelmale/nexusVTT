@@ -64,6 +64,7 @@ import {
   applyClassCapstone,
   deriveClassMechanics,
 } from '../services/classMechanics';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 /**
  * Get the class progression data for a given class
@@ -851,7 +852,7 @@ function applyFeatEffects(
   const grantsSpells = featSlug in featCastingAbility;
   if (!character.spellcasting && grantsSpells) {
     const ability = featCastingAbility[featSlug]!;
-    const modifier = Math.floor((character.abilities[ability].score - 10) / 2);
+    const modifier = calculateAbilityModifier(character.abilities[ability].score);
     character.spellcasting = {
       ability,
       spellSaveDC: 8 + character.proficiencyBonus + modifier,

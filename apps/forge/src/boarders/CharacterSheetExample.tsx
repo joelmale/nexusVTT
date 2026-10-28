@@ -7,6 +7,7 @@ import {
   ScrollPanel 
 } from './BorderPanel';
 import './BorderPanel.css';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 // ============================================
 // EXAMPLE CHARACTER SHEET IMPLEMENTATION
@@ -67,7 +68,7 @@ const ExampleCharacterSheet: React.FC<CharacterSheetProps> = ({
 }) => {
   // Calculate modifiers
   const getModifier = (stat: number) => {
-    const mod = Math.floor((stat - 10) / 2);
+    const mod = calculateAbilityModifier(stat);
     return mod >= 0 ? `+${mod}` : `${mod}`;
   };
 

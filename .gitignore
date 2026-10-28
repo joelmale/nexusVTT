@@ -263,3 +263,8 @@ test-results/
 apps/vtt/tests/e2e/visual-regression.test.ts-snapshots/
 
 assets-data/
+
+# Local-only book text (never commit); see packages/character-creator/local-content/README.md
+packages/character-creator/local-content/*
+!packages/character-creator/local-content/README.md
+!packages/character-creator/local-content/spells.example.json

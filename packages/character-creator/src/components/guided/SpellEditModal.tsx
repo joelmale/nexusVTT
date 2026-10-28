@@ -14,6 +14,7 @@ import {
 } from '../../utils/spellUtils';
 import { SPELL_LEARNING_RULES } from '../../data/spellLearning';
 import cantripsData from '../../data/cantrips.json';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface SpellEditModalProps {
   classSlug: string;
@@ -90,7 +91,7 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
 
   const numWizardPrepared = useMemo(() => {
     if (spellcastingType === 'wizard') {
-      const intMod = Math.floor((abilities.INT - 10) / 2);
+      const intMod = calculateAbilityModifier(abilities.INT);
       return calculatePreparationLimit('wizard', level, intMod, edition);
     }
     return 0;

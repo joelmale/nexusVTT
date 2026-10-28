@@ -20,6 +20,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@nexus/character-contracts": "*",
     "@nexus/game-contracts": "*",
     "zod": "^4.6.7"
   },

@@ -3,6 +3,7 @@ import { Save, X, AlertCircle } from 'lucide-react';
 import { Character } from '../types/dnd';
 import { loadClasses, loadSpecies, BACKGROUNDS } from '../services/dataService';
 import { buildCompleteSpellcasting } from '../utils/characterEditUtils';
+import { calculateAbilityModifier, ABILITY_KEYS } from '@nexus/character-contracts';
 
 interface CharacterEditFormProps {
   character?: Character; // If provided, we're editing; if not, we're creating
@@ -80,7 +81,7 @@ interface FormData {
   };
 }
 
-const ABILITY_NAMES = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+const ABILITY_NAMES = ABILITY_KEYS;
 const SKILL_NAMES = [
   'Acrobatics',
   'Animal Handling',
@@ -147,12 +148,12 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
 
     // Calculate ability modifiers
     const abilityModifiers = {
-      STR: Math.floor((formData.abilities.STR - 10) / 2),
-      DEX: Math.floor((formData.abilities.DEX - 10) / 2),
-      CON: Math.floor((formData.abilities.CON - 10) / 2),
-      INT: Math.floor((formData.abilities.INT - 10) / 2),
-      WIS: Math.floor((formData.abilities.WIS - 10) / 2),
-      CHA: Math.floor((formData.abilities.CHA - 10) / 2),
+      STR: calculateAbilityModifier(formData.abilities.STR),
+      DEX: calculateAbilityModifier(formData.abilities.DEX),
+      CON: calculateAbilityModifier(formData.abilities.CON),
+      INT: calculateAbilityModifier(formData.abilities.INT),
+      WIS: calculateAbilityModifier(formData.abilities.WIS),
+      CHA: calculateAbilityModifier(formData.abilities.CHA),
     };
 
     // Calculate saving throws (base modifier + proficiency if proficient)
@@ -523,27 +524,27 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
       abilities: {
         STR: {
           score: formData.abilities.STR,
-          modifier: Math.floor((formData.abilities.STR - 10) / 2),
+          modifier: calculateAbilityModifier(formData.abilities.STR),
         },
         DEX: {
           score: formData.abilities.DEX,
-          modifier: Math.floor((formData.abilities.DEX - 10) / 2),
+          modifier: calculateAbilityModifier(formData.abilities.DEX),
         },
         CON: {
           score: formData.abilities.CON,
-          modifier: Math.floor((formData.abilities.CON - 10) / 2),
+          modifier: calculateAbilityModifier(formData.abilities.CON),
         },
         INT: {
           score: formData.abilities.INT,
-          modifier: Math.floor((formData.abilities.INT - 10) / 2),
+          modifier: calculateAbilityModifier(formData.abilities.INT),
         },
         WIS: {
           score: formData.abilities.WIS,
-          modifier: Math.floor((formData.abilities.WIS - 10) / 2),
+          modifier: calculateAbilityModifier(formData.abilities.WIS),
         },
         CHA: {
           score: formData.abilities.CHA,
-          modifier: Math.floor((formData.abilities.CHA - 10) / 2),
+          modifier: calculateAbilityModifier(formData.abilities.CHA),
         },
       },
 

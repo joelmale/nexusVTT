@@ -24,6 +24,7 @@ import {
   type InventoryItem,
   type SkillEntry,
   type SkillMap,
+  ABILITY_KEYS,
 } from '@nexus/character-contracts';
 
 import { loadClasses } from '../services/dataService';
@@ -46,7 +47,6 @@ export const UNMAPPED_CREATOR_FIELDS: ReadonlyArray<{
   },
 ];
 
-const ABILITY_KEYS: AbilityKey[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
 /**
  * Forge writes skill keys without separators (`AnimalHandling`); the VTT

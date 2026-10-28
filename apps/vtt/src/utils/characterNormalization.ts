@@ -3,6 +3,7 @@ import {
   calculateAbilityModifier,
   calculateProficiencyBonus,
   createEmptyCharacter,
+  ABILITY_KEYS,
 } from '@nexus/character-contracts';
 
 export const normalizeSkillKey = (name: string): string => {
@@ -68,7 +69,6 @@ export const normalizeCharacter = (
     });
   }
 
-  const ABILITY_KEYS: AbilityKey[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
   const normalizedSavingThrows = {} as Record<AbilityKey, boolean>;
   ABILITY_KEYS.forEach((key) => {
     normalizedSavingThrows[key] = input.savingThrowProficiencies?.[key] ?? false;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { PanelComponentProps } from '@/services/panelRegistry';
 import { commandClient } from '@/services/commandClient';
 import styles from './MonsterPanel.module.css';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 interface StatBlockData {
   name: string;
@@ -57,7 +58,7 @@ export const MonsterPanel: React.FC<PanelComponentProps> = ({ link }) => {
   });
 
   const getModifier = (score: number): string => {
-    const mod = Math.floor((score - 10) / 2);
+    const mod = calculateAbilityModifier(score);
     return mod >= 0 ? `+${mod}` : `${mod}`;
   };
 

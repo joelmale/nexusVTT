@@ -1,4 +1,10 @@
 import crypto from 'crypto';
+import type {
+  EncounterEdition,
+  EncounterFaction,
+  EncounterHpPolicy,
+  EncounterInitiativePolicy,
+} from '@nexus/game-contracts';
 
 import type { LibraryObjectRepository } from '../repositories/LibraryObjectRepository.js';
 import type { CampaignPrepRepository } from '../repositories/CampaignPrepRepository.js';
@@ -65,6 +71,21 @@ type Repositories = {
 
 const MAX_MONSTERS = 100;
 const ABILITY_KEYS = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
+const VALID_FACTIONS = new Set<EncounterFaction>([
+  'hostile',
+  'neutral',
+  'allied',
+]);
+const VALID_HP_POLICIES = new Set<EncounterHpPolicy>([
+  'average',
+  'roll-on-deploy',
+  'fixed',
+]);
+const VALID_INITIATIVE_POLICIES = new Set<EncounterInitiativePolicy>([
+  'individual',
+  'group',
+  'manual',
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -125,7 +146,11 @@ export function parseMonsterStats(input: unknown): MonsterStatInput[] {
 
 /** Stable UUID derived from a seed, so re-materializing reuses objects. */
 function stableUuid(seed: string): string {
-  const bytes = crypto.createHash('sha256').update(seed).digest().subarray(0, 16);
+  const bytes = crypto
+    .createHash('sha256')
+    .update(seed)
+    .digest()
+    .subarray(0, 16);
   bytes[6] = (bytes[6] & 0x0f) | 0x50;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = bytes.toString('hex');
@@ -137,19 +162,76 @@ interface CompositionRow {
   count: number;
   monsterKey?: string;
   cr?: string;
+  customName?: string;
+  faction?: EncounterFaction;
+  fixedHp?: number;
+}
+
+interface EncounterOptions {
+  edition: EncounterEdition;
+  hpPolicy?: EncounterHpPolicy;
+  initiativePolicy?: EncounterInitiativePolicy;
+}
+
+function extractEncounterFields(data: unknown): Record<string, unknown> {
+  if (!isRecord(data)) return {};
+  const contentValue =
+    isRecord(data.content) && isRecord(data.content.value)
+      ? data.content.value
+      : {};
+  const studioFields =
+    isRecord(contentValue.nexusStudio) &&
+    isRecord(contentValue.nexusStudio.fields)
+      ? contentValue.nexusStudio.fields
+      : {};
+  return {
+    ...data,
+    ...contentValue,
+    ...studioFields,
+  };
+}
+
+function readEncounterOptions(data: unknown): EncounterOptions {
+  const fields = extractEncounterFields(data);
+  const rawEdition = fields.edition ?? fields.ruleset;
+  const edition: EncounterEdition = rawEdition === '2024' ? '2024' : '2014';
+  const hpPolicy = VALID_HP_POLICIES.has(fields.hpPolicy as EncounterHpPolicy)
+    ? (fields.hpPolicy as EncounterHpPolicy)
+    : undefined;
+  const initiativePolicy = VALID_INITIATIVE_POLICIES.has(
+    fields.initiativePolicy as EncounterInitiativePolicy,
+  )
+    ? (fields.initiativePolicy as EncounterInitiativePolicy)
+    : undefined;
+  return {
+    edition,
+    ...(hpPolicy ? { hpPolicy } : {}),
+    ...(initiativePolicy ? { initiativePolicy } : {}),
+  };
 }
 
 function readComposition(data: unknown): CompositionRow[] {
-  if (!isRecord(data) || !isRecord(data.content)) return [];
-  const value = data.content.value;
-  if (!isRecord(value) || !isRecord(value.nexusStudio)) return [];
-  const fields = value.nexusStudio.fields;
-  if (!isRecord(fields) || !Array.isArray(fields.composition)) return [];
-  return fields.composition.filter(isRecord).flatMap((row) => {
+  const fields = extractEncounterFields(data);
+  const rawRows = Array.isArray(fields.composition)
+    ? fields.composition
+    : Array.isArray(fields.participants)
+      ? fields.participants
+      : [];
+  return rawRows.filter(isRecord).flatMap((row) => {
     const count = finite(row.count, 1, 1000);
     const name = typeof row.name === 'string' ? row.name.trim() : '';
     // Hazards and lair actions are not creatures and are never spawned.
     if (!count || !name || row.nonCreature === true) return [];
+    const customName =
+      typeof row.customName === 'string' && row.customName.trim()
+        ? row.customName.trim()
+        : undefined;
+    const faction: EncounterFaction = VALID_FACTIONS.has(
+      row.faction as EncounterFaction,
+    )
+      ? (row.faction as EncounterFaction)
+      : 'hostile';
+    const fixedHp = finite(row.fixedHp ?? row.hp, 1, 100000);
     return [
       {
         name,
@@ -158,6 +240,9 @@ function readComposition(data: unknown): CompositionRow[] {
           ? { monsterKey: row.monsterKey }
           : {}),
         ...(typeof row.cr === 'string' ? { cr: row.cr } : {}),
+        ...(customName ? { customName } : {}),
+        faction,
+        ...(fixedHp !== undefined ? { fixedHp: Math.floor(fixedHp) } : {}),
       },
     ];
   });
@@ -167,12 +252,22 @@ function modifier(score: number): number {
   return Math.floor((score - 10) / 2);
 }
 
-function statBlock(stats: MonsterStatInput, row: CompositionRow) {
+function statBlock(
+  stats: MonsterStatInput,
+  row: CompositionRow,
+  hpPolicy?: EncounterHpPolicy,
+) {
   const scores = stats.abilities;
+  const resolvedFixedHp =
+    hpPolicy === 'fixed' ? (row.fixedHp ?? stats.hp) : undefined;
   return {
     name: stats.name,
     challengeRating: stats.cr,
-    hitPoints: { average: stats.hp },
+    hitPoints: {
+      average: resolvedFixedHp ?? stats.hp,
+      ...(hpPolicy ? { policy: hpPolicy } : {}),
+      ...(resolvedFixedHp !== undefined ? { fixed: resolvedFixedHp } : {}),
+    },
     armorClass: [{ value: stats.ac }],
     speed: { walk: stats.speed },
     abilities: Object.fromEntries(
@@ -185,13 +280,15 @@ function statBlock(stats: MonsterStatInput, row: CompositionRow) {
   };
 }
 
-const RULESET = {
-  system: 'dnd5e',
-  edition: '2014',
-  contentPackId: 'campaign-studio',
-  contentRevision: '1',
-  rulesRevision: '1',
-};
+function buildRuleset(edition: EncounterEdition) {
+  return {
+    system: 'dnd5e',
+    edition,
+    contentPackId: 'campaign-studio',
+    contentRevision: '1',
+    rulesRevision: '1',
+  };
+}
 
 /** Key-order independent, because JSONB does not preserve key order. */
 function canonical(value: unknown): string {
@@ -221,7 +318,10 @@ export class EncounterMaterializer {
       request.objectId,
     );
     if (!object) {
-      throw new EncounterMaterializationError('not-found', 'Encounter not found');
+      throw new EncounterMaterializationError(
+        'not-found',
+        'Encounter not found',
+      );
     }
     if (object.kind !== 'encounter') {
       throw new EncounterMaterializationError(
@@ -240,6 +340,10 @@ export class EncounterMaterializer {
         'The encounter has no monsters to deploy',
       );
     }
+    const { edition, hpPolicy, initiativePolicy } = readEncounterOptions(
+      revision?.data,
+    );
+    const ruleset = buildRuleset(edition);
 
     const byKey = new Map(monsters.map((monster) => [monster.key, monster]));
 
@@ -272,7 +376,7 @@ export class EncounterMaterializer {
       id: string;
       monsterRef: { kind: 'monster'; id: string; revision: number };
       count: number;
-      faction: 'hostile';
+      faction: EncounterFaction;
       customName?: string;
     }[] = [];
 
@@ -281,7 +385,7 @@ export class EncounterMaterializer {
       const monsterId = stableUuid(
         `monster:${request.campaignId}:${row.monsterKey}`,
       );
-      const data = statBlock(stats, row);
+      const data = statBlock(stats, row, hpPolicy);
       const {
         object: monsterObj,
         revision: initialMonsterRev,
@@ -295,7 +399,7 @@ export class EncounterMaterializer {
             name: data.name,
             tags: [data.source],
           },
-          { ruleset: RULESET, data },
+          { ruleset, data },
           monsterId,
         ),
       );
@@ -311,7 +415,7 @@ export class EncounterMaterializer {
           monsterRevision = (
             await this.db.libraryObjects.addRevision(
               monsterObj.id,
-              RULESET,
+              ruleset,
               data,
             )
           ).revision;
@@ -319,13 +423,32 @@ export class EncounterMaterializer {
       }
       groups.push({
         id: stableUuid(`group:${request.objectId}:${index}`),
-        monsterRef: { kind: 'monster', id: monsterId, revision: monsterRevision },
+        monsterRef: {
+          kind: 'monster',
+          id: monsterId,
+          revision: monsterRevision,
+        },
         count: row.count,
-        faction: 'hostile',
+        faction: row.faction ?? 'hostile',
+        ...(row.customName ? { customName: row.customName } : {}),
       });
     }
 
-    const encounterData = { name: object.title, ruleset: RULESET, groups };
+    const encounterData = {
+      name: object.title,
+      ruleset,
+      groups,
+      ...(hpPolicy ? { hpPolicy, hitPoints: { policy: hpPolicy } } : {}),
+      ...(initiativePolicy ? { initiativePolicy } : {}),
+      ...(hpPolicy || initiativePolicy
+        ? {
+            metadata: {
+              ...(hpPolicy ? { hpPolicy } : {}),
+              ...(initiativePolicy ? { initiativePolicy } : {}),
+            },
+          }
+        : {}),
+    };
     const {
       object: encounterObj,
       revision: initialEncounterRev,
@@ -338,7 +461,7 @@ export class EncounterMaterializer {
           kind: 'encounter',
           name: object.title,
         },
-        { ruleset: RULESET, data: encounterData },
+        { ruleset, data: encounterData },
         object.id,
       ),
     );
@@ -354,7 +477,7 @@ export class EncounterMaterializer {
         encounterRevision = (
           await this.db.libraryObjects.addRevision(
             encounterObj.id,
-            RULESET,
+            ruleset,
             encounterData,
           )
         ).revision;
@@ -383,7 +506,8 @@ export class EncounterMaterializer {
     if (existing) {
       return {
         object: existing as T,
-        revision: (existing as { currentRevision?: number }).currentRevision ?? 1,
+        revision:
+          (existing as { currentRevision?: number }).currentRevision ?? 1,
         created: false,
       };
     }
@@ -400,7 +524,8 @@ export class EncounterMaterializer {
         if (loaded) {
           return {
             object: loaded as T,
-            revision: (loaded as { currentRevision?: number }).currentRevision ?? 1,
+            revision:
+              (loaded as { currentRevision?: number }).currentRevision ?? 1,
             created: false,
           };
         }
@@ -410,7 +535,11 @@ export class EncounterMaterializer {
   }
 
   private assertOwned(
-    existing: { ownerId: string; campaignId: string | null; isArchived?: boolean },
+    existing: {
+      ownerId: string;
+      campaignId: string | null;
+      isArchived?: boolean;
+    },
     request: MaterializeEncounterRequest,
   ): void {
     if (

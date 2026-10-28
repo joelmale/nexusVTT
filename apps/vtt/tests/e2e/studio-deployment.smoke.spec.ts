@@ -38,7 +38,7 @@ test('Studio publishes linked map, handout and encounter and runs their real VTT
             mimeType: 'image/png',
             buffer: readFileSync(
               new URL(
-                '../../public/one-page-dungeon/favicon.png',
+                '../../apps/generator-hub/public/one-page-dungeon/favicon.png',
                 import.meta.url,
               ),
             ),

@@ -3,11 +3,12 @@
  */
 
 import { z } from 'zod';
+import { ABILITY_KEYS, EDITIONS } from '@nexus/character-contracts';
 
 /**
  * Ability schema
  */
-export const abilitySchema = z.enum(['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']);
+export const abilitySchema = z.enum(ABILITY_KEYS);
 
 /**
  * Skill schema
@@ -48,7 +49,7 @@ export const proficiencyTypeSchema = z.enum([
 /**
  * Edition schema
  */
-export const editionSchema = z.enum(['2014', '2024']);
+export const editionSchema = z.enum(EDITIONS);
 
 /**
  * Effect priority schema

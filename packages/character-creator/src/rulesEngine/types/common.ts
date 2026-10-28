@@ -2,15 +2,21 @@
  * Common types used across the rules engine
  */
 
+import {
+  ABILITY_KEYS,
+  type AbilityKey,
+  type Edition,
+} from '@nexus/character-contracts';
+
 /**
  * D&D 5e ability scores
  */
-export type Ability = 'STR' | 'DEX' | 'CON' | 'INT' | 'WIS' | 'CHA';
+export type Ability = AbilityKey;
 
 /**
  * All ability scores as an array
  */
-export const ABILITIES: Ability[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+export const ABILITIES: Ability[] = [...ABILITY_KEYS];
 
 /**
  * D&D 5e skills
@@ -67,7 +73,7 @@ export type ProficiencyType = 'armor' | 'weapon' | 'tool' | 'language' | 'saving
 /**
  * D&D editions supported
  */
-export type Edition = '2014' | '2024';
+export type { Edition };
 
 /**
  * Effect priority for execution ordering

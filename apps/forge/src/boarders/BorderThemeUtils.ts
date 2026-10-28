@@ -3,6 +3,7 @@
 // ============================================
 
 import { CornerStyle, EdgeStyle } from './BorderElements';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 
 export interface BorderTheme {
   name: string;
@@ -162,7 +163,7 @@ export const createBorderStyle = (
 };
 
 export const calculateModifier = (statValue: number): string => {
-  const modifier = Math.floor((statValue - 10) / 2);
+  const modifier = calculateAbilityModifier(statValue);
   return modifier >= 0 ? `+${modifier}` : `${modifier}`;
 };
 
