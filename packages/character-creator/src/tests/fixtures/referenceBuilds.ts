@@ -17,7 +17,11 @@ export interface ReferenceBuildOracle {
     | 'BD14'
     | 'BD24'
     | 'SC14'
-    | 'SC24';
+    | 'SC24'
+    | 'CL14'
+    | 'CL24'
+    | 'DR14'
+    | 'DR24';
   title: string;
   edition: '2014' | '2024';
   creationData: CharacterCreationData;
@@ -1371,5 +1375,426 @@ REFERENCE_BUILDS.SC24 = {
       'Gnomish Lineage',
     ],
     currency: { gp: 36 }, // Sorcerer package A 28 + Sage package A 8
+  },
+};
+
+// Cleric and Druid references (tranche T-04 batch C). Expected values are
+// calculated by hand from SRD 5.1 (Cleric, Druid, Human, Wood Elf, Acolyte)
+// and SRD 5.2.1 (Cleric p41-43, Druid p53-54, Human, Elf, Sage, Acolyte),
+// never from evaluator output. Independent human review of these expectations
+// remains open in the acceptance ledger.
+
+// SRD 5.1: Human (+1 all), Acolyte (Insight, Religion, 15 gp), Cleric (d8,
+// saves WIS/CHA, Life Domain heavy armor). Prepared spells = WIS modifier + 1.
+REFERENCE_BUILDS.CL14 = {
+  id: 'CL14',
+  title: 'Human Life Cleric/Acolyte (2014)',
+  edition: '2014',
+  creationData: {
+    name: 'Human Cleric 2014',
+    level: 1,
+    edition: '2014',
+    speciesSlug: 'human',
+    variantSlug: 'standard',
+    classSlug: 'cleric',
+    subclassSlug: 'life',
+    background: 'acolyte',
+    abilities: { STR: 13, DEX: 10, CON: 14, INT: 8, WIS: 15, CHA: 12 },
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['History', 'Medicine'],
+    alignment: 'Lawful Good',
+    equipmentChoices: [
+      {
+        choiceId: 'weapon',
+        description: 'SRD 5.1 Cleric (a) a mace',
+        selected: 0,
+        options: [[{ name: 'Mace', quantity: 1, type: 'weapon' }]],
+      },
+      {
+        choiceId: 'armor',
+        description: 'SRD 5.1 Cleric (c) chain mail (Life Domain heavy armor)',
+        selected: 0,
+        options: [[{ name: 'Chain Mail', quantity: 1, type: 'armor' }]],
+      },
+      {
+        choiceId: 'ranged',
+        description: 'SRD 5.1 Cleric (a) a light crossbow and 20 bolts',
+        selected: 0,
+        options: [
+          [
+            { name: 'Crossbow, Light', quantity: 1, type: 'weapon' },
+            { name: 'Crossbow Bolt', quantity: 20, type: 'gear' },
+          ],
+        ],
+      },
+      {
+        choiceId: 'pack',
+        description: "SRD 5.1 Cleric (a) a priest's pack",
+        selected: 0,
+        options: [[{ name: "Priest's Pack", quantity: 1, type: 'gear' }]],
+      },
+      {
+        choiceId: 'fixed',
+        description: 'SRD 5.1 Cleric: a shield and a holy symbol',
+        selected: 0,
+        options: [
+          [
+            { name: 'Shield', quantity: 1, type: 'armor' },
+            { name: 'Holy Symbol', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: {
+      selectedCantrips: ['guidance', 'light', 'sacred-flame'],
+      knownSpells: [],
+      preparedSpells: [
+        'healing-word',
+        'guiding-bolt',
+        'shield-of-faith',
+        'sanctuary',
+      ],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // Human +1: WIS 16 (+3), CON 15 (+2), STR 14 (+2), CHA 13 (+1),
+    // DEX 11 (0), INT 9 (-1)
+    abilities: { STR: 14, DEX: 11, CON: 15, INT: 9, WIS: 16, CHA: 13 },
+    hp: 10, // 8 + CON 2
+    ac: 18, // Chain mail 16 (no DEX) + shield 2
+    initiative: 0,
+    speed: 30,
+    saves: {
+      proficient: ['WIS', 'CHA'],
+      bonuses: { WIS: 5, CHA: 3 },
+    },
+    attacks: [{ name: 'Mace', attackBonus: 4, damage: '1d6+2' }],
+    skills: {
+      history: { bonus: 1 }, // INT -1 + 2
+      medicine: { bonus: 5 }, // WIS +3 + 2
+      insight: { bonus: 5 }, // Acolyte: WIS +3 + 2
+      religion: { bonus: 1 }, // Acolyte: INT -1 + 2
+    },
+    spells: {
+      cantripsCount: 3,
+      knownOrBookCount: 0,
+      preparedCount: 4, // WIS +3 + level 1; Life domain spells do not count
+      spellAttackBonus: 5,
+      spellSaveDC: 13,
+    },
+    features: ['Spellcasting', 'Divine Domain: Life', 'Disciple of Life'],
+    currency: { gp: 15 }, // Acolyte only; the Cleric kit has no gold
+  },
+};
+
+// SRD 5.2.1: Human (Skillful Perception, Versatile Tough), Sage (Magic
+// Initiate (Wizard); CON/INT/WIS; Arcana, History; package A 8 gp), Cleric
+// package A (Chain Shirt, Shield, Mace, Holy Symbol, Priest's Pack, 7 gp).
+// Thaumaturge: one extra cantrip and a Wisdom-based bonus to Arcana/Religion.
+REFERENCE_BUILDS.CL24 = {
+  id: 'CL24',
+  title: 'Human Thaumaturge Cleric/Sage (2024)',
+  edition: '2024',
+  creationData: {
+    name: 'Human Cleric 2024',
+    level: 1,
+    edition: '2024',
+    speciesSlug: 'human-2024',
+    speciesSkillProficiency: 'Perception',
+    humanOriginFeat: 'tough',
+    classSlug: 'cleric',
+    divineOrder: 'thaumaturge',
+    background: 'sage-2024',
+    abilities: { STR: 13, DEX: 10, CON: 14, INT: 8, WIS: 15, CHA: 12 },
+    backgroundAbilityChoices: { method: '2/1', bonuses: { WIS: 2, CON: 1 } },
+    originFeat: 'magic-initiate-wizard',
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Medicine', 'Persuasion'],
+    alignment: 'Neutral Good',
+    equipmentChoices: [
+      {
+        choiceId: 'cleric-kit',
+        description: 'SRD 5.2.1 p41 Cleric package A',
+        selected: 0,
+        options: [
+          [
+            { name: 'Chain Shirt', quantity: 1, type: 'armor' },
+            { name: 'Shield', quantity: 1, type: 'armor' },
+            { name: 'Mace', quantity: 1, type: 'weapon' },
+            { name: 'Holy Symbol', quantity: 1, type: 'gear' },
+            { name: "Priest's Pack", quantity: 1, type: 'gear' },
+            { name: '7 gp', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    additionalCastingSources: [
+      {
+        id: 'feat:magic-initiate:wizard',
+        sourceType: 'feat',
+        sourceSlug: 'magic-initiate-wizard',
+        ability: 'INT',
+        cantrips: ['mage-hand', 'fire-bolt'],
+        knownSpells: [],
+        preparedSpells: ['shield'],
+        freeUses: 1,
+        allowClassSlots: true,
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: {
+      selectedCantrips: ['guidance', 'light', 'sacred-flame', 'thaumaturgy'],
+      knownSpells: [],
+      preparedSpells: ['bless', 'cure-wounds', 'guiding-bolt', 'healing-word'],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // WIS 15 + 2 = 17 (+3); CON 14 + 1 = 15 (+2); STR 13 (+1); CHA 12 (+1)
+    abilities: { STR: 13, DEX: 10, CON: 15, INT: 8, WIS: 17, CHA: 12 },
+    hp: 12, // 8 + CON 2 + Tough 2
+    ac: 15, // Chain shirt 13 (DEX 0) + shield 2
+    initiative: 0,
+    speed: 30,
+    saves: {
+      proficient: ['WIS', 'CHA'],
+      bonuses: { WIS: 5, CHA: 3 },
+    },
+    attacks: [{ name: 'Mace', attackBonus: 3, damage: '1d6+1' }],
+    skills: {
+      medicine: { bonus: 5 }, // WIS +3 + 2
+      persuasion: { bonus: 3 }, // CHA +1 + 2
+      perception: { bonus: 5 }, // Human Skillful: WIS +3 + 2
+      arcana: { bonus: 4 }, // Sage: INT -1 + 2, plus Thaumaturge WIS +3
+      history: { bonus: 1 }, // Sage: INT -1 + 2
+      religion: { bonus: 2 }, // Thaumaturge only: INT -1 + WIS +3
+    },
+    spells: {
+      cantripsCount: 4, // three class cantrips plus the Thaumaturge cantrip
+      knownOrBookCount: 0,
+      preparedCount: 4,
+      spellAttackBonus: 5, // WIS +3 + 2
+      spellSaveDC: 13,
+    },
+    features: ['Spellcasting', 'Divine Order: Thaumaturge', 'Magic Initiate'],
+    currency: { gp: 15 }, // Cleric package A 7 + Sage package A 8
+  },
+};
+
+// SRD 5.1: Wood Elf (DEX +2, WIS +1, speed 35, Keen Senses), Acolyte (15
+// gp), Druid (d8, saves INT/WIS, Druidic). Prepared spells = WIS modifier + 1.
+REFERENCE_BUILDS.DR14 = {
+  id: 'DR14',
+  title: 'Wood Elf Druid/Acolyte (2014)',
+  edition: '2014',
+  creationData: {
+    name: 'Elf Druid 2014',
+    level: 1,
+    edition: '2014',
+    speciesSlug: 'elf',
+    selectedLineage: 'wood-elf',
+    classSlug: 'druid',
+    background: 'acolyte',
+    abilities: { STR: 8, DEX: 13, CON: 14, INT: 12, WIS: 15, CHA: 10 },
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Nature', 'Survival'],
+    alignment: 'Neutral',
+    equipmentChoices: [
+      {
+        choiceId: 'shield',
+        description: 'SRD 5.1 Druid (a) a wooden shield',
+        selected: 0,
+        options: [[{ name: 'Shield', quantity: 1, type: 'armor' }]],
+      },
+      {
+        choiceId: 'weapon',
+        description: 'SRD 5.1 Druid (a) a scimitar',
+        selected: 0,
+        options: [[{ name: 'Scimitar', quantity: 1, type: 'weapon' }]],
+      },
+      {
+        choiceId: 'fixed',
+        description:
+          "SRD 5.1 Druid: leather armor, an explorer's pack and a druidic focus",
+        selected: 0,
+        options: [
+          [
+            { name: 'Leather Armor', quantity: 1, type: 'armor' },
+            { name: "Explorer's Pack", quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: {
+      selectedCantrips: ['druidcraft', 'shillelagh'],
+      knownSpells: [],
+      preparedSpells: [
+        'cure-wounds',
+        'entangle',
+        'faerie-fire',
+        'healing-word',
+      ],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // DEX 13 + 2 = 15 (+2); WIS 15 + 1 = 16 (+3); CON 14 (+2); INT 12 (+1)
+    abilities: { STR: 8, DEX: 15, CON: 14, INT: 12, WIS: 16, CHA: 10 },
+    hp: 10, // 8 + CON 2
+    ac: 15, // Leather armor 11 + DEX 2 + shield 2
+    initiative: 2,
+    speed: 35,
+    saves: {
+      proficient: ['INT', 'WIS'],
+      bonuses: { INT: 3, WIS: 5 },
+    },
+    attacks: [{ name: 'Scimitar', attackBonus: 4, damage: '1d6+2' }],
+    skills: {
+      nature: { bonus: 3 }, // INT +1 + 2
+      survival: { bonus: 5 }, // WIS +3 + 2
+      perception: { bonus: 5 }, // Elf Keen Senses: WIS +3 + 2
+      insight: { bonus: 5 }, // Acolyte: WIS +3 + 2
+      religion: { bonus: 3 }, // Acolyte: INT +1 + 2
+    },
+    spells: {
+      cantripsCount: 2,
+      knownOrBookCount: 0,
+      preparedCount: 4, // WIS +3 + level 1
+      spellAttackBonus: 5,
+      spellSaveDC: 13,
+    },
+    features: ['Spellcasting', 'Druidic', 'Fleet of Foot', 'Mask of the Wild'],
+    currency: { gp: 15 }, // Acolyte only; the Druid kit has no gold
+  },
+};
+
+// SRD 5.2.1: Elf (Drow lineage: Dancing Lights, WIS casting), Acolyte (Magic
+// Initiate (Cleric); INT/WIS/CHA; Insight, Religion; package A 8 gp), Druid
+// package A (Leather Armor, Shield, Sickle, Druidic Focus, Explorer's Pack,
+// Herbalism Kit, 9 gp). Magician: one extra cantrip plus a Wisdom bonus to
+// Arcana/Nature.
+REFERENCE_BUILDS.DR24 = {
+  id: 'DR24',
+  title: 'Drow Magician Druid/Acolyte (2024)',
+  edition: '2024',
+  creationData: {
+    name: 'Elf Druid 2024',
+    level: 1,
+    edition: '2024',
+    speciesSlug: 'elf-2024',
+    selectedLineage: 'drow',
+    speciesSkillProficiency: 'Survival',
+    classSlug: 'druid',
+    primalOrder: 'magician',
+    background: 'acolyte-2024',
+    abilities: { STR: 8, DEX: 13, CON: 14, INT: 12, WIS: 15, CHA: 10 },
+    backgroundAbilityChoices: { method: '2/1', bonuses: { WIS: 2, INT: 1 } },
+    originFeat: 'magic-initiate-cleric',
+    abilityScoreMethod: 'standard-array',
+    selectedSkills: ['Nature', 'Perception'],
+    alignment: 'Neutral',
+    equipmentChoices: [
+      {
+        choiceId: 'druid-kit',
+        description: 'SRD 5.2.1 p53 Druid package A',
+        selected: 0,
+        options: [
+          [
+            { name: 'Leather Armor', quantity: 1, type: 'armor' },
+            { name: 'Shield', quantity: 1, type: 'armor' },
+            { name: 'Sickle', quantity: 1, type: 'weapon' },
+            { name: 'Quarterstaff', quantity: 1, type: 'weapon' },
+            { name: "Explorer's Pack", quantity: 1, type: 'gear' },
+            { name: 'Herbalism Kit', quantity: 1, type: 'gear' },
+            { name: '9 gp', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    additionalCastingSources: [
+      {
+        id: 'species:elf:drow',
+        sourceType: 'species',
+        sourceSlug: 'drow',
+        ability: 'WIS',
+        cantrips: ['dancing-lights'],
+        knownSpells: [],
+        preparedSpells: [],
+        freeUses: 1,
+        allowClassSlots: true,
+      },
+      {
+        id: 'feat:magic-initiate:cleric',
+        sourceType: 'feat',
+        sourceSlug: 'magic-initiate-cleric',
+        ability: 'WIS',
+        cantrips: ['guidance', 'sacred-flame'],
+        knownSpells: [],
+        preparedSpells: ['cure-wounds'],
+        freeUses: 1,
+        allowClassSlots: true,
+      },
+    ],
+    selectedMusicalInstruments: [],
+    spellSelection: {
+      selectedCantrips: ['druidcraft', 'shillelagh', 'produce-flame'],
+      knownSpells: [],
+      preparedSpells: [
+        'cure-wounds',
+        'entangle',
+        'faerie-fire',
+        'healing-word',
+      ],
+    },
+    hpCalculationMethod: 'max',
+    personality: '',
+    ideals: '',
+    bonds: '',
+    flaws: '',
+  },
+  expected: {
+    // WIS 15 + 2 = 17 (+3); INT 12 + 1 = 13 (+1); CON 14 (+2); DEX 13 (+1)
+    abilities: { STR: 8, DEX: 13, CON: 14, INT: 13, WIS: 17, CHA: 10 },
+    hp: 10, // 8 + CON 2
+    ac: 14, // Leather armor 11 + DEX 1 + shield 2
+    initiative: 1,
+    speed: 30,
+    saves: {
+      proficient: ['INT', 'WIS'],
+      bonuses: { INT: 3, WIS: 5 },
+    },
+    attacks: [{ name: 'Sickle', attackBonus: 1, damage: '1d4-1' }],
+    skills: {
+      nature: { bonus: 6 }, // INT +1 + 2, plus Magician WIS +3
+      perception: { bonus: 5 }, // WIS +3 + 2
+      survival: { bonus: 5 }, // Elf Keen Senses: WIS +3 + 2
+      insight: { bonus: 5 }, // Acolyte: WIS +3 + 2
+      religion: { bonus: 3 }, // Acolyte: INT +1 + 2
+      arcana: { bonus: 4 }, // Magician only: INT +1 + WIS +3
+    },
+    spells: {
+      cantripsCount: 3, // two class cantrips plus the Magician cantrip
+      knownOrBookCount: 0,
+      preparedCount: 4,
+      spellAttackBonus: 5,
+      spellSaveDC: 13,
+    },
+    features: ['Spellcasting', 'Druidic', 'Primal Order: Magician', 'Drow'],
+    currency: { gp: 17 }, // Druid package A 9 + Acolyte package A 8
   },
 };

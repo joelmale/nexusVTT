@@ -659,6 +659,12 @@ export const calculateCharacterStats = (
           data.divineOrder === 'protector'
             ? ['Heavy armor']
             : []),
+          // SRD 5.1: the Life Domain grants heavy armor proficiency at level 1.
+          ...(edition === '2014' &&
+          data.classSlug === 'cleric' &&
+          data.subclassSlug === 'life'
+            ? ['Heavy armor']
+            : []),
           ...(edition === '2024' &&
           data.classSlug === 'druid' &&
           data.primalOrder === 'warden'

@@ -15,6 +15,40 @@ export interface CastingGrant {
   eligibleSpellSlugs?: string[];
 }
 
+/**
+ * SRD 5.1 Life Domain Spells: always prepared, they do not count against the
+ * number of spells a Cleric can prepare (so they are a separate source).
+ */
+const LIFE_DOMAIN_SPELLS: Array<[number, string[]]> = [
+  [1, ['bless', 'cure-wounds']],
+  [3, ['lesser-restoration', 'spiritual-weapon']],
+  [5, ['beacon-of-hope', 'revivify']],
+  [7, ['death-ward', 'guardian-of-faith']],
+  [9, ['mass-cure-wounds', 'raise-dead']],
+];
+
+function legacyDomainSpellGrants(data: CharacterCreationData): CastingGrant[] {
+  if (data.classSlug !== 'cleric' || data.subclassSlug !== 'life') return [];
+  return [
+    {
+      cantripChoices: 0,
+      spellChoices: 0,
+      source: {
+        id: 'class:cleric:life-domain',
+        sourceType: 'class',
+        sourceSlug: 'life-domain',
+        ability: 'WIS',
+        cantrips: [],
+        knownSpells: [],
+        preparedSpells: LIFE_DOMAIN_SPELLS.filter(
+          ([level]) => data.level >= level,
+        ).flatMap(([, spells]) => spells),
+        allowClassSlots: true,
+      },
+    },
+  ];
+}
+
 /** SRD 5.2.1 pp84–87: lineage and Magic Initiate grants stay separate from class lists. */
 export function resolveCastingGrants(
   data: CharacterCreationData,
@@ -23,6 +57,7 @@ export function resolveCastingGrants(
   if (data.edition !== '2024')
     return [
       ...classGrants,
+      ...legacyDomainSpellGrants(data),
       ...(data.additionalCastingSources ?? [])
         .filter((source) => !source.resourceId)
         .map((source) => ({

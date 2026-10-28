@@ -256,6 +256,22 @@ Defects found and repaired:
   found the 2024 lists consistent, apart from entries that need a manual check
   (Phantasmal Force on Bard, Sorcerer and Wizard; Mind Spike on Sorcerer).
 
+### T-04 batch C: Cleric and Druid references (2026-10-27)
+
+Four records (CL14, CL24, DR14, DR24), with assertions in
+`clericDruidReferences.test.ts`: Divine and Primal Order effects and their
+Wisdom-based Arcana/Religion/Nature bonuses, separate Magic Initiate, Drow
+lineage and Druidic casting ledgers, each edition's Priest's and Explorer's
+Packs, and proficiencies. They await independent review. Six records remain:
+Paladin, Ranger and Artificer.
+
+Defects found and repaired: the 2014 Life Domain granted neither its always
+prepared domain spells (Bless and Cure Wounds, then the SRD 5.1 list at Cleric
+levels 3, 5, 7 and 9, kept separate from the Cleric's prepared spells) nor its
+heavy armor proficiency. One authoring error was also caught by validation, not
+the app: Acolyte offers INT/WIS/CHA, so the first DR24 draft's CON increase was
+rightly rejected.
+
 ## Remaining work before closing these tranches
 
 1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices
