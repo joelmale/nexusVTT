@@ -21,6 +21,9 @@ type CustomRoll = DiceRoll & {
   damageType?: string;
 };
 
+// Roll timestamps are taken when a button is pressed, never during render.
+const rollTimestamp = (): number => Date.now();
+
 // Tactical Action Interface for restructured combat options
 interface TacticalAction {
   id: string;
@@ -278,7 +281,7 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
             ? `${action.name} beam ${beam}/${action.attacks}`
             : `${action.name} Attack`;
         const bonus = action.attackBonus!;
-        onDiceRoll({
+        const roll: CustomRoll = {
           id: `cantrip-attack-${slug}-${beam}-${crypto.randomUUID()}`,
           notation: `1d20${bonus >= 0 ? '+' : ''}${bonus}`,
           type: 'attack' as const,
@@ -289,13 +292,14 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
           diceResults: [],
           modifier: bonus,
           total: bonus,
-          timestamp: Date.now(),
-        });
+          timestamp: rollTimestamp(),
+        };
+        onDiceRoll(roll);
       }
       return;
     }
     // Save cantrips have no attack roll; roll the damage and show the DC.
-    onDiceRoll({
+    const damageRoll: CustomRoll = {
       id: `cantrip-damage-${slug}-${crypto.randomUUID()}`,
       notation: action.damageNotation!,
       type: 'complex' as const,
@@ -305,8 +309,9 @@ export const AttacksAndActions: React.FC<AttacksAndActionsProps> = ({
       diceResults: [],
       modifier: 0,
       total: 0,
-      timestamp: Date.now(),
-    });
+      timestamp: rollTimestamp(),
+    };
+    onDiceRoll(damageRoll);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
