@@ -37,6 +37,10 @@ import {
 } from '../services/dataService';
 import { classSpellSlots } from './classSpellSlots';
 import { resolveFeatSpellChoice } from '../services/featSpellChoices';
+import {
+  applyLevelUpGrants,
+  levelUpGrantErrors,
+} from '../services/levelUpClassGrants';
 import { reconcileCharacterResources } from './resourceUtils';
 import { coreClassProgression } from '../data/progressions/coreSchedules';
 import { classResourceDefinitions } from '../services/classResources';
@@ -399,6 +403,12 @@ export function applyLevelUp(
     levelUpClassCastingData(character, choices),
   );
   if (freeCastingErrors.length) throw new Error(freeCastingErrors.join(' '));
+  const grantErrors = levelUpGrantErrors(
+    character,
+    choices,
+    levelUpData.toLevel,
+  );
+  if (grantErrors.length) throw new Error(grantErrors.join(' '));
 
   if (choices.asiChoices?.length) {
     const allowed = getClassProgression(
@@ -497,6 +507,13 @@ export function applyLevelUp(
     });
   }
 
+  // Invocation targets live in the durable feat choice map.
+  if (choices.featChoices)
+    updatedCharacter.featChoices = {
+      ...updatedCharacter.featChoices,
+      ...choices.featChoices,
+    };
+  applyLevelUpGrants(updatedCharacter, choices);
   // Apply feat
   if (choices.featChosen) {
     if (!updatedCharacter.selectedFeats) {

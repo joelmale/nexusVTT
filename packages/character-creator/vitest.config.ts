@@ -15,6 +15,9 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    // Large form renders exceed the 5s default when the full suite runs in
+    // parallel; assertions are unchanged.
+    testTimeout: 20000,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],

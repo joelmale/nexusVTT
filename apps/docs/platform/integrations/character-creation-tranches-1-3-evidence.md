@@ -307,6 +307,28 @@ Sight, Lessons of the First Ones and other non-cantrip invocations remain
 descriptive. Damaging cantrip damage is parsed from spell text because the 2024
 catalog has no structured dice.
 
+### T-03 level-up invocation and mastery application (2026-10-27)
+
+`LevelUpChoices.eldritchInvocationsChosen` and `weaponMasteriesChosen` were
+declared but ignored, so a leveling Warlock could never take the invocations
+the class table grants. `applyLevelUp` now validates and applies them. Each list
+is the complete new selection (so a level-up can swap an earlier pick) and is
+checked with the same rules as creation: the SRD 5.2.1 invocation count for the
+new level, level and prerequisite requirements, duplicates, eligible cantrip
+targets, and mastery count and class proficiency. Rejected choices throw before
+any change, and `classMechanics` (Agonizing Blast and the other cantrip
+effects) is recomputed from the new selection. A category the player did not
+touch is left alone. Two further defects were found while testing: an
+"eligible targets" error was silently filtered out of the first version, and
+the creator test runner needed the same 20-second timeout as Forge for one
+load-sensitive test.
+
+Not yet done: the Forge level-up wizard has no invocation or mastery step, so
+these choices are reachable through `applyLevelUp` but not yet through the UI.
+Invocation selection at level-up is limited to the 2024 rules; 2014 Warlocks
+return a clear error. Mastery counts that grow at a level are not yet required
+by the wizard.
+
 ## Remaining work before closing these tranches
 
 1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices
