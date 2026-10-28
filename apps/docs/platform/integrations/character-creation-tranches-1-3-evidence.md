@@ -355,6 +355,40 @@ explicit scope decision that Artificer supports only the SRD-resolvable subset
 (70 spells) with the rest visibly unsupported. Neither is assumed here, and
 Artificer creation remains blocked.
 
+### T-05 tampered drafts and the multiclass boundary (2026-10-27)
+
+`tamperedDrafts.test.ts` applies 20 kinds of tampering to all 24 reference
+builds at the canonical evaluator boundary (unknown or duplicate skills,
+cantrips and spells, spells above the character's slots, background bonuses on
+the wrong abilities or too large, wrong-edition and unknown species,
+backgrounds and classes, out-of-range levels and ability scores, a class change
+that keeps stale answers, and a corrupt equipment selection). A first probe
+found the evaluator already rejected 17 of the 20 for every build that the
+mutation applies to; the other three were real gaps and are repaired:
+
+- Level 0 was accepted: the draft adapter turned it into level 1 with
+  `data.level || 1`, and nothing validated the range. Levels outside 1-20 or
+  non-integers now raise `INVALID_LEVEL`.
+- An equipment selection index outside the option list (for example 99) was
+  accepted for every build. It now raises `INVALID_EQUIPMENT_CHOICE`; an unmade
+  (null) choice is still allowed.
+- The 2014 High Elf's bonus Wizard cantrip was allowed but not required, so a
+  record missing it passed.
+
+A rejected draft keeps the player's other answers (expertise, origin feat and
+weapon mastery are asserted unchanged). The mutation list does not yet cover
+disallowed-source policy or every grant family; those remain open under T-05.
+
+Multiclass contract: the saved character contract has one `class`, `classSlug`
+and `level`, so multiclass characters can be neither authored by the creator
+(the support inventory already records `creatorAuthoring: false`) nor stored
+losslessly. An imported multiclass record would be reduced to a single class.
+That is recorded here as an explicit limitation, not validated support. What is
+verified is the shared slot calculator: `multiclassTable.test.ts` pins the
+20-row SRD multiclass slot table, Paladin/Ranger half-level rounding (up in
+2024, down in 2014), exclusion of Pact Magic, and non-casting classes. Eldritch
+Knight and Arcane Trickster are not in either SRD and are not verified.
+
 ## Remaining work before closing these tranches
 
 1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices

@@ -94,7 +94,7 @@ export function creationDataToDraft(
       `draft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     characterId: options.characterId || globalThis.crypto.randomUUID(),
     edition: data.edition || '2024',
-    level: data.level || 1,
+    level: data.level ?? 1,
     name: data.name || '',
     speciesSlug: data.speciesSlug,
     lineageSlug: data.selectedLineage || data.selectedSpeciesVariant,

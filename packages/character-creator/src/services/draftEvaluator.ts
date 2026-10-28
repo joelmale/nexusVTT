@@ -112,13 +112,13 @@ function validateSpellcasting(
       'EXCESS_CANTRIPS',
       'Too many class cantrips are selected. Keep source grants separate.',
     );
-  if (selectedCantripsCount < requiredCantrips) {
+  if (selectedCantripsCount < requiredCantrips + extraCantrip) {
     issues.push({
       id: 'INSUFFICIENT_CANTRIPS_SELECTED',
       step: 4,
       group: 'spells',
       severity: 'error',
-      message: `${classData.name} requires selecting ${requiredCantrips} cantrips, but ${selectedCantripsCount} were selected.`,
+      message: `${classData.name} requires selecting ${requiredCantrips + extraCantrip} cantrips, but ${selectedCantripsCount} were selected.`,
       repairTarget: 'spell-selection',
     });
   }
@@ -207,6 +207,43 @@ function validateSpellcasting(
 }
 
 /**
+ * Rejects tampered or corrupt drafts that no step of the wizard can produce:
+ * a level outside 1-20 and an equipment option that does not exist.
+ */
+function structuralIssues(draft: CreationDraft): DraftIssue[] {
+  const issues: DraftIssue[] = [];
+  if (!Number.isInteger(draft.level) || draft.level < 1 || draft.level > 20)
+    issues.push({
+      id: 'INVALID_LEVEL',
+      step: 1,
+      group: 'class',
+      severity: 'error',
+      message: 'Character level must be a whole number from 1 to 20.',
+      repairTarget: 'level',
+    });
+  for (const choice of draft.creationData?.equipmentChoices ?? []) {
+    const count = choice.options?.length ?? 0;
+    if (
+      count > 0 &&
+      choice.selected !== null &&
+      choice.selected !== undefined &&
+      (!Number.isInteger(choice.selected) ||
+        choice.selected < 0 ||
+        choice.selected >= count)
+    )
+      issues.push({
+        id: 'INVALID_EQUIPMENT_CHOICE',
+        step: 7,
+        group: 'equipment',
+        severity: 'error',
+        message: `Equipment choice '${choice.choiceId}' selects an option that does not exist.`,
+        repairTarget: 'equipment-choice',
+      });
+  }
+  return issues;
+}
+
+/**
  * Evaluates a canonical CreationDraft against rules and catalog entitlements (CC-204, CC-205)
  */
 export function evaluateDraft(draft: CreationDraft): DraftEvaluationResult {
@@ -218,7 +255,10 @@ export function evaluateDraft(draft: CreationDraft): DraftEvaluationResult {
   };
 
   // 2. Catalog & Entitlement checks (CC-202)
-  const catalogIssues = resolveCatalogEntitlements(updatedDraft);
+  const catalogIssues = [
+    ...structuralIssues(updatedDraft),
+    ...resolveCatalogEntitlements(updatedDraft),
+  ];
   if (
     catalogIssues.some((issue) =>
       [
@@ -228,6 +268,7 @@ export function evaluateDraft(draft: CreationDraft): DraftEvaluationResult {
         'INVALID_CLASS_FOR_EDITION',
         'MISSING_BACKGROUND',
         'INVALID_BACKGROUND',
+        'INVALID_LEVEL',
       ].includes(issue.id),
     )
   ) {
