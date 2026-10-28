@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const source = resolve(
   here,
-  '../../../../../packages/character-creator/src/data/srd/2014/5e-SRD-Monsters.json',
+  '../../../packages/character-creator/src/data/srd/2014/5e-SRD-Monsters.json',
 );
 const target = resolve(here, '../src/data/srdMonsters.ts');
 

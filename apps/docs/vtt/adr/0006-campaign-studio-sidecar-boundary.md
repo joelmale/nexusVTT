@@ -8,7 +8,7 @@
 Campaign Studio prepares narrative and mechanical objects before a live game.
 Its first functional workflow publishes the Glass Harbor session plan and
 activates that pinned revision in Nexus VTT. The current interface lives in
-`apps/codex/services/dm-ui`, but repository location must not make NexusCodex
+`apps/campaign-studio`, but repository location must not make NexusCodex
 the owner of campaign data or live game state.
 
 Without a shared contract, the prototype UI, HTTP API, PostgreSQL records, and
@@ -71,8 +71,8 @@ reviewed before older offline drafts or persisted revisions are accepted.
    `@[Label](ref:id)` tokens authored through `MentionTextarea.tsx`. On persistence,
    tokens are mapped to `CampaignObjectRef` objects and wrapped in a standard
    Lexical JSON envelope.
-3. **Workspace Location (`CS-79`)**: `@nexuscodex/dm-ui` remains situated at
-   `apps/codex/services/dm-ui` to preserve Docker/Caddy homelab routing, with shared
+3. **Workspace Location (`CS-79`)**: `@nexus/campaign-studio` remains situated at
+   `apps/campaign-studio` to preserve Docker/Caddy homelab routing, with shared
    runtime and authoring contracts maintained in `packages/game-contracts`.
 4. **Realtime Boundaries (`CS-80`)**: Authoring persistence relies on transactional
    compare-and-swap (HTTP 409 conflict detection). Real-time co-DM WebSocket fanout

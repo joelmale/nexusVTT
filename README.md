@@ -67,7 +67,7 @@ apps/
     services/doc-processor/   BullMQ worker
     services/doc-websocket/   Realtime collaboration
     services/admin-ui/        Admin dashboard
-    services/dm-ui/           DM-facing UI
+  campaign-studio/        Campaign Studio DM prep app (served at /codex-dm/)
 packages/
   character-contracts/    @nexus/character-contracts — shared character schema
   document-contracts/     @nexus/document-contracts — shared document schema

@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const source = resolve(
   here,
-  '../../../../vtt/public/assets/defaults/manifest.json',
+  '../../vtt/public/assets/defaults/manifest.json',
 );
 const target = resolve(here, '../src/data/defaultMaps.ts');
 

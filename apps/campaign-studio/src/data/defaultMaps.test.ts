@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_MAPS, findDefaultMap } from './defaultMaps';
 
-// apps/codex/services/dm-ui/src/data -> apps/vtt/public
-const PUBLIC_ROOT = resolve(__dirname, '../../../../../vtt/public');
+// apps/campaign-studio/src/data -> apps/vtt/public
+const PUBLIC_ROOT = resolve(__dirname, '../../../vtt/public');
 const manifest = JSON.parse(
   readFileSync(resolve(PUBLIC_ROOT, 'assets/defaults/manifest.json'), 'utf8'),
 ) as { maps: { items: { id: string; path: string; thumbnail?: string }[] } };

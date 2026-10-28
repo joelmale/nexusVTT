@@ -16,7 +16,7 @@ Build the campaign builder as a separate DM-focused web application in this
 monorepo, but treat it as a **Nexus VTT sidecar**, not as an extension of the
 NexusCodex document service.
 
-Use the existing `apps/codex/services/dm-ui` as the short-term product shell so
+Use the existing `apps/campaign-studio` as the short-term product shell so
 the current pages and deployment path are not discarded. Rename the product in
 the UI to **Nexus Campaign Studio** and migrate it, after the API boundary is
 stable, to a top-level application such as `apps/campaign-studio`. Its current
@@ -341,7 +341,7 @@ a rules entity, campaign entry, definition, document, or asset inserts the
 same reference shape used by map pins and session-plan steps. Backlinks then
 come from `campaign_object_links`, not by reparsing editor text on every read.
 
-*Architecture Addendum (2026-10-28, CS-78)*: In `apps/codex/services/dm-ui`, the
+*Architecture Addendum (2026-10-28, CS-78)*: In `apps/campaign-studio`, the
 authoring UI uses `MentionTextarea.tsx` supporting markdown token syntax
 (`@[Title](ref:id)`) with auto-suggest dropdowns and inline entity creation.
 On persist, the markdown tokens are parsed, mapped into typed `CampaignObjectRef`
@@ -387,7 +387,7 @@ the object/link foundation is stable and are not MVP blockers.
 Near-term structure:
 
 ```text
-apps/codex/services/dm-ui/       # transitional Campaign Studio shell
+apps/campaign-studio/       # transitional Campaign Studio shell
 packages/game-contracts/src/     # prep contracts, refs, activation commands
 packages/rules-5e/               # encounter calculations
 apps/vtt/server/                 # canonical prep repositories and APIs
@@ -405,7 +405,7 @@ packages/game-contracts/         # shared authored/runtime contracts
 ```
 
 *Architecture Addendum (2026-10-28, CS-79)*: The Studio authoring frontend is
-maintained at `apps/codex/services/dm-ui` (`@nexuscodex/dm-ui`) with shared
+maintained at `apps/campaign-studio` (`@nexus/campaign-studio`) with shared
 schemas in `packages/game-contracts`. Physical workspace relocation to
 `apps/campaign-studio` is deferred to a future major monorepo reorganization to
 prevent disruption to active container routing, Docker compose files, and Caddy configurations.

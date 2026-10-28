@@ -163,7 +163,7 @@ describe('representative Stage 3A change classes', () => {
     ],
     [
       'DM UI',
-      'apps/codex/services/dm-ui/src/App.tsx',
+      'apps/campaign-studio/src/App.tsx',
       ['codex-dm-ui', 'gateway'],
     ],
     [
@@ -351,7 +351,7 @@ describe('rename, deletion, and conservative behavior', () => {
       changes: [
         {
           status: 'D',
-          paths: ['apps/codex/services/dm-ui/src/legacy.tsx'],
+          paths: ['apps/campaign-studio/src/legacy.tsx'],
         },
       ],
     });
