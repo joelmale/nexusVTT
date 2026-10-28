@@ -7,7 +7,11 @@
  * as a warning rather than guessed, so the comparison report shows where the
  * bundled data and the contract disagree.
  */
-import { DamageTypeSchema, type RulesEntityType, type Ruleset } from '@nexus/rules-contracts';
+import {
+  DamageTypeSchema,
+  type RulesEntityType,
+  type Ruleset,
+} from '@nexus/rules-contracts';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Raw = Record<string, any>;
@@ -30,19 +34,27 @@ export function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-const lastUrlSegment = (url: string): string => url.split('/').filter(Boolean).pop() ?? '';
+const lastUrlSegment = (url: string): string =>
+  url.split('/').filter(Boolean).pop() ?? '';
 const feet = (value: unknown): number | undefined => {
   const match = /(\d+)/.exec(String(value ?? ''));
   return match ? Number(match[1]) : undefined;
 };
 const compact = <T extends Record<string, unknown>>(value: T): T =>
-  Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T;
+  Object.fromEntries(
+    Object.entries(value).filter(([, v]) => v !== undefined),
+  ) as T;
 
 // -- spells --------------------------------------------------------------
 
-function castingTimeFrom(text: string, warnings: string[]): Record<string, unknown> {
+function castingTimeFrom(
+  text: string,
+  warnings: string[],
+): Record<string, unknown> {
   const normalized = text.trim().toLowerCase();
-  const match = /^(\d+)\s+(action|bonus action|reaction|minutes?|hours?)$/.exec(normalized);
+  const match = /^(\d+)\s+(action|bonus action|reaction|minutes?|hours?)$/.exec(
+    normalized,
+  );
   if (!match) {
     warnings.push(`casting time "${text}" mapped to special`);
     return { unit: 'special', amount: 1, text };
@@ -51,52 +63,86 @@ function castingTimeFrom(text: string, warnings: string[]): Record<string, unkno
   return { unit, amount: Number(match[1]) };
 }
 
-function rangeFrom(text: string, area: Raw | undefined): Record<string, unknown> {
+function rangeFrom(
+  text: string,
+  area: Raw | undefined,
+): Record<string, unknown> {
   const normalized = text.trim().toLowerCase();
   const distance = /^(\d+)\s+(feet|foot|miles?)$/.exec(normalized);
   const range: Record<string, unknown> = distance
     ? {
         kind: 'distance',
-        distance: { value: Number(distance[1]), unit: distance[2].startsWith('mile') ? 'miles' : 'feet' },
+        distance: {
+          value: Number(distance[1]),
+          unit: distance[2].startsWith('mile') ? 'miles' : 'feet',
+        },
       }
-    : { kind: ['self', 'touch', 'sight', 'unlimited', 'special'].includes(normalized) ? normalized : 'special' };
-  if (area?.type && area?.size) range.area = { shape: String(area.type).toLowerCase(), size: area.size };
+    : {
+        kind: ['self', 'touch', 'sight', 'unlimited', 'special'].includes(
+          normalized,
+        )
+          ? normalized
+          : 'special',
+      };
+  if (area?.type && area?.size)
+    range.area = { shape: String(area.type).toLowerCase(), size: area.size };
   return range;
 }
 
-function durationFrom(text: string, warnings: string[]): Record<string, unknown> {
+function durationFrom(
+  text: string,
+  warnings: string[],
+): Record<string, unknown> {
   const normalized = text.trim().toLowerCase();
   if (normalized === 'instantaneous') return { kind: 'instantaneous' };
   if (normalized === 'special') return { kind: 'special' };
-  if (normalized.startsWith('until dispelled or triggered')) return { kind: 'until_dispelled_or_triggered' };
-  if (normalized.startsWith('until dispelled')) return { kind: 'until_dispelled' };
-  const timed = /^(?:up to )?(\d+)\s+(round|minute|hour|day)s?$/.exec(normalized);
+  if (normalized.startsWith('until dispelled or triggered'))
+    return { kind: 'until_dispelled_or_triggered' };
+  if (normalized.startsWith('until dispelled'))
+    return { kind: 'until_dispelled' };
+  const timed = /^(?:up to )?(\d+)\s+(round|minute|hour|day)s?$/.exec(
+    normalized,
+  );
   if (timed) return { kind: 'timed', amount: Number(timed[1]), unit: timed[2] };
   warnings.push(`duration "${text}" mapped to special`);
   return { kind: 'special' };
 }
 
-function componentsFrom(components: string[], material: string | undefined): Record<string, unknown> {
+function componentsFrom(
+  components: string[],
+  material: string | undefined,
+): Record<string, unknown> {
   const set = new Set(components.map((c) => c.toLowerCase()));
   const hasMaterial = set.has('m');
   const cost = material
-    ? /([\d,]+)\+?\s*(gp|sp|cp|gold pieces?|silver pieces?|copper pieces?)\b/i.exec(material)
+    ? /([\d,]+)\+?\s*(gp|sp|cp|gold pieces?|silver pieces?|copper pieces?)\b/i.exec(
+        material,
+      )
     : null;
   const perGp: Record<string, number> = { g: 1, s: 0.1, c: 0.01 };
-  const costGp = cost ? Number(cost[1].replace(/,/g, '')) * perGp[cost[2][0].toLowerCase()] : undefined;
+  const costGp = cost
+    ? Number(cost[1].replace(/,/g, '')) * perGp[cost[2][0].toLowerCase()]
+    : undefined;
   return compact({
     verbal: set.has('v'),
     somatic: set.has('s'),
     material: hasMaterial,
     materialText: hasMaterial ? material?.trim() || undefined : undefined,
-    materialCostGp: hasMaterial && costGp !== undefined ? Math.round(costGp * 100) / 100 : undefined,
-    materialConsumed: hasMaterial && material && /consume/i.test(material) ? true : undefined,
+    materialCostGp:
+      hasMaterial && costGp !== undefined
+        ? Math.round(costGp * 100) / 100
+        : undefined,
+    materialConsumed:
+      hasMaterial && material && /consume/i.test(material) ? true : undefined,
   });
 }
 
 export function convertSpell2014(raw: Raw): ConvertedEntity {
   const warnings: string[] = [];
-  const higher = Array.isArray(raw.higher_level) && raw.higher_level.length > 0 ? raw.higher_level.join('\n\n') : undefined;
+  const higher =
+    Array.isArray(raw.higher_level) && raw.higher_level.length > 0
+      ? raw.higher_level.join('\n\n')
+      : undefined;
   return {
     entityType: 'spell',
     ruleset: '2014',
@@ -123,7 +169,11 @@ export function convertSpell2014(raw: Raw): ConvertedEntity {
 
 export function convertSpell2024(raw: Raw): ConvertedEntity {
   const warnings: string[] = [];
-  const unitByAction: Record<string, string> = { action: 'action', bonusAction: 'bonus_action', reaction: 'reaction' };
+  const unitByAction: Record<string, string> = {
+    action: 'action',
+    bonusAction: 'bonus_action',
+    reaction: 'reaction',
+  };
   const castingTime = raw.castingTime
     ? castingTimeFrom(raw.castingTime, warnings)
     : compact({
@@ -131,7 +181,8 @@ export function convertSpell2024(raw: Raw): ConvertedEntity {
         amount: 1,
         trigger: raw.castingTrigger?.trim() || undefined,
       });
-  if (!raw.castingTime && !unitByAction[raw.actionType]) warnings.push(`actionType "${raw.actionType}" unknown`);
+  if (!raw.castingTime && !unitByAction[raw.actionType])
+    warnings.push(`actionType "${raw.actionType}" unknown`);
   return {
     entityType: 'spell',
     ruleset: '2024',
@@ -158,7 +209,13 @@ export function convertSpell2024(raw: Raw): ConvertedEntity {
 
 // -- items ---------------------------------------------------------------
 
-const TOOL_CATEGORIES = ['artisans-tools', 'tools', 'gaming-sets', 'musical-instruments', 'other-tools'];
+const TOOL_CATEGORIES = [
+  'artisans-tools',
+  'tools',
+  'gaming-sets',
+  'musical-instruments',
+  'other-tools',
+];
 const FOCUS_CATEGORIES = ['arcane-foci', 'druidic-foci', 'holy-symbols'];
 
 function itemCategory(categories: Set<string>, name = ''): string {
@@ -167,10 +224,13 @@ function itemCategory(categories: Set<string>, name = ''): string {
   if (categories.has('armor')) return 'armor';
   if (categories.has('ammunition')) return 'ammunition';
   const lowerName = name.toLowerCase();
-  if (lowerName.startsWith('potion') || lowerName.includes('potion of')) return 'potion';
-  if (lowerName.startsWith('spell scroll') || lowerName.startsWith('scroll')) return 'scroll';
+  if (lowerName.startsWith('potion') || lowerName.includes('potion of'))
+    return 'potion';
+  if (lowerName.startsWith('spell scroll') || lowerName.startsWith('scroll'))
+    return 'scroll';
   if (TOOL_CATEGORIES.some((c) => categories.has(c))) return 'tool';
-  if (FOCUS_CATEGORIES.some((c) => categories.has(c))) return 'spellcasting_focus';
+  if (FOCUS_CATEGORIES.some((c) => categories.has(c)))
+    return 'spellcasting_focus';
   if (categories.has('equipment-packs')) return 'equipment_pack';
   if (categories.has('mounts-and-vehicles')) return 'mount_vehicle';
   if (categories.has('adventuring-gear')) return 'adventuring_gear';
@@ -179,38 +239,115 @@ function itemCategory(categories: Set<string>, name = ''): string {
 
 const damageRoll = (raw: Raw | undefined) =>
   raw?.damage_dice && raw?.damage_type
-    ? { dice: String(raw.damage_dice).replace(/\s+/g, ''), type: raw.damage_type.index }
+    ? {
+        dice: String(raw.damage_dice).replace(/\s+/g, ''),
+        type: raw.damage_type.index,
+      }
     : undefined;
+
+/**
+ * SRD 5.2 lists most gear as structured fields only (no prose), so the catalog
+ * text would be empty. This builds a factual one-paragraph summary from those
+ * fields: a tool's ability, utilize checks and craftable items; a weapon's
+ * damage, properties and mastery; an armor's AC and requirements.
+ */
+export function summarizeItem2024(raw: Raw): string {
+  const parts: string[] = [];
+  const names = (list: unknown): string[] =>
+    Array.isArray(list)
+      ? list.map((entry: Raw) => String(entry?.name ?? '')).filter(Boolean)
+      : [];
+  const ability = raw.ability?.name ?? raw.ability?.index;
+  if (ability) parts.push(`Ability: ${String(ability).toUpperCase()}.`);
+  if (Array.isArray(raw.utilize) && raw.utilize.length) {
+    const actions = raw.utilize.map((entry: Raw) =>
+      entry?.dc?.dc_value
+        ? `${entry.name} (DC ${entry.dc.dc_value})`
+        : String(entry?.name ?? ''),
+    );
+    parts.push(`Utilize: ${actions.filter(Boolean).join('; ')}.`);
+  }
+  const craft = names(raw.craft);
+  if (craft.length) parts.push(`Craft: ${craft.join(', ')}.`);
+  if (raw.damage?.damage_dice) {
+    const type = raw.damage.damage_type?.name;
+    const versatile = raw.two_handed_damage?.damage_dice
+      ? ` (versatile ${raw.two_handed_damage.damage_dice})`
+      : '';
+    parts.push(
+      `Damage: ${raw.damage.damage_dice}${type ? ` ${String(type).toLowerCase()}` : ''}${versatile}.`,
+    );
+  }
+  const properties = names(raw.properties);
+  if (properties.length) {
+    const range = raw.throw_range ?? raw.range;
+    const withRange = properties.map((name) =>
+      name === 'Thrown' && raw.throw_range?.normal
+        ? `Thrown (range ${raw.throw_range.normal}/${raw.throw_range.long ?? raw.throw_range.normal})`
+        : name === 'Ammunition' && range?.normal
+          ? `Ammunition (range ${range.normal}/${range.long ?? range.normal})`
+          : name,
+    );
+    parts.push(`Properties: ${withRange.join(', ')}.`);
+  }
+  if (raw.mastery?.name) parts.push(`Weapon Mastery: ${raw.mastery.name}.`);
+  if (raw.armor_class?.base !== undefined) {
+    const max = raw.armor_class.max_bonus;
+    const dex = raw.armor_class.dex_bonus
+      ? ` + Dex modifier${max ? ` (max ${max})` : ''}`
+      : '';
+    parts.push(`Armor Class: ${raw.armor_class.base}${dex}.`);
+  }
+  if (raw.str_minimum > 0) parts.push(`Strength ${raw.str_minimum} required.`);
+  if (raw.stealth_disadvantage) parts.push('Stealth: Disadvantage.');
+  return parts.join(' ');
+}
 
 export function convertItem2024(raw: Raw): ConvertedEntity {
   const warnings: string[] = [];
   const categories = new Set<string>(
-    (raw.equipment_categories ?? []).map((c: Raw | undefined) => c?.index).filter(Boolean),
+    (raw.equipment_categories ?? [])
+      .map((c: Raw | undefined) => c?.index)
+      .filter(Boolean),
   );
   const category = itemCategory(categories, String(raw.name ?? ''));
-  const properties: string[] = (raw.properties ?? []).map((p: Raw) => String(p.index).replace(/-/g, '_'));
+  const properties: string[] = (raw.properties ?? []).map((p: Raw) =>
+    String(p.index).replace(/-/g, '_'),
+  );
   let weapon: Record<string, unknown> | undefined;
   if (category === 'weapon') {
     const ranged = categories.has('ranged-weapons');
-    const rangeSource = ranged ? raw.range : properties.includes('thrown') ? raw.throw_range : undefined;
+    const rangeSource = ranged
+      ? raw.range
+      : properties.includes('thrown')
+        ? raw.throw_range
+        : undefined;
     weapon = compact({
       category: categories.has('martial-weapons') ? 'martial' : 'simple',
       kind: ranged ? 'ranged' : 'melee',
       damage: damageRoll(raw.damage),
-      versatileDamage: properties.includes('versatile') ? damageRoll(raw.two_handed_damage) : undefined,
+      versatileDamage: properties.includes('versatile')
+        ? damageRoll(raw.two_handed_damage)
+        : undefined,
       properties,
-      range: rangeSource?.normal ? compact({ normal: rangeSource.normal, long: rangeSource.long }) : undefined,
+      range: rangeSource?.normal
+        ? compact({ normal: rangeSource.normal, long: rangeSource.long })
+        : undefined,
       mastery: raw.mastery?.index,
     });
   }
   let armor: Record<string, unknown> | undefined;
   if (category === 'armor' || category === 'shield') {
-    const weight = ['light', 'medium', 'heavy'].find((w) => categories.has(`${w}-armor`));
+    const weight = ['light', 'medium', 'heavy'].find((w) =>
+      categories.has(`${w}-armor`),
+    );
     armor = compact({
       category: category === 'shield' ? 'shield' : weight,
       baseAc: raw.armor_class?.base,
       dexBonus: Boolean(raw.armor_class?.dex_bonus),
-      maxDexBonus: raw.armor_class?.dex_bonus ? raw.armor_class?.max_bonus : undefined,
+      maxDexBonus: raw.armor_class?.dex_bonus
+        ? raw.armor_class?.max_bonus
+        : undefined,
       strengthRequirement: raw.str_minimum > 0 ? raw.str_minimum : undefined,
       stealthDisadvantage: Boolean(raw.stealth_disadvantage),
       donTime: raw.don_time,
@@ -230,11 +367,16 @@ export function convertItem2024(raw: Raw): ConvertedEntity {
       category,
       rarity: 'mundane',
       attunement: { required: false },
-      cost: raw.cost ? { amount: raw.cost.quantity, unit: raw.cost.unit } : undefined,
+      cost: raw.cost
+        ? { amount: raw.cost.quantity, unit: raw.cost.unit }
+        : undefined,
       weight: typeof raw.weight === 'number' ? raw.weight : undefined,
       weapon,
       armor,
-      text: typeof raw.description === 'string' ? raw.description : '',
+      text:
+        typeof raw.description === 'string' && raw.description.trim()
+          ? raw.description
+          : summarizeItem2024(raw),
     }),
   };
 }
@@ -245,7 +387,12 @@ export function convertItem2014(raw: Raw): ConvertedEntity {
   let category = 'adventuring_gear';
   if (cat === 'weapon') {
     category = 'weapon';
-  } else if (raw.armor_category === 'Shield' || String(raw.name ?? '').toLowerCase().includes('shield')) {
+  } else if (
+    raw.armor_category === 'Shield' ||
+    String(raw.name ?? '')
+      .toLowerCase()
+      .includes('shield')
+  ) {
     category = 'shield';
   } else if (cat === 'armor') {
     category = 'armor';
@@ -261,20 +408,31 @@ export function convertItem2014(raw: Raw): ConvertedEntity {
     category = 'spellcasting_focus';
   } else if (raw.gear_category?.index === 'equipment-packs') {
     category = 'equipment_pack';
-  } else if (raw.gear_category?.index === 'mounts-and-vehicles' || cat === 'mounts-and-vehicles') {
+  } else if (
+    raw.gear_category?.index === 'mounts-and-vehicles' ||
+    cat === 'mounts-and-vehicles'
+  ) {
     category = 'mount_vehicle';
   }
 
-  const cost = raw.cost ? { amount: raw.cost.quantity, unit: raw.cost.unit } : undefined;
+  const cost = raw.cost
+    ? { amount: raw.cost.quantity, unit: raw.cost.unit }
+    : undefined;
   let text = '';
   if (Array.isArray(raw.desc)) text = raw.desc.join('\n\n');
   else if (typeof raw.desc === 'string') text = raw.desc;
 
   let weapon: Record<string, unknown> | undefined;
   if (category === 'weapon') {
-    const isMartial = String(raw.weapon_category || '').toLowerCase().includes('martial');
-    const isRanged = String(raw.weapon_range || '').toLowerCase().includes('ranged');
-    const props = (raw.properties || []).map((p: Raw) => (p.index || p.name || '').toLowerCase().replace(/-/g, '_'));
+    const isMartial = String(raw.weapon_category || '')
+      .toLowerCase()
+      .includes('martial');
+    const isRanged = String(raw.weapon_range || '')
+      .toLowerCase()
+      .includes('ranged');
+    const props = (raw.properties || []).map((p: Raw) =>
+      (p.index || p.name || '').toLowerCase().replace(/-/g, '_'),
+    );
     const uniqueProps = Array.from(
       new Set(
         props.filter((p: string) =>
@@ -297,12 +455,18 @@ export function convertItem2014(raw: Raw): ConvertedEntity {
 
     let damage = { dice: '1d4', type: 'bludgeoning' };
     if (raw.damage?.damage_dice && raw.damage?.damage_type?.index) {
-      damage = { dice: String(raw.damage.damage_dice).replace(/\s+/g, ''), type: raw.damage.damage_type.index };
+      damage = {
+        dice: String(raw.damage.damage_dice).replace(/\s+/g, ''),
+        type: raw.damage.damage_type.index,
+      };
     }
 
     let versatileDamage: Record<string, unknown> | undefined;
     if (uniqueProps.includes('versatile')) {
-      if (raw['2h_damage']?.damage_dice && raw['2h_damage']?.damage_type?.index) {
+      if (
+        raw['2h_damage']?.damage_dice &&
+        raw['2h_damage']?.damage_type?.index
+      ) {
         versatileDamage = {
           dice: String(raw['2h_damage'].damage_dice).replace(/\s+/g, ''),
           type: raw['2h_damage'].damage_type.index,
@@ -341,7 +505,9 @@ export function convertItem2014(raw: Raw): ConvertedEntity {
     armor = compact({
       category: armorCat,
       baseAc: raw.armor_class?.base || (armorCat === 'shield' ? 2 : 10),
-      dexBonus: raw.armor_class?.dex_bonus ?? (armorCat === 'light' || armorCat === 'medium'),
+      dexBonus:
+        raw.armor_class?.dex_bonus ??
+        (armorCat === 'light' || armorCat === 'medium'),
       maxDexBonus: raw.armor_class?.max_bonus ?? undefined,
       strengthRequirement: raw.str_minimum > 0 ? raw.str_minimum : undefined,
       stealthDisadvantage: Boolean(raw.stealth_disadvantage),
@@ -383,16 +549,37 @@ export function convertMagicItem(raw: Raw, ruleset: Ruleset): ConvertedEntity {
   else if (cat === 'ammunition') category = 'ammunition';
   else if (cat === 'weapon') category = 'weapon';
   else if (cat === 'armor') {
-    category = String(raw.name ?? '').toLowerCase().includes('shield') ? 'shield' : 'armor';
+    category = String(raw.name ?? '')
+      .toLowerCase()
+      .includes('shield')
+      ? 'shield'
+      : 'armor';
   }
 
-  let rawRarity = String(raw.rarity?.name || 'common').toLowerCase().replace(/\s+/g, '_');
-  if (!['common', 'uncommon', 'rare', 'very_rare', 'legendary', 'artifact', 'varies'].includes(rawRarity)) {
+  let rawRarity = String(raw.rarity?.name || 'common')
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  if (
+    ![
+      'common',
+      'uncommon',
+      'rare',
+      'very_rare',
+      'legendary',
+      'artifact',
+      'varies',
+    ].includes(rawRarity)
+  ) {
     rawRarity = 'uncommon';
   }
 
-  const text = Array.isArray(raw.desc) ? raw.desc.join('\n\n') : (typeof raw.desc === 'string' ? raw.desc : '');
-  const firstLine = Array.isArray(raw.desc) && raw.desc.length > 0 ? String(raw.desc[0]) : '';
+  const text = Array.isArray(raw.desc)
+    ? raw.desc.join('\n\n')
+    : typeof raw.desc === 'string'
+      ? raw.desc
+      : '';
+  const firstLine =
+    Array.isArray(raw.desc) && raw.desc.length > 0 ? String(raw.desc[0]) : '';
   const attuneMatch =
     /requires attunement(?:\s+by\s+([^)]+))?/i.exec(firstLine) ||
     /requires attunement(?:\s+by\s+([^)]+))?/i.exec(text);
@@ -411,11 +598,20 @@ export function convertMagicItem(raw: Raw, ruleset: Ruleset): ConvertedEntity {
       lowerName.includes('dart') ||
       lowerName.includes('javelin');
     const isDagger = lowerName.includes('dagger');
-    const isSword = lowerName.includes('sword') || lowerName.includes('blade') || lowerName.includes('scimitar');
+    const isSword =
+      lowerName.includes('sword') ||
+      lowerName.includes('blade') ||
+      lowerName.includes('scimitar');
     const isAxe = lowerName.includes('axe');
     const isHammer = lowerName.includes('hammer');
-    const isMace = lowerName.includes('mace') || lowerName.includes('flail') || lowerName.includes('morningstar');
-    const isSpear = lowerName.includes('spear') || lowerName.includes('trident') || lowerName.includes('pike');
+    const isMace =
+      lowerName.includes('mace') ||
+      lowerName.includes('flail') ||
+      lowerName.includes('morningstar');
+    const isSpear =
+      lowerName.includes('spear') ||
+      lowerName.includes('trident') ||
+      lowerName.includes('pike');
 
     let damage = { dice: '1d8', type: 'slashing' };
     let props: string[] = [];
@@ -471,7 +667,11 @@ export function convertMagicItem(raw: Raw, ruleset: Ruleset): ConvertedEntity {
     const isShield = category === 'shield';
     let armorCat = isShield ? 'shield' : 'medium';
     const lowerName = String(raw.name ?? '').toLowerCase();
-    if (lowerName.includes('plate') || lowerName.includes('chain mail') || lowerName.includes('splint')) {
+    if (
+      lowerName.includes('plate') ||
+      lowerName.includes('chain mail') ||
+      lowerName.includes('splint')
+    ) {
       armorCat = 'heavy';
     } else if (lowerName.includes('leather') || lowerName.includes('padded')) {
       armorCat = 'light';
@@ -484,7 +684,13 @@ export function convertMagicItem(raw: Raw, ruleset: Ruleset): ConvertedEntity {
 
     armor = compact({
       category: armorCat,
-      baseAc: isShield ? 2 : armorCat === 'heavy' ? 18 : armorCat === 'light' ? 12 : 14,
+      baseAc: isShield
+        ? 2
+        : armorCat === 'heavy'
+          ? 18
+          : armorCat === 'light'
+            ? 12
+            : 14,
       dexBonus: isShield ? false : armorCat !== 'heavy',
       maxDexBonus: armorCat === 'medium' ? 2 : undefined,
       stealthDisadvantage: armorCat === 'heavy',
@@ -517,7 +723,10 @@ export function convertMagicItem(raw: Raw, ruleset: Ruleset): ConvertedEntity {
 const DAMAGE_TYPES = DamageTypeSchema.options;
 
 /** "bludgeoning, piercing, and slashing from nonmagical attacks" -> three entries. */
-export function parseDamageDefenses(entries: string[], warnings: string[]): Array<Record<string, unknown>> {
+export function parseDamageDefenses(
+  entries: string[],
+  warnings: string[],
+): Array<Record<string, unknown>> {
   const result: Array<Record<string, unknown>> = [];
   for (const entry of entries) {
     const text = entry.toLowerCase();
@@ -531,8 +740,12 @@ export function parseDamageDefenses(entries: string[], warnings: string[]): Arra
       continue;
     }
     const lastEnd = Math.max(...found.map((f) => f.end));
-    const qualifier = entry.slice(lastEnd).replace(/^[\s,]*(damage\s*)?/i, '').trim();
-    for (const { type } of found) result.push(compact({ type, qualifier: qualifier || undefined }));
+    const qualifier = entry
+      .slice(lastEnd)
+      .replace(/^[\s,]*(damage\s*)?/i, '')
+      .trim();
+    for (const { type } of found)
+      result.push(compact({ type, qualifier: qualifier || undefined }));
   }
   return result;
 }
@@ -545,7 +758,10 @@ function usageFrom(raw: Raw | undefined): Record<string, unknown> | undefined {
     case 'recharge on roll':
       return { type: 'recharge', rechargeOn: raw.min_value };
     case 'recharge after rest':
-      return { type: 'recharge_after_rest', rest: (raw.rest_types ?? []).includes('short') ? 'short' : 'long' };
+      return {
+        type: 'recharge_after_rest',
+        rest: (raw.rest_types ?? []).includes('short') ? 'short' : 'long',
+      };
     default:
       return undefined;
   }
@@ -577,8 +793,11 @@ export function convertMonster2014(raw: Raw): ConvertedEntity {
   const skills: Record<string, number> = {};
   for (const proficiency of raw.proficiencies ?? []) {
     const index: string = proficiency.proficiency?.index ?? '';
-    if (index.startsWith('saving-throw-')) savingThrows[index.slice('saving-throw-'.length)] = proficiency.value;
-    else if (index.startsWith('skill-')) skills[index.slice('skill-'.length).replace(/-/g, '_')] = proficiency.value;
+    if (index.startsWith('saving-throw-'))
+      savingThrows[index.slice('saving-throw-'.length)] = proficiency.value;
+    else if (index.startsWith('skill-'))
+      skills[index.slice('skill-'.length).replace(/-/g, '_')] =
+        proficiency.value;
     else warnings.push(`proficiency "${index}" ignored`);
   }
   const senses: Record<string, unknown> = {};
@@ -615,11 +834,18 @@ export function convertMonster2014(raw: Raw): ConvertedEntity {
       ac.type === 'natural'
         ? 'natural armor'
         : ac.type === 'armor'
-          ? (ac.armor ?? []).map((a: Raw) => a.name.toLowerCase()).join(', ') || undefined
+          ? (ac.armor ?? []).map((a: Raw) => a.name.toLowerCase()).join(', ') ||
+            undefined
           : ac.type === 'spell'
             ? ac.spell?.name?.toLowerCase()
             : undefined;
-    return compact({ value: ac.value, source, condition: ac.condition ? `while ${ac.condition.name.toLowerCase()}` : undefined });
+    return compact({
+      value: ac.value,
+      source,
+      condition: ac.condition
+        ? `while ${ac.condition.name.toLowerCase()}`
+        : undefined,
+    });
   });
   const languages = String(raw.languages ?? '')
     .split(/,\s*/)
@@ -640,7 +866,10 @@ export function convertMonster2014(raw: Raw): ConvertedEntity {
       swarmOf: swarm ? swarm[1].toLowerCase() : undefined,
       alignment: raw.alignment,
       armorClass,
-      hitPoints: { average: raw.hit_points, formula: String(raw.hit_points_roll ?? '').replace(/\s+/g, '') },
+      hitPoints: {
+        average: raw.hit_points,
+        formula: String(raw.hit_points_roll ?? '').replace(/\s+/g, ''),
+      },
       speed,
       abilityScores: {
         str: raw.strength,
@@ -652,19 +881,35 @@ export function convertMonster2014(raw: Raw): ConvertedEntity {
       },
       savingThrows,
       skills,
-      damageVulnerabilities: parseDamageDefenses(raw.damage_vulnerabilities ?? [], warnings),
-      damageResistances: parseDamageDefenses(raw.damage_resistances ?? [], warnings),
-      damageImmunities: parseDamageDefenses(raw.damage_immunities ?? [], warnings),
-      conditionImmunities: (raw.condition_immunities ?? []).map((c: Raw) => c.index),
+      damageVulnerabilities: parseDamageDefenses(
+        raw.damage_vulnerabilities ?? [],
+        warnings,
+      ),
+      damageResistances: parseDamageDefenses(
+        raw.damage_resistances ?? [],
+        warnings,
+      ),
+      damageImmunities: parseDamageDefenses(
+        raw.damage_immunities ?? [],
+        warnings,
+      ),
+      conditionImmunities: (raw.condition_immunities ?? []).map(
+        (c: Raw) => c.index,
+      ),
       senses,
       languages,
       challengeRating: raw.challenge_rating,
       xp: raw.xp,
       proficiencyBonus: raw.proficiency_bonus,
-      traits: (raw.special_abilities ?? []).filter((a: Raw) => !a.spellcasting).map(featureFrom),
+      traits: (raw.special_abilities ?? [])
+        .filter((a: Raw) => !a.spellcasting)
+        .map(featureFrom),
       actions: (raw.actions ?? []).map(featureFrom),
       reactions: (raw.reactions ?? []).map(featureFrom),
-      legendaryActions: legendary.length > 0 ? { usesPerRound: 3, actions: legendary } : undefined,
+      legendaryActions:
+        legendary.length > 0
+          ? { usesPerRound: 3, actions: legendary }
+          : undefined,
       spellcasting: spellcasting.length > 0 ? spellcasting : undefined,
     }),
   };

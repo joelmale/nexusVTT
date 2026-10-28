@@ -9,7 +9,7 @@
     },
     "scripts": {
         "dev": "tsx watch src/server.ts",
-        "build": "tsc && node -e \"const fs=require('fs'); if(fs.existsSync('src/data')) fs.cpSync('src/data', 'dist/data', { recursive: true });\"",
+        "build": "tsc && node -e \"const fs=require('fs'); if(fs.existsSync('src/data')) fs.cpSync('src/data', 'dist/data', { recursive: true }); const shared='../../../../packages/character-creator/src/data/equipment.json'; if(!fs.existsSync(shared)) throw new Error('Shared SRD equipment data is missing: '+shared); fs.cpSync(shared, 'dist/data/equipment-2024.json');\"",
         "start": "node dist/server.js",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",

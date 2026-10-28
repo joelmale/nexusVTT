@@ -109,7 +109,10 @@
       "description": "Codex document API",
       "ciGroup": "codex",
       "lanes": ["pr", "delivery", "nightly"],
-      "paths": ["apps/codex/services/doc-api/**"],
+      "paths": [
+        "apps/codex/services/doc-api/**",
+        "packages/character-creator/src/data/equipment.json"
+      ],
       "dependsOn": [],
       "service": {
         "name": "doc-api",

@@ -1,7 +1,11 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { parseRulesEntityData } from '@nexus/rules-contracts';
-import type { Prisma, PrismaClient, RulesEntityType as DbEntityType } from '@prisma/client';
+import type {
+  Prisma,
+  PrismaClient,
+  RulesEntityType as DbEntityType,
+} from '@prisma/client';
 import { prisma as defaultPrisma } from '../database.service';
 import {
   convertItem2014,
@@ -46,7 +50,10 @@ export class RulesSeederService {
     if (existsSync(distData)) return distData;
 
     // Monorepo package fallback
-    const packageData = path.resolve(__dirname, '../../../../../../packages/character-creator/src/data');
+    const packageData = path.resolve(
+      __dirname,
+      '../../../../../../../packages/character-creator/src/data',
+    );
     if (existsSync(packageData)) return packageData;
 
     return localData;
@@ -64,19 +71,30 @@ export class RulesSeederService {
     const resolvedDir = this.resolveDataDir(dataDir);
 
     // 1. 2024 Equipment
+    // The 2024 equipment has a single source of truth: the shared character
+    // creator package. The build copies it into dist/data as
+    // equipment-2024.json; in the monorepo it is read from the package itself.
+    // No copy of it is committed here.
     let rawEq2024: Array<Record<string, unknown>> = [];
-    const eq2024Path = path.join(resolvedDir, 'equipment-2024.json');
-    const eqAltPath = path.join(resolvedDir, 'equipment.json');
-    if (existsSync(eq2024Path)) {
+    const eq2024Path = [
+      path.join(resolvedDir, 'equipment-2024.json'),
+      path.join(resolvedDir, 'equipment.json'),
+      path.resolve(
+        __dirname,
+        '../../../../../../../packages/character-creator/src/data/equipment.json',
+      ),
+    ].find((candidate) => existsSync(candidate));
+    if (eq2024Path) {
       rawEq2024 = JSON.parse(readFileSync(eq2024Path, 'utf8'));
-    } else if (existsSync(eqAltPath)) {
-      rawEq2024 = JSON.parse(readFileSync(eqAltPath, 'utf8'));
     }
 
     // 2. 2014 Equipment
     let rawEq2014: Array<Record<string, unknown>> = [];
     const eq2014Path = path.join(resolvedDir, '5e-srd-equipment-2014.json');
-    const eq2014AltPath = path.join(resolvedDir, 'srd/2014/5e-SRD-Equipment.json');
+    const eq2014AltPath = path.join(
+      resolvedDir,
+      'srd/2014/5e-SRD-Equipment.json',
+    );
     if (existsSync(eq2014Path)) {
       rawEq2014 = JSON.parse(readFileSync(eq2014Path, 'utf8'));
     } else if (existsSync(eq2014AltPath)) {
@@ -86,7 +104,10 @@ export class RulesSeederService {
     // 3. Magic Items (240+ classic magic items)
     let rawMagic: Array<Record<string, unknown>> = [];
     const magicPath = path.join(resolvedDir, '5e-srd-magic-items.json');
-    const magicAltPath = path.join(resolvedDir, 'srd/2014/5e-SRD-Magic-Items.json');
+    const magicAltPath = path.join(
+      resolvedDir,
+      'srd/2014/5e-SRD-Magic-Items.json',
+    );
     if (existsSync(magicPath)) {
       rawMagic = JSON.parse(readFileSync(magicPath, 'utf8'));
     } else if (existsSync(magicAltPath)) {
@@ -147,13 +168,21 @@ export class RulesSeederService {
    * the draft -> validate -> publish revision workflow which is meant for
    * player/DM additions.
    */
-  async seedBaseline(options: SeedBaselineOptions = {}): Promise<SeedBaselineResult> {
+  async seedBaseline(
+    options: SeedBaselineOptions = {},
+  ): Promise<SeedBaselineResult> {
     const actor = options.actor ?? DEFAULT_ACTOR;
     const { items2024, items2014 } = this.buildBaselineItems(options.dataDir);
 
     const allItems = [...items2024, ...items2014];
     if (allItems.length === 0) {
-      return { seeded2024: 0, seeded2014: 0, total: 0, catalogVersion: 0, skipped: true };
+      return {
+        seeded2024: 0,
+        seeded2014: 0,
+        total: 0,
+        catalogVersion: 0,
+        skipped: true,
+      };
     }
 
     // Run in chunks within a transaction to maintain atomicity and avoid locking timeouts
@@ -162,7 +191,9 @@ export class RulesSeederService {
         // Advisory lock for catalog version allocation
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(${CATALOG_VERSION_LOCK_KEY})`;
 
-        const latest = await tx.rulesCatalogVersion.aggregate({ _max: { version: true } });
+        const latest = await tx.rulesCatalogVersion.aggregate({
+          _max: { version: true },
+        });
         const catalogVersion = (latest._max.version ?? 0) + 1;
 
         const changedEntityIds: string[] = [];
@@ -258,7 +289,10 @@ export class RulesSeederService {
           seeded2024,
           seeded2014,
           total: seeded2024 + seeded2014,
-          catalogVersion: changedEntityIds.length > 0 ? catalogVersion : (latest._max.version ?? 0),
+          catalogVersion:
+            changedEntityIds.length > 0
+              ? catalogVersion
+              : (latest._max.version ?? 0),
           skipped: changedEntityIds.length === 0,
         };
       },
@@ -270,7 +304,9 @@ export class RulesSeederService {
    * Seed baseline rules entities only if the rules_entities table has no items.
    * Safe to call on every server boot.
    */
-  async seedBaselineIfEmpty(options: SeedBaselineOptions = {}): Promise<SeedBaselineResult> {
+  async seedBaselineIfEmpty(
+    options: SeedBaselineOptions = {},
+  ): Promise<SeedBaselineResult> {
     const existingCount = await this.prisma.rulesEntity.count({
       where: { entityType: 'item' },
     });

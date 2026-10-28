@@ -52,6 +52,8 @@ COPY apps/codex/services/doc-api/prisma ./apps/codex/services/doc-api/prisma
 COPY apps/codex/services/doc-api/src ./apps/codex/services/doc-api/src
 COPY packages/document-contracts ./packages/document-contracts
 COPY packages/rules-contracts ./packages/rules-contracts
+# Single source of truth for 2024 SRD equipment (copied into dist/data by `npm run build`).
+COPY packages/character-creator/src/data/equipment.json ./packages/character-creator/src/data/equipment.json
 COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
 RUN node scripts/build-workspace-dependencies.mjs --workspace nexus-codex-doc-api && \
