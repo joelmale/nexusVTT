@@ -16,6 +16,8 @@ import { createPortal } from 'react-dom';
 import {
   LevelUpExpertiseChoices,
   LevelUpClassCastingChoices,
+  LevelUpInvocationChoices,
+  LevelUpWeaponMasteryChoices,
 } from '@nexus/character-creator';
 import { Character, LevelUpChoices } from '../../types/dnd';
 import { LevelUpData } from '@nexus/character-creator/data/classProgression';
@@ -175,6 +177,28 @@ export const LevelUpWizard: React.FC<LevelUpWizardProps> = ({
             />
           );
         }
+        if (currentStep === 'invocations')
+          return (
+            <LevelUpInvocationChoices
+              character={character}
+              toLevel={levelUpData.toLevel}
+              choices={choices}
+              onChange={updateChoices}
+              onNext={handleNext}
+              onPrev={handlePrev}
+            />
+          );
+        if (currentStep === 'weapon-mastery')
+          return (
+            <LevelUpWeaponMasteryChoices
+              character={character}
+              toLevel={levelUpData.toLevel}
+              choices={choices}
+              onChange={updateChoices}
+              onNext={handleNext}
+              onPrev={handlePrev}
+            />
+          );
         if (currentStep === 'fighting-style') {
           return <StepFightingStyle {...stepProps} />;
         }

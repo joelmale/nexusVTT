@@ -323,8 +323,13 @@ touch is left alone. Two further defects were found while testing: an
 the creator test runner needed the same 20-second timeout as Forge for one
 load-sensitive test.
 
-Not yet done: the Forge level-up wizard has no invocation or mastery step, so
-these choices are reachable through `applyLevelUp` but not yet through the UI.
+Update: the Forge level-up wizard now has an invocation step (all Warlock levels
+where the SRD 5.2.1 count grows: 2, 5, 7, 9, 12, 15 and 18) and a weapon mastery
+step (when the class's mastery count grows). Both are shared components
+(`LevelUpInvocationChoices`, `LevelUpWeaponMasteryChoices`) driven by the same
+validators as `applyLevelUp`, so the UI cannot offer a pick the level-up would
+reject; the confirm step lists the picks. They are covered by component tests
+and have not been exercised in a browser session.
 Invocation selection at level-up is limited to the 2024 rules; 2014 Warlocks
 return a clear error. Mastery counts that grow at a level are not yet required
 by the wizard.

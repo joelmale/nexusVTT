@@ -8,7 +8,7 @@ import { classGrantErrors } from './classGrantChoices';
 type FeatChoices = NonNullable<Character['featChoices']>;
 
 /** The character as it would be after this level-up, shaped for the shared validators. */
-function asCreationData(
+export function asCreationData(
   character: Character,
   choices: LevelUpChoices,
   toLevel: number,

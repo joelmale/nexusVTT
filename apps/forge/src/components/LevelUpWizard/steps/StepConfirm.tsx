@@ -120,6 +120,30 @@ export const StepConfirm: React.FC<StepConfirmProps> = ({
           </div>
         )}
 
+        {/* Eldritch Invocations */}
+        {choices.eldritchInvocationsChosen && (
+          <div className="bg-theme-primary rounded-lg p-4">
+            <h5 className="font-semibold text-accent-gold mb-1">
+              Eldritch Invocations
+            </h5>
+            <p className="text-theme-text">
+              {choices.eldritchInvocationsChosen.join(', ')}
+            </p>
+          </div>
+        )}
+
+        {/* Weapon Mastery */}
+        {choices.weaponMasteriesChosen && (
+          <div className="bg-theme-primary rounded-lg p-4">
+            <h5 className="font-semibold text-accent-gold mb-1">
+              Weapon Mastery
+            </h5>
+            <p className="text-theme-text">
+              {choices.weaponMasteriesChosen.join(', ')}
+            </p>
+          </div>
+        )}
+
         {/* Spells Learned */}
         {choices.spellsLearned && choices.spellsLearned.length > 0 && (
           <div className="bg-theme-primary rounded-lg p-4">

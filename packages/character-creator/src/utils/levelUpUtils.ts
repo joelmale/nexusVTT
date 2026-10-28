@@ -37,6 +37,8 @@ import {
 } from '../services/dataService';
 import { classSpellSlots } from './classSpellSlots';
 import { resolveFeatSpellChoice } from '../services/featSpellChoices';
+import { masteryCount } from '../services/classGrantChoices';
+import { invocationCount } from '../services/invocations';
 import {
   applyLevelUpGrants,
   levelUpGrantErrors,
@@ -252,6 +254,32 @@ export function calculateLevelUpData(character: Character): LevelUpData | null {
       count: expertise.count,
     });
   }
+  const classSlug = character.classSlug || character.class.toLowerCase();
+  // SRD 5.2.1: Warlocks gain invocations at levels 2, 5, 7, 9, 12, 15 and 18,
+  // and martial classes gain Weapon Mastery picks as the table grows.
+  if (
+    character.edition === '2024' &&
+    classSlug === 'warlock' &&
+    invocationCount(toLevel) > invocationCount(fromLevel)
+  )
+    choices.push({
+      type: 'invocations',
+      description: 'Choose Eldritch Invocations.',
+      count: invocationCount(toLevel),
+    });
+  if (
+    masteryCount({ edition: character.edition, classSlug, level: toLevel }) >
+    masteryCount({ edition: character.edition, classSlug, level: fromLevel })
+  )
+    choices.push({
+      type: 'weapon-mastery',
+      description: 'Choose Weapon Mastery weapons.',
+      count: masteryCount({
+        edition: character.edition,
+        classSlug,
+        level: toLevel,
+      }),
+    });
   return {
     fromLevel,
     toLevel,
@@ -357,6 +385,11 @@ export function getLevelUpSteps(levelUpData: LevelUpData): string[] {
   if (hasFightingStyle) {
     steps.push('fighting-style');
   }
+
+  if (levelUpData.choices.some((choice) => choice.type === 'invocations'))
+    steps.push('invocations');
+  if (levelUpData.choices.some((choice) => choice.type === 'weapon-mastery'))
+    steps.push('weapon-mastery');
 
   // Always show features summary (even if automatic)
   if (

@@ -167,6 +167,8 @@ export {
 
 export { generateFirstTurnGuidance } from './services/guidanceService';
 export { LevelUpExpertiseChoices } from './components/LevelUpExpertiseChoices';
+export { LevelUpInvocationChoices } from './components/LevelUpInvocationChoices';
+export { LevelUpWeaponMasteryChoices } from './components/LevelUpWeaponMasteryChoices';
 export { LevelUpClassCastingChoices } from './components/LevelUpClassCastingChoices';
 export {
   ClassResourceControls,

@@ -23,7 +23,9 @@ export type FeatureChoiceType =
   | 'skill-expertise' // Wizard Scholar skill expertise
   | 'spell-mastery' // Wizard Spell Mastery choices
   | 'signature-spells' // Wizard Signature Spells choices
-  | 'class-free-casting'; // Shares the class resource ledger.
+  | 'class-free-casting' // Shares the class resource ledger.
+  | 'invocations' // Warlock Eldritch Invocations (2024)
+  | 'weapon-mastery'; // 2024 Weapon Mastery count grows
 
 /**
  * Represents a choice the player must make at a specific level
