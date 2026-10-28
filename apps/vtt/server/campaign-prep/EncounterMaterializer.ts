@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { calculateAbilityModifier } from '@nexus/character-contracts';
 import type {
   EncounterEdition,
   EncounterFaction,
@@ -249,7 +250,7 @@ function readComposition(data: unknown): CompositionRow[] {
 }
 
 function modifier(score: number): number {
-  return Math.floor((score - 10) / 2);
+  return calculateAbilityModifier(score);
 }
 
 function statBlock(

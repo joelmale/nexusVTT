@@ -4,8 +4,9 @@ import type {
   ChatCommandResult,
   DiceRollData,
 } from '@/types/chat';
+import { rollDice as rollDiceFaces, type Rng } from '@nexus/rules-5e';
 
-function rollDice(expression: string): DiceRollData | null {
+function rollDice(expression: string, rng?: Rng): DiceRollData | null {
   const cleaned = expression.trim().toLowerCase();
   const match = cleaned.match(/^(\d+)d(\d+)([+-]\d+)?$/);
 
@@ -26,10 +27,7 @@ function rollDice(expression: string): DiceRollData | null {
     return null;
   }
 
-  const results: number[] = [];
-  for (let i = 0; i < diceCount; i++) {
-    results.push(Math.floor(Math.random() * diceType) + 1);
-  }
+  const results = rollDiceFaces(diceCount, diceType, rng);
 
   const diceTotal = results.reduce((sum, val) => sum + val, 0);
   const total = diceTotal + modifier;

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { rollDie } from '@nexus/rules-5e';
 import {
   recoverCharacterResource,
   recordCharacterResource,
@@ -955,7 +956,7 @@ export class DomainCommandService {
       const roll =
         p.initiativeRoll && p.initiativeRoll > 0
           ? p.initiativeRoll
-          : Math.floor(Math.random() * 20) + 1;
+          : rollDie(20);
       return {
         ...p,
         initiativeRoll: roll,

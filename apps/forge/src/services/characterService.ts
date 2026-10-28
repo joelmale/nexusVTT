@@ -1,4 +1,4 @@
-import { generateUUID } from './diceService';
+import { generateUUID, rollDice } from './diceService';
 import levelConstantsData from '@nexus/character-creator/data/levelConstants.json';
 import {
   loadSpecies,
@@ -422,7 +422,7 @@ export const handleShortRest = async (
   for (let i = 0; i < diceToSpend; i++) {
     hpRecovered += Math.max(
       1,
-      Math.floor(Math.random() * hitDie) + 1 + conModifier,
+      rollDice(1, hitDie)[0] + conModifier,
     );
   }
 

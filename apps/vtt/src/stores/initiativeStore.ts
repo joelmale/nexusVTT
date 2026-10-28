@@ -9,6 +9,7 @@ import type {
   CombatRound,
 } from '@/types/initiative';
 import { createInitiativeEntry } from '@/types/initiative';
+import { rollDie } from '@nexus/rules-5e';
 
 type CharacterSyncServiceModule = typeof import('@/services/characterSyncService');
 
@@ -345,7 +346,7 @@ export const useInitiativeStore = create<InitiativeStore>()(
     rollInitiativeForAll: () =>
       set((state) => {
         state.entries.forEach((entry) => {
-          const roll = Math.ceil(Math.random() * 20);
+          const roll = rollDie(20);
           entry.initiative = roll + entry.initiativeModifier;
 
           get().addEvent({
@@ -365,7 +366,7 @@ export const useInitiativeStore = create<InitiativeStore>()(
       set((state) => {
         const entry = state.entries.find((e) => e.id === entryId);
         if (entry) {
-          const roll = Math.ceil(Math.random() * 20);
+          const roll = rollDie(20);
           entry.initiative = roll + entry.initiativeModifier;
 
           get().addEvent({

@@ -1,6 +1,7 @@
 /**
  * Pure seedable treasure hoard roller adhering to the 2024 DMG tables.
  */
+import { rollDie as rollSharedDie } from '@nexus/rules-5e';
 import type {
   CampaignItemRarity as ItemRarity,
   CampaignItemType as ItemType,
@@ -76,7 +77,7 @@ export function createPrng(seed: number): () => number {
 
 export function rollDie(sides: number, rand: () => number = Math.random): number {
   if (sides <= 1) return 1;
-  return Math.floor(rand() * sides) + 1;
+  return rollSharedDie(sides, rand);
 }
 
 export function evalDice(dice: DiceSpec, rand: () => number = Math.random): number {

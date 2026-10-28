@@ -22,42 +22,81 @@ definitions. Counts are from that scan, not estimates.
 
 ## Remaining duplication, in suggested order
 
-1. **Dice rolling: 13 definitions in 4 areas.** `apps/vtt/server/diceRoller.ts`,
-   `apps/vtt/src/utils/dice.ts`, `apps/forge/src/utils/diceRoller.ts`, the
-   creator's `diceService.ts`, plus `hoardRoller.ts` in dm-ui. This is the
-   highest-risk item because behaviour (advantage, keep-highest, critical
-   handling, seeding) can diverge between what the server rolls and what a
-   client previews. Proposal: one tested parser/evaluator with an injectable
-   random source in `@nexus/rules-5e`, used by the server as the authority.
-2. **Character contracts.** `packages/character-contracts` and
-   `packages/game-contracts/src/character.ts` both define a character, and
-   `apps/vtt/server/repositories/base.ts`, `routes/api.ts` and
-   `Dashboard/types.ts` define their own. They may be intentionally different
-   (sheet versus actor); that needs a decision and a documented mapping
-   between them, not a guess.
-3. **Rules constants.** The modifier formula is done. Skill-to-ability maps exist 3 times, ability lists 6, and the proficiency
-   bonus table, hit dice and caster slot tables once each in the creator and
-   `rules-5e`. Proposal: `rules-5e` is the home; replace copies with imports.
-   The four codex services (admin-ui, dm-ui, doc-api, doc-processor) still carry
-   their own modifier copy because none of them depends on the contracts
-   package; adding that dependency also means touching their Dockerfiles and CI
-   path filters, so it is its own step.
-4. **2014 equipment and classic magic items.** The only copies are in doc-api
-   (`5e-srd-equipment-2014.json`, `5e-srd-magic-items.json`); the shared package
-   has no 2014 equipment, so 2014 characters use 2024-year items. Proposal: move
-   both into the shared package, then have doc-api consume them as above.
-5. **Forge public assets.** `ammo.wasm.wasm` and the default dice theme JSON each
-   exist twice under `apps/forge/public/assets`.
-6. **Small items.** UUID helpers (3), rarity lists (3, in dm-ui and doc-processor),
-   and a currency conversion table (dm-ui) that duplicates `rules-5e` coin math.
+Re-validated against the tree on **2026-10-28** (after the primitive-type,
+modifier and dungeon consolidations, while other work was landing in parallel).
+Corrections to the first version of this list are marked.
 
-## Guard rails to add as each item is done
+1. **Dice rolling.** _Mostly done._ Parsing, validation, rolling, keep-highest/
+   lowest, advantage and critical handling are one engine in `@nexus/rules-5e`
+   (`dice.ts`, with an injectable random source and a crypto default). The VTT
+   server, VTT client and `/roll` command, the creator, Forge, the initiative
+   store, the server initiative d20 and dm-ui's `hoardRoller` now call it. Not
+   yet moved: `rulesEngine/resolvers/combatResolver.ts` (its own
+   `parseDiceNotation`), `rulesEngine/mechanics/rollMechanics.ts` (a bare d20),
+   a d6 in creator `dataService.ts`, the hit-die roll in Forge `App.tsx`, and
+   the VTT `DieButton`. Behaviour changes to know about: the server now rejects
+   trailing junk such as `2d6xyz` (the client already did), sums every constant
+   instead of keeping the first, rejects subtracted dice instead of adding
+   them, and takes a critical from the kept d20 under advantage.
+2. **Character contracts.** Still accurate, with one addition.
+   `character-contracts` (`Character`, `ForgeCharacter`) and
+   `game-contracts/src/character.ts` (`CharacterRecord`) both define a
+   character, and `apps/vtt/server/repositories/base.ts`, `server/routes/api.ts`
+   and `Dashboard/types.ts` each define a `CharacterRecord`. **Added:** the
+   creator has a third model, `Character` in `types/dnd.ts`, which is converted
+   by `toNexusCharacter()`. They may be intentionally different (sheet versus
+   actor versus wizard draft); that needs a decision and a documented mapping,
+   not a guess.
+3. **Rules constants.** Modifier formula: done, except the four codex services
+   (admin-ui, dm-ui, doc-api, doc-processor), which do not depend on the
+   contracts package; adding it also means touching their Dockerfiles and CI
+   path filters. **Corrected:** skill-to-ability maps are still 3 (Forge
+   `CharacterEditForm`, creator `rulesEngine/types/derived.ts`, creator
+   `dataService.ts`); the proficiency-bonus rule exists 3 times
+   (`gameConstants.json` via `dataService`, `rules-5e` `getProficiencyBonus`,
+   `character-contracts` `calculateProficiencyBonus`), not 2; caster slot tables
+   are 2 (`rules-5e` `FULL_CASTER_SLOTS`, creator `data/spellSlots.ts`); hit dice
+   are 1 (`coreSchedules.ts`). The "6 ability lists" figure no longer holds: the
+   upper-case ones are done except dm-ui `homebrewModel.ts` and Forge
+   `PaperAbilityScoresPanel.tsx`; the lower-case ones are the SRD spelling (see
+   below).
+4. **Edition spelling.** **Added:** `Edition` is canonical in
+   `character-contracts`, but `RulesEdition` (`rules-5e`) and `Ruleset`
+   (`rules-contracts`, a zod enum) still spell the same two values, and about 30
+   inline `'2014' | '2024'` unions remain across Forge, VTT, the creator and
+   dm-ui. Replace the inline ones with `Edition`; decide whether `Ruleset` stays
+   as the wire name.
+5. **2014 equipment and classic magic items.** Still accurate. The only copies
+   are `apps/codex/services/doc-api/src/data/5e-srd-equipment-2014.json` and
+   `5e-srd-magic-items.json`; the creator package has only the 2024
+   `equipment.json`, so 2014 characters use 2024-year items. Proposal: move both
+   into the shared package, then have doc-api consume them as 2024 equipment
+   already is.
+6. **Forge public assets.** **Corrected:** not two files but seven. The whole
+   default dice theme directory (`default.json`, `theme.config.json`, two
+   diffuse maps, normal map, specular map) exists under both
+   `public/assets/themes/default` and `public/assets/dice-box/themes/default`,
+   and `ammo.wasm.wasm` under both `assets/ammo` and `assets/dice-box/ammo`.
+7. **Small items.** UUID helpers: 3, still accurate (dm-ui `lib/utils.ts`,
+   dm-ui `sessionSpineGenerator.ts`, creator `diceService.ts`). Rarity lists: 3,
+   accurate (dm-ui `fixture-registry/types.ts`, dm-ui `srd-items-api.ts`,
+   doc-processor `validation.ts`). **Corrected:** the dm-ui currency table
+   (`GP_PER_UNIT` in `srd-items-api.ts`) does _not_ duplicate `rules-5e`; there
+   is no coin math in `rules-5e`. It is a single copy, so it is only a candidate
+   for moving there, not a duplicate.
 
-- A test that fails if a consolidated file reappears (for example any
-  `equipment-2024.json` under doc-api).
-- A check that every derived artifact is generated from its sources and is not
-  committed (the merged spell file was reproducible, but nothing proved it).
-- Lint rules that ban re-implementing helpers that have a canonical export.
+Consolidated claims above were re-checked and still hold: no
+`equipment-2024.json` or `5e-SRD-Spells-Merged.json` in the tree, the doc-api
+`sharedSourceOfTruth` test exists, `apps/vtt/public/one-page-dungeon` is gone,
+and the only modifier formula outside the codex services is the canonical one.
+
+## Guard rails
+
+- Done: tests fail if the doc-api equipment copy, the old dungeon tree, or an
+  inline modifier formula (outside the codex services) reappears.
+- Still to add: a check that every derived artifact is generated from its
+  sources and is not committed, and lint rules that ban re-implementing helpers
+  that have a canonical export.
 
 ## Not consolidated on purpose
 

@@ -5,6 +5,7 @@
  * Polearm Master, Second Chance, etc.
  */
 
+import { rollDice } from '../services/diceService';
 import { Character } from '../types/dnd';
 
 export interface CombatAction {
@@ -110,17 +111,17 @@ export function applyFeatDamageModifiers(character: Character, weaponType: strin
 
   // Crusher: +1d8 force damage on critical hits
   if (character.featEffects?.crusher && isCritical) {
-    damageModifier += Math.floor(Math.random() * 8) + 1; // 1d8
+    damageModifier += rollDice(1, 8)[0]; // 1d8
   }
 
   // Piercer: +1d8 piercing damage on critical hits
   if (character.featEffects?.piercer && damageType === 'piercing' && isCritical) {
-    damageModifier += Math.floor(Math.random() * 8) + 1; // 1d8
+    damageModifier += rollDice(1, 8)[0]; // 1d8
   }
 
   // Slasher: +1d8 slashing damage on critical hits
   if (character.featEffects?.slasher && damageType === 'slashing' && isCritical) {
-    damageModifier += Math.floor(Math.random() * 8) + 1; // 1d8
+    damageModifier += rollDice(1, 8)[0]; // 1d8
   }
 
   return damageModifier;

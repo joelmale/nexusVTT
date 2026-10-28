@@ -1,3 +1,4 @@
+import { rollDie } from '@nexus/rules-5e';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const { syncStats } = vi.hoisted(() => ({ syncStats: vi.fn() }));
@@ -8,6 +9,11 @@ vi.mock('@/services/characterSyncService', () => ({
 
 import { useInitiativeStore } from '../../../src/stores/initiativeStore';
 import { STANDARD_CONDITIONS } from '../../../src/types/initiative';
+
+vi.mock('@nexus/rules-5e', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@nexus/rules-5e')>()),
+  rollDie: vi.fn(),
+}));
 
 describe('initiativeStore', () => {
   beforeEach(() => {
@@ -432,10 +438,10 @@ describe('initiativeStore', () => {
     it('should roll initiative for all entries', () => {
       const store = useInitiativeStore.getState();
 
-      // Mock Math.random to return predictable values
-      const mockRandom = vi.spyOn(Math, 'random');
-      mockRandom.mockReturnValueOnce(0.5); // Roll of 10
-      mockRandom.mockReturnValueOnce(0.8); // Roll of 16
+      // Make the shared die predictable
+      const mockRandom = vi.mocked(rollDie);
+      mockRandom.mockReturnValueOnce(10);
+      mockRandom.mockReturnValueOnce(16);
 
       store.addEntry({
         name: 'Fighter',
@@ -483,7 +489,7 @@ describe('initiativeStore', () => {
       expect(fighter?.initiative).toBe(13); // 10 + 3
       expect(wizard?.initiative).toBe(17); // 16 + 1
 
-      mockRandom.mockRestore();
+      mockRandom.mockReset();
     });
   });
 

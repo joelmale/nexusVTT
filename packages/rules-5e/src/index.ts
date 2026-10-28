@@ -5,3 +5,4 @@ export * from './casting.js';
 export * from './catalog.js';
 export * from './encounter.js';
 export * from './encounterDifficulty.js';
+export * from './dice.js';

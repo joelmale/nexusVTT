@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ChatCommandParser, allCommands, rollDice } from '@/services/chatCommands';
 import type { ChatCommandContext } from '@/types/chat';
 
@@ -6,8 +6,8 @@ const context = { user: { id: 'user-1', name: 'Player' }, isHost: false, session
 
 describe('chat commands', () => {
   it('validates dice and reports crits with deterministic rolls', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.999);
-    expect(rollDice('1d20+2')).toMatchObject({ total: 22, isCrit: true, modifier: 2 });
+    const nearlyOne = () => 0.999;
+    expect(rollDice('1d20+2', nearlyOne)).toMatchObject({ total: 22, isCrit: true, modifier: 2 });
     expect(rollDice('101d6')).toBeNull(); expect(rollDice('1d7')).toBeNull(); expect(rollDice('not dice')).toBeNull();
   });
 

@@ -1,5 +1,15 @@
 import { calculateAbilityModifier } from '@nexus/character-contracts';
- 
+import {
+  detectCritical,
+  keptDice,
+  parseDiceExpression,
+  rollDice,
+  rollParsedDice,
+  type Rng,
+} from '@nexus/rules-5e';
+
+export { detectCritical, parseDiceExpression, rollDice };
+export type { ParsedDiceExpression } from '@nexus/rules-5e';
 // Dice roll types and utilities for NexusForge
 
 export interface DiceRoll {
@@ -36,43 +46,12 @@ export function generateUUID(): string {
 }
 
 /**
- * Roll dice with specified count and sides
- * @param count Number of dice to roll
- * @param sides Number of sides on each die
- * @returns Array of individual dice results
- */
-export function rollDice(count: number, sides: number): number[] {
-  const results: number[] = [];
-  for (let i = 0; i < count; i++) {
-    results.push(Math.floor(Math.random() * sides) + 1);
-  }
-  return results;
-}
-
-/**
  * Calculate D&D 5e ability modifier from ability score
  * @param score Ability score (1-30)
  * @returns Modifier (-5 to +10)
  */
 export function calculateModifier(score: number): number {
   return calculateAbilityModifier(score);
-}
-
-/**
- * Detect if a roll is a critical success or failure
- * Only applies to d20 rolls
- * @param value The die value
- * @param sides The number of sides on the die
- * @returns 'success' for nat 20, 'failure' for nat 1, undefined otherwise
- */
-export function detectCritical(
-  value: number,
-  sides: number
-): 'success' | 'failure' | undefined {
-  if (sides !== 20) return undefined;
-  if (value === 20) return 'success';
-  if (value === 1) return 'failure';
-  return undefined;
 }
 
 /**
@@ -258,48 +237,37 @@ export function createDisadvantageRoll(label: string, modifier: number): DiceRol
  * @param notation The dice notation (e.g., "3d6+2", "2d20kh1", "4d6dl1")
  * @returns DiceRoll object
  */
-export function createComplexRoll(label: string, notation: string): DiceRoll {
-  // Parse simple notations for now (can be enhanced with the parser later)
-  const match = notation.match(/^(\d+)d(\d+)(kh|kl)?(\d+)?([+-]\d+)?$/);
-  if (!match) {
+export function createComplexRoll(
+  label: string,
+  notation: string,
+  rng?: Rng,
+): DiceRoll {
+  const parsed = parseDiceExpression(notation);
+  if (!parsed) {
     throw new Error(`Invalid dice notation: ${notation}`);
   }
 
-  const [, countStr, sidesStr, keepType, keepCountStr, modifierStr] = match;
-  const count = parseInt(countStr);
-  const sides = parseInt(sidesStr);
-  const keepCount = keepCountStr ? parseInt(keepCountStr) : 1;
-  const modifier = modifierStr ? parseInt(modifierStr) : 0;
-
-  const diceResults = rollDice(count, sides);
-  let keptResults = diceResults;
-
-  // Handle keep highest/lowest
-  if (keepType) {
-    if (keepType === 'kh') {
-      keptResults = diceResults.sort((a, b) => b - a).slice(0, keepCount);
-    } else if (keepType === 'kl') {
-      keptResults = diceResults.sort((a, b) => a - b).slice(0, keepCount);
-    }
-  }
-
-  const total = keptResults.reduce((sum, val) => sum + val, 0) + modifier;
+  const evaluation = rollParsedDice(parsed, { rng });
+  const diceResults = evaluation.pools.flatMap((pool) =>
+    keptDice(pool.results, pool.keep),
+  );
 
   return {
     id: generateUUID(),
     type: 'complex',
     label,
     notation,
-    diceResults: keptResults,
-    modifier,
-    total,
+    diceResults,
+    modifier: parsed.modifier,
+    total: evaluation.total,
+    critical: evaluation.crit,
     timestamp: Date.now(),
-    pools: [{
+    pools: evaluation.pools.map(({ count, sides, results }) => ({
       count,
       sides,
-      results: diceResults
-    }],
-    expression: notation
+      results,
+    })),
+    expression: notation,
   };
 }
 
@@ -371,14 +339,20 @@ export function createWeaponDamageRoll(
   abilityModifier: number,
   damageType: string
 ): DiceRoll {
-  // Parse damage dice (e.g., "2d6" -> count=2, sides=6)
-  const match = damageDice.match(/^(\d+)d(\d+)$/);
-  if (!match) {
+  // Damage dice are a single plain pool (e.g., "2d6")
+  const parsedDamage = parseDiceExpression(damageDice);
+  const pool = parsedDamage?.pools[0];
+  if (
+    !parsedDamage ||
+    !pool ||
+    parsedDamage.pools.length !== 1 ||
+    parsedDamage.modifier !== 0 ||
+    pool.keep
+  ) {
     throw new Error(`Invalid damage dice: ${damageDice}`);
   }
 
-  const count = parseInt(match[1]);
-  const sides = parseInt(match[2]);
+  const { count, sides } = pool;
   const diceResults = rollDice(count, sides);
   const diceTotal = diceResults.reduce((sum, val) => sum + val, 0);
   const total = diceTotal + abilityModifier;

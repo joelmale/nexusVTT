@@ -42,6 +42,7 @@ export interface DicePool {
   sides: number;
   results: number[];
   advResults?: number[]; // For advantage/disadvantage
+  keep?: { mode: 'highest' | 'lowest'; count: number }; // kh/kl pools
 }
 
 export interface DiceRoll {
@@ -53,6 +54,7 @@ export interface DiceRoll {
   modifier: number; // Static modifier (e.g., +3)
   results: number[]; // Flattened results from all pools (for backwards compatibility)
   advResults?: number[]; // Second set of results for advantage/disadvantage
+  keptRoll?: 'first' | 'second'; // Which set the total came from
   total: number;
   timestamp: number;
   crit?: 'success' | 'failure'; // For d20 rolls
