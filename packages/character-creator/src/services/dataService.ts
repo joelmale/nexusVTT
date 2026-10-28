@@ -4,6 +4,20 @@
 
 import srdSpellsMerged from '../data/srd/5e-SRD-Spells-Merged.json';
 import srdSpells2014 from '../data/srd/2014/5e-SRD-Spells.json';
+import {
+  GROUP_RELATED_SKILLS,
+  TOOL_RELATED_SKILLS,
+  VEHICLE_PROFICIENCIES,
+  toolProficiencyGroup,
+} from '../data/toolProficiencies';
+import {
+  SUPPLEMENTAL_SPELLS,
+  type SpellMechanics,
+} from '../data/supplementalSpells';
+import {
+  ARTIFICER_LEGACY_SPELL_NAMES,
+  ARTIFICER_SRD_ALIASES,
+} from '../data/artificerLegacySpellList';
 import srdRaces2014 from '../data/srd/2014/5e-SRD-Races.json';
 import srdClasses2014 from '../data/srd/2014/5e-SRD-Classes.json';
 import srdClasses2024 from '../data/srd/2024/5e-SRD-Classes.json';
@@ -306,6 +320,10 @@ export interface AppSpell {
   atHigherLevels?: string;
   /** SRD 5.2.1 cantrip scaling text (levels 5, 11 and 17). */
   cantripUpgrade?: string;
+  /** Structured damage/save/attack facts; present for supplemental spells. */
+  mechanics?: SpellMechanics;
+  /** Set when the rules text is not bundled (non-SRD supplemental content). */
+  textNotBundled?: boolean;
   damageType?: string;
   saveType?: AbilityName;
   classes: string[];
@@ -827,14 +845,68 @@ export function transformEquipment(srdEquip: SRDEquipment): Equipment {
 
 // --- Data Loading Functions ---
 
+const normaliseSpellName = (name: string): string =>
+  name.toLowerCase().replace(/’/g, "'").trim();
+
+const ARTIFICER_LEGACY_NAMES = new Set(
+  ARTIFICER_LEGACY_SPELL_NAMES.map(
+    (name) =>
+      ARTIFICER_SRD_ALIASES[normaliseSpellName(name)] ??
+      normaliseSpellName(name),
+  ),
+);
+
+/** Mechanics-only supplemental spells; the book's rules text is not bundled. */
+function supplementalSpells(edition: '2014' | '2024'): AppSpell[] {
+  return SUPPLEMENTAL_SPELLS.map((spell) => ({
+    slug: spell.name.toLowerCase().replace(/\s+/g, '-'),
+    name: spell.name,
+    level: spell.level,
+    school: spell.school as SchoolName,
+    castingTime: spell.castingTime,
+    range: spell.range,
+    components: { ...spell.components },
+    duration: spell.duration,
+    concentration: Boolean(spell.concentration),
+    ritual: Boolean(spell.ritual),
+    description:
+      'Rules text is not bundled with Nexus. Use your own copy of the book.',
+    mechanics: spell.mechanics,
+    textNotBundled: true,
+    classes: ['artificer'],
+    source: edition,
+    year: Number(edition),
+  }));
+}
+
+let legacyCatalog: AppSpell[] | undefined;
+function legacySpells(): AppSpell[] {
+  legacyCatalog ??= [
+    ...srdSpells2014.map((spell) => {
+      const transformed = transformSpell({
+        ...spell,
+        source: '2014',
+      } as unknown as SRDSpell);
+      return ARTIFICER_LEGACY_NAMES.has(normaliseSpellName(transformed.name)) &&
+        !transformed.classes.includes('artificer')
+        ? { ...transformed, classes: [...transformed.classes, 'artificer'] }
+        : transformed;
+    }),
+    ...supplementalSpells('2014'),
+  ];
+  return legacyCatalog;
+}
+
 export function loadSpells(edition?: '2014' | '2024'): AppSpell[] {
-  if (edition === '2014')
-    return srdSpells2014.map((spell) =>
-      transformSpell({ ...spell, source: '2014' } as unknown as SRDSpell),
-    );
-  return (srdSpellsMerged as SRDSpell[])
-    .filter((spell) => !edition || spell.source === edition)
-    .map((spell) => transformSpell(spell));
+  if (edition === '2014') return legacySpells();
+  return [
+    ...(srdSpellsMerged as SRDSpell[])
+      .filter((spell) => !edition || spell.source === edition)
+      .map((spell) => transformSpell(spell)),
+    // Supplemental spells carry the legacy Artificer list; they are offered for
+    // the unfiltered catalog and for 2024 characters taking a legacy feat.
+    ...(edition === '2024' ? [] : supplementalSpells('2014')),
+  ];
 }
 
 export const SPELL_DATABASE = loadSpells();
@@ -963,8 +1035,39 @@ export function loadClasses(edition?: Edition): Class[] {
   return classesWithEnhancedData;
 }
 
+/** Adds proficiency fields to tools and appends the vehicle proficiencies. */
+function withToolProficiency(item: Equipment): Equipment {
+  const group = toolProficiencyGroup(item.equipment_category, item.index);
+  if (!group) return item;
+  const skills = TOOL_RELATED_SKILLS[item.index] ?? GROUP_RELATED_SKILLS[group];
+  return {
+    ...item,
+    proficiencyGroup: group,
+    ...(skills ? { relatedSkills: [...skills] } : {}),
+  };
+}
+
+const VEHICLE_ITEMS: Equipment[] = VEHICLE_PROFICIENCIES.map((vehicle) => ({
+  index: vehicle.index,
+  slug: vehicle.index,
+  name: vehicle.name,
+  year: 2014,
+  equipment_category: 'Tools',
+  cost: { quantity: 0, unit: 'gp' },
+  weight: 0,
+  description:
+    'A proficiency category covering the vehicles of this kind, not a purchasable item.',
+  proficiencyGroup: 'vehicles',
+  relatedSkills: [...(GROUP_RELATED_SKILLS.vehicles ?? [])],
+}));
+
 export function loadEquipment(): Equipment[] {
-  return (srdEquipment as SRDEquipment[]).map((eq) => transformEquipment(eq));
+  return [
+    ...(srdEquipment as SRDEquipment[])
+      .map((eq) => transformEquipment(eq))
+      .map(withToolProficiency),
+    ...VEHICLE_ITEMS,
+  ];
 }
 
 // Feature interfaces

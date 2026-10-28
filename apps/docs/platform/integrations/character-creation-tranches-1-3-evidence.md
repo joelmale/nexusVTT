@@ -394,6 +394,41 @@ verified is the shared slot calculator: `multiclassTable.test.ts` pins the
 2024, down in 2014), exclusion of Pact Magic, and non-casting classes. Eldritch
 Knight and Arcane Trickster are not in either SRD and are not verified.
 
+### Legacy Artificer spells and tool proficiencies (2026-10-27)
+
+The 29 official spells on the legacy Artificer list that the SRD does not contain
+are now in the catalog as **mechanics-only** entries (level, school, timing,
+range, components, duration, and the damage or saving throw numbers the sheet
+needs) in `supplementalSpells.ts`. Their rules text is deliberately not
+bundled because the descriptions are published, copyrighted text and the
+repository is public; the description field says so, and `textNotBundled` marks
+them. The three Unearthed Arcana playtest spells are excluded. Bigby's Hand
+resolves to the SRD's Arcane Hand, so the SRD side is 71 spells; with the 29
+supplemental entries the legacy Artificer list is 100 spells, tagged only on
+2014 spells (the revised 2025 Artificer list is unverified, so no 2024 spell
+carries it). Artificer creation itself stays blocked.
+
+Tool proficiencies gained two fields on catalog tools: `relatedSkills` (the
+skills a proficiency can inform) and `proficiencyGroup`, plus the missing Land
+and Water Vehicles proficiencies. The SRD already supplied each tool's ability,
+cost, weight, craftable items and utilize DCs.
+
+Campaign Studio's compendium showed "No description provided" for every tool
+because SRD 5.2 lists most gear with structured fields and no prose, and the
+catalog's `text` came only from a `description` field (100 of 213 items had
+none). The converter now builds a factual summary from those fields when there
+is no prose (ability and utilize DCs for tools, damage, properties and mastery
+for weapons, armor class and requirements for armor). Already-seeded catalogs
+need a reseed to pick this up.
+
+Single source of truth: doc-api carried a committed copy of the creator
+package's 2024 equipment (`equipment-2024.json`, identical content). The copy is
+removed; the build now copies the shared file into `dist/data`, the image build
+copies it from the package, CI rebuilds doc-api when it changes, and the
+seeder's monorepo fallback path (which had an off-by-one) is fixed. The 2014
+equipment and classic magic item files remain doc-api-only; they are sole
+copies, not duplicates, and moving them into the shared package is open work.
+
 ## Remaining work before closing these tranches
 
 1. Finish supplemental Artificer spell-list, subclass, infusion/item-plan choices

@@ -17,6 +17,8 @@ describe('revised spell source membership and heading facts', () => {
     expect(legacySource.spells).toHaveLength(319);
     expect(
       loadSpells('2014')
+        // Supplemental (non-SRD) spells are audited elsewhere.
+        .filter((spell) => !spell.textNotBundled)
         .map((spell) => identity(spell.name))
         .sort(),
     ).toEqual(legacySource.spells.map((spell) => identity(spell.name)).sort());

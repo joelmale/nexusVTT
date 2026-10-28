@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import reference from '../tests/fixtures/artificerLegacyReference.json';
 import { classSpellSlots } from '../utils/classSpellSlots';
 import { loadSpells } from './dataService';
+import { ARTIFICER_SRD_ALIASES } from '../data/artificerLegacySpellList';
 
 /**
  * The only Artificer source supplied to the project is a third-party
@@ -17,13 +18,7 @@ const normalise = (name: string) =>
     .replace(/\s*\(ua\)$/, '')
     .trim();
 
-// SRD 5.1 prints these without the wizard's name.
-const SRD_NAMES: Record<string, string> = {
-  "leomund's secret chest": 'secret chest',
-  "mordenkainen's faithful hound": 'faithful hound',
-  "mordenkainen's private sanctum": 'private sanctum',
-  "otiluke's resilient sphere": 'resilient sphere',
-};
+const SRD_NAMES = ARTIFICER_SRD_ALIASES;
 
 describe('legacy Artificer reference', () => {
   it('slot progression matches the reference table at every level', () => {
@@ -54,28 +49,47 @@ describe('legacy Artificer reference', () => {
     );
   });
 
-  it('shows which listed spells the bundled SRD catalog can resolve', () => {
-    const missing = entries
-      .filter((entry) => !entry.inCatalog)
-      .map((entry) => entry.name);
-    // These are Tasha's, Xanathar's, Fizban's, Spelljammer and UA spells that
-    // the SRD does not contain. They cannot be added without a licensed source.
-    expect(missing).toHaveLength(33);
-    expect(missing).toEqual(
-      expect.arrayContaining([
-        "Tasha's Caustic Brew",
-        'Booming Blade',
-        'Summon Construct',
-        'Absorb Elements',
-      ]),
-    );
-    expect(entries.filter((entry) => entry.inCatalog)).toHaveLength(70);
+  it('resolves every official listed spell to exactly one catalog entry', () => {
+    const catalogEntries = loadSpells('2014');
+    const official = entries.filter((entry) => !/\(UA\)/.test(entry.name));
+    expect(official).toHaveLength(100);
+    for (const entry of official) {
+      const matches = catalogEntries.filter(
+        (spell) =>
+          normalise(spell.name) ===
+          (SRD_NAMES[normalise(entry.name)] ?? normalise(entry.name)),
+      );
+      expect(matches, entry.name).toHaveLength(1);
+      expect(matches[0].classes, entry.name).toContain('artificer');
+      expect(matches[0].level, entry.name).toBe(entry.level);
+    }
   });
 
-  it('keeps Artificer off every bundled spell list while the class is blocked', () => {
-    const withArtificer = [...loadSpells('2014'), ...loadSpells('2024')].filter(
-      (spell) => spell.classes.includes('artificer'),
+  it('keeps the three Unearthed Arcana playtest spells out of the catalog', () => {
+    const names = loadSpells('2014').map((spell) => normalise(spell.name));
+    for (const playtest of ['arcane weapon', 'flame stride', 'house of cards'])
+      expect(names).not.toContain(playtest);
+  });
+
+  it('bundles mechanics only for the 29 non-SRD spells, not their rules text', () => {
+    const supplemental = loadSpells('2014').filter(
+      (spell) => spell.textNotBundled,
     );
-    expect(withArtificer).toEqual([]);
+    expect(supplemental).toHaveLength(29);
+    for (const spell of supplemental) {
+      expect(spell.classes).toEqual(['artificer']);
+      expect(spell.description).toMatch(/not bundled/i);
+      expect(spell.description.length).toBeLessThan(100);
+    }
+  });
+
+  it('gives the legacy Artificer list 100 spells and leaves 2024 spells alone', () => {
+    expect(
+      loadSpells('2014').filter((spell) => spell.classes.includes('artificer')),
+    ).toHaveLength(100);
+    // The revised 2025 Artificer is unverified, so no 2024 spell carries it.
+    expect(
+      loadSpells('2024').filter((spell) => spell.classes.includes('artificer')),
+    ).toEqual([]);
   });
 });

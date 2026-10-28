@@ -382,6 +382,16 @@ export interface Equipment {
   weight: number;
   description?: string;
 
+  // Tool proficiency fields (tools, kits, gaming sets, instruments, vehicles)
+  proficiencyGroup?:
+    | 'artisans-tools'
+    | 'other-tools'
+    | 'gaming-set'
+    | 'musical-instrument'
+    | 'vehicles';
+  /** Skills a proficiency with this tool can inform. */
+  relatedSkills?: string[];
+
   // Weapon-specific fields
   weapon_category?: 'Simple' | 'Martial';
   weapon_range?: 'Melee' | 'Ranged';
