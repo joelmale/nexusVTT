@@ -7,7 +7,7 @@ and VTT converter; see [ADR-0002](../../apps/docs/vtt/adr/0002-shared-character-
 The maintained [engineering guide](../../apps/docs/platform/integrations/character-creation.md)
 covers public props, result types, draft/evaluation services, host integration,
 styling and contributor checks. The
-[review record](../../apps/docs/platform/integrations/character-creation-review.md)
+[review record](../../apps/docs/platform/integrations/archive/character-creation-review.md)
 distinguishes the current candidate from released/deployed behavior.
 
 ## Current implementation status

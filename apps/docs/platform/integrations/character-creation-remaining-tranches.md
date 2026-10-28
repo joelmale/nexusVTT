@@ -5,16 +5,16 @@ description: Ordered implementation and acceptance work after the first rules, r
 
 # Remaining creator and Studio implementation tranches
 
-> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
+> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](character-creation.md) and the [coverage matrix](archive/character-creation-docs-coverage.md).
 
 Date: **2026-10-26**. Implementation baseline: **`38ba9856`**, pushed to `main`.
 Status: **T-01–03 implementation in progress; exit criteria remain open. T-08 device/AT acceptance waived by the owner (excluded, not passed).** See the
-[current implementation record](character-creation-tranches-1-3-evidence.md).
+[current implementation record](archive/character-creation-tranches-1-3-evidence.md).
 
 This is the execution plan for work remaining after the first repair tranche.
 It refines the open V-01–V-09 packets in the
-[original validation plan](character-creation-validation-plan.md), using the
-[execution evidence](character-creation-validation-evidence.md). Historical
+[original validation plan](archive/character-creation-validation-plan.md), using the
+[execution evidence](archive/character-creation-validation-evidence.md). Historical
 failures and passes remain in that ledger. The broad player and engineering
 guide refresh stays last.
 
@@ -299,7 +299,7 @@ This does not assert production deployment health.
 
 ## T-08 — Run real device acceptance and research
 
-Use the existing [manual acceptance instructions](character-creation-manual-acceptance.md).
+Use the existing [manual acceptance instructions](archive/character-creation-manual-acceptance.md).
 Supply a reachable isolated test URL and exact build identity. Capture versions
 before testing; the owner's MacBook Edge **156.0.4314.42** is reported information,
 and “latest Safari” on iPhone/iPad is not an exact version record.
@@ -328,7 +328,7 @@ not pass. No accessibility conformance is claimed for the creator, sheet or
 Studio; the automated axe, focus, viewport and contrast checks remain the only
 accessibility evidence. The independent rules review and the 12–18 participant
 study are **not** covered by this waiver and remain open, as do T-09 release and
-rollback acceptance. The prepared [run checklist](character-creation-t08-checklist.md)
+rollback acceptance. The prepared [run checklist](archive/character-creation-t08-checklist.md)
 stays available if this decision is reversed.
 
 **Exit:** required device/AT tasks and independent reviews pass, material findings

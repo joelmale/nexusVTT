@@ -377,7 +377,7 @@ account and campaign objects. Standalone Forge supports local drafts and
 offline authoring through IndexedDB, and uses the same authenticated API when
 the user opens account or campaign scope.
 
-Proposed additive tables, refined through migration review (see detailed schema definitions and interaction diagrams in [Object models, database tables, and application data flow](../object-models-and-data-flow.md)):
+Proposed additive tables, refined through migration review (see detailed schema definitions and interaction diagrams in [Object models, database tables, and application data flow](../../object-models-and-data-flow.md)):
 
 | Table/group                                                            | Stored data and constraints                                                                                                        |
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -1260,9 +1260,9 @@ flowchart TD
 ## References
 
 - [Shared character creator ADR](/vtt/adr/shared-character-creator)
-- [Object models, database tables, and application data flow](../object-models-and-data-flow.md)
+- [Object models, database tables, and application data flow](../../object-models-and-data-flow.md)
 - [Multiplayer reliability operations](/vtt/operations/multiplayer-observability)
-- [NexusCodex integration](NEXUSCODEX_INTEGRATION.md)
+- [NexusCodex integration](../NEXUSCODEX_INTEGRATION.md)
 - [Homelab deployment runbook](/codex/operations/nexuscodex-homelab)
 - [Official SRD downloads](https://www.dndbeyond.com/srd): use versioned 5.1 and
   5.2.1 source packs for the corresponding supported editions, retaining source

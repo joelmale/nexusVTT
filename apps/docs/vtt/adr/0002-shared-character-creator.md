@@ -109,7 +109,7 @@ the current local character-creation candidate on top of `edd07ca9`; it is not a
 release or deployment claim. The maintained description is now the
 [shared character creation engineering guide](/platform/integrations/character-creation),
 with evidence and open defects in the
-[review record](/platform/integrations/character-creation-review).
+[review record](/platform/integrations/archive/character-creation-review).
 
 The build-time package, one converter and explicit style/theme boundaries still
 apply. The candidate adds a four-screen guided flow, `CreationDraft` adapters,

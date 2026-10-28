@@ -5,7 +5,7 @@ description: Evidence-backed repair backlog, dependencies, regression journeys, 
 
 # Character creator and Campaign Studio repair plan
 
-> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
+> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](../character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
 
 Date: **2026-10-24**
 
@@ -21,7 +21,7 @@ and review record for that work. It does not mark existing features, research,
 accessibility, or release gates complete.
 
 The [original creator plan](character-creation-implementation-plan.md),
-[Studio sidecar plan](campaign-studio-sidecar-plan.md),
+[Studio sidecar plan](../campaign-studio-sidecar-plan.md),
 [Studio UX plan](campaign-studio-ux-plan.md), and
 [session-planner plan](campaign-studio-session-planner-plan.md) provide design
 context. This backlog addresses the concrete defects and missing evidence found

@@ -5,7 +5,7 @@ description: Implemented validation repairs, reproducible evidence, unresolved r
 
 # Character creator validation execution ledger
 
-> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
+> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](../character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
 
 Updated **2026-10-26**. Baseline: `248fedf9`; this entry describes subsequent
 working-tree changes, not a deployed release. Implements the
@@ -13,7 +13,7 @@ working-tree changes, not a deployed release. Implements the
 Certification flags remain false and the broad guide refresh remains deferred.
 
 Following publication of this tranche as `38ba9856`, the
-[remaining implementation tranches](character-creation-remaining-tranches.md)
+[remaining implementation tranches](../character-creation-remaining-tranches.md)
 define the next resource, progression, reference, host, security and manual
 acceptance work. The results below remain the historical execution record.
 The subsequent [T-01–03 implementation record](character-creation-tranches-1-3-evidence.md)

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const source = new URL(
-  '../../apps/docs/platform/integrations/character-creation-review.md',
+  '../../apps/docs/platform/integrations/archive/character-creation-review.md',
   import.meta.url,
 );
 const text = readFileSync(source, 'utf8');
@@ -106,9 +106,9 @@ const creatorChecks = {
   'CR-10': ['packages/character-creator/src/tests/supportInventory.test.ts'],
 };
 const manualInstructions =
-  'apps/docs/platform/integrations/character-creation-manual-acceptance.md';
+  'apps/docs/platform/integrations/archive/character-creation-manual-acceptance.md';
 const remainingIssues =
-  'apps/docs/platform/integrations/character-creation-tranches-1-3-evidence.md';
+  'apps/docs/platform/integrations/archive/character-creation-tranches-1-3-evidence.md';
 for (const entry of cases) {
   const paths =
     creatorChecks[entry.id] ??
@@ -151,7 +151,7 @@ const register = {
   schemaVersion: 2,
   baselineCommit: '38ba98566372f3d229ad572e10236bb9a16f7a50',
   requirementsFile:
-    'apps/docs/platform/integrations/character-creation-review.md',
+    'apps/docs/platform/integrations/archive/character-creation-review.md',
   requirementsSha256: createHash('sha256')
     .update(text.replace(/\r\n/g, '\n'))
     .digest('hex'),

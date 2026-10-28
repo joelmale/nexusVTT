@@ -5,7 +5,7 @@ description: Executable work packets for broader rules coverage, host verificati
 
 # Character creator rules and acceptance completion plan
 
-> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
+> **Documentation status (2026-10-27):** the player and engineering guides were refreshed against `6d187098`. This page is a historical planning/evidence record; for current behavior use the [engineering guide](../character-creation.md) and the [coverage matrix](character-creation-docs-coverage.md).
 
 Date: **2026-10-25**. Baseline: **`248fedf9`**, pushed to `main`.
 

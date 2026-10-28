@@ -1,6 +1,6 @@
 # Implementation Plan: Character Creator & Onboarding (Priority 2)
 
-The broader [shared character creation implementation plan](apps/docs/platform/integrations/character-creation-implementation-plan.md)
+The broader [shared character creation implementation plan](apps/docs/platform/integrations/archive/character-creation-implementation-plan.md)
 builds on the Priority 2 changes landed in `edd07ca9`. Use that plan for the
 remaining rules, onboarding, accessibility, recovery and host-handoff work;
 verify these landed changes before assigning duplicate fixes.
