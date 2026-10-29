@@ -363,8 +363,8 @@ export function LiveProof({
             </label>
             {page && (
               <span className="font-mono text-[11px] text-gray-500 dark:text-slate-400">
-                {page.widthPoints}×{page.heightPoints} pt · {page.blocks.length} blocks
-                {page.quality && ` · lexicon ${(page.quality.wordValidity * 100).toFixed(0)}%`}
+                {page.widthPt}×{page.heightPt} pt · {page.blocks.length} blocks
+                {typeof page.quality?.wordValidity === 'number' && ` · lexicon ${(page.quality.wordValidity * 100).toFixed(0)}%`}
               </span>
             )}
           </div>
