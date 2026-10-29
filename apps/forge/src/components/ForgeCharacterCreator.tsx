@@ -80,9 +80,9 @@ function OpenCreator({
       <dialog
         ref={dialog}
         onCancel={onCancel}
-        className="bg-theme-secondary text-theme-primary rounded-xl p-6 max-w-lg"
+        className="m-auto bg-theme-secondary text-theme-primary rounded-xl p-6 max-w-lg w-[calc(100%-2rem)] backdrop:bg-black/60 [&_button]:mr-2 [&_button]:mt-3 [&_button]:rounded-lg [&_button]:border [&_button]:border-theme-primary [&_button]:px-3 [&_button]:py-1.5 [&_button]:font-semibold hover:[&_button]:bg-theme-tertiary"
       >
-        <h2>Character creation recovery</h2>
+        <h2 className="mb-3 text-xl font-bold">Character creation recovery</h2>
         {recovery.phase === 'loading' ? (
           <p role="status">Loading saved work…</p>
         ) : (

@@ -33,6 +33,7 @@ export {
 
 // The completion handshake, exported so hosts can unit-test their own
 // persistence against the same contract the wizard uses.
+export { isPristineDraft } from './adapters/draftAdapter';
 export { useCreationSubmission } from './components/CharacterCreationWizard/hooks/useCreationSubmission';
 
 export type {

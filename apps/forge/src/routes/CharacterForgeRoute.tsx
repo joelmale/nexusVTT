@@ -1,13 +1,19 @@
 import React, { useCallback, useState } from 'react';
 
-import { type CharacterCreationResult } from '@nexus/character-creator';
+import {
+  type CharacterCreationResult,
+  type CreationMode,
+  type Edition,
+} from '@nexus/character-creator';
 import Hammer from 'lucide-react/dist/esm/icons/hammer';
 
 import { addCharacter } from '../services/dbService';
 import { ForgeCharacterCreator } from '../components/ForgeCharacterCreator';
 
 export const CharacterForgeRoute: React.FC = () => {
-  const [isWizardOpen, setIsWizardOpen] = useState(true);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [edition, setEdition] = useState<Edition>('2024');
+  const [mode, setMode] = useState<CreationMode>('full');
   const [createdCharacterName, setCreatedCharacterName] = useState<
     string | null
   >(null);
@@ -21,8 +27,9 @@ export const CharacterForgeRoute: React.FC = () => {
     [],
   );
 
-  const openWizard = (): void => {
+  const openWizard = (nextMode: CreationMode): void => {
     setCreatedCharacterName(null);
+    setMode(nextMode);
     setIsWizardOpen(true);
   };
 
@@ -52,22 +59,60 @@ export const CharacterForgeRoute: React.FC = () => {
             </p>
           )}
 
-          <button
-            type="button"
-            onClick={openWizard}
-            className="mt-7 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent-red px-6 py-3 font-bold text-white shadow-lg transition-colors hover:bg-accent-red-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-yellow-light"
-          >
-            <Hammer size={18} aria-hidden="true" />
-            {createdCharacterName
-              ? 'Forge another character'
-              : 'Begin character creation'}
-          </button>
+          <fieldset className="mt-7 flex justify-center gap-3 border-0 p-0">
+            <legend className="mb-2 text-sm font-semibold text-theme-muted">
+              Rules edition
+            </legend>
+            {(['2024', '2014'] as const).map((value) => (
+              <label
+                key={value}
+                className={`cursor-pointer rounded-lg border px-4 py-2 font-semibold ${
+                  edition === value
+                    ? 'border-accent-yellow-light bg-theme-tertiary'
+                    : 'border-theme-primary'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="edition"
+                  value={value}
+                  checked={edition === value}
+                  onChange={() => setEdition(value)}
+                  className="sr-only"
+                />
+                {value} rules
+              </label>
+            ))}
+          </fieldset>
+
+          <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => openWizard('guided')}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent-red px-6 py-3 font-bold text-white shadow-lg transition-colors hover:bg-accent-red-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-yellow-light"
+            >
+              <Hammer size={18} aria-hidden="true" />
+              Guided creation
+            </button>
+            <button
+              type="button"
+              onClick={() => openWizard('full')}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-theme-primary px-6 py-3 font-bold transition-colors hover:bg-theme-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-yellow-light"
+            >
+              Full step-by-step wizard
+            </button>
+          </div>
+          <p className="mt-3 text-sm text-theme-muted">
+            Guided asks about your character's personality first. The full
+            wizard covers every rules choice in order.
+          </p>
         </section>
       )}
 
       <ForgeCharacterCreator
         isOpen={isWizardOpen}
-        edition="2024"
+        edition={edition}
+        initialMode={mode}
         submitLabel="Save Character"
         onCancel={() => setIsWizardOpen(false)}
         onComplete={handleComplete}

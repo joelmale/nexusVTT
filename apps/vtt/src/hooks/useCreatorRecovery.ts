@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   decodeDraftRecord,
   encodeDraftRecord,
+  isPristineDraft,
   type CreationDraft,
   type CharacterCreationResult,
   type CreatorPresentation,
@@ -56,8 +57,24 @@ export function useCreatorRecovery(
       current.current = record;
       blocked.current = false;
       setError(undefined);
-      if (record) {
-        const decoded = decodeDraftRecord(record.value);
+      let decoded = record ? decodeDraftRecord(record.value) : undefined;
+      if (
+        record &&
+        decoded?.status === 'ok' &&
+        !decoded.record.pendingCompletion &&
+        isPristineDraft(decoded.record.draft)
+      ) {
+        // Left behind by an earlier build that saved a blank draft on open.
+        try {
+          await repository.deleteCreatorDraft(key, record.revision);
+          if (generation !== loadGeneration.current) return;
+          current.current = undefined;
+          decoded = undefined;
+        } catch {
+          /* Fall through and let the player decide. */
+        }
+      }
+      if (decoded) {
         frozenCompletion.current =
           decoded.status === 'ok'
             ? decoded.record.pendingCompletion
@@ -108,6 +125,9 @@ export function useCreatorRecovery(
 
   const persist = useCallback(() => {
     if (!latestDraft.current || blocked.current) return;
+    // An opened-but-untouched wizard is not work worth recovering.
+    if (isPristineDraft(latestDraft.current) && !frozenCompletion.current)
+      return;
     const value = encodeDraftRecord({
       draft: latestDraft.current,
       pendingCompletion: frozenCompletion.current,

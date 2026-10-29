@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { creationDataToDraft, draftToCreationData } from './draftAdapter';
+import {
+  creationDataToDraft,
+  draftToCreationData,
+  isPristineDraft,
+} from './draftAdapter';
+import { initialCreationData } from '../components/CharacterCreationWizard/constants/wizard.constants';
 import { REFERENCE_BUILDS } from '../tests/fixtures/referenceBuilds';
 
 describe('draftAdapter (CC-201)', () => {
@@ -54,5 +59,31 @@ describe('draftAdapter (CC-201)', () => {
     const f14Roll = { ...REFERENCE_BUILDS.F14.creationData, abilityScoreMethod: 'standard-roll' as const };
     const draftRoll = creationDataToDraft(f14Roll);
     expect(draftRoll.abilityMethod).toBe('manual');
+  });
+});
+
+describe('isPristineDraft', () => {
+  it('is true for the blank starting draft', () => {
+    expect(
+      isPristineDraft(
+        creationDataToDraft(initialCreationData, {
+          provenance: 'recommended',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('is false once the player or an import supplied anything', () => {
+    expect(isPristineDraft(creationDataToDraft(initialCreationData))).toBe(
+      false,
+    );
+  });
+
+  it('is false for a recommendation-built draft that carries a choice', () => {
+    const draft = creationDataToDraft(initialCreationData, {
+      provenance: 'recommended',
+    });
+    expect(isPristineDraft({ ...draft, classSlug: 'fighter' })).toBe(false);
+    expect(isPristineDraft({ ...draft, name: 'Ember' })).toBe(false);
   });
 });

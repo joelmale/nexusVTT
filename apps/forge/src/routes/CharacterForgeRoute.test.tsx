@@ -17,14 +17,27 @@ const completedCharacter = {
 
 interface MockWizardProps {
   isOpen: boolean;
+  edition?: string;
+  initialMode?: string;
   onCancel: () => void;
   onComplete: (result: CharacterCreationResult) => Promise<void> | void;
 }
 
 vi.mock('../components/ForgeCharacterCreator', () => ({
-  ForgeCharacterCreator: ({ isOpen, onCancel, onComplete }: MockWizardProps) =>
+  ForgeCharacterCreator: ({
+    isOpen,
+    edition,
+    initialMode,
+    onCancel,
+    onComplete,
+  }: MockWizardProps) =>
     isOpen ? (
-      <div role="dialog" aria-label="Character creation wizard">
+      <div
+        role="dialog"
+        aria-label="Character creation wizard"
+        data-edition={edition}
+        data-mode={initialMode}
+      >
         <button
           type="button"
           onClick={() => void onComplete(completedCharacter)}
@@ -48,18 +61,51 @@ describe('CharacterForgeRoute', () => {
     addCharacter.mockResolvedValue('character-1');
   });
 
-  it('isolates character creation from the rest of Forge', () => {
+  it('lets the player choose edition and creation style before opening the wizard', () => {
     render(<CharacterForgeRoute />);
 
-    expect(
-      screen.getByRole('dialog', { name: 'Character creation wizard' }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('2014 rules'));
+    fireEvent.click(screen.getByRole('button', { name: 'Guided creation' }));
+
+    const wizard = screen.getByRole('dialog', {
+      name: 'Character creation wizard',
+    });
+    expect(wizard).toHaveAttribute('data-edition', '2014');
+    expect(wizard).toHaveAttribute('data-mode', 'guided');
+  });
+
+  it('opens the full wizard on the default 2024 rules', () => {
+    render(<CharacterForgeRoute />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Full step-by-step wizard' }),
+    );
+
+    const wizard = screen.getByRole('dialog');
+    expect(wizard).toHaveAttribute('data-edition', '2024');
+    expect(wizard).toHaveAttribute('data-mode', 'full');
     expect(screen.queryByText(/Monster Library/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Spellbook/i)).not.toBeInTheDocument();
+  });
+
+  it('returns to the choices when the wizard is closed', () => {
+    render(<CharacterForgeRoute />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Full step-by-step wizard' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel creation' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Guided creation' }),
+    ).toBeInTheDocument();
   });
 
   it('persists a completed character and offers another creation', async () => {
     render(<CharacterForgeRoute />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Full step-by-step wizard' }),
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Complete character' }));
 
@@ -73,7 +119,7 @@ describe('CharacterForgeRoute', () => {
       screen.getByRole('heading', { name: 'Character Forge' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Forge another character' }),
+      screen.getByRole('button', { name: 'Guided creation' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

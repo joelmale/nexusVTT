@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import {
   decodeDraftRecord,
+  encodeDraftRecord,
   getRecommendation,
   toCharacterCreationResult,
 } from '@nexus/character-creator';
@@ -92,5 +93,80 @@ describe('host creation save recovery', () => {
       ).rejects.toThrow('could not be stored');
     });
     expect(hook.result.current.error).toContain('quota');
+  });
+
+  describe('untouched drafts', () => {
+    const blankDraft = () => ({
+      ...getRecommendation({ classSlug: 'fighter', edition: '2024' }).draft,
+      classSlug: undefined,
+      speciesSlug: undefined,
+      backgroundSlug: undefined,
+      name: '',
+      provenance: { class: 'recommended' as const },
+    });
+
+    it('does not save a draft that was only opened', async () => {
+      const repository = {
+        getCreatorDraft: vi.fn().mockResolvedValue(undefined),
+        saveCreatorDraft: vi.fn().mockResolvedValue(undefined),
+        deleteCreatorDraft: vi.fn(),
+      };
+      const hook = renderHook(() =>
+        useCreatorRecovery(repository, 'player:one'),
+      );
+      await waitFor(() => expect(hook.result.current.phase).toBe('ready'));
+      act(() => hook.result.current.onDraftChange(blankDraft()));
+      await act(async () => {
+        await hook.result.current.flush();
+      });
+      expect(repository.saveCreatorDraft).not.toHaveBeenCalled();
+    });
+
+    it('clears a blank draft left behind by an earlier build instead of asking to recover it', async () => {
+      const stored = {
+        id: 'player:one',
+        value: encodeDraftRecord({
+          draft: blankDraft(),
+          clientTabId: 'old-tab',
+        }),
+        revision: 3,
+        clientTabId: 'old-tab',
+      };
+      const repository = {
+        getCreatorDraft: vi.fn().mockResolvedValue(stored),
+        saveCreatorDraft: vi.fn(),
+        deleteCreatorDraft: vi.fn().mockResolvedValue(undefined),
+      };
+      const hook = renderHook(() =>
+        useCreatorRecovery(repository, 'player:one'),
+      );
+      await waitFor(() => expect(hook.result.current.phase).toBe('ready'));
+      expect(repository.deleteCreatorDraft).toHaveBeenCalledWith(
+        'player:one',
+        3,
+      );
+    });
+
+    it('still offers recovery for a draft with a real choice', async () => {
+      const draft = getRecommendation({
+        classSlug: 'fighter',
+        edition: '2024',
+      }).draft;
+      const repository = {
+        getCreatorDraft: vi.fn().mockResolvedValue({
+          id: 'player:one',
+          value: encodeDraftRecord({ draft, clientTabId: 'tab' }),
+          revision: 1,
+          clientTabId: 'tab',
+        }),
+        saveCreatorDraft: vi.fn(),
+        deleteCreatorDraft: vi.fn(),
+      };
+      const hook = renderHook(() =>
+        useCreatorRecovery(repository, 'player:one'),
+      );
+      await waitFor(() => expect(hook.result.current.phase).toBe('recover'));
+      expect(repository.deleteCreatorDraft).not.toHaveBeenCalled();
+    });
   });
 });

@@ -206,3 +206,22 @@ export function draftToCreationData(
     flaws: draft.flaws || '',
   };
 }
+
+/**
+ * True while the draft is still the blank starting state: nothing came from the
+ * player or an import, and no species, class or name is chosen (the background starts on a default).
+ * Hosts use this to avoid persisting (and later offering to "recover") a draft
+ * that was only ever opened. Recommendation-built drafts are not pristine once
+ * they carry a choice, so guided progress is still kept.
+ */
+export function isPristineDraft(draft: CreationDraft): boolean {
+  const untouched = Object.values(draft.provenance ?? {}).every(
+    (provenance) => provenance === 'recommended',
+  );
+  return (
+    untouched &&
+    !draft.speciesSlug &&
+    !draft.classSlug &&
+    !draft.name?.trim()
+  );
+}
