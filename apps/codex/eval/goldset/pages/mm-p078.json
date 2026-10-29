@@ -1,0 +1,106 @@
+{
+  "$schema": "../label.schema.json",
+  "id": "mm-p078",
+  "goldsetVersion": 1,
+  "source": {
+    "sha256": "6514c87c6c040c86b996acb2e4a5663b5e0065084842280f6b0a94b4c964ac3e",
+    "pageNumber": 79,
+    "title": "Monster Manual"
+  },
+  "category": "monster_stat_block",
+  "heldOut": false,
+  "status": "verified",
+  "review": {
+    "verifiedBy": "me",
+    "verifiedAt": "2026-10-29T02:40:55.268Z",
+    "numbersChecked": true,
+    "notes": ""
+  },
+  "text": "Spined Devil\nSmall fiend (devil), lawful evil\n\nArmor Class 13 (natural armor)\nHit Points 22 (5d6 + 5)\nSpeed 20 ft., fly 40 ft.\n\nSTR 10 (+0) DEX 15 (+2) CON 12 (+1) INT 11 (+0) WIS 14 (+2) CHA 8 (-1)\n\nDamage Resistances cold; bludgeoning, piercing, and slashing from nonmagical weapons that aren't silvered\nDamage Immunities fire, poison\nCondition Immunities poisoned\nSenses darkvision 120 ft., passive Perception 12\nLanguages Infernal, telepathy 120 ft.\nChallenge 2 (450 XP)\n\nDevil's Sight. Magical darkness doesn't impede the devil's darkvision.\n\nFlyby. The devil doesn't provoke an opportunity attack when it flies out of an enemy's reach.\n\nLimited Spines. The devil has twelve tail spines. Used spines regrow by the time the devil finishes a long rest.\n\nMagic Resistance. The devil has advantage on saving throws against spells and other magical effects.\n\nActions\n\nMultiattack. The devil makes two attacks: one with its bite and one with its fork or two with its tail spines.\n\nBite. Melee Weapon Attack: +2 to hit, reach 5 ft., one target. Hit: 5 (2d4) slashing damage.\n\nFork. Melee Weapon Attack: +2 to hit, reach 5 ft., one target. Hit: 3 (1d6) piercing damage.\n\nTail Spine. Ranged Weapon Attack: +4 to hit, range 20/80 ft., one target. Hit: 4 (1d4 + 2) piercing damage plus 3 (1d6) fire damage.\n\n",
+  "regions": [
+    {
+      "class": "art",
+      "bbox": [
+        0,
+        0,
+        0.53,
+        0.995
+      ]
+    },
+    {
+      "class": "stat_block",
+      "bbox": [
+        0.5285834842459206,
+        0.3486755462470408,
+        0.940817722438879,
+        0.9235955947219772
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "type": "monster",
+      "data": {
+        "name": "Spined Devil",
+        "size": "Small",
+        "type": "fiend (devil)",
+        "alignment": "lawful evil",
+        "armorClass": 13,
+        "armorType": "natural armor",
+        "hitPoints": 22,
+        "hitDice": "5d6 + 5",
+        "speed": "20 ft., fly 40 ft.",
+        "abilities": {
+          "str": 10,
+          "dex": 15,
+          "con": 12,
+          "int": 11,
+          "wis": 14,
+          "cha": 8
+        },
+        "damageResistances": "cold; bludgeoning, piercing, and slashing from nonmagical weapons that aren't silvered",
+        "damageImmunities": "fire, poison",
+        "conditionImmunities": "poisoned",
+        "senses": "darkvision 120 ft., passive Perception 12",
+        "languages": "Infernal, telepathy 120 ft.",
+        "challengeRating": "2 (450 XP)",
+        "traits": [
+          {
+            "name": "Devil's Sight",
+            "description": "Magical darkness doesn't impede the devil's darkvision."
+          },
+          {
+            "name": "Flyby",
+            "description": "The devil doesn't provoke an opportunity attack when it flies out of an enemy's reach."
+          },
+          {
+            "name": "Limited Spines",
+            "description": "The devil has twelve tail spines. Used spines regrow by the time the devil finishes a long rest."
+          },
+          {
+            "name": "Magic Resistance",
+            "description": "The devil has advantage on saving throws against spells and other magical effects."
+          }
+        ],
+        "actions": [
+          {
+            "name": "Multiattack",
+            "description": "The devil makes two attacks: one with its bite and one with its fork or two with its tail spines."
+          },
+          {
+            "name": "Bite",
+            "description": "Melee Weapon Attack: +2 to hit, reach 5 ft., one target. Hit: 5 (2d4) slashing damage."
+          },
+          {
+            "name": "Fork",
+            "description": "Melee Weapon Attack: +2 to hit, reach 5 ft., one target. Hit: 3 (1d6) piercing damage."
+          },
+          {
+            "name": "Tail Spine",
+            "description": "Ranged Weapon Attack: +4 to hit, range 20/80 ft., one target. Hit: 4 (1d4 + 2) piercing damage plus 3 (1d6) fire damage."
+          }
+        ]
+      }
+    }
+  ]
+}

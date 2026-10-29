@@ -55,7 +55,6 @@ function App() {
               <Route path="/deduplication" element={<RequirePermission action="viewDocuments"><Deduplication /></RequirePermission>} />
               <Route path="/data-quality" element={<RequirePermission action="viewDocuments"><DataQuality /></RequirePermission>} />
               <Route path="/bulk-upload" element={<RequirePermission action="viewDocuments"><BulkUpload /></RequirePermission>} />
-              <Route path="/logs" element={<RequirePermission action="viewDocuments"><Logs /></RequirePermission>} />
               <Route path="/settings" element={<RequirePermission action="manageSettings"><Settings /></RequirePermission>} />
               <Route path="/reader/:id" element={<RequirePermission action="viewDocuments"><Reader /></RequirePermission>} />
               {/* Rules registry */}
@@ -67,9 +66,10 @@ function App() {
               <Route path="/assets/upload" element={<RequirePermission action="editAssets"><AssetUpload /></RequirePermission>} />
               <Route path="/assets/jobs" element={<RequirePermission action="viewAssets"><AssetJobs /></RequirePermission>} />
               <Route path="/assets/:id" element={<RequirePermission action="viewAssets"><AssetDetail /></RequirePermission>} />
-              {/* Operations, audit, administrators */}
+              {/* Operations, logs, database, audit, administrators */}
               <Route path="/operations" element={<RequirePermission action="viewOperations"><Operations /></RequirePermission>} />
               <Route path="/database" element={<RequirePermission action="viewOperations"><DatabaseExplorer /></RequirePermission>} />
+              <Route path="/logs" element={<RequirePermission action="viewOperations"><Logs /></RequirePermission>} />
               <Route path="/health" element={<Navigate to="/operations" replace />} />
               <Route path="/audit" element={<RequirePermission action="viewAudit"><Audit /></RequirePermission>} />
               <Route path="/administrators" element={<RequirePermission action="manageAdmins"><Administrators /></RequirePermission>} />

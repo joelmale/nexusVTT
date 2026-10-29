@@ -9,6 +9,10 @@ const MARGIN = 0.015; // normalized margin added around each region
  * Renders the pages that hold monster candidates once, at EXTRACT_CROP_DPI
  * (~200), and crops each region (bbox + margin) to a PNG for the VLM. A stat
  * block spanning a column or page break yields one crop per region.
+ *
+ * Large crops are downscaled to fit inside EXTRACT_CROP_MAX_WIDTH x EXTRACT_CROP_MAX_HEIGHT
+ * (default 1200x1600) so vision models (Qwen-VL) do not produce 14k+ visual tokens
+ * and exceed OLLAMA_NUM_CTX.
  */
 export class MonsterCropService {
   async cropRegions(pdfBuffer: Buffer, regionsByKey: Map<string, CandidateRegion[]>): Promise<Map<string, Buffer[]>> {
@@ -64,7 +68,13 @@ export const cropRegionWithGeometry = async (
   const right = Math.min(width, Math.round(x1 * width));
   const bottom = Math.min(height, Math.round(y1 * height));
   const box = { left, top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
-  return { ...box, buffer: await image.extract(box).png().toBuffer() };
+  const cropped = image.extract(box).resize({
+    width: env.EXTRACT_CROP_MAX_WIDTH,
+    height: env.EXTRACT_CROP_MAX_HEIGHT,
+    fit: 'inside',
+    withoutEnlargement: true,
+  });
+  return { ...box, buffer: await cropped.png().toBuffer() };
 };
 
 export const monsterCropService = new MonsterCropService();

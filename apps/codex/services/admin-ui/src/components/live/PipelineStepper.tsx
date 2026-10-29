@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Loader2, MinusCircle } from 'lucide-react'
+import { AlertTriangle, Check, Loader2, MinusCircle, RotateCcw } from 'lucide-react'
 import { formatDuration, type PipelineStep, type StepStatus } from './pipeline'
 
 const STATUS: Record<StepStatus, { word: string; badge: string; ring: string }> = {
@@ -54,6 +54,8 @@ export interface PipelineStepperProps {
   now: number
   selected: string | null
   onSelect: (stepId: string | null) => void
+  onRetryStage?: (stepId: string) => void
+  isRetrying?: boolean
 }
 
 /**
@@ -62,7 +64,7 @@ export interface PipelineStepperProps {
  * Clicking a step filters the artifact stream and console to it; clicking it
  * again clears the filter.
  */
-export function PipelineStepper({ steps, now, selected, onSelect }: PipelineStepperProps) {
+export function PipelineStepper({ steps, now, selected, onSelect, onRetryStage, isRetrying }: PipelineStepperProps) {
   return (
     <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5" aria-label="Pipeline steps">
       {steps.map((step, index) => {
@@ -71,7 +73,7 @@ export function PipelineStepper({ steps, now, selected, onSelect }: PipelineStep
           step.startedAt === undefined ? undefined : (step.endedAt ?? (step.status === 'active' ? now : step.startedAt)) - step.startedAt
         const isSelected = selected === step.id
         return (
-          <li key={step.id}>
+          <li key={step.id} className="relative group">
             <button
               type="button"
               onClick={() => onSelect(isSelected ? null : step.id)}
@@ -82,13 +84,15 @@ export function PipelineStepper({ steps, now, selected, onSelect }: PipelineStep
                 isSelected ? 'ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-slate-900' : ''
               }`}
             >
-              <span className="flex items-center gap-2">
-                <Badge status={step.status} index={index} />
-                <span className="min-w-0">
-                  <span className="block truncate text-xs font-semibold text-gray-900 dark:text-slate-100">{step.label}</span>
-                  <span className="block truncate font-mono text-[10px] text-gray-500 dark:text-slate-400">{step.engine}</span>
+              <div className="flex items-center justify-between w-full">
+                <span className="flex items-center gap-2 min-w-0 pr-6">
+                  <Badge status={step.status} index={index} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-semibold text-gray-900 dark:text-slate-100">{step.label}</span>
+                    <span className="block truncate font-mono text-[10px] text-gray-500 dark:text-slate-400">{step.engine}</span>
+                  </span>
                 </span>
-              </span>
+              </div>
               <span className="flex items-center justify-between gap-2 font-mono text-[11px]">
                 <span className="text-gray-600 dark:text-slate-300">{style.word}</span>
                 {elapsed !== undefined && (
@@ -107,6 +111,24 @@ export function PipelineStepper({ steps, now, selected, onSelect }: PipelineStep
               )}
               {step.detail && <span className="font-mono text-[11px] text-gray-700 dark:text-slate-300">{step.detail}</span>}
             </button>
+            {onRetryStage && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRetryStage(step.id)
+                }}
+                disabled={isRetrying}
+                title={`Retry ${step.label} stage`}
+                aria-label={`Retry ${step.label} stage`}
+                data-testid={`retry-step-${step.id}`}
+                className={`absolute top-2 right-2 rounded p-1 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:text-indigo-300 transition-opacity ${
+                  step.status === 'failed' ? 'opacity-100 text-red-500 hover:text-red-700' : 'opacity-0 group-hover:opacity-100'
+                }`}
+              >
+                <RotateCcw className={`h-3.5 w-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
+              </button>
+            )}
           </li>
         )
       })}

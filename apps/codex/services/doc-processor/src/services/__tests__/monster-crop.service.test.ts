@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { cropRegion } from '../monster-crop.service';
+import { cropRegion, cropRegionWithGeometry } from '../monster-crop.service';
 
 describe('cropRegion', () => {
   it('crops a normalized bbox plus margin from the rendered page', async () => {
@@ -15,5 +15,22 @@ describe('cropRegion', () => {
     const page = await sharp({ create: { width: 800, height: 800, channels: 3, background: 'white' } }).png().toBuffer();
     const { width, height } = await sharp(await cropRegion(page, [0, 0, 1, 1])).metadata();
     expect([width, height]).toEqual([800, 800]);
+  });
+
+  it('downscales oversized crops to prevent token context explosion in the VLM', async () => {
+    // Large 3000x4000 page
+    const page = await sharp({ create: { width: 3000, height: 4000, channels: 3, background: 'white' } }).png().toBuffer();
+    const result = await cropRegionWithGeometry(page, [0, 0, 1, 1]);
+    const { width, height } = await sharp(result.buffer).metadata();
+
+    // Box geometry reports original crop coordinates for display / logging
+    expect(result.width).toBe(3000);
+    expect(result.height).toBe(4000);
+
+    // Buffer is downscaled to fit inside 1200x1600 (aspect ratio 3:4 -> 1200x1600)
+    expect(width).toBeLessThanOrEqual(1200);
+    expect(height).toBeLessThanOrEqual(1600);
+    expect(width).toBe(1200);
+    expect(height).toBe(1600);
   });
 });

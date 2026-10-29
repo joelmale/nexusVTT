@@ -11,5 +11,9 @@
   },
   "pages": [
     { "id": "synthetic-001", "file": "pages/synthetic-001.json" }
+    { "id": "mm-p079", "file": "pages/mm-p079.json" }
+    { "id": "phb-p065", "file": "pages/phb-p065.json" }
+    { "id": "phb-p077", "file": "pages/phb-p077.json" }
+    { "id": "phb-p083", "file": "pages/phb-p083.json" }
   ]
 }

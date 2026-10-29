@@ -69,6 +69,20 @@ function PageMarkdown({ documentId, pageNumber, defaultOpen = false }: { documen
   )
 }
 
+function formatBytes(bytes?: number): string {
+  if (!bytes || bytes <= 0) return ''
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`
+}
+
+export interface FileFacts {
+  fileSize?: number
+  pageCount?: number
+  format?: string
+  pipelineVersion?: 'v1' | 'v2' | string
+}
+
 export interface LiveProofProps {
   documentId: string
   documentTitle?: string
@@ -77,9 +91,21 @@ export interface LiveProofProps {
   rawLogs?: ReactNode
   /** Document.contentHash: identifies the source PDF in gold-set labels. */
   contentHash?: string | null
+  fileFacts?: FileFacts
+  onRetryStage?: (stepId: string) => void
+  isRetrying?: boolean
 }
 
-export function LiveProof({ documentId, documentTitle, active, rawLogs, contentHash }: LiveProofProps) {
+export function LiveProof({
+  documentId,
+  documentTitle,
+  active,
+  rawLogs,
+  contentHash,
+  fileFacts,
+  onRetryStage,
+  isRetrying,
+}: LiveProofProps) {
   const reducedMotion = useReducedMotion()
   const [replayRunId, setReplayRunId] = useState<string | null>(null)
   const { events, runs, runId, error, replay, transport } = useProcessingEvents(documentId, { active, replayRunId })
@@ -160,6 +186,17 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
   )
   const newestMarkdownId = [...stream].reverse().find((event) => event.kind === 'page_markdown')?.id
 
+  const factsText = useMemo(() => {
+    if (!fileFacts) return null
+    const parts = [
+      fileFacts.pageCount ? `${fileFacts.pageCount} pages` : null,
+      fileFacts.fileSize ? formatBytes(fileFacts.fileSize) : null,
+      fileFacts.format ? fileFacts.format.toUpperCase() : null,
+      `Ingestion ${fileFacts.pipelineVersion || live.pipelineVersion || 'v2'}`,
+    ].filter(Boolean)
+    return parts.length > 0 ? parts.join(' • ') : null
+  }, [fileFacts, live.pipelineVersion])
+
   return (
     <section
       className="rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
@@ -168,9 +205,14 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
       {/* Header strip */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/60">
         <div className="min-w-0">
-          <h2 id="live-proof-title" className="font-mono text-sm font-semibold tracking-wide text-gray-900 dark:text-slate-100">
-            CODEX INGESTION ENGINE
+          <h2 id="live-proof-title" className="font-mono text-sm font-semibold tracking-wide text-gray-900 dark:text-slate-100 flex flex-wrap items-center gap-1.5">
+            <span>CODEX INGESTION ENGINE</span>
             {documentTitle && <span className="font-normal text-gray-500 dark:text-slate-400"> :: {documentTitle}</span>}
+            {factsText && (
+              <span className="text-xs font-normal text-gray-500 dark:text-slate-400 font-sans" data-testid="live-proof-file-facts">
+                ({factsText})
+              </span>
+            )}
           </h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
             <QualityBadge label="Lexicon Match" value={live.quality.average} lowPages={live.quality.lowPages} onSelectPage={selectPage} />
@@ -274,7 +316,14 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
               : 'No processing events for this document. Events are recorded for runs since the live-processing release; reprocess it to watch it here.'}
           </p>
         )}
-        <PipelineStepper steps={live.steps} now={now} selected={selectedStep} onSelect={setSelectedStep} />
+        <PipelineStepper
+          steps={live.steps}
+          now={now}
+          selected={selectedStep}
+          onSelect={setSelectedStep}
+          onRetryStage={onRetryStage}
+          isRetrying={isRetrying}
+        />
       </div>
 
       {/* Split view: page left, artifacts right; stacked below 1024px (lg). */}
@@ -298,18 +347,26 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
                 ))}
               </select>
             </label>
-            <label className="flex items-center gap-1">
+            <span className="text-gray-400 dark:text-slate-600">/ {pages.length}</span>
+            <label className="flex items-center gap-1 text-gray-600 dark:text-slate-300">
               <input
                 type="checkbox"
                 checked={followLive}
+                disabled={!active || replay.active}
                 onChange={(e) => {
                   setFollowLive(e.target.checked)
-                  if (e.target.checked) setHighlight([])
+                  if (e.target.checked && revealed !== null) setManualPage(revealed)
                 }}
+                className="rounded"
               />
               Follow live
             </label>
-            {page && <QualityBadge value={page.quality?.wordValidity} label={`p.${page.pageNumber}`} />}
+            {page && (
+              <span className="font-mono text-[11px] text-gray-500 dark:text-slate-400">
+                {page.widthPoints}×{page.heightPoints} pt · {page.blocks.length} blocks
+                {page.quality && ` · lexicon ${(page.quality.wordValidity * 100).toFixed(0)}%`}
+              </span>
+            )}
           </div>
 
           {pageNumber !== null && page ? (
@@ -358,59 +415,59 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
             />
           </div>
         ) : (
-        <div className="flex min-w-0 flex-col gap-2">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">
-            Artifact stream
-            {stepLabel && <span className="ml-2 font-mono text-xs font-normal text-indigo-600 dark:text-indigo-300">{stepLabel}</span>}
-          </h3>
-          {selectedBlock && (
-            <div className="rounded border border-emerald-300 bg-emerald-50 p-2 text-xs" data-testid="selected-block">
-              <div className="mb-1 font-mono text-[10px] uppercase text-emerald-700">
-                {selectedBlock.id} · {selectedBlock.class} ({selectedBlock.markerType})
+          <div className="flex min-w-0 flex-col gap-2">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">
+              Artifact stream
+              {stepLabel && <span className="ml-2 font-mono text-xs font-normal text-indigo-600 dark:text-indigo-300">{stepLabel}</span>}
+            </h3>
+            {selectedBlock && (
+              <div className="rounded border border-emerald-300 bg-emerald-50 p-2 text-xs" data-testid="selected-block">
+                <div className="mb-1 font-mono text-[10px] uppercase text-emerald-700">
+                  {selectedBlock.id} · {selectedBlock.class} ({selectedBlock.markerType})
+                </div>
+                <pre className="whitespace-pre-wrap text-gray-800">{selectedBlock.markdown ?? 'Excluded from text'}</pre>
               </div>
-              <pre className="whitespace-pre-wrap text-gray-800">{selectedBlock.markdown ?? 'Excluded from text'}</pre>
+            )}
+            <div className="max-h-[36rem] space-y-2 overflow-y-auto pr-1">
+              {stream.length === 0 && (
+                <p className="text-xs text-gray-400 dark:text-slate-500">
+                  {stepLabel ? `No artifacts from ${stepLabel}.` : 'Page Markdown and extracted entities appear here as they are produced.'}
+                </p>
+              )}
+              {stream.map((event) =>
+                event.kind === 'page_markdown' && event.pageNumber ? (
+                  <PageMarkdown key={event.id} documentId={documentId} pageNumber={event.pageNumber} defaultOpen={event.id === newestMarkdownId} />
+                ) : (
+                  <EntityCard
+                    key={event.id}
+                    entity={event.payload as unknown as ExtractedEntityPayload}
+                    isNew={event.id === newestEntityId}
+                    reducedMotion={reducedMotion}
+                    onShowSource={showSource}
+                  />
+                )
+              )}
             </div>
-          )}
-          <div className="max-h-[36rem] space-y-2 overflow-y-auto pr-1">
-            {stream.length === 0 && (
-              <p className="text-xs text-gray-400 dark:text-slate-500">
-                {stepLabel ? `No artifacts from ${stepLabel}.` : 'Page Markdown and extracted entities appear here as they are produced.'}
-              </p>
-            )}
-            {stream.map((event) =>
-              event.kind === 'page_markdown' && event.pageNumber ? (
-                <PageMarkdown key={event.id} documentId={documentId} pageNumber={event.pageNumber} defaultOpen={event.id === newestMarkdownId} />
-              ) : (
-                <EntityCard
-                  key={event.id}
-                  entity={event.payload as unknown as ExtractedEntityPayload}
-                  isNew={event.id === newestEntityId}
-                  reducedMotion={reducedMotion}
-                  onShowSource={showSource}
-                />
-              )
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2 border-t border-gray-200 pt-2 font-mono text-[11px] dark:border-slate-800" data-testid="artifact-footer">
-            <span
-              className={`rounded border px-1.5 py-0.5 ${
-                live.schemaFailures > 0
-                  ? 'border-red-300 text-red-700 dark:border-red-800 dark:text-red-300'
-                  : 'border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300'
-              }`}
-            >
-              [JSON Schema: {live.schemaFailures > 0 ? `${live.schemaFailures} invalid` : 'Valid'}]
-            </span>
-            <span className="rounded border border-purple-300 px-1.5 py-0.5 text-purple-700 dark:border-purple-800 dark:text-purple-300">
-              [Parsed: {live.entities.length} {live.entities.length === 1 ? 'Entity' : 'Entities'}]
-            </span>
-            {live.rejected > 0 && (
-              <span className="rounded border border-gray-300 px-1.5 py-0.5 text-gray-600 dark:border-slate-700 dark:text-slate-400">
-                [No entity: {live.rejected}]
+            <div className="flex flex-wrap gap-2 border-t border-gray-200 pt-2 font-mono text-[11px] dark:border-slate-800" data-testid="artifact-footer">
+              <span
+                className={`rounded border px-1.5 py-0.5 ${
+                  live.schemaFailures > 0
+                    ? 'border-red-300 text-red-700 dark:border-red-800 dark:text-red-300'
+                    : 'border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300'
+                }`}
+              >
+                [JSON Schema: {live.schemaFailures > 0 ? `${live.schemaFailures} invalid` : 'Valid'}]
               </span>
-            )}
+              <span className="rounded border border-purple-300 px-1.5 py-0.5 text-purple-700 dark:border-purple-800 dark:text-purple-300">
+                [Parsed: {live.entities.length} {live.entities.length === 1 ? 'Entity' : 'Entities'}]
+              </span>
+              {live.rejected > 0 && (
+                <span className="rounded border border-gray-300 px-1.5 py-0.5 text-gray-600 dark:border-slate-700 dark:text-slate-400">
+                  [No entity: {live.rejected}]
+                </span>
+              )}
+            </div>
           </div>
-        </div>
         )}
       </div>
 

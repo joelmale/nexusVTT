@@ -83,7 +83,11 @@ interface ProcessingReport {
   }
 }
 
-export default function Processing() {
+export interface ProcessingProps {
+  embedded?: boolean
+}
+
+export default function Processing({ embedded = false }: ProcessingProps = {}) {
   const [searchParams, setSearchParams] = useSearchParams()
   const documentIdParam = searchParams.get('documentId')
 
@@ -334,9 +338,16 @@ export default function Processing() {
   }
 
   return (
-    <div className="p-6">
+    <div className={embedded ? 'space-y-6 pt-2' : 'p-6'}>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Processing Queue</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Processing Queue</h1>
+          {embedded && (
+            <p className="text-sm text-gray-500 mt-1">
+              Active ingestion jobs, queue health, and live step inspector.
+            </p>
+          )}
+        </div>
         <div className="flex gap-4">
           <label className="flex items-center gap-2">
             <input
@@ -459,39 +470,29 @@ export default function Processing() {
           </div>
         )}
 
-        {targetDocId && (
+        {targetDocId ? (
           <div>
             <LiveProof
               documentId={targetDocId}
-              documentTitle={reportData?.document?.title}
+              documentTitle={reportData?.document?.title || currentInspectJob?.documentTitle}
               contentHash={reportData?.processing?.checkpoints?.contentHash}
+              fileFacts={{
+                fileSize: reportData?.document?.fileSize,
+                pageCount: reportData?.document?.pageCount,
+                format: reportData?.document?.format || 'PDF',
+                pipelineVersion: reportData?.processing?.pipelineVersion || 'v2',
+              }}
+              onRetryStage={canRetry && (targetDocId || currentInspectJob?.id) ? handleRetryStage : undefined}
+              isRetrying={reprocessMutation.isPending || retryMutation.isPending}
               active={Boolean(jobsData?.jobs?.some((job) => job.documentId === targetDocId && (job.status === 'active' || job.status === 'waiting')))}
               rawLogs={<RawJobLogs jobId={jobsData?.jobs?.find((job) => job.documentId === targetDocId)?.id ?? currentInspectJob?.id} />}
             />
           </div>
-        )}
-
-        <details className="mt-4 rounded-lg border border-gray-200 bg-white" open={!targetDocId}>
-          <summary className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-700">
-            Pipeline graph, file facts and stage retry
-          </summary>
-          <div className="p-2">
-            <PipelineGraph
-              documentTitle={reportData?.document?.title || currentInspectJob?.documentTitle || 'No Document Selected'}
-              documentId={targetDocId || currentInspectJob?.documentId}
-              format={reportData?.document?.format || 'PDF'}
-              fileSize={reportData?.document?.fileSize || 0}
-              pageCount={reportData?.document?.pageCount || 0}
-              searchIndex={reportData?.document?.searchIndex}
-              currentStage={currentInspectJob?.stage}
-              jobStatus={currentInspectJob?.status}
-              reportProcessing={reportData?.processing}
-              onRetryStage={canRetry && (targetDocId || currentInspectJob?.id) ? handleRetryStage : undefined}
-              isRetrying={reprocessMutation.isPending || retryMutation.isPending}
-              isLoading={reportLoading}
-            />
+        ) : (
+          <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 bg-white dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+            No document selected. Select a document from the queue or catalog above.
           </div>
-        </details>
+        )}
       </div>
 
       {/* Controls */}

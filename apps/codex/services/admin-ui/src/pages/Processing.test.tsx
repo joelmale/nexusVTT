@@ -88,11 +88,15 @@ function stubProcessingApi() {
       ...mockReport,
       document: { ...mockReport.document, id: 'doc-2', title: 'Players Handbook Excerpt' },
     })],
+    ['GET', '/control-api/v1/codex/admin/processing/doc-1/events', () => json(200, { events: [], runs: [], runId: 'run-1' })],
+    ['GET', '/control-api/v1/codex/admin/processing/doc-2/events', () => json(200, { events: [], runs: [], runId: 'run-2' })],
+    ['GET', '/control-api/v1/codex/admin/processing/doc-1/pages', () => json(200, { pages: [] })],
+    ['GET', '/control-api/v1/codex/admin/processing/doc-2/pages', () => json(200, { pages: [] })],
   ])
 }
 
 describe('Processing Page', () => {
-  it('renders queue stats, job list, and pipeline architecture graph', async () => {
+  it('renders queue stats, job list, and unified live processing bar with file facts', async () => {
     stubProcessingApi()
     renderPage(<Processing />, { me: meWith('platform_admin') })
 
@@ -103,22 +107,21 @@ describe('Processing Page', () => {
     expect((await screen.findAllByText('Completed')).length).toBeGreaterThan(0)
     expect((await screen.findAllByText('Failed')).length).toBeGreaterThan(0)
 
-    // Pipeline Hero section
+    // Unified Live Processing Hero section
     expect(await screen.findByText('Live processing')).toBeDefined()
-    expect(screen.getByText('Pipeline graph, file facts and stage retry')).toBeDefined()
-    expect(screen.getByText('Document Processing Graph')).toBeDefined()
+    expect(await screen.findByText(/CODEX INGESTION ENGINE/)).toBeDefined()
+    expect(screen.getByTestId('live-proof-file-facts')).toBeDefined()
+
+    // Unified stepper stages
+    expect(screen.getByTestId('step-preflight')).toBeDefined()
+    expect(screen.getByTestId('step-layout')).toBeDefined()
+    expect(screen.getByTestId('step-vlm')).toBeDefined()
+    expect(screen.getByTestId('step-chunking')).toBeDefined()
+    expect(screen.getByTestId('step-indexing')).toBeDefined()
 
     // Job table entries
     expect((await screen.findAllByText(/Dungeon Master Basic Rules/)).length).toBeGreaterThan(0)
     expect((await screen.findAllByText(/Players Handbook Excerpt/)).length).toBeGreaterThan(0)
-
-    // Pipeline nodes
-    expect(screen.getByTestId('node-ingest')).toBeDefined()
-    expect(screen.getByTestId('node-render')).toBeDefined()
-    expect(screen.getByTestId('node-ocr')).toBeDefined()
-    expect(screen.getByTestId('node-extract')).toBeDefined()
-    expect(screen.getByTestId('node-index')).toBeDefined()
-    expect(screen.getByTestId('node-assets')).toBeDefined()
   })
 
   it('allows switching inspected document via table inspect button', async () => {
@@ -144,7 +147,13 @@ describe('Processing Page', () => {
 
     fireEvent.click(detailsButtons[0])
 
-    // Modal opens with pipeline inspector title
+    // Modal opens with pipeline inspector title and deep node metrics
     expect(await screen.findByText(/Pipeline Details - Dungeon Master Basic Rules/i)).toBeDefined()
+    expect(screen.getByTestId('node-ingest')).toBeDefined()
+    expect(screen.getByTestId('node-render')).toBeDefined()
+    expect(screen.getByTestId('node-ocr')).toBeDefined()
+    expect(screen.getByTestId('node-extract')).toBeDefined()
+    expect(screen.getByTestId('node-index')).toBeDefined()
+    expect(screen.getByTestId('node-assets')).toBeDefined()
   })
 })

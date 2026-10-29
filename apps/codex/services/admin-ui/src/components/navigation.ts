@@ -4,7 +4,7 @@ export interface NavItem {
   path: string
   label: string
   /** Extra route prefixes that belong to this item (detail pages). */
-  match?: string
+  match?: string | string[]
 }
 
 export interface NavGroup {
@@ -22,13 +22,11 @@ export const NAV_GROUPS: NavGroup[] = [
     action: 'viewDocuments',
     items: [
       { path: '/', label: 'Dashboard' },
-      { path: '/documents', label: 'Documents', match: '/reader/' },
-      { path: '/bulk-upload', label: 'Bulk Upload' },
-      { path: '/processing', label: 'Processing' },
-      { path: '/search', label: 'Search' },
-      { path: '/deduplication', label: 'Deduplication' },
-      { path: '/data-quality', label: 'Data Quality' },
-      { path: '/logs', label: 'Logs' },
+      {
+        path: '/documents',
+        label: 'Documents',
+        match: ['/reader/', '/processing', '/bulk-upload', '/deduplication', '/data-quality', '/search'],
+      },
       { path: '/settings', label: 'Extraction Settings' },
     ],
   },
@@ -55,6 +53,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { path: '/operations', label: 'Operations' },
       { path: '/database', label: 'Database' },
+      { path: '/logs', label: 'Logs' },
     ],
   },
   {
@@ -91,8 +90,12 @@ export function activeNavGroup(groups: NavGroup[], pathname: string): NavGroup |
   let best: { group: NavGroup; length: number } | undefined
   for (const group of groups) {
     for (const item of group.items) {
-      if (item.match && pathname.startsWith(item.match) && item.match.length > (best?.length ?? 0)) {
-        best = { group, length: item.match.length }
+      if (!item.match) continue
+      const prefixes = Array.isArray(item.match) ? item.match : [item.match]
+      for (const prefix of prefixes) {
+        if (pathname.startsWith(prefix) && prefix.length > (best?.length ?? 0)) {
+          best = { group, length: prefix.length }
+        }
       }
     }
   }

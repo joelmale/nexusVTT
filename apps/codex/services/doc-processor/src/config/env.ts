@@ -111,6 +111,10 @@ const envSchema = z.object({
   // Part of the extraction cache key; bump it when prompts or schemas change.
   EXTRACT_PROMPT_VERSION: z.string().default('1'),
   EXTRACT_CROP_DPI: z.string().default('200').transform(Number),
+  // Capping crop dimensions prevents visual token explosion in vision models (e.g. Qwen-VL)
+  // where a multi-thousand-pixel crop can consume 14k+ tokens and exceed OLLAMA_NUM_CTX.
+  EXTRACT_CROP_MAX_WIDTH: z.string().default('1200').transform(Number),
+  EXTRACT_CROP_MAX_HEIGHT: z.string().default('1600').transform(Number),
   // Ollama preflight before extraction (services/ollama-guard.ts): check the
   // server is up and has the model, wait for other models to leave the shared
   // GPU, then load the model once. Waits are bounded; after OLLAMA_GPU_WAIT_MAX_MS
