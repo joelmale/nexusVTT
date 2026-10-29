@@ -30,9 +30,9 @@
       "port": 3010
     },
     {
-      "name": "dm-ui",
+      "name": "campaign-studio",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--workspace", "@nexuscodex/dm-ui"],
+      "runtimeArgs": ["run", "dev", "--workspace", "@nexus/campaign-studio"],
       "port": 3003
     },
     {

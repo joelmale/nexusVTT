@@ -3,7 +3,11 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from './support/diagnostics';
 import { createTestIdentity } from './support/testIdentity';
 import { openPanel } from './support/flows';
-import { hasManagedSmokeStack } from './support/stack';
+import {
+  hasManagedSmokeStack,
+  killSmokeService,
+  startSmokeService,
+} from './support/stack';
 import type { SessionPlan } from '@nexus/game-contracts';
 
 test('Studio publishes linked map, handout and encounter and runs their real VTT actions', async ({
@@ -274,6 +278,13 @@ test('Studio publishes linked map, handout and encounter and runs their real VTT
     await expect(
       encounterPanel.getByTestId('encounter-turn'),
     ).toHaveText('2');
+
+    // Durability Gate (CS-82): SIGKILL the backend replica after combat & deployment commit
+    await killSmokeService('backend');
+    await startSmokeService('backend');
+    await playerPage.reload();
+    await expect(playerPage.locator('[data-token-name^="Goblin"]')).toHaveCount(2);
+
     expect(diagnostics.pageErrors).toEqual([]);
   } finally {
     await playerContext.close();

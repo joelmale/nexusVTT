@@ -21,7 +21,11 @@ describe('campaign prep routes', () => {
   let server: Server;
   let authenticated = true;
   let userId = USER_ID;
-  let campaigns: { getCampaignById: ReturnType<typeof vi.fn> };
+  let campaigns: {
+    getCampaignById: ReturnType<typeof vi.fn>;
+    getCampaignAccess: ReturnType<typeof vi.fn>;
+  };
+  let coDmIds: Set<string>;
   let campaignPrep: {
     getObject: ReturnType<typeof vi.fn>;
     getRevision: ReturnType<typeof vi.fn>;
@@ -50,16 +54,24 @@ describe('campaign prep routes', () => {
     revise: ReturnType<typeof vi.fn>;
     archive: ReturnType<typeof vi.fn>;
     restore: ReturnType<typeof vi.fn>;
+    retire: ReturnType<typeof vi.fn>;
+    retireObject: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
     authenticated = true;
+    coDmIds = new Set();
     userId = USER_ID;
     campaigns = {
       getCampaignById: vi.fn().mockResolvedValue({
         id: CAMPAIGN_ID,
         dmId: USER_ID,
       }),
+      getCampaignAccess: vi.fn(async (_campaignId: string, caller: string) => ({
+        campaign: { id: CAMPAIGN_ID, dmId: USER_ID },
+        role:
+          caller === USER_ID ? 'owner' : coDmIds.has(caller) ? 'co-dm' : null,
+      })),
     };
     campaignPrep = {
       getObject: vi.fn(),
@@ -94,6 +106,8 @@ describe('campaign prep routes', () => {
       revise: vi.fn(),
       archive: vi.fn(),
       restore: vi.fn(),
+      retire: vi.fn(),
+      retireObject: vi.fn(),
     };
 
     app = express();
@@ -150,11 +164,39 @@ describe('campaign prep routes', () => {
     );
     expect(response.status).toBe(403);
 
-    campaigns.getCampaignById.mockResolvedValue(null);
+    campaigns.getCampaignAccess.mockResolvedValue(null);
     response = await fetch(
       `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects`,
     );
     expect(response.status).toBe(404);
+  });
+
+  it('lets co-DMs author prep but keeps the live run sheet with the owner', async () => {
+    const coDm = '44444444-4444-4444-8444-444444444444';
+    coDmIds.add(coDm);
+    userId = coDm;
+
+    const list = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects`,
+    );
+    expect(list.status).toBe(200);
+
+    campaignPrep.getActiveSessionPlanActivation.mockResolvedValueOnce(null);
+    const active = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/active?sessionId=session-12`,
+    );
+    expect(active.status).not.toBe(403);
+
+    const activate = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/${PLAN_ID}/activate`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: 'session-12', requestId: REQUEST_ID }),
+      },
+    );
+    expect(activate.status).toBe(403);
+    expect(campaignPrep.activateSessionPlan).not.toHaveBeenCalled();
   });
 
   it('lists campaign objects with validated filters', async () => {
@@ -358,6 +400,34 @@ describe('campaign prep routes', () => {
     expect(response.status).toBe(404);
 
     response = await post('archive', { expectedRevision: 0, requestId: 'x' });
+    expect(response.status).toBe(400);
+
+    author.retire.mockResolvedValue({
+      object: { id: PLAN_ID, status: 'retired' },
+    });
+    response = await post('retire', {
+      expectedRevision: 3,
+      requestId: REQUEST_ID,
+    });
+    expect(response.status).toBe(200);
+    expect(author.retire).toHaveBeenCalledWith({
+      campaignId: CAMPAIGN_ID,
+      objectId: PLAN_ID,
+      expectedRevision: 3,
+    });
+
+    author.retireObject.mockResolvedValue({
+      object: { id: PLAN_ID, status: 'retired' },
+    });
+    response = await post('retire', {});
+    expect(response.status).toBe(200);
+    expect(author.retireObject).toHaveBeenCalledWith(
+      CAMPAIGN_ID,
+      PLAN_ID,
+      USER_ID,
+    );
+
+    response = await post('retire', { expectedRevision: 0, requestId: 'x' });
     expect(response.status).toBe(400);
   });
 

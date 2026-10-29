@@ -108,7 +108,7 @@ updates:
       - '/apps/vtt/docker'
       - '/apps/forge'
       - '/apps/codex/services/admin-ui'
-      - '/apps/codex/services/dm-ui'
+      - '/apps/campaign-studio'
       - '/apps/codex/services/doc-api'
       - '/apps/codex/services/doc-processor'
       - '/apps/codex/services/doc-websocket'

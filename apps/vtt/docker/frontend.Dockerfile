@@ -108,7 +108,7 @@ FROM node:26.11.1-alpine AS codex-dm-builder
 WORKDIR /workspace
 
 COPY package.json package-lock.json ./
-COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/package.json
+COPY apps/campaign-studio/package.json ./apps/campaign-studio/package.json
 COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
 COPY packages/character-creator/package.json ./packages/character-creator/package.json
 COPY packages/character-creator/scripts ./packages/character-creator/scripts
@@ -117,7 +117,7 @@ COPY packages/rules-5e/package.json ./packages/rules-5e/package.json
 COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
 RUN npm ci \
-    --workspace=@nexuscodex/dm-ui \
+    --workspace=@nexus/campaign-studio \
     --workspace=@nexus/character-contracts \
     --workspace=@nexus/character-creator \
     --workspace=@nexus/game-contracts \
@@ -125,14 +125,14 @@ RUN npm ci \
     --include-workspace-root \
     --legacy-peer-deps
 
-COPY apps/codex/services/dm-ui ./apps/codex/services/dm-ui
+COPY apps/campaign-studio ./apps/campaign-studio
 COPY packages/character-contracts ./packages/character-contracts
 COPY packages/character-creator ./packages/character-creator
 COPY packages/game-contracts ./packages/game-contracts
 COPY packages/rules-5e ./packages/rules-5e
 
-RUN node scripts/build-workspace-dependencies.mjs --workspace @nexuscodex/dm-ui && \
-    npm run build --workspace=@nexuscodex/dm-ui
+RUN node scripts/build-workspace-dependencies.mjs --workspace @nexus/campaign-studio && \
+    npm run build --workspace=@nexus/campaign-studio
 
 
 # Stage 5: Codex Admin UI Builder
@@ -181,7 +181,7 @@ COPY apps/vtt/docker/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=vtt-builder /workspace/apps/vtt/dist /usr/share/nginx/html
 COPY --from=vtt-builder /workspace/apps/vtt/apps/generator-hub/dist /usr/share/nginx/html/generator-hub
 COPY --from=forge-builder /workspace/apps/forge/dist /usr/share/nginx/html/forge
-COPY --from=codex-dm-builder /workspace/apps/codex/services/dm-ui/dist /usr/share/nginx/html/codex-dm
+COPY --from=codex-dm-builder /workspace/apps/campaign-studio/dist /usr/share/nginx/html/codex-dm
 # Root of the private admin listener (:8081): the Codex Admin UI. Deliberately
 # outside the VTT root above, so neither listener can serve the other's files.
 COPY --from=codex-admin-builder /workspace/apps/codex/services/admin-ui/dist /usr/share/nginx/admin-ui

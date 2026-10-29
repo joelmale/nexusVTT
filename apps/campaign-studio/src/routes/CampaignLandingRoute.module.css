@@ -1,0 +1,81 @@
+.main {
+  align-items: center;
+  background: var(--studio-canvas);
+  color: var(--studio-text);
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  overflow: auto;
+  padding: var(--studio-page-gutter);
+}
+
+.card {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  max-width: 520px;
+  padding: 28px;
+  text-align: center;
+}
+
+.card h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+.card p {
+  color: var(--studio-text-muted);
+  line-height: 1.55;
+  margin: 10px 0 0;
+}
+
+.card button {
+  background: var(--studio-positive);
+  border: 0;
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-positive-contrast);
+  cursor: pointer;
+  margin-top: 18px;
+  min-height: 38px;
+  padding: 0 16px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.card .actions button {
+  margin-top: 0;
+}
+
+.primaryButton {
+  background: var(--studio-positive);
+  border: 1px solid var(--studio-positive);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-positive-contrast);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  min-height: 38px;
+  padding: 0 16px;
+}
+
+.secondaryButton {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  font: inherit;
+  min-height: 38px;
+  padding: 0 16px;
+}
+
+.secondaryButton:hover {
+  background: var(--studio-surface);
+  border-color: var(--studio-text-muted);
+}

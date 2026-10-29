@@ -16,7 +16,7 @@ Build the campaign builder as a separate DM-focused web application in this
 monorepo, but treat it as a **Nexus VTT sidecar**, not as an extension of the
 NexusCodex document service.
 
-Use the existing `apps/codex/services/dm-ui` as the short-term product shell so
+Use the existing `apps/campaign-studio` as the short-term product shell so
 the current pages and deployment path are not discarded. Rename the product in
 the UI to **Nexus Campaign Studio** and migrate it, after the API boundary is
 stable, to a top-level application such as `apps/campaign-studio`. Its current
@@ -33,7 +33,7 @@ The first delivery is a faithful representative frontend for the approved
 campaign overview, session-plan authoring, and map-preparation concepts. It
 uses a detailed Ashes of Veyra demo campaign and registered placeholders for
 future capabilities. The implementation-ready specification is in the
-[Campaign Studio UX plan](campaign-studio-ux-plan.md).
+[Campaign Studio UX plan](archive/campaign-studio-ux-plan.md).
 
 After visual acceptance, the first functional vertical slice is a session plan
 containing a prepared scene, an existing `EncounterTemplate`, and linked DM
@@ -304,17 +304,19 @@ Individual steps call existing commands such as `DeployEncounter` and
 
 ### Search composition
 
-The VTT backend should return a common `SearchHit` envelope while querying the
-appropriate owners:
+The VTT backend and Studio client compose search results across domain owners:
 
-1. Campaign entries and session plans from VTT PostgreSQL.
+1. Campaign entries and session plans from VTT PostgreSQL (loaded in the client bundle).
 2. Reusable definitions from `library_objects`.
 3. Published rules entities from the rules catalog.
 4. Documents and extracted content from NexusCodex.
 5. Assets from the asset service where an asset picker is requested.
 
-This powers global search and editor mentions without making the Codex search index the
-owner of every result.
+*Architecture Addendum (2026-10-28, CS-77)*: For authoring within an active campaign,
+Studio performs high-performance in-memory client-side indexing over the loaded
+`CampaignFixtureBundle` (`searchCampaign.ts`, including entities, secrets, inbox notes,
+items, and homebrew monsters). The server-side search composition endpoint is reserved
+for global cross-campaign compendium lookups and external document queries.
 
 ## 7. Capability design
 
@@ -330,14 +332,20 @@ Player-visible material is exposed only by an explicit share/reveal action.
 
 ### Smart links and backlinks
 
-Upgrade the Lexical editor with a custom mention node and command menu. Store a
+Upgrade the editor with a custom mention node and command menu. Store a
 typed `CampaignObjectRef`, not just a URL or copied name. Render broken,
 outdated, and unauthorized references as explicit states.
 
-The mention menu should query unified prep search with type filters. Selecting
+The mention menu queries campaign entities with type filters. Selecting
 a rules entity, campaign entry, definition, document, or asset inserts the
 same reference shape used by map pins and session-plan steps. Backlinks then
 come from `campaign_object_links`, not by reparsing editor text on every read.
+
+*Architecture Addendum (2026-10-28, CS-78)*: In `apps/campaign-studio`, the
+authoring UI uses `MentionTextarea.tsx` supporting markdown token syntax
+(`@[Title](ref:id)`) with auto-suggest dropdowns and inline entity creation.
+On persist, the markdown tokens are parsed, mapped into typed `CampaignObjectRef`
+links, and wrapped in a standard Lexical root envelope for server interoperability.
 
 ### Encounter composition
 
@@ -379,7 +387,7 @@ the object/link foundation is stable and are not MVP blockers.
 Near-term structure:
 
 ```text
-apps/codex/services/dm-ui/       # transitional Campaign Studio shell
+apps/campaign-studio/       # transitional Campaign Studio shell
 packages/game-contracts/src/     # prep contracts, refs, activation commands
 packages/rules-5e/               # encounter calculations
 apps/vtt/server/                 # canonical prep repositories and APIs
@@ -395,6 +403,12 @@ apps/campaign-studio/            # standalone prep UX, served by VTT gateway
 packages/campaign-features/      # optional host-injected UI extracted by use
 packages/game-contracts/         # shared authored/runtime contracts
 ```
+
+*Architecture Addendum (2026-10-28, CS-79)*: The Studio authoring frontend is
+maintained at `apps/campaign-studio` (`@nexus/campaign-studio`) with shared
+schemas in `packages/game-contracts`. Physical workspace relocation to
+`apps/campaign-studio` is deferred to a future major monorepo reorganization to
+prevent disruption to active container routing, Docker compose files, and Caddy configurations.
 
 Campaign Studio and the VTT should consume services through typed ports such
 as `CampaignPrepRepository`, `DefinitionCatalog`, `RulesCatalog`,
@@ -526,7 +540,7 @@ in Nexus VTT,” with no manual export, duplicate state, or re-entry.
 
 These generated concepts are the visual sources of truth for Phase A. Their
 screen anatomy and acceptance criteria are defined in the
-[Campaign Studio UX plan](campaign-studio-ux-plan.md).
+[Campaign Studio UX plan](archive/campaign-studio-ux-plan.md).
 They remain product-direction references rather than raster assets to trace or
 embed as interface backgrounds.
 

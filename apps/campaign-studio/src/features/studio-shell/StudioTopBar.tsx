@@ -1,0 +1,186 @@
+import BookOpen from 'lucide-react/dist/esm/icons/book-open';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import Inbox from 'lucide-react/dist/esm/icons/inbox';
+import Menu from 'lucide-react/dist/esm/icons/menu';
+import Moon from 'lucide-react/dist/esm/icons/moon';
+import Network from 'lucide-react/dist/esm/icons/network';
+import Search from 'lucide-react/dist/esm/icons/search';
+import Settings from 'lucide-react/dist/esm/icons/settings';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+
+import { getVisibleCampaignCatalog } from '@/demo/campaign-catalog';
+import { useCampaignContext } from '@/features/campaigns/CampaignContext';
+import { CampaignSwitcher } from '@/features/campaigns/CampaignSwitcher';
+
+import { useCampaignMood } from '@/features/moods';
+
+import styles from './StudioTopBar.module.css';
+
+interface StudioTopBarProps {
+  contextLabel?: string;
+  onSearch?: () => void;
+  onQuickCapture?: () => void;
+  onSettings?: () => void;
+  onTheme?: () => void;
+  onRestoreNavigation?: () => void;
+  /** Opens the campaign navigation drawer (shown at tablet-portrait widths). */
+  onOpenNavigation?: () => void;
+  onRelationshipWeb?: () => void;
+  onProfile?: () => void;
+}
+
+export function StudioTopBar({
+  contextLabel,
+  onSearch,
+  onQuickCapture,
+  onSettings,
+  onTheme,
+  onRestoreNavigation,
+  onOpenNavigation,
+  onRelationshipWeb,
+  onProfile,
+}: StudioTopBarProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { activeCampaign, isDemoCampaign } = useCampaignContext();
+  const { activeOption } = useCampaignMood();
+  const activeExample = getVisibleCampaignCatalog().find((entry) =>
+    location.pathname.startsWith(`/demo/${entry.slug}/`),
+  );
+  const overviewPath = isDemoCampaign
+    ? activeExample
+      ? `/demo/${activeExample.slug}/overview`
+      : '/campaigns'
+    : activeCampaign
+      ? `/campaigns/${encodeURIComponent(activeCampaign.id)}/overview`
+      : '/campaigns';
+  const resolvedContextLabel =
+    contextLabel ??
+    (isDemoCampaign ? activeExample?.campaign.name : activeCampaign?.name);
+
+  function restoreCampaignRail() {
+    onRestoreNavigation?.();
+    navigate(overviewPath);
+  }
+
+  function handleProfileClick() {
+    if (onProfile) {
+      onProfile();
+    } else {
+      window.location.assign('/');
+    }
+  }
+
+  return (
+    <header className={styles.topBar}>
+      <div className={styles.brandGroup}>
+        {onOpenNavigation ? (
+          <button
+            aria-label="Open campaign navigation"
+            className={styles.menuButton}
+            onClick={onOpenNavigation}
+            type="button"
+          >
+            <Menu size={18} />
+          </button>
+        ) : null}
+        <Link
+          aria-label="Campaign Studio overview"
+          className={styles.brand}
+          onClick={onRestoreNavigation}
+          to={overviewPath}
+        >
+          <span className={styles.brandMark} aria-hidden="true">
+            <BookOpen size={17} strokeWidth={1.8} />
+          </span>
+          <span className={styles.product}>Nexus VTT</span>
+          <span className={styles.divider} aria-hidden="true" />
+          <span className={styles.studio}>Campaign Studio</span>
+        </Link>
+        <button
+          aria-label="Return to overview and expand campaign sidebar"
+          className={styles.restoreButton}
+          onClick={restoreCampaignRail}
+          title="Return to overview and expand campaign sidebar"
+          type="button"
+        >
+          <ChevronDown size={16} />
+        </button>
+      </div>
+
+      <div className={styles.mobileSwitcher}>
+        <CampaignSwitcher compact />
+      </div>
+
+      <div className={styles.actions}>
+        {resolvedContextLabel && (
+          <span className={styles.context}>{resolvedContextLabel}</span>
+        )}
+        {onQuickCapture ? (
+          <button
+            aria-label="Quick capture (Ctrl+Shift+N)"
+            className={styles.iconButton}
+            onClick={onQuickCapture}
+            title="Quick capture (Ctrl+Shift+N)"
+            type="button"
+          >
+            <Inbox size={16} />
+          </button>
+        ) : null}
+        {onSearch ? (
+          <button
+            aria-label="Search campaign"
+            className={styles.iconButton}
+            onClick={onSearch}
+            title="Search campaign"
+            type="button"
+          >
+            <Search size={16} />
+          </button>
+        ) : null}
+        {onRelationshipWeb ? (
+          <button
+            aria-label="Open relationship web"
+            className={styles.iconButton}
+            onClick={onRelationshipWeb}
+            title="Open relationship web"
+            type="button"
+          >
+            <Network size={16} />
+          </button>
+        ) : null}
+        {onTheme ? (
+          <button
+            aria-label={`Change theme (${activeOption.label})`}
+            className={styles.iconButton}
+            onClick={onTheme}
+            title={`Change theme (${activeOption.label})`}
+            type="button"
+          >
+            <Moon size={16} />
+          </button>
+        ) : null}
+        {onSettings ? (
+          <button
+            aria-label="Campaign settings"
+            className={styles.iconButton}
+            onClick={onSettings}
+            title="Campaign settings"
+            type="button"
+          >
+            <Settings size={16} />
+          </button>
+        ) : null}
+        <button
+          aria-label="Return to Nexus VTT"
+          className={styles.avatar}
+          onClick={handleProfileClick}
+          title="Return to Nexus VTT"
+          type="button"
+        >
+          NV
+        </button>
+      </div>
+    </header>
+  );
+}

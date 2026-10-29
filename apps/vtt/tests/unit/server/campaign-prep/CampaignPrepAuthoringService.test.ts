@@ -400,6 +400,19 @@ describe('CampaignPrepAuthoringService', () => {
       await expect(service.restore(request)).resolves.toEqual({
         object: { id: IDS.note, status: 'draft' },
       });
+      await expect(service.retire(request)).resolves.toEqual({
+        object: { id: IDS.note, status: 'retired' },
+      });
+      await expect(
+        service.retireObject(IDS.campaign, IDS.note, PRINCIPAL_ID),
+      ).resolves.toEqual({
+        object: { id: IDS.note, status: 'retired' },
+      });
+      await expect(
+        service.retireObject(IDS.campaign, IDS.note, PRINCIPAL_ID, 2),
+      ).resolves.toEqual({
+        object: { id: IDS.note, status: 'retired' },
+      });
       expect(repo.setObjectStatus).toHaveBeenNthCalledWith(
         1,
         IDS.campaign,
@@ -407,6 +420,20 @@ describe('CampaignPrepAuthoringService', () => {
         2,
         'archived',
       );
+      expect(repo.setObjectStatus).toHaveBeenNthCalledWith(
+        3,
+        IDS.campaign,
+        IDS.note,
+        2,
+        'retired',
+      );
+
+      repo.getObject.mockResolvedValueOnce(null);
+      await expect(
+        service.retireObject(IDS.campaign, IDS.note, PRINCIPAL_ID),
+      ).rejects.toMatchObject({
+        code: 'not-found',
+      });
     });
 
     it('rejects missing objects and stale revisions', async () => {

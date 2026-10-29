@@ -82,6 +82,7 @@ describe('runStartupMigrations', () => {
       '2026-10-07-add-item-kind.sql',
       '2026-10-22-add-campaign-studio-extensions.sql',
       '2026-10-24-add-character-creation-attempts.sql',
+      '2026-10-28-add-campaign-members.sql',
     ]);
     expect(sqlLoader.mock.calls.map(([fileName]) => fileName)).toEqual(applied);
     expect(query.mock.calls.at(0)?.[0]).toBe('BEGIN');

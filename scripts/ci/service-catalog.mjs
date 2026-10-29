@@ -297,7 +297,11 @@ export function validateCatalogRepository(
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
-    const declared = services.map((service) => service.name).sort();
+    // Campaign Studio is a catalog service but lives in apps/campaign-studio.
+    const declared = services
+      .filter((service) => service.directory.startsWith('apps/codex/services/'))
+      .map((service) => service.name)
+      .sort();
     if (JSON.stringify(discovered) !== JSON.stringify(declared)) {
       failures.push(
         `Codex service inventory changed. Found [${discovered.join(', ')}], ` +

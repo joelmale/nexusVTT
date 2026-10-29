@@ -1,0 +1,137 @@
+.section {
+  border-top: 1px solid var(--studio-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 16px;
+}
+
+.heading {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+  margin: 0;
+}
+
+.heading svg {
+  color: var(--studio-gold);
+}
+
+.hint {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.member {
+  align-items: center;
+  background: var(--studio-canvas);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.identity {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.identity strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.email {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.remove,
+.inviteButton {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.remove:hover {
+  border-color: var(--studio-danger);
+  color: var(--studio-danger);
+}
+
+.remove:disabled,
+.inviteButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.invite {
+  display: grid;
+  gap: 6px;
+}
+
+.inviteLabel {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.inviteRow {
+  display: flex;
+  gap: 8px;
+}
+
+.inviteRow input {
+  background: var(--studio-canvas);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  min-height: 34px;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.inviteRow input:focus {
+  border-color: var(--studio-positive);
+  outline: 2px solid var(--studio-positive-soft);
+}
+
+.error {
+  color: var(--studio-danger);
+  font-size: 12px;
+  margin: 0;
+}

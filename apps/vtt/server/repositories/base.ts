@@ -44,6 +44,24 @@ export interface CampaignRecord {
   updatedAt: Date;
 }
 
+/** The owner is campaigns."dmId"; co-DMs come from campaign_members. */
+export type CampaignRole = 'owner' | 'co-dm';
+
+export interface CampaignAccess {
+  campaign: CampaignRecord;
+  /** Null when the user is neither the owner nor a co-DM. */
+  role: CampaignRole | null;
+}
+
+export interface CampaignMemberRecord {
+  userId: string;
+  name: string;
+  email: string | null;
+  avatarUrl: string | null;
+  role: CampaignRole;
+  addedAt: Date;
+}
+
 export interface CampaignMetadata {
   edition?: '2014' | '2024';
   mode?: 'campaign' | 'one-shot';

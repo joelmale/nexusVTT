@@ -1,0 +1,288 @@
+.backdrop {
+  align-items: center;
+  background: var(--studio-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 16px;
+  position: fixed;
+  z-index: var(--studio-z-popover);
+}
+
+.modal {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-panel);
+  box-shadow: var(--studio-shadow);
+  color: var(--studio-text);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+  max-width: min(540px, 100%);
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.header {
+  align-items: center;
+  border-bottom: 1px solid var(--studio-border);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 18px 22px;
+}
+
+.headerTitle {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+
+.headerTitle h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.headerTitle svg {
+  color: var(--studio-gold);
+}
+
+.closeButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  display: flex;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.closeButton:hover {
+  background: var(--studio-surface-muted);
+  color: var(--studio-text);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.readOnlyNotice {
+  align-items: center;
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-muted);
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.readOnlyNotice svg {
+  color: var(--studio-warning);
+  flex-shrink: 0;
+}
+
+.field {
+  display: grid;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 7px;
+}
+
+.field small {
+  color: var(--studio-text-muted);
+  font-weight: 400;
+}
+
+.field input,
+.field textarea,
+.field select {
+  background: var(--studio-canvas);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  font: inherit;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  border-color: var(--studio-positive);
+  outline: 2px solid var(--studio-positive-soft);
+}
+
+.field input:disabled,
+.field textarea:disabled,
+.field select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.formatGroup {
+  display: grid;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 7px;
+}
+
+.formatOptions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.formatOption {
+  align-items: flex-start;
+  background: var(--studio-canvas);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  position: relative;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.formatOption:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.formatOptionSelected {
+  background: var(--studio-surface-muted);
+  border-color: var(--studio-gold);
+}
+
+.formatOptionTitle {
+  color: var(--studio-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.formatOptionDesc {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.dangerSection {
+  border-top: 1px solid var(--studio-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 18px;
+}
+
+.dangerHeader {
+  color: var(--studio-danger);
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.dangerText {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.dangerConfirmBox {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-danger);
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.dangerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.message {
+  color: var(--studio-danger);
+  font-size: 12px;
+  min-height: 16px;
+}
+
+.footer {
+  align-items: center;
+  border-top: 1px solid var(--studio-border);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 16px 22px;
+}
+
+.footerActions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.button {
+  align-items: center;
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.primaryButton {
+  background: var(--studio-positive);
+  border-color: var(--studio-positive);
+  color: var(--studio-positive-contrast);
+  font-weight: 650;
+}
+
+.dangerButton {
+  background: transparent;
+  border-color: var(--studio-danger);
+  color: var(--studio-danger);
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: var(--studio-danger);
+  color: var(--studio-positive-contrast);
+}
+
+.dangerButtonSolid {
+  background: var(--studio-danger);
+  border-color: var(--studio-danger);
+  color: var(--studio-positive-contrast);
+  font-weight: 650;
+}

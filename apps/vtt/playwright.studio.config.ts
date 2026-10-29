@@ -1,10 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Campaign Studio (apps/codex/services/dm-ui) suite. It drives the demo
+ * Campaign Studio (apps/campaign-studio) suite. It drives the demo
  * routes (`/demo/:fixtureSlug/...`), which are fixture-backed, so like the
  * `ui` project it needs only a Vite dev server - no backend, no database.
- * dm-ui lives in another workspace, so it gets its own config rather than a
+ * Studio lives in another workspace, so it gets its own config rather than a
  * second webServer on the VTT one (which would start it for every VTT run).
  *
  * Screenshot baselines are opt-in: set STUDIO_VISUAL=1 (see the spec).
@@ -46,7 +46,7 @@ export default defineConfig({
   webServer: process.env.STUDIO_TEST_BASE_URL
     ? undefined
     : {
-        command: `npm run dev --workspace @nexuscodex/dm-ui -- --port ${STUDIO_PORT} --strictPort --host 127.0.0.1`,
+        command: `npm run dev --workspace @nexus/campaign-studio -- --port ${STUDIO_PORT} --strictPort --host 127.0.0.1`,
         cwd: '../..',
         url: `${studioBaseURL}/codex-dm/`,
         reuseExistingServer: !process.env.CI,

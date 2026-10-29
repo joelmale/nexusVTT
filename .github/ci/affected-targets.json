@@ -249,11 +249,11 @@
       "description": "Codex dungeon-master UI",
       "ciGroup": "codex",
       "lanes": ["pr", "delivery", "nightly"],
-      "paths": ["apps/codex/services/dm-ui/**"],
+      "paths": ["apps/campaign-studio/**"],
       "dependsOn": [],
       "service": {
         "name": "dm-ui",
-        "directory": "apps/codex/services/dm-ui",
+        "directory": "apps/campaign-studio",
         "language": "typescript",
         "testPolicy": "unit",
         "validation": {

@@ -23,7 +23,7 @@ Audience routes: players use [Create a character](/forge/character-creation) and
 [Bring your character into a VTT game](/vtt/features/character-onboarding).
 The accepted decision is [ADR-0002](/vtt/adr/shared-character-creator). The
 documentation audit behind this page is the
-[coverage matrix](character-creation-docs-coverage.md).
+[coverage matrix](archive/character-creation-docs-coverage.md).
 
 ## Ownership and data flow
 
@@ -245,7 +245,7 @@ services and conversion, **not** rendered hosts.
 The effect-based `rulesEngine` remains separate; do not infer rules-engine
 adoption from `VITE_USE_RULES_ENGINE`. Keep rules claims anchored to primary
 sources: SRD 5.1 and SRD 5.2.1 for core content, and the publisher's source
-pages named in the [tranche record](character-creation-tranches-1-3-evidence.md)
+pages named in the [tranche record](archive/character-creation-tranches-1-3-evidence.md)
 for supplemental content.
 
 ## Loadouts, currency and equipped state
@@ -367,7 +367,7 @@ saved presentation overrides the flag (`ForgeCharacterCreator.tsx:153`). There i
 no `VITE_` creator variable. The flag changes presentation only; reverting it does
 not alter saved data or calculations. A staged-release and rollback runbook,
 moderated study and recorded pilot **do not exist** — the
-[implementation plan](character-creation-implementation-plan.md) status reflects
+[implementation plan](archive/character-creation-implementation-plan.md) status reflects
 that.
 
 ## Accessibility and styling
@@ -436,4 +436,4 @@ If workspace dependencies, Docker inputs or CI targets change, add
 `npm run build --workspace=@nexus/character-creator` regenerates scoped CSS only.
 
 The results of the checks run for this documentation pass are recorded in the
-[coverage matrix](character-creation-docs-coverage.md#validation-performed).
+[coverage matrix](archive/character-creation-docs-coverage.md#validation-performed).

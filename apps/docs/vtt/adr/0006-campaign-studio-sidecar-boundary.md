@@ -8,7 +8,7 @@
 Campaign Studio prepares narrative and mechanical objects before a live game.
 Its first functional workflow publishes the Glass Harbor session plan and
 activates that pinned revision in Nexus VTT. The current interface lives in
-`apps/codex/services/dm-ui`, but repository location must not make NexusCodex
+`apps/campaign-studio`, but repository location must not make NexusCodex
 the owner of campaign data or live game state.
 
 Without a shared contract, the prototype UI, HTTP API, PostgreSQL records, and
@@ -59,3 +59,30 @@ objects whose dependencies are unavailable or unauthorized.
 This introduces explicit schema versions and revisions on preparation objects.
 Writers must perform expected-revision checks, and schema migrations must be
 reviewed before older offline drafts or persisted revisions are accepted.
+
+## Addendum (2026-10-28): Ratified Authoring Primitives (CS-77, CS-78, CS-79, CS-80)
+
+1. **Client-Bundle Search Indexing (`CS-77`)**: Rather than round-tripping to a
+   dedicated server `/prep/search` route for every keystroke in an open campaign,
+   Campaign Studio indexes the loaded `CampaignFixtureBundle` in memory
+   (`searchCampaign.ts`), composing entities, secrets, inbox notes, items, and
+   homebrew monsters. Server search is reserved for compendium lookups.
+2. **MentionToken Serialization (`CS-78`)**: Prose fields support markdown
+   `@[Label](ref:id)` tokens authored through `MentionTextarea.tsx`. On persistence,
+   tokens are mapped to `CampaignObjectRef` objects and wrapped in a standard
+   Lexical JSON envelope.
+3. **Workspace Location (`CS-79`)**: `@nexus/campaign-studio` remains situated at
+   `apps/campaign-studio` to preserve Docker/Caddy homelab routing, with shared
+   runtime and authoring contracts maintained in `packages/game-contracts`.
+4. **Realtime Boundaries (`CS-80`)**: Authoring persistence relies on transactional
+   compare-and-swap (HTTP 409 conflict detection). Real-time co-DM WebSocket fanout
+   is scoped to Phase 5.
+5. **Co-DM editing, phase 1 (2026-10-28)**: `campaign_members` grants a `co-dm`
+   role; the owner stays `campaigns."dmId"` with no member row. Co-DMs may author,
+   publish and change campaign settings; only the owner deletes the campaign,
+   manages members (`/api/campaigns/:campaignId/members`, invite by existing
+   account email), or drives the live table (session-plan activation/advance,
+   encounter deploy, `/commands`). Studio shows a field-by-field conflict dialog on
+   409 and refetches the bundle when the tab regains focus; open edit forms keep
+   the user's changed fields and take the rest from the refetch. Live push to
+   other open editors is still deferred.

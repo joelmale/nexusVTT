@@ -15,6 +15,7 @@ import type {
   CampaignPrepObjectKind,
   CampaignPrepObjectRecord,
   CampaignPrepObjectStatus,
+  CampaignRole,
 } from '../repositories/base.js';
 import {
   EncounterMaterializationError,
@@ -74,6 +75,17 @@ interface CampaignPrepAuthor {
     objectId: string;
     expectedRevision: number;
   }): Promise<{ object: CampaignPrepObjectRecord }>;
+  retire?(request: {
+    campaignId: string;
+    objectId: string;
+    expectedRevision: number;
+  }): Promise<{ object: CampaignPrepObjectRecord }>;
+  retireObject?(
+    campaignId: string,
+    objectId: string,
+    actorUserId?: string,
+    expectedRevision?: number,
+  ): Promise<{ object: CampaignPrepObjectRecord }>;
 }
 
 export interface CampaignPrepRouterOptions {
@@ -151,49 +163,64 @@ export function createCampaignPrepRouter({
 }: CampaignPrepRouterOptions): Router {
   const router = Router();
 
-  const campaignDmGuard = async (
-    req: Request,
-    res: Response,
-    next: () => void,
-  ) => {
-    try {
-      const userId = sessionUserId(req);
-      if (!userId) {
-        return res.status(401).json({ error: 'User ID not found in session' });
-      }
+  /**
+   * Prep authoring and publishing are open to the owner and co-DMs. Driving
+   * the live table (activating or advancing a run sheet, deploying an
+   * encounter) stays with the owner, matching the campaign command route.
+   */
+  const campaignRoleGuard =
+    (allows: (role: CampaignRole, req: Request) => boolean) =>
+    async (req: Request, res: Response, next: () => void) => {
+      try {
+        const userId = sessionUserId(req);
+        if (!userId) {
+          return res
+            .status(401)
+            .json({ error: 'User ID not found in session' });
+        }
 
-      const campaignId = routeParameter(req.params.campaignId);
-      if (!isUuid(campaignId)) {
+        const campaignId = routeParameter(req.params.campaignId);
+        if (!isUuid(campaignId)) {
+          return res
+            .status(400)
+            .json({ error: 'campaignId must be a valid UUID' });
+        }
+        const access = await db.campaigns.getCampaignAccess(
+          campaignId,
+          userId,
+        );
+        if (!access) {
+          return res.status(404).json({ error: 'Campaign not found' });
+        }
+        if (!access.role) {
+          return res
+            .status(403)
+            .json({ error: 'Campaign DM access required' });
+        }
+        if (!allows(access.role, req)) {
+          return res.status(403).json({
+            error: 'Only the campaign owner can run the live session plan',
+          });
+        }
+        return next();
+      } catch (error) {
+        console.error('Campaign DM guard error:', error);
         return res
-          .status(400)
-          .json({ error: 'campaignId must be a valid UUID' });
+          .status(500)
+          .json({ error: 'Failed to authorize campaign access' });
       }
-      const campaign = await db.campaigns.getCampaignById(campaignId);
-      if (!campaign) {
-        return res.status(404).json({ error: 'Campaign not found' });
-      }
-      if (campaign.dmId !== userId) {
-        return res.status(403).json({ error: 'Campaign DM access required' });
-      }
-      return next();
-    } catch (error) {
-      console.error('Campaign DM guard error:', error);
-      return res
-        .status(500)
-        .json({ error: 'Failed to authorize campaign access' });
-    }
-  };
+    };
 
   router.use(
     '/campaigns/:campaignId/prep',
     requireAuthenticatedNonGuest,
-    campaignDmGuard,
+    campaignRoleGuard(() => true),
   );
 
   router.use(
     '/campaigns/:campaignId/session-plans',
     requireAuthenticatedNonGuest,
-    campaignDmGuard,
+    campaignRoleGuard((role, req) => role === 'owner' || req.method === 'GET'),
   );
 
   router.get('/campaigns/:campaignId/prep/objects', async (req, res) => {
@@ -517,6 +544,78 @@ export function createCampaignPrepRouter({
       },
     );
   }
+
+  router.post(
+    '/campaigns/:campaignId/prep/objects/:objectId/retire',
+    async (req: Request, res: Response) => {
+      const body = (req.body ?? {}) as {
+        expectedRevision?: unknown;
+        requestId?: unknown;
+      };
+      const campaignId = routeParameter(req.params.campaignId);
+      const objectId = routeParameter(req.params.objectId);
+      const hasRevisionOrRequest =
+        body.expectedRevision !== undefined || body.requestId !== undefined;
+
+      if (hasRevisionOrRequest) {
+        if (
+          (body.expectedRevision !== undefined &&
+            !isExpectedRevision(body.expectedRevision)) ||
+          (body.requestId !== undefined && !isUuid(body.requestId))
+        ) {
+          return res.status(400).json({
+            error:
+              'expectedRevision must be positive and requestId must be a UUID',
+          });
+        }
+      }
+
+      try {
+        if (isExpectedRevision(body.expectedRevision)) {
+          if (author.retire) {
+            const result = await author.retire({
+              campaignId,
+              objectId,
+              expectedRevision: body.expectedRevision,
+            });
+            return res.json(result);
+          }
+          if (author.retireObject) {
+            const result = await author.retireObject(
+              campaignId,
+              objectId,
+              sessionUserId(req) ?? undefined,
+              body.expectedRevision,
+            );
+            return res.json(result);
+          }
+        }
+        if (author.retireObject) {
+          const result = await author.retireObject(
+            campaignId,
+            objectId,
+            sessionUserId(req) ?? undefined,
+          );
+          return res.json(result);
+        }
+        const existing = await db.campaignPrep.getObject(campaignId, objectId);
+        if (!existing) {
+          return res.status(404).json({ error: 'Campaign object not found' });
+        }
+        if (author.retire) {
+          const result = await author.retire({
+            campaignId,
+            objectId,
+            expectedRevision: existing.currentRevision,
+          });
+          return res.json(result);
+        }
+        return res.status(501).json({ error: 'Retire action not configured' });
+      } catch (error) {
+        return handleAuthoringError(error, res);
+      }
+    },
+  );
 
   router.post(
     '/campaigns/:campaignId/prep/objects/:objectId/publish',

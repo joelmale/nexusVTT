@@ -1,7 +1,10 @@
 import {
   BaseRepository,
+  type CampaignAccess,
+  type CampaignMemberRecord,
   type CampaignMetadata,
   type CampaignRecord,
+  type CampaignRole,
 } from './base.js';
 import { sanitizeLog } from '../sanitizeLog.js';
 
@@ -56,6 +59,114 @@ export class CampaignRepository extends BaseRepository {
     return result.rows[0] || null;
   }
 
+  /** Campaigns the user owns or co-DMs, with the user's role in each. */
+  async getCampaignsForEditor(
+    userId: string,
+  ): Promise<Array<CampaignRecord & { role: CampaignRole }>> {
+    const result = await this.pool.query<
+      CampaignRecord & { role: CampaignRole }
+    >(
+      `SELECT c.*,
+              CASE WHEN c."dmId" = $1 THEN 'owner' ELSE m.role END AS role
+         FROM campaigns c
+         LEFT JOIN campaign_members m
+           ON m."campaignId" = c.id AND m."userId" = $1
+        WHERE c."dmId" = $1 OR m."userId" IS NOT NULL
+        ORDER BY c."createdAt" DESC`,
+      [userId],
+    );
+    return result.rows;
+  }
+
+  /** Null when the campaign does not exist. */
+  async getCampaignAccess(
+    campaignId: string,
+    userId: string,
+  ): Promise<CampaignAccess | null> {
+    const result = await this.pool.query<
+      CampaignRecord & { accessRole: CampaignRole | null }
+    >(
+      `SELECT c.*,
+              CASE WHEN c."dmId" = $2 THEN 'owner' ELSE m.role END AS "accessRole"
+         FROM campaigns c
+         LEFT JOIN campaign_members m
+           ON m."campaignId" = c.id AND m."userId" = $2
+        WHERE c.id = $1`,
+      [campaignId, userId],
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    const { accessRole, ...campaign } = row;
+    return { campaign, role: accessRole ?? null };
+  }
+
+  /** The owner first, then co-DMs in the order they were added. */
+  async listCampaignMembers(
+    campaignId: string,
+  ): Promise<CampaignMemberRecord[]> {
+    const result = await this.pool.query<CampaignMemberRecord>(
+      `SELECT * FROM (
+         SELECT u.id AS "userId", COALESCE(u."displayName", u.name) AS name,
+                u.email, u."avatarUrl", 'owner' AS role, c."createdAt" AS "addedAt"
+           FROM campaigns c
+           JOIN users u ON u.id = c."dmId"
+          WHERE c.id = $1
+         UNION ALL
+         SELECT u.id, COALESCE(u."displayName", u.name), u.email, u."avatarUrl",
+                m.role, m."createdAt"
+           FROM campaign_members m
+           JOIN users u ON u.id = m."userId"
+          WHERE m."campaignId" = $1
+       ) members
+       ORDER BY (role = 'owner') DESC, "addedAt"`,
+      [campaignId],
+    );
+    return result.rows;
+  }
+
+  /** Active, non-guest account with this email (case-insensitive). */
+  async findInvitableUserByEmail(
+    email: string,
+  ): Promise<{ id: string } | null> {
+    const result = await this.pool.query<{ id: string }>(
+      `SELECT id FROM users
+        WHERE lower(email) = lower($1)
+          AND provider <> 'guest'
+          AND "isActive" IS NOT FALSE
+        LIMIT 1`,
+      [email],
+    );
+    return result.rows[0] ?? null;
+  }
+
+  /** False when the user is already a member. */
+  async addCampaignMember(
+    campaignId: string,
+    userId: string,
+    role: Exclude<CampaignRole, 'owner'>,
+    invitedBy: string,
+  ): Promise<boolean> {
+    const result = await this.pool.query(
+      `INSERT INTO campaign_members ("campaignId", "userId", role, "invitedBy")
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT ("campaignId", "userId") DO NOTHING`,
+      [campaignId, userId, role, invitedBy],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /** False when the user was not a member. */
+  async removeCampaignMember(
+    campaignId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const result = await this.pool.query(
+      'DELETE FROM campaign_members WHERE "campaignId" = $1 AND "userId" = $2',
+      [campaignId, userId],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async isUserAuthorizedForCampaign(
     userId: string,
     campaignId: string,
@@ -66,6 +177,14 @@ export class CampaignRepository extends BaseRepository {
         return false;
       }
       if (campaign.dmId === userId) {
+        return true;
+      }
+
+      const member = await this.pool.query(
+        'SELECT 1 FROM campaign_members WHERE "campaignId" = $1 AND "userId" = $2',
+        [campaignId, userId],
+      );
+      if ((member.rowCount ?? 0) > 0) {
         return true;
       }
 

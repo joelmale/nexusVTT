@@ -23,7 +23,7 @@ const SCANNED = [
 /** Codex services have no workspace dependency on the contracts package yet. */
 const KNOWN_EXCEPTIONS = [
   'apps/codex/services/admin-ui',
-  'apps/codex/services/dm-ui',
+  'apps/campaign-studio',
   'apps/codex/services/doc-api',
   'apps/codex/services/doc-processor',
 ];

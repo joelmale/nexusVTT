@@ -18,6 +18,15 @@ import type { SocketManager } from '../socket/SocketManager.js';
 import { readCampaignMetadata } from '../validation/campaignMetadata.js';
 import { CharacterCreationConflictError } from '../utils/characterCreationIdentity.js';
 
+/** Campaign fields a co-DM may change; scenes and room codes stay the owner's. */
+const CO_DM_CAMPAIGN_FIELDS = new Set([
+  'name',
+  'description',
+  'edition',
+  'mode',
+  'mood',
+]);
+
 interface ApiSession extends Session {
   guestUser?: { id: string; name: string; provider: string };
 }
@@ -604,7 +613,12 @@ export function registerApiRoutes(
       }
 
       const user = req.user as { id: string };
-      const campaigns = await db.getCampaignsByUser(user.id);
+      // Campaign Studio passes include=shared to also list co-DM campaigns;
+      // the VTT lobby keeps the owned-only list because only owners host.
+      const campaigns =
+        req.query.include === 'shared'
+          ? await db.campaigns.getCampaignsForEditor(user.id)
+          : await db.getCampaignsByUser(user.id);
 
       res.json(campaigns);
     } catch (error) {
@@ -676,7 +690,8 @@ export function registerApiRoutes(
   /**
    * PUT /api/campaigns/:id
    * Updates a campaign
-   * Requires authentication and ownership
+   * Requires authentication and ownership; co-DMs may change only the
+   * Studio settings (name, description, edition, mode, mood)
    * Body: { name?: string, description?: string, scenes?: unknown }
    */
   const updateCampaignHandler = async (
@@ -696,17 +711,24 @@ export function registerApiRoutes(
       if ('error' in metadataResult) {
         return res.status(400).json({ error: metadataResult.error });
       }
-      const updates = { ...req.body, ...metadataResult.metadata };
+      let updates = { ...req.body, ...metadataResult.metadata };
 
       const user = req.user as { id: string };
-      const campaign = await db.getCampaignById(campaignId);
-      if (!campaign) {
+      const access = await db.campaigns.getCampaignAccess(campaignId, user.id);
+      if (!access) {
         return res.status(404).json({ error: 'Campaign not found' });
       }
-      if (campaign.dmId !== user.id) {
+      if (!access.role) {
         return res
           .status(403)
           .json({ error: 'Access denied: not campaign owner' });
+      }
+      if (access.role === 'co-dm') {
+        updates = Object.fromEntries(
+          Object.entries(updates).filter(([key]) =>
+            CO_DM_CAMPAIGN_FIELDS.has(key),
+          ),
+        );
       }
 
       // Validate updates
