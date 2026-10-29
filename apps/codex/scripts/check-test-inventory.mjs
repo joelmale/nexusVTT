@@ -10,6 +10,10 @@ const catalog = loadServiceCatalog();
 const serviceConfigs = Object.fromEntries(
   Object.values(catalog.targets)
     .filter((target) => target.service !== undefined)
+    // Campaign Studio is a catalog service but lives in apps/campaign-studio.
+    .filter((target) =>
+      target.service.directory.startsWith('apps/codex/services/'),
+    )
     .map((target) => [target.service.name, target.service]),
 );
 
