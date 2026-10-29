@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { CharacterCreationData } from '../../../types/dnd';
 import { getStepTitles } from '../constants/wizard.constants';
 import { hasSpellcastingAtLevel } from '../../../utils/spellUtils';
-import { calculateFeatAvailability } from '../../../utils/featUtils';
+import { getRemainingFeatSlots } from '../../../utils/featUtils';
 
 export const useWizardNavigation = (
   currentStep: number,
@@ -159,7 +159,7 @@ const shouldShowStep = (
       case 8:
         return hasSpellcastingAtLevel(data.classSlug, data.level, data.edition); // Spells
       case 9:
-        return calculateFeatAvailability(data) > 0; // Feats
+        return getRemainingFeatSlots(data) > 0; // Feats
       default:
         return true; // Rest are usually always shown
     }
@@ -194,7 +194,7 @@ const shouldShowStep = (
       case 8:
         return hasSpellcastingAtLevel(data.classSlug, data.level, data.edition);
       case 9:
-        return calculateFeatAvailability(data) > 0;
+        return getRemainingFeatSlots(data) > 0;
       default:
         return true;
     }

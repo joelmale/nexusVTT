@@ -22,7 +22,7 @@ import {
   RecommendationResult,
 } from '../../services/recommendationService';
 import { CERTIFIED_SUPPORT_MANIFEST } from '../../data/supportManifest';
-import { getAllSpecies } from '../../services/dataService';
+import { BACKGROUNDS, getAllSpecies } from '../../services/dataService';
 import { generateRandomName } from '../../utils/randomCharacterGenerator';
 import AbilityScoreEditModal from './AbilityScoreEditModal';
 import SkillEditModal from './SkillEditModal';
@@ -184,6 +184,13 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
   };
   const activeAbilities = activeDraft.rawAbilityScores;
   const activeSkills = activeDraft.skills;
+  const backgroundSkills = (
+    BACKGROUNDS.find(
+      (b) =>
+        b.slug === activeDraft.backgroundSlug &&
+        (!b.edition || b.edition === activeDraft.edition),
+    )?.skill_proficiencies ?? []
+  ).filter((skill) => !activeSkills.includes(skill as never));
 
   // Practical strengths derived from class and stats
   const practicalStrengths = useMemo(() => {
@@ -526,6 +533,15 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                         className="px-2.5 py-1 bg-theme-primary border border-theme-quaternary rounded text-xs font-medium text-white"
                       >
                         {sk}
+                      </span>
+                    ))}
+                    {backgroundSkills.map((sk) => (
+                      <span
+                        key={`bg-${sk}`}
+                        title="From your background"
+                        className="px-2.5 py-1 bg-theme-primary border border-theme-quaternary rounded text-xs font-medium text-white"
+                      >
+                        {sk} (background)
                       </span>
                     ))}
                   </div>

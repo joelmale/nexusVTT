@@ -3712,7 +3712,7 @@
       {
         "id": "pact_magic",
         "name": "Pact Magic",
-        "desc": "Your otherworldly patron bestows upon you the ability to cast spells. You have two 1st-level spell slots, which you regain on a short rest.",
+        "desc": "Your otherworldly patron bestows upon you the ability to cast spells. Your Warlock level sets how many Pact Magic slots you have and their level (all slots are the same level); you regain them on a short rest.",
         "widget_type": "automatic",
         "widget_config": {
           "effect": "pact_magic"

@@ -36,7 +36,7 @@ export const Step0Level: React.FC<StepProps> = ({ data, updateData, nextStep, ge
       2: "Gain your class's signature feature (Fighting Style, Spellcasting, etc.)",
       3: "Choose your subclass to specialize your abilities",
       4: "Ability Score Improvement (+2) or take a Feat",
-      5: "Extra Attack - make two attacks per turn",
+      5: "Martial classes gain Extra Attack; full spellcasters reach 3rd-level spells",
       6: "Enhanced subclass features and abilities",
       7: "Growing in power and reputation",
       8: "Ability Score Improvement (+2) or take a Feat",
@@ -109,7 +109,7 @@ export const Step0Level: React.FC<StepProps> = ({ data, updateData, nextStep, ge
                   {data.level === 2 && "Gain your class's signature feature (Fighting Style, Spellcasting, etc.)"}
                   {data.level === 3 && "Choose your subclass to specialize your abilities"}
                   {data.level === 4 && "Ability Score Improvement (+2) or take a Feat"}
-                  {data.level === 5 && "Extra Attack - make two attacks per turn"}
+                  {data.level === 5 && "Martial classes gain Extra Attack; full spellcasters reach 3rd-level spells"}
                   {data.level === 6 && "Enhanced subclass features and abilities"}
                   {data.level === 8 && "Ability Score Improvement (+2) or take a Feat"}
                   {data.level === 11 && "Ability Score Improvement (+2) or take a Feat"}

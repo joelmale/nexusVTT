@@ -1,3 +1,4 @@
+import { getWizardSpellbookSize } from '../utils/spellSelectionRules';
 import { calculatePreparationLimit } from '@nexus/rules-5e';
 import { Character } from '../types/dnd';
 import { CharacterCreationResult } from '../api/types';
@@ -126,14 +127,15 @@ function validateSpellcasting(
   // Check Wizard Spellbook and Preparation (2014 vs 2024)
   if (draft.classSlug === 'wizard') {
     const spellbookCount = draft.spells.knownOrBook.length;
-    if (draft.level === 1 && spellbookCount < 6) {
+    const requiredSpellbook = getWizardSpellbookSize(draft.level);
+    if (spellbookCount < requiredSpellbook) {
       issues.push({
         id: 'INSUFFICIENT_WIZARD_SPELLBOOK',
         step: 4,
         group: 'spells',
         severity: 'error',
         message:
-          'A 1st-level Wizard starts with 6 1st-level spells in their spellbook.',
+          `A level ${draft.level} Wizard has ${requiredSpellbook} spells in their spellbook (6 at 1st level, plus 2 per level after).`,
         repairTarget: 'spell-selection',
       });
     }

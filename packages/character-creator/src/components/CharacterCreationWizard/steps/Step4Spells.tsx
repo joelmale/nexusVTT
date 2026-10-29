@@ -16,12 +16,17 @@ import {
   AppSpell,
   SPELLS_KNOWN_BY_CLASS,
 } from '../../../services/dataService';
+import { LevelResourceSummary } from '../components/LevelResourceSummary';
 import SpellDetailsModal from '../../SpellDetailsModal';
 import {
   getSpellcastingType,
   getAvailableSpellLevels,
 } from '../../../utils/spellUtils';
 import cantripsData from '../../../data/cantrips.json';
+import {
+  getWizardSpellbookSize,
+  pruneSpellSelectionForClass,
+} from '../../../utils/spellSelectionRules';
 
 const RandomizeButton: React.FC<{
   onClick: () => void;
@@ -56,6 +61,16 @@ export const Step4Spells: React.FC<StepProps> = ({
     useState<AppSpell | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Picks made for a previous class must not keep counting after the class changes.
+  useEffect(() => {
+    const pruned = pruneSpellSelectionForClass(
+      data.spellSelection,
+      data.classSlug,
+      data.edition,
+    );
+    if (pruned !== data.spellSelection) updateData({ spellSelection: pruned });
+  }, [data.spellSelection, data.classSlug, data.edition, updateData]);
+
   // Auto-advance and validation effects (must be called before any conditional returns)
   useEffect(() => {
     if (
@@ -86,6 +101,7 @@ export const Step4Spells: React.FC<StepProps> = ({
   }
 
   const spellcasting = selectedClass.spellcasting!;
+  const spellbookSize = getWizardSpellbookSize(data.level);
   const spellcastingType = getSpellcastingType(
     selectedClass.slug,
     data.edition,
@@ -251,7 +267,7 @@ export const Step4Spells: React.FC<StepProps> = ({
       maxPreparedSpellsAtLevel;
   } else if (spellcastingType === 'wizard') {
     const spellbookComplete =
-      (data.spellSelection.spellbook?.length || 0) === 6;
+      (data.spellSelection.spellbook?.length || 0) === spellbookSize;
     const dailyPreparedMax = calculatePreparationLimit(
       data.classSlug,
       data.level,
@@ -274,7 +290,9 @@ export const Step4Spells: React.FC<StepProps> = ({
       const remaining =
         cantripsKnownAtLevel - data.spellSelection.selectedCantrips.length;
       messages.push(
-        `Pick ${remaining} more cantrip${remaining !== 1 ? 's' : ''}`,
+        remaining > 0
+          ? `Pick ${remaining} more cantrip${remaining !== 1 ? 's' : ''}`
+          : `Remove ${-remaining} cantrip${remaining !== -1 ? 's' : ''}`,
       );
     }
 
@@ -284,7 +302,9 @@ export const Step4Spells: React.FC<StepProps> = ({
         const current = data.spellSelection.knownSpells?.length || 0;
         const remaining = maxPreparedSpellsAtLevel - current;
         messages.push(
-          `Select ${remaining} more known spell${remaining !== 1 ? 's' : ''}`,
+          remaining > 0
+            ? `Select ${remaining} more known spell${remaining !== 1 ? 's' : ''}`
+            : `Remove ${-remaining} known spell${remaining !== -1 ? 's' : ''}`,
         );
       }
     } else if (spellcastingType === 'prepared') {
@@ -292,12 +312,14 @@ export const Step4Spells: React.FC<StepProps> = ({
         const current = data.spellSelection.preparedSpells?.length || 0;
         const remaining = maxPreparedSpellsAtLevel - current;
         messages.push(
-          `Select ${remaining} more prepared spell${remaining !== 1 ? 's' : ''}`,
+          remaining > 0
+            ? `Select ${remaining} more prepared spell${remaining !== 1 ? 's' : ''}`
+            : `Remove ${-remaining} prepared spell${remaining !== -1 ? 's' : ''}`,
         );
       }
     } else if (spellcastingType === 'wizard') {
       const spellbookCurrent = data.spellSelection.spellbook?.length || 0;
-      const spellbookRequired = 6;
+      const spellbookRequired = spellbookSize;
       if (spellbookCurrent < spellbookRequired) {
         const remaining = spellbookRequired - spellbookCurrent;
         messages.push(
@@ -342,7 +364,7 @@ export const Step4Spells: React.FC<StepProps> = ({
       const shuffledSpells = [...availableSpells].sort(
         () => Math.random() - 0.5,
       );
-      const spellbook = shuffledSpells.slice(0, 6).map((s) => s.slug);
+      const spellbook = shuffledSpells.slice(0, spellbookSize).map((s) => s.slug);
       const prepCount = Math.min(
         maxPreparedSpellsAtLevel || 4,
         spellbook.length,
@@ -409,6 +431,8 @@ export const Step4Spells: React.FC<StepProps> = ({
           title="Randomize spell selection"
         />
       </div>
+
+      <LevelResourceSummary data={data} />
 
       {/* Cantrips Section */}
       <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3">
@@ -486,12 +510,13 @@ export const Step4Spells: React.FC<StepProps> = ({
           {/* Wizard Spellbook Section */}
           <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3">
             <h4 className="text-lg font-bold text-accent-yellow-light">
-              Spellbook ({data.spellSelection.spellbook?.length || 0} / 6
-              selected)
+              Spellbook ({data.spellSelection.spellbook?.length || 0} /{' '}
+              {spellbookSize} selected)
             </h4>
             <p className="text-xs text-theme-muted">
-              Choose 6 1st-level spells for your permanent spellbook. You can
-              prepare a subset of these each day.
+              Choose {spellbookSize} spells for your permanent spellbook (6 at
+              1st level, plus 2 for each level after). You can prepare a
+              subset of these each day.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -499,7 +524,7 @@ export const Step4Spells: React.FC<StepProps> = ({
                 const isSelected =
                   data.spellSelection.spellbook?.includes(spell.slug) || false;
                 const canSelect =
-                  (data.spellSelection.spellbook?.length || 0) < 6;
+                  (data.spellSelection.spellbook?.length || 0) < spellbookSize;
 
                 return (
                   <div key={spell.slug} className="relative">
@@ -904,7 +929,7 @@ export const Step4Spells: React.FC<StepProps> = ({
                   ? (data.spellSelection.preparedSpells?.length || 0) <
                     maxPreparedSpellsAtLevel
                   : spellcastingType === 'wizard'
-                    ? (data.spellSelection.spellbook?.length || 0) < 6 ||
+                    ? (data.spellSelection.spellbook?.length || 0) < spellbookSize ||
                       (data.spellSelection.dailyPrepared?.length || 0) <
                         calculatePreparationLimit(
                           data.classSlug,

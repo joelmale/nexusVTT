@@ -1,4 +1,5 @@
 import React from 'react';
+import { getPactMagicSlots } from '@nexus/rules-5e';
 import { AutomaticWidgetProps } from '../../../types/widgets';
 
 /**
@@ -13,8 +14,18 @@ import { AutomaticWidgetProps } from '../../../types/widgets';
  * - No interaction required
  * - Informational display only
  */
+const ORDINALS = ['0th', '1st', '2nd', '3rd', '4th', '5th'];
+const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four'];
+
+/** Level-aware Pact Magic summary; the SRD text always claims two 1st-level slots. */
+export function describePactMagic(level: number): string {
+  const { slots, slotLevel } = getPactMagicSlots(level);
+  return `Your otherworldly patron bestows upon you the ability to cast spells. You have ${COUNT_WORDS[slots]} ${ORDINALS[slotLevel]}-level spell slot${slots === 1 ? '' : 's'}, which you regain on a short rest.`;
+}
+
 export const AutomaticWidget: React.FC<AutomaticWidgetProps> = ({
   feature,
+  data,
 }) => {
   const config = feature.widget_config;
 
@@ -34,7 +45,9 @@ export const AutomaticWidget: React.FC<AutomaticWidgetProps> = ({
 
         {/* Description */}
         <p className="text-gray-300 text-sm mb-4">
-          {feature.desc}
+          {feature.id === 'pact_magic' && data?.level
+            ? describePactMagic(data.level)
+            : feature.desc}
         </p>
 
         {/* Grants Section */}

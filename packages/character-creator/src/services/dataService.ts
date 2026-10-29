@@ -1168,12 +1168,19 @@ export function loadSubclasses(): Subclass[] {
     }),
   );
 
+  // Some supplemental packs ship the same subclass; the first source wins.
+  const seenSubclasses = new Set<string>();
   const allSubclasses = [
     ...subclasses2014,
     ...subclasses2018,
     ...subclasses2020,
     ...subclasses2020egtw,
-  ];
+  ].filter((subclass) => {
+    const key = `${subclass.class}-${subclass.slug}`;
+    if (seenSubclasses.has(key)) return false;
+    seenSubclasses.add(key);
+    return true;
+  });
 
   // Merge enhanced subclass data
   const subclassesWithEnhancedData = allSubclasses.map((subclass) => {
@@ -1295,7 +1302,6 @@ export function getSubclassesByClass(
         edition: '2014' as const,
         source: entry.source ?? 'PHB 2014',
         supportStatus: 'legacy-compatibility-unverified' as const,
-        subclassFlavor: `${entry.subclassFlavor} — legacy compatibility requires review`,
       })),
   ];
 }

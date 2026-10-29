@@ -34,6 +34,7 @@ import { SmartNavigationButton } from '../components';
 import { useStepValidation } from '../hooks';
 import { ClassGrantChoices } from '../../ClassGrantChoices';
 import { getSubclassLevel } from '../../../data/supportManifest';
+import { pruneSpellSelectionForClass } from '../../../utils/spellSelectionRules';
 
 interface RandomizeButtonProps {
   onClick: () => void;
@@ -108,6 +109,11 @@ export const Step3Class: React.FC<StepProps> = ({
               classSlug: classAndSkills.classSlug,
               selectedSkills: classAndSkills.selectedSkills,
               subclassSlug: classAndSkills.subclassSlug,
+              spellSelection: pruneSpellSelectionForClass(
+                data.spellSelection,
+                classAndSkills.classSlug,
+                data.edition,
+              ),
             });
           }}
           title="Randomize class, skills, and subclass"
@@ -155,6 +161,11 @@ export const Step3Class: React.FC<StepProps> = ({
                         classSlug: _class.slug,
                         selectedSkills: [],
                         subclassSlug: null,
+                        spellSelection: pruneSpellSelectionForClass(
+                          data.spellSelection,
+                          _class.slug,
+                          data.edition,
+                        ),
                       })
                     }
                     className={`p-3 rounded-lg text-left border-2 transition-all ${

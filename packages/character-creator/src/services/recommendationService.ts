@@ -64,6 +64,52 @@ export interface RecommendationResult {
 /**
  * Maps high-level intent to a primary class.
  */
+/** Skills that serve each class best, in priority order. */
+const PREFERRED_CLASS_SKILLS: Record<string, string[]> = {
+  barbarian: ['Athletics', 'Perception', 'Survival'],
+  bard: ['Persuasion', 'Performance', 'Deception', 'Insight', 'Perception'],
+  cleric: ['Insight', 'Medicine', 'Persuasion', 'Religion'],
+  druid: ['Perception', 'Nature', 'Survival', 'Medicine', 'Animal Handling'],
+  fighter: ['Athletics', 'Perception', 'Intimidation', 'Survival'],
+  monk: ['Acrobatics', 'Stealth', 'Insight', 'Athletics'],
+  paladin: ['Athletics', 'Persuasion', 'Insight', 'Intimidation'],
+  ranger: ['Perception', 'Stealth', 'Survival', 'Nature', 'Athletics'],
+  rogue: [
+    'Stealth',
+    'Perception',
+    'Acrobatics',
+    'Sleight of Hand',
+    'Investigation',
+    'Insight',
+    'Deception',
+    'Persuasion',
+  ],
+  sorcerer: ['Arcana', 'Persuasion', 'Insight', 'Deception'],
+  warlock: ['Arcana', 'Investigation', 'Deception', 'Intimidation'],
+  wizard: ['Arcana', 'Investigation', 'Insight', 'History', 'Medicine'],
+};
+
+/**
+ * Choose class skills that suit the class, skipping any the background already
+ * grants. Falls back to list order only when the preferences run out.
+ */
+export function pickRecommendedClassSkills(
+  classSlug: string,
+  available: readonly string[],
+  backgroundSkills: ReadonlySet<string>,
+  count: number,
+): string[] {
+  const normalize = (skill: string) => skill.toLowerCase().replace(/[^a-z]/g, '');
+  const usable = available.filter((skill) => !backgroundSkills.has(skill));
+  const picked: string[] = [];
+  for (const preferred of PREFERRED_CLASS_SKILLS[classSlug] ?? []) {
+    const match = usable.find((skill) => normalize(skill) === normalize(preferred));
+    if (match && !picked.includes(match)) picked.push(match);
+  }
+  for (const skill of usable) if (!picked.includes(skill)) picked.push(skill);
+  return picked.slice(0, count);
+}
+
 export function intentToClass(intent: CombatIntent): string {
   switch (intent) {
     case 'close_combat':
@@ -245,12 +291,14 @@ export function getRecommendation(
   const selectedSkills: SkillName[] = [];
   const neededSkillCount = classData?.num_skill_choices || 2;
 
-  for (const skill of classAvailableSkills) {
-    if (!bgSkills.has(skill) && !selectedSkills.includes(skill as SkillName)) {
-      selectedSkills.push(skill as SkillName);
-      if (selectedSkills.length >= neededSkillCount) break;
-    }
-  }
+  selectedSkills.push(
+    ...(pickRecommendedClassSkills(
+      finalClassSlug,
+      classAvailableSkills,
+      bgSkills,
+      neededSkillCount,
+    ) as SkillName[]),
+  );
 
   // Raw Ability Scores
   const profileKey =

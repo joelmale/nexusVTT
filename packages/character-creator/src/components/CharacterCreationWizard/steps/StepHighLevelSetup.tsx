@@ -16,6 +16,7 @@ import {
   Heart,
 } from 'lucide-react';
 import { StepProps } from '../types/wizard.types';
+import { getScoresBeforeLevelUpChoices } from '../../../utils/creationAbilities';
 import {
   calculateFeaturesForLevel,
   calculateHPForLevel,
@@ -44,7 +45,10 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
 
   // Calculate HP
   const hitDie = `d${getHitDieForClass(classSlug)}`;
-  const conModifier = getModifier(data.abilities?.CON || 10);
+  const conModifier = getModifier(
+    getScoresBeforeLevelUpChoices(data, { includeLevelUpChoices: true }).CON ||
+      10,
+  );
 
   // Initialize HP rolls array with lazy state
   const [hpRolls, setHpRolls] = useState<number[]>(() => {

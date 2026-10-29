@@ -12,6 +12,8 @@ import { getASILevelsForCharacter } from '../../../utils/highLevelCreationUtils'
 import { AbilityName } from '../../../types/dnd';
 import { getAvailableFeatsForCharacter } from '../../../utils/featUtils';
 import { FEAT_DATABASE } from '../../../services/dataService';
+import { isLegacyFeatForEdition } from '../../../utils/featUtils';
+import { getScoresBeforeLevelUpChoices } from '../../../utils/creationAbilities';
 
 interface ASIChoice {
   level: number;
@@ -51,21 +53,24 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
     }));
   });
 
+  const [showLegacy, setShowLegacy] = useState(false);
+
   // Load available feats when switching to feat mode
   const availableFeats = useMemo(() => {
     const currentChoice = choices[currentASIIndex];
     if (currentChoice?.type === 'feat') {
-      return getAvailableFeatsForCharacter(FEAT_DATABASE, {
+      const feats = getAvailableFeatsForCharacter(FEAT_DATABASE, {
         level: data.level,
         classSlug: data.classSlug,
-        abilities: data.abilities,
+        abilities: getScoresBeforeLevelUpChoices(data),
         edition: data.edition,
         speciesSlug: data.speciesSlug,
         selectedLineage: data.selectedLineage
       }, 'asi');
+      return feats.filter(feat => showLegacy || feat.slug === currentChoice.featSlug || !isLegacyFeatForEdition(feat, data.edition));
     }
     return [];
-  }, [choices, currentASIIndex, data.level, data.classSlug, data.abilities, data.edition, data.speciesSlug, data.selectedLineage]);
+  }, [choices, currentASIIndex, data.level, data, showLegacy]);
 
   if (asiLevels.length === 0) {
     // No ASI levels, skip this step
@@ -73,6 +78,7 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
     return null;
   }
 
+  const baseScores = getScoresBeforeLevelUpChoices(data);
   const currentChoice = choices[currentASIIndex];
   const abilities: AbilityName[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
@@ -83,13 +89,23 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
   const maxPoints = 2;
   const remainingPoints = maxPoints - pointsAllocated;
 
+  // ASI points already spent at the other levels count toward the 20 cap.
+  const otherChoicesBonus = (ability: AbilityName) =>
+    choices.reduce(
+      (sum, choice, index) =>
+        index === currentASIIndex || choice.type !== 'asi'
+          ? sum
+          : sum + (choice.asiAllocations?.[ability] || 0),
+      0
+    );
+
   const handleIncrement = (ability: AbilityName) => {
     if (remainingPoints <= 0 || !currentChoice) return;
 
-    const currentAbilityScore = data.abilities?.[ability] || 10;
+    const currentAbilityScore = baseScores[ability] || 10;
     const currentBonus = currentChoice.asiAllocations?.[ability] || 0;
 
-    if (currentAbilityScore + currentBonus >= 20) {
+    if (currentAbilityScore + otherChoicesBonus(ability) + currentBonus >= 20) {
       // Max ability score is 20
       return;
     }
@@ -251,7 +267,7 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
 
           <div className="space-y-3">
             {abilities.map(ability => {
-              const baseScore = data.abilities?.[ability] || 10;
+              const baseScore = (baseScores[ability] || 10) + otherChoicesBonus(ability);
               const allocated = currentChoice.asiAllocations?.[ability] || 0;
               const newScore = baseScore + allocated;
               const atMax = newScore >= 20;
@@ -315,6 +331,17 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
           <div className="text-theme-tertiary text-sm mb-4">
             Choose from the available feats below. Each feat provides unique benefits to your character.
           </div>
+
+          {data.edition === '2024' && (
+            <label className="flex items-center gap-2 text-sm text-theme-muted mb-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showLegacy}
+                onChange={(e) => setShowLegacy(e.target.checked)}
+              />
+              Include 2014-rules feats
+            </label>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
             {availableFeats.map(feat => (

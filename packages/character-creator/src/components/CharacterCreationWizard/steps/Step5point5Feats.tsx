@@ -4,7 +4,8 @@ import { StepProps } from '../types/wizard.types';
 import { Feat, FeatChoiceMap } from '../../../types/dnd';
 import { FEAT_DATABASE, randomizeFeats, loadFeats } from '../../../services/dataService';
 import {
-  calculateFeatAvailability,
+  getRemainingFeatSlots,
+  isLegacyFeatForEdition,
   featProvidesAbilityIncrease,
   getFeatSourceInfo,
   canSelectMoreFeats,
@@ -33,9 +34,10 @@ export const Step5point5Feats: React.FC<StepProps> = ({ data, updateData, nextSt
   const [showFeatDetails, setShowFeatDetails] = useState<string | null>(null);
   const [featChoiceModal, setFeatChoiceModal] = useState<{ isOpen: boolean; feat: Feat | null }>({ isOpen: false, feat: null });
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [showLegacy, setShowLegacy] = useState(false);
 
   // Calculate how many feats the character can take
-  const maxFeats = calculateFeatAvailability(data);
+  const maxFeats = getRemainingFeatSlots(data);
   const selectedFeats = data.selectedFeats || [];
 
   // Load all feats and calculate availability
@@ -50,8 +52,10 @@ export const Step5point5Feats: React.FC<StepProps> = ({ data, updateData, nextSt
   }), [data]);
 
   const displayedFeats = useMemo(() => {
-    return showAvailableOnly ? allFeats.filter(f => f.isAvailable) : allFeats;
-  }, [allFeats, showAvailableOnly]);
+    return allFeats
+      .filter(f => showLegacy || selectedFeats.includes(f.feat.slug) || !isLegacyFeatForEdition(f.feat, data.edition))
+      .filter(f => !showAvailableOnly || f.isAvailable);
+  }, [allFeats, showAvailableOnly, showLegacy, selectedFeats, data.edition]);
 
   // Helper function to check if a feat requires choices
   const featRequiresChoices = (featSlug: string): boolean => {
@@ -138,6 +142,17 @@ export const Step5point5Feats: React.FC<StepProps> = ({ data, updateData, nextSt
           />
           Show available only
         </label>
+        {data.edition === '2024' && (
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="form-checkbox text-accent-yellow-light"
+              checked={showLegacy}
+              onChange={(e) => setShowLegacy(e.target.checked)}
+            />
+            Include 2014-rules feats
+          </label>
+        )}
       </div>
 
       {selectedFeats.length > 0 && (

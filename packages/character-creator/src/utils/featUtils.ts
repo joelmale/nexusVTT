@@ -1,3 +1,4 @@
+import { isCoreSrdContent, ORIGIN_FEATS_2024 } from '../data/contentProvenance';
 import { Feat, CharacterCreationData, Edition } from '../types/dnd';
 import { resolveSpeciesSlug } from '../services/dataService';
 import {
@@ -368,6 +369,30 @@ export const calculateFeatAvailability = (
 };
 
 /**
+ * True for a 2014-rules feat offered in a 2024 build. The 2024 origin feats and
+ * the SRD 5.2.1 feats are not legacy even though the catalog stores a 2014 year.
+ */
+export const isLegacyFeatForEdition = (
+  feat: Feat,
+  edition?: Edition,
+): boolean =>
+  edition === '2024' &&
+  feat.year < 2024 &&
+  !ORIGIN_FEATS_2024.has(feat.slug) &&
+  !isCoreSrdContent('feat', feat.slug, '2024');
+
+/**
+ * Feats still open to the Feats step. Each Ability Score Improvement level is
+ * already resolved in the ASI step (as an ASI or a feat), so those choices use
+ * up the same slots; counting them again would grant a bonus feat.
+ */
+export const getRemainingFeatSlots = (data: CharacterCreationData): number =>
+  Math.max(
+    0,
+    calculateFeatAvailability(data) - (data.cumulativeASI?.length ?? 0),
+  );
+
+/**
  * Check if a feat's prerequisites are met by the character
  * This is a basic implementation - can be enhanced with more complex prerequisite checking
  */
@@ -436,7 +461,10 @@ export const canSelectMoreFeats = (
   currentFeats: string[],
   data: CharacterCreationData | number,
 ): boolean => {
-  const maxFeats = calculateFeatAvailability(data);
+  const maxFeats =
+    typeof data === 'number'
+      ? calculateFeatAvailability(data)
+      : getRemainingFeatSlots(data);
   return currentFeats.length < maxFeats;
 };
 

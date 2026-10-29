@@ -6,11 +6,14 @@ import { StepProps } from '../types/wizard.types';
 import { CharacterCreationData } from '../../../types/dnd';
 import { loadClasses, getModifier } from '../../../services/dataService';
 import { rollDice } from '../../../services/diceService';
+import { getScoresBeforeLevelUpChoices } from '../../../utils/creationAbilities';
+import { calculateCharacterStats } from '../../../utils/characterCreationUtils';
 import {
   randomizePersonality,
   getBackgroundDefaults,
   validateTraits,
 } from '../../../utils/traitUtils';
+import { LevelResourceSummary } from '../components/LevelResourceSummary';
 import { generateName, GeneratedName } from '../../../utils/nameGenerator';
 
 const RandomizeButton: React.FC<{
@@ -279,13 +282,47 @@ export const Step8Traits: React.FC<
         </div>
       </div>
 
+      <LevelResourceSummary data={data} />
+
       {/* Hit Points Calculation Method */}
       {(() => {
         const allClasses = loadClasses();
         const selectedClass = allClasses.find((c) => c.slug === data.classSlug);
         if (!selectedClass) return null;
 
-        const conModifier = getModifier(data.abilities.CON);
+        const conModifier = getModifier(
+          getScoresBeforeLevelUpChoices(data, { includeLevelUpChoices: true })
+            .CON,
+        );
+
+        if (data.level > 1) {
+          // Higher-level HP was settled in the high-level setup step; show the
+          // number the finished character will actually have.
+          let totalHp: number | null = null;
+          try {
+            totalHp = calculateCharacterStats(data).maxHitPoints;
+          } catch {
+            totalHp = data.highLevelSetup?.totalHP ?? null;
+          }
+          return (
+            <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-2">
+              <h4 className="text-lg font-bold text-accent-yellow-light">
+                Hit Points
+              </h4>
+              <p className="text-xs text-theme-muted">
+                Level {data.level} {selectedClass.name}: d{selectedClass.hit_die}{' '}
+                hit die, CON modifier {conModifier >= 0 ? '+' : ''}
+                {conModifier}. Set in the high-level setup step.
+              </p>
+              {totalHp !== null && (
+                <div className="text-xs text-theme-disabled">
+                  Final HP:{' '}
+                  <span className="text-white font-bold">{totalHp} HP</span>
+                </div>
+              )}
+            </div>
+          );
+        }
 
         return (
           <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3">
