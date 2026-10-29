@@ -1,0 +1,276 @@
+{
+  "goldset": 1,
+  "goldsetStatus": "draft",
+  "pipeline": "v2",
+  "vlm": "qwen3-vl:4b",
+  "split": "tuning",
+  "source": "eval\\goldset\\predictions-example",
+  "createdAt": "2026-10-29T21:09:45.555Z",
+  "pageCount": 9,
+  "scores": {
+    "pages": [
+      {
+        "id": "synthetic-001",
+        "category": "monster_stat_block",
+        "heldOut": false,
+        "cer": 0.0543,
+        "orderScore": 0.989,
+        "paragraphsMatched": "14/14",
+        "entities": {
+          "gold": 2,
+          "predicted": 3,
+          "matched": 2,
+          "wrongUnflagged": [
+            "spell:Smoke Step"
+          ]
+        },
+        "wordValidity": 0.97
+      },
+      {
+        "id": "mm-p078",
+        "category": "monster_stat_block",
+        "heldOut": false,
+        "cer": 1,
+        "orderScore": 0,
+        "paragraphsMatched": "0/13",
+        "entities": {
+          "gold": 1,
+          "predicted": 0,
+          "matched": 0,
+          "wrongUnflagged": []
+        },
+        "wordValidity": null
+      },
+      {
+        "id": "tph-p065",
+        "category": "heavy_art",
+        "heldOut": false,
+        "cer": 1,
+        "orderScore": 0,
+        "paragraphsMatched": "0/6",
+        "entities": {
+          "gold": 0,
+          "predicted": 0,
+          "matched": 0,
+          "wrongUnflagged": []
+        },
+        "wordValidity": null
+      },
+      {
+        "id": "phb-p077",
+        "category": "heavy_art",
+        "heldOut": false,
+        "cer": 1,
+        "orderScore": 0,
+        "paragraphsMatched": "0/10",
+        "entities": {
+          "gold": 0,
+          "predicted": 0,
+          "matched": 0,
+          "wrongUnflagged": []
+        },
+        "wordValidity": null
+      },
+      {
+        "id": "phb-p083",
+        "category": "heavy_art",
+        "heldOut": false,
+        "cer": 1,
+        "orderScore": 0,
+        "paragraphsMatched": "0/10",
+        "entities": {
+          "gold": 0,
+          "predicted": 0,
+          "matched": 0,
+          "wrongUnflagged": []
+        },
+        "wordValidity": null
+      },
+      {
+        "id": "mm-p3",
+        "category": "two_column_sidebar",
+        "heldOut": false,
+        "cer": 1,
+        "orderScore": 0,
+        "paragraphsMatched": "0/25",
+        "entities": {
+          "gold": 0,
+          "predicted": 0,
+          "matched": 0,
+          "wrongUnflagged": []
+        },
+        "wordValidity": null
+      },
+      {
+        "id": "mm-p004",
+        "category": "tables",
+        "heldOut": false,
+        "cer": 1,
+        "orderScore": 0,
+        "paragraphsMatched": "0/3",
+        "entities": {
+          "gold": 0,
+          "predicted": 0,
+          "matched": 0,
+          "wrongUnflagged": []
+        },
+        "wordValidity": null
+      },
+      {
+        "id": "mm-p10",
+        "category": "two_column_sidebar",
+        "heldOut": false,
+        "cer": 1,
+        "orderScore": 0,
+        "paragraphsMatched": "0/26",
+        "entities": {
+          "gold": 0,
+          "predicted": 0,
+          "matched": 0,
+          "wrongUnflagged": []
+        },
+        "wordValidity": null
+      },
+      {
+        "id": "mm-p12",
+        "category": "two_column_sidebar",
+        "heldOut": false,
+        "cer": 1,
+        "orderScore": 0,
+        "paragraphsMatched": "0/33",
+        "entities": {
+          "gold": 0,
+          "predicted": 0,
+          "matched": 0,
+          "wrongUnflagged": []
+        },
+        "wordValidity": null
+      }
+    ],
+    "readingOrder": {
+      "cer": 0.8949,
+      "orderScore": 0.1099
+    },
+    "regions": {
+      "stat_block": {
+        "precision": 1,
+        "recall": 0.5,
+        "gold": 2
+      },
+      "sidebar": {
+        "precision": null,
+        "recall": 0,
+        "gold": 1
+      },
+      "table": {
+        "precision": 0,
+        "recall": 0,
+        "gold": 2
+      },
+      "art": {
+        "precision": 1,
+        "recall": 0.1429,
+        "gold": 7
+      }
+    },
+    "entities": {
+      "recall": 0.6667,
+      "precision": 0.6667,
+      "numericExact": 0.875,
+      "shortFieldExact": 1,
+      "proseSimilarity": 1,
+      "groundingViolationRate": 0.3333
+    },
+    "reviewFlags": {
+      "wrong": 2,
+      "flaggedShare": 0.5,
+      "wrongUnflagged": 1,
+      "wrongUnflaggedEntities": [
+        "spell:Smoke Step"
+      ]
+    },
+    "cost": {
+      "layoutSecondsPerPage": 4.1,
+      "extractSecondsPerPage": 6.2,
+      "peakVramMb": null
+    },
+    "qualityProxy": {
+      "wordValidityVsCer": null,
+      "pages": 1
+    }
+  },
+  "thresholds": [
+    {
+      "name": "readingOrder.cer",
+      "value": 0.8949,
+      "limit": 0.03,
+      "pass": false
+    },
+    {
+      "name": "readingOrder.orderScore",
+      "value": 0.1099,
+      "limit": 0.9,
+      "pass": false
+    },
+    {
+      "name": "regions.stat_block.recall",
+      "value": 0.5,
+      "limit": 0.9,
+      "pass": false
+    },
+    {
+      "name": "regions.stat_block.precision",
+      "value": 1,
+      "limit": 0.9,
+      "pass": true
+    },
+    {
+      "name": "regions.table.recall",
+      "value": 0,
+      "limit": 0.8,
+      "pass": false
+    },
+    {
+      "name": "regions.table.precision",
+      "value": 0,
+      "limit": 0.8,
+      "pass": false
+    },
+    {
+      "name": "regions.art.recall",
+      "value": 0.1429,
+      "limit": 0.8,
+      "pass": false
+    },
+    {
+      "name": "regions.art.precision",
+      "value": 1,
+      "limit": 0.8,
+      "pass": true
+    },
+    {
+      "name": "entities.recall",
+      "value": 0.6667,
+      "limit": 0.9,
+      "pass": false
+    },
+    {
+      "name": "entities.precision",
+      "value": 0.6667,
+      "limit": 0.95,
+      "pass": false
+    },
+    {
+      "name": "entities.numericExact",
+      "value": 0.875,
+      "limit": 0.98,
+      "pass": false
+    },
+    {
+      "name": "reviewFlags.wrongUnflagged",
+      "value": 1,
+      "limit": 0,
+      "pass": false
+    }
+  ]
+}

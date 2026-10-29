@@ -10,10 +10,14 @@
     }
   },
   "pages": [
-    { "id": "synthetic-001", "file": "pages/synthetic-001.json" }
-    { "id": "mm-p079", "file": "pages/mm-p079.json" }
-    { "id": "phb-p065", "file": "pages/phb-p065.json" }
-    { "id": "phb-p077", "file": "pages/phb-p077.json" }
-    { "id": "phb-p083", "file": "pages/phb-p083.json" }
+    { "id": "synthetic-001", "file": "pages/synthetic-001.json" },
+    { "id": "mm-p078", "file": "pages/mm-p078.json" },
+    { "id": "phb-p065", "file": "pages/phb-p065.json" },
+    { "id": "phb-p077", "file": "pages/phb-p077.json" },
+    { "id": "phb-p083", "file": "pages/phb-p083.json" },
+    { "id": "mm-p3", "file": "pages/mm-p3.json" },
+    { "id": "mm-p004", "file": "pages/mm-p004.json" },
+    { "id": "mm-p10", "file": "pages/mm-p10.json" },
+    { "id": "mm-p12", "file": "pages/mm-p12.json" }
   ]
 }

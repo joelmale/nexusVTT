@@ -1,0 +1,41 @@
+{
+  "$schema": "../label.schema.json",
+  "id": "mm-p004",
+  "goldsetVersion": 1,
+  "source": {
+    "sha256": "6514c87c6c040c86b996acb2e4a5663b5e0065084842280f6b0a94b4c964ac3e",
+    "pageNumber": 4,
+    "title": "Monster Manual"
+  },
+  "category": "tables",
+  "heldOut": false,
+  "status": "draft",
+  "review": {
+    "verifiedBy": null,
+    "verifiedAt": null,
+    "numbersChecked": false,
+    "notes": ""
+  },
+  "text": "# Contents\n\nIntroduction 4\nAarakocra 12\nAboleth 13\nAngels 15\nAnimated Objects 19\nAnkheg 21\nAzer 22\nBanshee 23\nBasilisk 24\nBehir 25\nBeholders 26\nBlights 31\nBugbears 33\nBulette 34\nBullywug 35\nCambion 36\nCarrion Crawler 37\nCentaur 38\nChimera 39\nChuul 40\nCloaker 41\nCockatrice 42\nCouatl 43\nCrawling Claw 44\nCyclops 45\nDarkmantle 46\nDeath Knight 47\nDemilich 48\nDemons 50\nDevils 66\nDinosaurs 79\nDisplacer Beast 81\nDoppelganger 82\nDracolich 83\nDragon, Shadow 84\nDragons 86\nDragon Turtle 119\nDrider 120\nDryad 121\nDuergar 122\nElementals 123\nElves: Drow 126\nEmpyrean 130\nEttercap 131\nEttin 132\nFaerie Dragon 133\nFlameskull 134\nFlumph 135\nFomorian 136\nFungi 137\nGaleb Duhr 139\nGargoyle 140\nGenies 141\nGhost 147\nGhouls 148\nGiants 149\nGibbering Mouther 157\nGith 159\nGholls 162\nGnome, Deep (Svirfneblin) 164\nGoblins 165\nGolems 167\nGorgon 171\nGrell 172\nGrick 173\nGriffon 174\nGrimlock 175\nHags 176\nHalf-Dragon 180\nHarpy 181\nHell Hound 182\nHelmed Horror 183\nHippogriff 184\nHobgoblins 185\nHomunculus 188\nHook Horror 189\nHydra 190\nIntellect Devourer 191\nInvisible Stalker 192\nJackalwere 193\nKenku 194\nKobolds 195\nKraken 196\nKuo-toa 198\nLamia 201\nLich 202\nLizardfolk 204\nLycanthropes 206\nMagmin 212\nManticore 213\nMedusa 214\nMephits 215\nMerfolk 218\nMerrow 219\nMimic 220\nMind Flayer 221\nMinotaur 223\nModrons 224\nMummies 227\nMyconids 230\nNagas 233\nNightmare 235\nNothic 236\nOgres 237\nOni 239\nOozes 240\nOrcs 244\nOtyugh 248\nOwlbear 249\nPegasus 250\nPeryton 251\nPiercer 252\nPixie 253\nRevenant 259\nRoc 260\nRoper 261\nRust Monster 262\nSahuagin 263\nSalamanders 265\nSatyr 266\nScarecrow 268\nShadow 269\nShambling Mound 270\nShield Guardian 271\nSkeletons 272\nSlaadi 274\nSpecter 279\nSphinxes 280\nSprite 283\nStirge 284\nSuccubus/Incubus 285\nTarrasque 286\nThri-kreen 288\nTreant 289\nTroglodyte 290\nTroll 291\nUmber Hulk 292\nUnicorn 293\nVampires 295\nWater Weird 299\nWight 300\nWill-o'-wisp 301\nWraith 302\nWyvern 303\nXorn 304\nYetis 305\nYuan-ti 307\nYugoloths 311\nZombies 315\n\nAppendix A: Miscellaneous Creatures 317\nAppendix B: Nonplayer Characters 342\nIndex of Stat Blocks 351",
+  "regions": [
+    {
+      "class": "table",
+      "bbox": [
+        0.0849,
+        0,
+        0.9004,
+        0.94
+      ]
+    },
+    {
+      "class": "art",
+      "bbox": [
+        0.6416,
+        0.69,
+        0.9912,
+        0.938
+      ]
+    }
+  ],
+  "entities": []
+}
