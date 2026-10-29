@@ -3,13 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   decodeDraftRecord,
   encodeDraftRecord,
-  getRecommendation,
-  toCharacterCreationResult,
-} from '@nexus/character-creator';
+} from '../services/draftStorage';
+import { getRecommendation } from '../services/recommendationService';
+import { toCharacterCreationResult } from '../services/draftEvaluator';
 import {
   useCreatorRecovery,
   type CreatorDraftRepository,
-} from '@/hooks/useCreatorRecovery';
+} from './useCreatorRecovery';
 
 describe('host creation save recovery', () => {
   it('persists an exact pending completion before saving and recovers that payload after reload', async () => {

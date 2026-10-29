@@ -28,9 +28,6 @@ vi.mock('@nexus/character-creator', () => ({
     </button>
   ),
   createdCharacterToNexus: mocks.convert,
-}));
-vi.mock('@nexus/character-creator/styles.css', () => ({}));
-vi.mock('@/hooks/useCreatorRecovery', () => ({
   useCreatorRecovery: () => ({
     phase: 'ready',
     initialDraft: { edition: '2024' },
@@ -39,6 +36,7 @@ vi.mock('@/hooks/useCreatorRecovery', () => ({
     discard: mocks.discard,
   }),
 }));
+vi.mock('@nexus/character-creator/styles.css', () => ({}));
 vi.mock('@/services/storageWorkerClient', () => ({
   storageWorkerClient: {
     getCreatorDraft: vi.fn(),

@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  decodeDraftRecord,
-  encodeDraftRecord,
-  isPristineDraft,
-  type CreationDraft,
-  type CharacterCreationResult,
-  type CreatorPresentation,
-} from '@nexus/character-creator';
+import { isPristineDraft } from '../adapters/draftAdapter';
+import { decodeDraftRecord, encodeDraftRecord } from '../services/draftStorage';
+import type { CharacterCreationResult } from '../api/types';
+import type { CreationDraft, CreatorPresentation } from '../types/draft';
 
 interface StoredDraft {
   id: string;

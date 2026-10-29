@@ -5,10 +5,10 @@ import {
   type CharacterCreationResult,
   type CreationMode,
   type Edition,
+  useCreatorRecovery,
 } from '@nexus/character-creator';
 import '@nexus/character-creator/styles.css';
 import type { Character } from '@nexus/character-contracts';
-import { useCreatorRecovery } from '@/hooks/useCreatorRecovery';
 import { handoffSavedCharacter } from '@/services/characterHandoff';
 import { creatorDefaultMode } from '@/services/creatorCapabilities';
 import { getRulesCatalogVersion } from '@/services/rulesCatalogClient';

@@ -5,8 +5,8 @@ import {
   type CharacterCreationResult,
   type CreationMode,
   type Edition,
+  useCreatorRecovery,
 } from '@nexus/character-creator';
-import { useCreatorRecovery } from '../hooks/useCreatorRecovery';
 import * as database from '../services/dbService';
 import { creatorDefaultMode } from '../services/creatorCapabilities';
 
