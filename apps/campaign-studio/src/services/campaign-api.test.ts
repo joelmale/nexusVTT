@@ -42,7 +42,7 @@ describe('campaign-api', () => {
       { id: 'older' },
     ]);
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/campaigns',
+      '/api/campaigns?include=shared',
       expect.objectContaining({ credentials: 'include' }),
     );
   });

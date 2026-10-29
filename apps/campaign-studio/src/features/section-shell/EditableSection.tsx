@@ -27,6 +27,7 @@ import type {
   SaveResult,
   SaveState,
 } from './bundleStore';
+import { ConflictDialog } from './ConflictDialog';
 import { EditableCommitContext } from './EditableCommitContext';
 import { diffDraft } from './draftUtils';
 import styles from './EditableSection.module.css';
@@ -178,6 +179,8 @@ export function EditableSection({
   const [state, setState] = useState<SaveState>('idle');
   const [error, setError] = useState<string>();
   const [dirty, setDirty] = useState(false);
+  /** The rejected patch while a conflict is unresolved. */
+  const [conflictPatch, setConflictPatch] = useState<Draft>();
   const [commitTick, setCommitTick] = useState(0);
   const headingId = useId();
   const sessionRef = useRef<Session | null>(null);
@@ -237,7 +240,10 @@ export function EditableSection({
         session.failed = true;
         session.paused = true;
         session.pending = false;
-        if (live(session)) setState('conflict');
+        if (live(session)) {
+          setConflictPatch(patch);
+          setState('conflict');
+        }
       } else {
         session.failed = true;
         session.pending = false;
@@ -315,13 +321,22 @@ export function EditableSection({
     if (!session) return;
     session.store = store;
     session.toPatch = toPatch;
-    session.initial = initialDraft;
     const key = JSON.stringify(initialDraft);
     if (key !== session.initialKey) {
+      // A refetch moved the entity (a co-DM's save, a focus refresh, or our
+      // own save coming back). Keep only the fields this user has changed and
+      // take the rest from the new version, so a later save cannot write
+      // stale values back over someone else's edit.
+      const local = diffDraft(session.draft, session.savedBase ?? session.initial);
       session.initialKey = key;
       session.savedBase = null;
+      session.initial = initialDraft;
+      session.draft = { ...initialDraft, ...local };
+      setDraftState(session.draft);
+      setDirty(hasKeys(pendingPatch(session)));
     }
-  });
+    session.initial = initialDraft;
+  }, [store, toPatch, initialDraft]);
 
   useEffect(() => {
     if (!commitRequested.current) return;
@@ -394,6 +409,7 @@ export function EditableSection({
     setState('idle');
     setError(undefined);
     setDirty(false);
+    setConflictPatch(undefined);
   }, [store]);
 
   // The store already refetched the authoritative object on conflict, so
@@ -402,6 +418,7 @@ export function EditableSection({
     const session = sessionRef.current;
     if (!session) return;
     session.paused = false;
+    setConflictPatch(undefined);
     void attempt(session, session.lastPatch);
   };
 
@@ -494,12 +511,15 @@ export function EditableSection({
           ) : null}
         </div>
       </header>
-      <SaveBanner
-        error={error}
-        onKeepMine={keepMine}
-        onReload={reloadLatest}
-        state={state === 'conflict' || state === 'error' ? state : 'idle'}
-      />
+      <SaveBanner error={error} state={state === 'error' ? state : 'idle'} />
+      {state === 'conflict' ? (
+        <ConflictDialog
+          latest={initialDraft}
+          mine={conflictPatch ?? {}}
+          onKeepMine={keepMine}
+          onReload={() => void reloadLatest()}
+        />
+      ) : null}
       {playerView ? (
         <PlayerViewBanner onExit={() => setPlayerView(false)} />
       ) : null}

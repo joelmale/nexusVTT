@@ -4,6 +4,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DatabaseService } from '../../../../server/database.js';
 import { registerApiRoutes } from '../../../../server/routes/api.js';
 
+/** A campaigns repository where `ownerId` owns every campaign and `coDmIds` co-DM it. */
+function campaignAccess(ownerId: string, coDmIds: string[] = []) {
+  return {
+    getCampaignAccess: vi.fn(async (campaignId: string, userId: string) => ({
+      campaign: { id: campaignId, dmId: ownerId },
+      role:
+        userId === ownerId
+          ? 'owner'
+          : coDmIds.includes(userId)
+            ? 'co-dm'
+            : null,
+    })),
+  } as unknown as DatabaseService['campaigns'];
+}
+
 interface AppContext {
   baseUrl: string;
   server: Server;
@@ -142,6 +157,69 @@ describe('api.ts core CRUD routes', () => {
       expect(ctx.db.getCampaignsByUser).toHaveBeenCalledWith('u1');
     });
 
+    it('GET /api/campaigns?include=shared also lists co-DM campaigns', async () => {
+      const shared = [
+        { id: 'own', dmId: 'u1', role: 'owner' },
+        { id: 'theirs', dmId: 'u2', role: 'co-dm' },
+      ];
+      const getCampaignsForEditor = vi.fn().mockResolvedValue(shared);
+      ctx = await startApp({
+        authUser: { id: 'u1' },
+        db: {
+          campaigns: {
+            getCampaignsForEditor,
+          } as unknown as DatabaseService['campaigns'],
+          getCampaignsByUser: vi.fn(),
+        },
+      });
+
+      const res = await fetch(`${ctx.baseUrl}/api/campaigns?include=shared`);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual(shared);
+      expect(getCampaignsForEditor).toHaveBeenCalledWith('u1');
+      expect(ctx.db.getCampaignsByUser).not.toHaveBeenCalled();
+    });
+
+    it('PUT /api/campaigns/:id lets a co-DM change settings but not scenes', async () => {
+      ctx = await startApp({
+        authUser: { id: 'u-co' },
+        db: {
+          campaigns: campaignAccess('u-owner', ['u-co']),
+          updateCampaign: vi.fn().mockResolvedValue(undefined),
+        },
+      });
+
+      const res = await fetch(`${ctx.baseUrl}/api/campaigns/c-1`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Renamed', scenes: [], lastRoomCode: 'ABCD' }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(ctx.db.updateCampaign).toHaveBeenCalledWith('c-1', {
+        name: 'Renamed',
+      });
+    });
+
+    it('DELETE /api/campaigns/:id stays owner-only for co-DMs', async () => {
+      ctx = await startApp({
+        authUser: { id: 'u-co' },
+        db: {
+          getCampaignById: vi
+            .fn()
+            .mockResolvedValue({ id: 'c-1', dmId: 'u-owner' }),
+          deleteCampaign: vi.fn(),
+        },
+      });
+
+      const res = await fetch(`${ctx.baseUrl}/api/campaigns/c-1`, {
+        method: 'DELETE',
+      });
+
+      expect(res.status).toBe(403);
+      expect(ctx.db.deleteCampaign).not.toHaveBeenCalled();
+    });
+
     it('POST /api/campaigns validates name input', async () => {
       ctx = await startApp({ authUser: { id: 'u1' } });
 
@@ -192,9 +270,7 @@ describe('api.ts core CRUD routes', () => {
       ctx = await startApp({
         authUser: { id: 'u1' },
         db: {
-          getCampaignById: vi
-            .fn()
-            .mockResolvedValue({ id: 'c-1', dmId: 'u1', name: 'Old' }),
+          campaigns: campaignAccess('u1'),
           updateCampaign: vi.fn().mockResolvedValue(undefined),
         },
       });
@@ -241,9 +317,7 @@ describe('api.ts core CRUD routes', () => {
         ctx = await startApp({
           authUser: { id: 'u1' },
           db: {
-            getCampaignById: vi
-              .fn()
-              .mockResolvedValue({ id: 'c1', dmId: 'u1' }),
+            campaigns: campaignAccess('u1'),
             updateCampaign: vi.fn().mockResolvedValue(undefined),
           },
         });
@@ -274,9 +348,7 @@ describe('api.ts core CRUD routes', () => {
           authUser: { id: 'u1' },
           db: {
             createCampaign: vi.fn(),
-            getCampaignById: vi
-              .fn()
-              .mockResolvedValue({ id: 'c1', dmId: 'u1' }),
+            campaigns: campaignAccess('u1'),
             updateCampaign: vi.fn(),
           },
         });
@@ -300,9 +372,7 @@ describe('api.ts core CRUD routes', () => {
       ctx = await startApp({
         authUser: { id: 'intruder' },
         db: {
-          getCampaignById: vi
-            .fn()
-            .mockResolvedValue({ id: 'c1', dmId: 'owner' }),
+          campaigns: campaignAccess('owner'),
           updateCampaign: vi.fn(),
         },
       });
@@ -319,9 +389,7 @@ describe('api.ts core CRUD routes', () => {
       ctx = await startApp({
         authUser: { id: 'u-intruder' },
         db: {
-          getCampaignById: vi
-            .fn()
-            .mockResolvedValue({ id: 'c-1', dmId: 'u-owner' }),
+          campaigns: campaignAccess('u-owner'),
         },
       });
 

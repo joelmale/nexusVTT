@@ -107,6 +107,18 @@ CREATE TABLE IF NOT EXISTS players (
     UNIQUE ("userId", "sessionId")
 );
 
+-- Campaign co-DMs (2026-10-28-add-campaign-members.sql). The owner stays
+-- campaigns."dmId" and has no row here.
+CREATE TABLE IF NOT EXISTS campaign_members (
+    "campaignId" UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('co-dm')),
+    "invitedBy" UUID REFERENCES users(id) ON DELETE SET NULL,
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY ("campaignId", "userId")
+);
+CREATE INDEX IF NOT EXISTS idx_campaign_members_userId ON campaign_members("userId");
+
 -- Hosts Table (for Co-DM support)
 CREATE TABLE IF NOT EXISTS hosts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

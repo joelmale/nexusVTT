@@ -1,4 +1,5 @@
-import { screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BundleStore, SaveResult } from './bundleStore';
@@ -6,6 +7,46 @@ import { AddRow, EditableSection } from './EditableSection';
 import { renderInSection } from './testUtils';
 
 const initial = { name: 'Captain Serin', role: 'Harbor Master' };
+
+/** Lets a test replace the saved entity, as a refetch would. */
+let refetch: (next: Record<string, unknown>) => void = () => {};
+
+function RefetchableSection() {
+  const [saved, setSaved] = useState<Record<string, unknown>>(initial);
+  refetch = setSaved;
+  return (
+    <EditableSection
+      id="npc-1"
+      initialDraft={saved}
+      heading="Captain Serin"
+      kind="npc"
+      renderForm={(draft, setDraft) => (
+        <>
+          <label>
+            Name
+            <input
+              onChange={(event) =>
+                setDraft({ ...draft, name: event.target.value })
+              }
+              value={String(draft.name)}
+            />
+          </label>
+          <label>
+            Role
+            <input
+              onChange={(event) =>
+                setDraft({ ...draft, role: event.target.value })
+              }
+              value={String(draft.role)}
+            />
+          </label>
+        </>
+      )}
+    >
+      <p>read view</p>
+    </EditableSection>
+  );
+}
 
 function Section() {
   return (
@@ -158,7 +199,7 @@ describe('EditableSection', () => {
     expect(screen.getByRole('button', { name: 'Remove' })).toBeVisible();
   });
 
-  it('shows a conflict banner, pauses autosave and Reload latest reloads', async () => {
+  it('shows a conflict dialog, pauses autosave and Reload latest reloads', async () => {
     const updateItem = vi.fn().mockResolvedValue({ ok: false, conflict: true });
     const reload = vi.fn().mockResolvedValue(undefined);
     const { user } = renderInSection(<Section />, {
@@ -168,7 +209,7 @@ describe('EditableSection', () => {
     await user.type(screen.getByLabelText('Name'), '!');
     await user.tab();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent(
       'changed elsewhere',
     );
     expect(screen.queryByText('Saved')).toBeNull();
@@ -182,8 +223,44 @@ describe('EditableSection', () => {
 
     await user.click(screen.getByRole('button', { name: 'Reload latest' }));
     expect(reload).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(screen.getByText('read view')).toBeVisible();
+  });
+
+  it('compares the rejected fields with the saved version', async () => {
+    const updateItem = vi.fn().mockResolvedValue({ ok: false, conflict: true });
+    const { user } = renderInSection(<RefetchableSection />, {
+      store: editableStore(updateItem),
+    });
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.type(screen.getByLabelText('Name'), '!');
+    await user.tab();
+
+    const dialog = await screen.findByRole('alertdialog');
+    // The store refetches on conflict; a co-DM had renamed the NPC.
+    act(() => refetch({ ...initial, name: 'Serin the Bold' }));
+    const row = within(dialog).getByRole('row', { name: /Name/ });
+    expect(row).toHaveTextContent('Serin the Bold');
+    expect(row).toHaveTextContent('Captain Serin!');
+    expect(within(dialog).queryByRole('row', { name: /Role/ })).toBeNull();
+  });
+
+  it('keeps local edits and takes other fields when the entry is refetched', async () => {
+    const updateItem = vi.fn().mockResolvedValue({ ok: true });
+    const { user } = renderInSection(<RefetchableSection />, {
+      store: editableStore(updateItem),
+    });
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.type(screen.getByLabelText('Name'), ' Dhal');
+
+    act(() => refetch({ ...initial, role: 'Dockmaster' }));
+
+    expect(screen.getByLabelText('Role')).toHaveValue('Dockmaster');
+    expect(screen.getByLabelText('Name')).toHaveValue('Captain Serin Dhal');
+    await user.tab();
+    expect(updateItem).toHaveBeenCalledWith('npc', 'npc-1', {
+      name: 'Captain Serin Dhal',
+    });
   });
 
   it('Keep my changes re-sends the same patch after a conflict', async () => {

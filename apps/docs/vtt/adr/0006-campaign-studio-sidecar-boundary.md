@@ -77,3 +77,12 @@ reviewed before older offline drafts or persisted revisions are accepted.
 4. **Realtime Boundaries (`CS-80`)**: Authoring persistence relies on transactional
    compare-and-swap (HTTP 409 conflict detection). Real-time co-DM WebSocket fanout
    is scoped to Phase 5.
+5. **Co-DM editing, phase 1 (2026-10-28)**: `campaign_members` grants a `co-dm`
+   role; the owner stays `campaigns."dmId"` with no member row. Co-DMs may author,
+   publish and change campaign settings; only the owner deletes the campaign,
+   manages members (`/api/campaigns/:campaignId/members`, invite by existing
+   account email), or drives the live table (session-plan activation/advance,
+   encounter deploy, `/commands`). Studio shows a field-by-field conflict dialog on
+   409 and refetches the bundle when the tab regains focus; open edit forms keep
+   the user's changed fields and take the rest from the refetch. Live push to
+   other open editors is still deferred.

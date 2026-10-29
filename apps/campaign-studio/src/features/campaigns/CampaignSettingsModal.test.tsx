@@ -14,6 +14,9 @@ vi.mock('@/services/campaign-api', async (importOriginal) => {
     ...actual,
     updateCampaign: vi.fn(),
     deleteCampaign: vi.fn(),
+    listCampaignMembers: vi.fn(),
+    inviteCampaignMember: vi.fn(),
+    removeCampaignMember: vi.fn(),
   };
 });
 
@@ -21,6 +24,13 @@ function LocationProbe() {
   const location = useLocation();
   return <output aria-label="Current path">{location.pathname}</output>;
 }
+
+const OWNER = {
+  userId: 'user-owner',
+  name: 'Owner DM',
+  email: 'owner@example.com',
+  role: 'owner' as const,
+};
 
 const mockCampaign = {
   createdAt: '2026-01-01T00:00:00Z',
@@ -53,6 +63,10 @@ function createMockCampaignContext(
 describe('CampaignSettingsModal (CS-11 & CS-15)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(campaignApi.listCampaignMembers).mockResolvedValue({
+      role: 'owner',
+      members: [OWNER],
+    });
   });
 
   it('renders nothing when isOpen is false', () => {
@@ -219,6 +233,117 @@ describe('CampaignSettingsModal (CS-11 & CS-15)', () => {
     expect(reload).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
     expect(screen.getByLabelText('Current path')).toHaveTextContent('/campaigns');
+  });
+
+  it('lets the owner invite and remove co-DMs', async () => {
+    const user = userEvent.setup();
+    const coDm = {
+      userId: 'user-co',
+      name: 'Co DM',
+      email: 'co@example.com',
+      role: 'co-dm' as const,
+    };
+    vi.mocked(campaignApi.inviteCampaignMember).mockResolvedValueOnce({
+      role: 'owner',
+      members: [OWNER, coDm],
+    });
+    vi.mocked(campaignApi.removeCampaignMember).mockResolvedValueOnce({
+      role: 'owner',
+      members: [OWNER],
+    });
+
+    render(
+      <MemoryRouter>
+        <CampaignContext.Provider value={createMockCampaignContext()}>
+          <CampaignSettingsModal
+            campaign={mockCampaign}
+            isOpen={true}
+            onClose={vi.fn()}
+          />
+        </CampaignContext.Provider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Owner DM')).toBeInTheDocument();
+    await user.type(
+      screen.getByLabelText('Invite by account email'),
+      'co@example.com{Enter}',
+    );
+    expect(campaignApi.inviteCampaignMember).toHaveBeenCalledWith(
+      'camp-settings-test',
+      'co@example.com',
+    );
+    expect(campaignApi.updateCampaign).not.toHaveBeenCalled();
+    expect(await screen.findByText('Co DM')).toBeInTheDocument();
+    expect(screen.getByLabelText('Invite by account email')).toHaveValue('');
+
+    await user.click(screen.getByRole('button', { name: 'Remove Co DM' }));
+    expect(campaignApi.removeCampaignMember).toHaveBeenCalledWith(
+      'camp-settings-test',
+      'user-co',
+    );
+    await waitFor(() => expect(screen.queryByText('Co DM')).toBeNull());
+  });
+
+  it('shows invite errors from the server', async () => {
+    const user = userEvent.setup();
+    vi.mocked(campaignApi.inviteCampaignMember).mockRejectedValueOnce(
+      new Error('No Nexus account uses that email.'),
+    );
+
+    render(
+      <MemoryRouter>
+        <CampaignContext.Provider value={createMockCampaignContext()}>
+          <CampaignSettingsModal
+            campaign={mockCampaign}
+            isOpen={true}
+            onClose={vi.fn()}
+          />
+        </CampaignContext.Provider>
+      </MemoryRouter>,
+    );
+
+    await user.type(
+      await screen.findByLabelText('Invite by account email'),
+      'nobody@example.com',
+    );
+    await user.click(screen.getByRole('button', { name: 'Invite' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No Nexus account uses that email.',
+    );
+  });
+
+  it('keeps member management and deletion with the owner', async () => {
+    vi.mocked(campaignApi.listCampaignMembers).mockResolvedValue({
+      role: 'co-dm',
+      members: [
+        OWNER,
+        { userId: 'me', name: 'Me', email: null, role: 'co-dm' },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <CampaignContext.Provider value={createMockCampaignContext()}>
+          <CampaignSettingsModal
+            campaign={{ ...mockCampaign, role: 'co-dm' }}
+            isOpen={true}
+            onClose={vi.fn()}
+          />
+        </CampaignContext.Provider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Owner DM')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Only the owner can invite or remove co-DMs/),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Invite by account email')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Remove/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete Campaign' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Save Changes' }),
+    ).toBeInTheDocument();
   });
 
   it('renders read-only state for non-editable campaigns', () => {

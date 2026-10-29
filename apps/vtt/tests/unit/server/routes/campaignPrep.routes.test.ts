@@ -21,7 +21,11 @@ describe('campaign prep routes', () => {
   let server: Server;
   let authenticated = true;
   let userId = USER_ID;
-  let campaigns: { getCampaignById: ReturnType<typeof vi.fn> };
+  let campaigns: {
+    getCampaignById: ReturnType<typeof vi.fn>;
+    getCampaignAccess: ReturnType<typeof vi.fn>;
+  };
+  let coDmIds: Set<string>;
   let campaignPrep: {
     getObject: ReturnType<typeof vi.fn>;
     getRevision: ReturnType<typeof vi.fn>;
@@ -56,12 +60,18 @@ describe('campaign prep routes', () => {
 
   beforeEach(async () => {
     authenticated = true;
+    coDmIds = new Set();
     userId = USER_ID;
     campaigns = {
       getCampaignById: vi.fn().mockResolvedValue({
         id: CAMPAIGN_ID,
         dmId: USER_ID,
       }),
+      getCampaignAccess: vi.fn(async (_campaignId: string, caller: string) => ({
+        campaign: { id: CAMPAIGN_ID, dmId: USER_ID },
+        role:
+          caller === USER_ID ? 'owner' : coDmIds.has(caller) ? 'co-dm' : null,
+      })),
     };
     campaignPrep = {
       getObject: vi.fn(),
@@ -154,11 +164,39 @@ describe('campaign prep routes', () => {
     );
     expect(response.status).toBe(403);
 
-    campaigns.getCampaignById.mockResolvedValue(null);
+    campaigns.getCampaignAccess.mockResolvedValue(null);
     response = await fetch(
       `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects`,
     );
     expect(response.status).toBe(404);
+  });
+
+  it('lets co-DMs author prep but keeps the live run sheet with the owner', async () => {
+    const coDm = '44444444-4444-4444-8444-444444444444';
+    coDmIds.add(coDm);
+    userId = coDm;
+
+    const list = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects`,
+    );
+    expect(list.status).toBe(200);
+
+    campaignPrep.getActiveSessionPlanActivation.mockResolvedValueOnce(null);
+    const active = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/active?sessionId=session-12`,
+    );
+    expect(active.status).not.toBe(403);
+
+    const activate = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/${PLAN_ID}/activate`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: 'session-12', requestId: REQUEST_ID }),
+      },
+    );
+    expect(activate.status).toBe(403);
+    expect(campaignPrep.activateSessionPlan).not.toHaveBeenCalled();
   });
 
   it('lists campaign objects with validated filters', async () => {

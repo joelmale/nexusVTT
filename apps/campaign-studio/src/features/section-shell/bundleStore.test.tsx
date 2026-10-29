@@ -17,7 +17,7 @@ import { ServerBackendContext } from './ServerBackendContext';
 import { loadServerBundleBackend } from './serverStoreAdapter';
 import { loadServerBundleBackend as loadStubBackend } from './serverStoreStub';
 import { TEST_CAMPAIGN } from './testUtils';
-import { useBundleStore } from './useBundleStore';
+import { FOCUS_REFRESH_INTERVAL_MS, useBundleStore } from './useBundleStore';
 
 describe('read-only store', () => {
   it('is not editable and rejects mutations as read-only', async () => {
@@ -135,6 +135,38 @@ describe('useBundleStore', () => {
       ),
     ).toBeInTheDocument();
     await waitFor(() => expect(controller.load).toHaveBeenCalledTimes(1));
+  });
+
+  it('refetches when the tab regains focus, at most once per interval', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const serverBundle = {
+        ...getFixtureBundle('ashes-of-veyra')!,
+        source: 'server',
+      } as never;
+      const controller: ServerBundleStoreController = {
+        load: vi.fn().mockResolvedValue(serverBundle),
+        updateItem: vi.fn(),
+        addItem: vi.fn(),
+      };
+      const backend: ServerBundleBackend = {
+        createServerBundleStore: vi.fn().mockReturnValue(controller),
+        seedFromFixture: vi.fn(),
+      };
+      renderProbe('/campaigns/campaign-blank/npcs', backend);
+      await waitFor(() => expect(controller.load).toHaveBeenCalledTimes(1));
+
+      // Too soon after the initial load.
+      window.dispatchEvent(new Event('focus'));
+      expect(controller.load).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(FOCUS_REFRESH_INTERVAL_MS + 1);
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      await waitFor(() => expect(controller.load).toHaveBeenCalledTimes(2));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('stays read-only when the server refuses to load (non-DM)', async () => {

@@ -36,6 +36,9 @@ interface ServerSnapshot {
   bundle?: CampaignFixtureBundle;
 }
 
+/** Minimum gap between focus-triggered refetches of the campaign bundle. */
+export const FOCUS_REFRESH_INTERVAL_MS = 15_000;
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Request failed';
 }
@@ -84,6 +87,26 @@ export function useBundleStore(): BundleStoreState {
 
   useEffect(() => {
     if (controller) void reload();
+  }, [controller, reload]);
+
+  // Co-DMs edit the same campaign, so pick up their saves when this tab comes
+  // back into focus. Open edit forms keep the fields the user changed (see
+  // EditableSection); the throttle stops focus/visibility pairs double-loading.
+  useEffect(() => {
+    if (!controller) return undefined;
+    let lastRefresh = Date.now();
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastRefresh < FOCUS_REFRESH_INTERVAL_MS) return;
+      lastRefresh = Date.now();
+      void reload();
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, [controller, reload]);
 
   const snapshot =

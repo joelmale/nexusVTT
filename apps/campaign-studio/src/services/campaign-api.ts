@@ -1,3 +1,5 @@
+export type CampaignRole = 'owner' | 'co-dm';
+
 export interface CampaignSummary {
   createdAt: string;
   description: string | null;
@@ -7,6 +9,8 @@ export interface CampaignSummary {
   edition?: string;
   mode?: 'campaign' | 'one-shot';
   mood?: string | null;
+  /** The signed-in user's role; absent means the user owns the campaign. */
+  role?: CampaignRole;
 }
 
 export interface CreateCampaignInput {
@@ -52,6 +56,7 @@ function parseCampaign(value: unknown): CampaignSummary {
     edition: typeof value.edition === 'string' ? value.edition : '2024',
     mode: value.mode === 'one-shot' ? 'one-shot' : 'campaign',
     mood: typeof value.mood === 'string' ? value.mood : null,
+    role: value.role === 'co-dm' ? 'co-dm' : 'owner',
     updatedAt:
       typeof value.updatedAt === 'string'
         ? value.updatedAt
@@ -99,7 +104,7 @@ function byMostRecentlyUpdated(
 }
 
 export async function listCampaigns(): Promise<CampaignSummary[]> {
-  const body = await campaignRequest('/api/campaigns');
+  const body = await campaignRequest('/api/campaigns?include=shared');
   if (!Array.isArray(body)) {
     throw new Error('The campaign service returned an invalid campaign list.');
   }
@@ -146,4 +151,68 @@ export async function deleteCampaign(campaignId: string): Promise<void> {
   await campaignRequest(`/api/campaigns/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
+}
+
+export interface CampaignMember {
+  userId: string;
+  name: string;
+  email: string | null;
+  role: CampaignRole;
+}
+
+export interface CampaignMembers {
+  /** The signed-in user's role in this campaign. */
+  role: CampaignRole;
+  members: CampaignMember[];
+}
+
+function parseMembers(value: unknown): CampaignMembers {
+  if (!isRecord(value) || !Array.isArray(value.members)) {
+    throw new Error('The campaign service returned an invalid member list.');
+  }
+  return {
+    role: value.role === 'owner' ? 'owner' : 'co-dm',
+    members: value.members.filter(isRecord).map((member) => ({
+      userId: String(member.userId),
+      name: typeof member.name === 'string' ? member.name : 'Unknown',
+      email: typeof member.email === 'string' ? member.email : null,
+      role: member.role === 'owner' ? 'owner' : 'co-dm',
+    })),
+  };
+}
+
+function membersPath(campaignId: string): string {
+  return `/api/campaigns/${encodeURIComponent(campaignId)}/members`;
+}
+
+export async function listCampaignMembers(
+  campaignId: string,
+): Promise<CampaignMembers> {
+  return parseMembers(await campaignRequest(membersPath(campaignId)));
+}
+
+/** Owner only. The email must belong to an existing, non-guest account. */
+export async function inviteCampaignMember(
+  campaignId: string,
+  email: string,
+): Promise<CampaignMembers> {
+  return parseMembers(
+    await campaignRequest(membersPath(campaignId), {
+      body: JSON.stringify({ email: email.trim() }),
+      method: 'POST',
+    }),
+  );
+}
+
+/** Owner only. */
+export async function removeCampaignMember(
+  campaignId: string,
+  userId: string,
+): Promise<CampaignMembers> {
+  return parseMembers(
+    await campaignRequest(
+      `${membersPath(campaignId)}/${encodeURIComponent(userId)}`,
+      { method: 'DELETE' },
+    ),
+  );
 }

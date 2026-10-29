@@ -15,6 +15,7 @@ import type {
   CampaignPrepObjectKind,
   CampaignPrepObjectRecord,
   CampaignPrepObjectStatus,
+  CampaignRole,
 } from '../repositories/base.js';
 import {
   EncounterMaterializationError,
@@ -162,49 +163,64 @@ export function createCampaignPrepRouter({
 }: CampaignPrepRouterOptions): Router {
   const router = Router();
 
-  const campaignDmGuard = async (
-    req: Request,
-    res: Response,
-    next: () => void,
-  ) => {
-    try {
-      const userId = sessionUserId(req);
-      if (!userId) {
-        return res.status(401).json({ error: 'User ID not found in session' });
-      }
+  /**
+   * Prep authoring and publishing are open to the owner and co-DMs. Driving
+   * the live table (activating or advancing a run sheet, deploying an
+   * encounter) stays with the owner, matching the campaign command route.
+   */
+  const campaignRoleGuard =
+    (allows: (role: CampaignRole, req: Request) => boolean) =>
+    async (req: Request, res: Response, next: () => void) => {
+      try {
+        const userId = sessionUserId(req);
+        if (!userId) {
+          return res
+            .status(401)
+            .json({ error: 'User ID not found in session' });
+        }
 
-      const campaignId = routeParameter(req.params.campaignId);
-      if (!isUuid(campaignId)) {
+        const campaignId = routeParameter(req.params.campaignId);
+        if (!isUuid(campaignId)) {
+          return res
+            .status(400)
+            .json({ error: 'campaignId must be a valid UUID' });
+        }
+        const access = await db.campaigns.getCampaignAccess(
+          campaignId,
+          userId,
+        );
+        if (!access) {
+          return res.status(404).json({ error: 'Campaign not found' });
+        }
+        if (!access.role) {
+          return res
+            .status(403)
+            .json({ error: 'Campaign DM access required' });
+        }
+        if (!allows(access.role, req)) {
+          return res.status(403).json({
+            error: 'Only the campaign owner can run the live session plan',
+          });
+        }
+        return next();
+      } catch (error) {
+        console.error('Campaign DM guard error:', error);
         return res
-          .status(400)
-          .json({ error: 'campaignId must be a valid UUID' });
+          .status(500)
+          .json({ error: 'Failed to authorize campaign access' });
       }
-      const campaign = await db.campaigns.getCampaignById(campaignId);
-      if (!campaign) {
-        return res.status(404).json({ error: 'Campaign not found' });
-      }
-      if (campaign.dmId !== userId) {
-        return res.status(403).json({ error: 'Campaign DM access required' });
-      }
-      return next();
-    } catch (error) {
-      console.error('Campaign DM guard error:', error);
-      return res
-        .status(500)
-        .json({ error: 'Failed to authorize campaign access' });
-    }
-  };
+    };
 
   router.use(
     '/campaigns/:campaignId/prep',
     requireAuthenticatedNonGuest,
-    campaignDmGuard,
+    campaignRoleGuard(() => true),
   );
 
   router.use(
     '/campaigns/:campaignId/session-plans',
     requireAuthenticatedNonGuest,
-    campaignDmGuard,
+    campaignRoleGuard((role, req) => role === 'owner' || req.method === 'GET'),
   );
 
   router.get('/campaigns/:campaignId/prep/objects', async (req, res) => {

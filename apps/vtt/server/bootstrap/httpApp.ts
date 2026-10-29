@@ -15,6 +15,7 @@ import { SessionPlanPublishValidator } from '../campaign-prep/SessionPlanPublish
 import { registerApiRoutes } from '../routes/api.js';
 import { createAssetRouter } from '../routes/assets.routes.js';
 import { createAuthRouter } from '../routes/auth.routes.js';
+import { createCampaignMembersRouter } from '../routes/campaignMembers.routes.js';
 import { createCampaignPrepRouter } from '../routes/campaignPrep.routes.js';
 import { createDashboardRouter } from '../routes/dashboard.routes.js';
 import { createDocumentRoutes } from '../routes/documents.js';
@@ -164,6 +165,7 @@ export function createHttpApp({
       ),
     }),
   );
+  app.use('/api', createCampaignMembersRouter({ db }));
   app.use('/api', createDashboardRouter({ db }));
   app.use(
     createMetricsRouter({

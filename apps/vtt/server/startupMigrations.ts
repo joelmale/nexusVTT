@@ -60,6 +60,10 @@ export const STARTUP_MIGRATIONS: StartupMigration[] = [
     fileName: '2026-10-24-add-character-creation-attempts.sql',
     isApplied: (client) => hasTable(client, 'character_creation_attempts'),
   },
+  {
+    fileName: '2026-10-28-add-campaign-members.sql',
+    isApplied: (client) => hasTable(client, 'campaign_members'),
+  },
 ];
 
 export interface NonStartupMigration {

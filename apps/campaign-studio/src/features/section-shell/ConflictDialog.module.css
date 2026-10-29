@@ -1,0 +1,99 @@
+.backdrop {
+  align-items: center;
+  background: var(--studio-overlay);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 16px;
+  position: fixed;
+  z-index: var(--studio-z-popover);
+}
+
+.dialog {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-panel);
+  box-shadow: var(--studio-shadow);
+  color: var(--studio-text);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100dvh - 32px);
+  max-width: min(620px, 100%);
+  overflow: auto;
+  padding: 20px 22px;
+  width: 100%;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.body {
+  color: var(--studio-text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.compare {
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.compare th,
+.compare td {
+  border-top: 1px solid var(--studio-border);
+  overflow-wrap: anywhere;
+  padding: 8px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.compare thead th {
+  border-top: 0;
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.compare tbody th {
+  font-weight: 600;
+  width: 26%;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.actions button {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.actions button.primary {
+  background: var(--studio-positive);
+  border-color: var(--studio-positive);
+  color: var(--studio-positive-contrast);
+  font-weight: 650;
+}
+
+.actions button:focus-visible {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: 2px;
+}

@@ -14,9 +14,11 @@ import {
 import {
   deleteCampaign as deleteCampaignApi,
   updateCampaign as updateCampaignApi,
+  type CampaignRole,
 } from '@/services/campaign-api';
 
 import { useCampaignContext } from './CampaignContext';
+import { CampaignMembersSection } from './CampaignMembersSection';
 import styles from './CampaignSettingsModal.module.css';
 
 export interface CampaignSettingsModalProps {
@@ -29,6 +31,7 @@ export interface CampaignSettingsModalProps {
     edition?: string;
     mode?: 'campaign' | 'one-shot';
     mood?: string | null;
+    role?: CampaignRole;
   };
   isEditable?: boolean;
 }
@@ -80,6 +83,9 @@ export function CampaignSettingsModal({
 
   if (!isOpen || !campaign) return null;
 
+  // Co-DMs edit settings and prep; deleting the campaign stays with the owner.
+  const isOwner = campaign.role !== 'co-dm';
+
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!campaign || !isEditable) return;
@@ -115,7 +121,7 @@ export function CampaignSettingsModal({
   }
 
   async function handleDelete() {
-    if (!campaign || !isEditable) return;
+    if (!campaign || !isEditable || campaign.role === 'co-dm') return;
     setPending(true);
     setError(undefined);
     try {
@@ -278,7 +284,9 @@ export function CampaignSettingsModal({
             </select>
           </label>
 
-          {isEditable && (
+          {isEditable && <CampaignMembersSection campaignId={campaign.id} />}
+
+          {isEditable && isOwner && (
             <div className={styles.dangerSection}>
               <h3 className={styles.dangerHeader}>Danger Zone</h3>
               <p className={styles.dangerText}>
