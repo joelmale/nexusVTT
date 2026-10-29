@@ -36,7 +36,7 @@ export interface GeneratedSessionSpine {
   plan: SessionPlan;
 }
 
-function generateId(_prefix?: string): string {
+function generateId(): string {
   if (
     typeof globalThis.crypto !== 'undefined' &&
     typeof globalThis.crypto.randomUUID === 'function'
@@ -110,7 +110,7 @@ export function generateSessionSpine(
     : `Set the stage for Session #${sessionNumber}. Highlight where the party left off and remind them of active campaign threads in ${campaignTitle}.`;
 
   steps.push({
-    id: generateId('step-recap'),
+    id: generateId(),
     order: order++,
     kind: 'recap',
     track: 'main',
@@ -128,7 +128,7 @@ export function generateSessionSpine(
     : '';
 
   steps.push({
-    id: generateId('step-scene'),
+    id: generateId(),
     order: order++,
     kind: 'scene',
     track: 'main',
@@ -145,7 +145,7 @@ export function generateSessionSpine(
       status: 'ready',
     });
     readiness.push({
-      id: generateId('ready-loc'),
+      id: generateId(),
       label: `Prepare map and ambient description for ${primaryLocation.name}`,
       complete: Boolean(primaryLocation.shortDescription),
     });
@@ -169,7 +169,7 @@ export function generateSessionSpine(
         status: 'ready',
       });
       readiness.push({
-        id: generateId('ready-npc'),
+        id: generateId(),
         label: `Review roleplay notes and motivation for ${featuredNpc.name}`,
         complete: true,
       });
@@ -187,7 +187,7 @@ export function generateSessionSpine(
     }
 
     steps.push({
-      id: generateId('step-social'),
+      id: generateId(),
       order: order++,
       kind: featuredNpc ? 'scene' : 'choice',
       track: 'main',
@@ -215,7 +215,7 @@ export function generateSessionSpine(
     }
 
     steps.push({
-      id: generateId('step-encounter'),
+      id: generateId(),
       order: order++,
       kind: 'encounter',
       track: 'main',
@@ -231,7 +231,7 @@ export function generateSessionSpine(
       status: 'ready',
     });
     readiness.push({
-      id: generateId('ready-enc'),
+      id: generateId(),
       label: `Review monster statblocks & battle tactics for ${encounter.title}`,
       complete: encounter.composition.length > 0,
     });
@@ -240,7 +240,7 @@ export function generateSessionSpine(
     if (encounters.length > 1) {
       const secEncounter = encounters[1];
       steps.push({
-        id: generateId('step-sec-enc'),
+        id: generateId(),
         order: order++,
         kind: 'encounter',
         track: 'parallel',
@@ -264,7 +264,8 @@ export function generateSessionSpine(
     const featuredClue = clues[0];
 
     let handoutTitle = 'Uncover Clue / Handout';
-    let handoutBody = 'The adventurers uncover critical documentation or evidence.';
+    let handoutBody =
+      'The adventurers uncover critical documentation or evidence.';
 
     if (featuredHandout) {
       handoutTitle = `Handout: ${featuredHandout.title}`;
@@ -275,7 +276,7 @@ export function generateSessionSpine(
         status: 'ready',
       });
       readiness.push({
-        id: generateId('ready-doc'),
+        id: generateId(),
         label: `Prepare and verify handout visibility for "${featuredHandout.title}"`,
         complete: true,
       });
@@ -289,7 +290,7 @@ export function generateSessionSpine(
     }
 
     steps.push({
-      id: generateId('step-handout'),
+      id: generateId(),
       order: order++,
       kind: 'handout',
       track: 'main',
@@ -311,7 +312,7 @@ export function generateSessionSpine(
       : 'Key fork in the road: choose the direct hazardous route or the subtle stealth approach.';
 
   steps.push({
-    id: generateId('step-choice'),
+    id: generateId(),
     order: order++,
     kind: 'choice',
     track: 'main',
@@ -324,7 +325,7 @@ export function generateSessionSpine(
   // 7. Closing Beat & Cliffhanger (15-20 min)
   const closingDuration = Math.round(targetDurationMinutes * 0.08);
   steps.push({
-    id: generateId('step-closing'),
+    id: generateId(),
     order: order++,
     kind: 'closing',
     track: 'main',
@@ -336,7 +337,7 @@ export function generateSessionSpine(
 
   // Standard readiness items
   readiness.push({
-    id: generateId('ready-vtt'),
+    id: generateId(),
     label: 'Publish session plan and sync scene assets to Nexus VTT',
     complete: false,
   });
@@ -349,7 +350,8 @@ export function generateSessionSpine(
 
   const suggestedTitle = generateSuggestedTitle(options);
   const locSnippet = primaryLocation ? ` at ${primaryLocation.name}` : '';
-  const questSnippet = quests.length > 0 ? ` focusing on "${quests[0].title}"` : '';
+  const questSnippet =
+    quests.length > 0 ? ` focusing on "${quests[0].title}"` : '';
 
   const suggestedSummary = `Session #${sessionNumber}${questSnippet}${locSnippet}. Includes ${steps.length} run-sheet beats covering exploration, encounters, and key decisions.`;
   const playerFacingSummary = `Prepare for Session #${sessionNumber} of ${campaignTitle}! Our heroes venture into ${locationName} to pursue urgent leads and face looming dangers.`;

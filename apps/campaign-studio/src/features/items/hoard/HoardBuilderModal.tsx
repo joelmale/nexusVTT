@@ -6,43 +6,14 @@ import X from 'lucide-react/dist/esm/icons/x';
 import { useEffect, useId, useState } from 'react';
 
 import type { CampaignFixtureBundle } from '../../../demo/fixture-registry';
-import type {
-  CampaignItemHolderKind,
-  CampaignItemType,
-} from '../../../demo/fixture-registry/types';
+import type { CampaignItemHolderKind } from '../../../demo/fixture-registry/types';
 import type { BundleStore } from '../../section-shell/bundleStore';
 import { RarityBadge } from '../RarityBadge';
 import type { SrdItem } from '../useSrdCatalog';
 import { rollTreasure, type RolledTreasureResult } from './hoardRoller';
 import type { TreasureTier, TreasureType } from './tables2024';
 import styles from './HoardBuilderModal.module.css';
-
-const MAGIC_ITEM_TYPE_MAP: Record<string, CampaignItemType> = {
-  weapon: 'weapon',
-  armor: 'armor',
-  shield: 'shield',
-  wondrous: 'wondrous_item',
-  wondrous_item: 'wondrous_item',
-  ring: 'wondrous_item',
-  rod: 'wondrous_item',
-  staff: 'wondrous_item',
-  wand: 'wondrous_item',
-  potion: 'potion',
-  scroll: 'scroll',
-  spellbook: 'spellbook',
-  tool: 'tool',
-  ammunition: 'ammunition',
-  adventuring_gear: 'adventuring_gear',
-  treasure: 'treasure',
-  other: 'other',
-};
-
-export function mapHoardMagicItemType(
-  rawType: string | undefined,
-): CampaignItemType {
-  if (!rawType) return 'wondrous_item';
-  return MAGIC_ITEM_TYPE_MAP[rawType.toLowerCase()] ?? 'wondrous_item';
-}
+import { mapHoardMagicItemType } from './magicItemType';
 
 export interface HoardBuilderModalProps {
   isOpen: boolean;
@@ -64,7 +35,8 @@ export function HoardBuilderModal({
   const [tier, setTier] = useState<TreasureTier>('0-4');
   const [type, setType] = useState<TreasureType>('hoard');
   const [result, setResult] = useState<RolledTreasureResult | null>(null);
-  const [selectedHolderId, setSelectedHolderId] = useState<string>('unassigned');
+  const [selectedHolderId, setSelectedHolderId] =
+    useState<string>('unassigned');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [isAdding, setIsAdding] = useState(false);
   const [addedCount, setAddedCount] = useState<number | null>(null);
@@ -106,12 +78,16 @@ export function HoardBuilderModal({
     };
     if (selectedHolderId !== 'unassigned') {
       // Check party characters
-      const isPc = bundle.campaign.playerCharacters.some((pc) => pc.id === selectedHolderId);
+      const isPc = bundle.campaign.playerCharacters.some(
+        (pc) => pc.id === selectedHolderId,
+      );
       if (isPc) {
         holder = { kind: 'party-member', id: selectedHolderId };
       } else {
         // Check locations
-        const isLoc = bundle.locations.some((loc) => loc.id === selectedHolderId);
+        const isLoc = bundle.locations.some(
+          (loc) => loc.id === selectedHolderId,
+        );
         if (isLoc) {
           holder = { kind: 'location', id: selectedHolderId };
         } else {
@@ -177,7 +153,8 @@ export function HoardBuilderModal({
         requiresAttunement: Boolean(item.attunement),
         valueGp: item.valueGp,
         quantity: 1,
-        description: item.description || `Rolled from ${result.tier} treasure hoard.`,
+        description:
+          item.description || `Rolled from ${result.tier} treasure hoard.`,
         source: item.sourceCompendiumId
           ? { ruleset: '2024', entityId: item.sourceCompendiumId }
           : undefined,
@@ -278,23 +255,33 @@ export function HoardBuilderModal({
                 <div className={styles.coinsGrid}>
                   <div className={styles.coinBox}>
                     <div className={styles.coinLabel}>CP</div>
-                    <div className={styles.coinVal}>{result.coins.cp.toLocaleString()}</div>
+                    <div className={styles.coinVal}>
+                      {result.coins.cp.toLocaleString()}
+                    </div>
                   </div>
                   <div className={styles.coinBox}>
                     <div className={styles.coinLabel}>SP</div>
-                    <div className={styles.coinVal}>{result.coins.sp.toLocaleString()}</div>
+                    <div className={styles.coinVal}>
+                      {result.coins.sp.toLocaleString()}
+                    </div>
                   </div>
                   <div className={styles.coinBox}>
                     <div className={styles.coinLabel}>EP</div>
-                    <div className={styles.coinVal}>{result.coins.ep.toLocaleString()}</div>
+                    <div className={styles.coinVal}>
+                      {result.coins.ep.toLocaleString()}
+                    </div>
                   </div>
                   <div className={styles.coinBox}>
                     <div className={styles.coinLabel}>GP</div>
-                    <div className={styles.coinVal}>{result.coins.gp.toLocaleString()}</div>
+                    <div className={styles.coinVal}>
+                      {result.coins.gp.toLocaleString()}
+                    </div>
                   </div>
                   <div className={styles.coinBox}>
                     <div className={styles.coinLabel}>PP</div>
-                    <div className={styles.coinVal}>{result.coins.pp.toLocaleString()}</div>
+                    <div className={styles.coinVal}>
+                      {result.coins.pp.toLocaleString()}
+                    </div>
                   </div>
                 </div>
               </div>

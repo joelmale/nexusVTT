@@ -4,10 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getFixtureBundle } from '../../../demo/fixture-registry';
 import type { BundleStore } from '../../section-shell/bundleStore';
-import {
-  HoardBuilderModal,
-  mapHoardMagicItemType,
-} from './HoardBuilderModal';
+import { HoardBuilderModal } from './HoardBuilderModal';
+import { mapHoardMagicItemType } from './magicItemType';
 import * as hoardRoller from './hoardRoller';
 
 describe('HoardBuilderModal', () => {

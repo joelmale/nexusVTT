@@ -44,6 +44,7 @@ import type {
   SessionStepViewModel,
 } from './sessionPlanModels';
 import styles from './SessionPlan.module.css';
+import { toCommandSelectValue, type StepCommandType } from './stepCommand';
 
 interface SessionPlanProps {
   bundle?: CampaignFixtureBundle;
@@ -69,51 +70,6 @@ interface SessionPlanProps {
 
 type WorkspaceTab = 'run-sheet' | 'notes' | 'player-facing' | 'attachments';
 type InspectorTab = 'details' | 'references' | 'chat-prep';
-
-export type StepCommandType =
-  | 'reminder'
-  | 'open-scene'
-  | 'deploy-encounter'
-  | 'share-handout'
-  | 'reveal-entry';
-
-export function toCommandSelectValue(command: string): StepCommandType {
-  const norm = command.toLowerCase().trim();
-  if (
-    norm === 'deploy encounter' ||
-    norm === 'deploy-encounter' ||
-    norm === 'encounter'
-  ) {
-    return 'deploy-encounter';
-  }
-  if (
-    norm === 'activate scene' ||
-    norm === 'open-scene' ||
-    norm === 'activate-scene' ||
-    norm === 'scene'
-  ) {
-    return 'open-scene';
-  }
-  if (
-    norm === 'share handout' ||
-    norm === 'share-handout' ||
-    norm === 'handout'
-  ) {
-    return 'share-handout';
-  }
-  if (
-    norm === 'reveal-entry' ||
-    norm === 'reveal entry' ||
-    norm === 'open-entry' ||
-    norm === 'open note' ||
-    norm === 'opening recap' ||
-    norm === 'lore' ||
-    norm === 'npc'
-  ) {
-    return 'reveal-entry';
-  }
-  return 'reminder';
-}
 
 const TYPE_ICONS: Record<LibraryObjectType, typeof FileText> = {
   encounter: Swords,
@@ -163,7 +119,9 @@ export function SessionPlan({
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('run-sheet');
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('details');
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<LibraryObjectType | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<LibraryObjectType | 'all'>(
+    'all',
+  );
   const [folderFilter, setFolderFilter] = useState<string | null>(null);
 
   const [selectedObjectId, setSelectedObjectId] = useState(
@@ -225,10 +183,11 @@ export function SessionPlan({
       list = list.filter((item) => item.type === typeFilter);
     }
     if (folderFilter) {
-      const childLabel = (folderFilter.includes('::')
-        ? folderFilter.split('::')[1]
-        : folderFilter.split('-').pop() || '')
-        .toLowerCase();
+      const childLabel = (
+        folderFilter.includes('::')
+          ? folderFilter.split('::')[1]
+          : folderFilter.split('-').pop() || ''
+      ).toLowerCase();
       const singular = childLabel.replace(/s$/, '');
       list = list.filter((item) => {
         return (
@@ -1107,10 +1066,7 @@ export function SessionPlan({
                     {referencedEntities.map((entity) => {
                       const Icon = TYPE_ICONS[entity.type] ?? FileText;
                       return (
-                        <div
-                          className={styles.referenceItem}
-                          key={entity.id}
-                        >
+                        <div className={styles.referenceItem} key={entity.id}>
                           <span className={styles.referenceIcon}>
                             <Icon size={14} />
                           </span>
@@ -1127,9 +1083,7 @@ export function SessionPlan({
                 )}
               </InspectorSection>
 
-              <InspectorSection
-                title={`Backlinks (${backlinks.length})`}
-              >
+              <InspectorSection title={`Backlinks (${backlinks.length})`}>
                 <div className={styles.backlinksList}>
                   {backlinks.map((link) => (
                     <div className={styles.backlinkItem} key={link.id}>
@@ -1151,8 +1105,8 @@ export function SessionPlan({
               <h3>AI Chat Preparation</h3>
               <p>
                 Conversational session prep with the Codex AI assistant is
-                currently experimental. You can brainstorm encounters,
-                develop NPC personas, and refine narrative pacing.
+                currently experimental. You can brainstorm encounters, develop
+                NPC personas, and refine narrative pacing.
               </p>
               <button
                 className={styles.secondaryButton}
@@ -1553,7 +1507,9 @@ function StepRow({
     if (!availableEntities) return [];
     switch (cmdValue) {
       case 'deploy-encounter': {
-        const filtered = availableEntities.filter((e) => e.type === 'encounter');
+        const filtered = availableEntities.filter(
+          (e) => e.type === 'encounter',
+        );
         return filtered.length > 0 ? filtered : availableEntities;
       }
       case 'open-scene': {
@@ -1585,8 +1541,7 @@ function StepRow({
     const replacement = selectedText
       ? `${wrapper}${selectedText}${wrapper}`
       : `${wrapper}text${wrapper}`;
-    const nextVal =
-      val.substring(0, start) + replacement + val.substring(end);
+    const nextVal = val.substring(0, start) + replacement + val.substring(end);
     onEdit({ body: nextVal });
     setTimeout(() => {
       textarea.focus();
@@ -1604,8 +1559,7 @@ function StepRow({
     const val = step.body ?? '';
     const selectedText = val.substring(start, end);
     const replacement = selectedText ? `@[${selectedText}]` : '@[';
-    const nextVal =
-      val.substring(0, start) + replacement + val.substring(end);
+    const nextVal = val.substring(0, start) + replacement + val.substring(end);
     onEdit({ body: nextVal });
     setTimeout(() => {
       textarea.focus();
