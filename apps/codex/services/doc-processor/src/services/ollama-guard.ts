@@ -160,8 +160,8 @@ async function warmUp(endpoint: OllamaEndpoint, fetchImpl: typeof fetch) {
       model: endpoint.model,
       prompt: '',
       stream: false,
-      keep_alive: env.OLLAMA_KEEP_ALIVE,
-      options: { num_ctx: env.OLLAMA_NUM_CTX },
+      keep_alive: endpoint.keepAlive ?? env.OLLAMA_KEEP_ALIVE,
+      options: { num_ctx: endpoint.numCtx ?? env.OLLAMA_NUM_CTX },
     }),
   });
   if (!response.ok) {

@@ -42,6 +42,66 @@ export type LlmSettings = z.infer<typeof LlmSettingsSchema>;
 export const DEFAULT_LLM_SETTINGS: LlmSettings = { mode: 'auto', routes: { ...DEFAULT_LLM_ROUTES } };
 
 // ---------------------------------------------------------------------------
+// Ollama (local VLM) settings. Saved values override the OLLAMA_* environment
+// variables for the next extract stage; an absent field means "use the
+// environment". doc-api writes them, doc-processor reads them per stage.
+// ---------------------------------------------------------------------------
+
+export const OLLAMA_SETTINGS_ID = 'ollama';
+/** doc-processor publishes the environment values it would use here, so the Settings page can show them. */
+export const OLLAMA_ENV_SNAPSHOT_ID = 'ollama-env';
+
+const httpUrl = z
+  .string()
+  .trim()
+  .max(300)
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+      return (url.protocol === 'http:' || url.protocol === 'https:') && !url.username && !url.password;
+    } catch {
+      return false;
+    }
+  }, 'Must be an http(s) URL without a username or password');
+
+/** Ollama's keep_alive: a duration like `10m`, plain seconds, or -1 (never unload). */
+export const OLLAMA_KEEP_ALIVE_PATTERN = /^(-1|\d{1,6}(ms|s|m|h)?)$/;
+
+export const OllamaSettingsSchema = z.object({
+  /** Local Ollama (shares the GPU with the layout models). */
+  url: httpUrl.optional(),
+  /** The one model for text and image extraction; part of the extraction cache key. */
+  model: z.string().trim().min(1).max(100).optional(),
+  /** Optional second Ollama on the LAN. An empty string switches an environment-configured remote off. */
+  remoteUrl: z.union([z.literal(''), httpUrl]).optional(),
+  /** Model on the remote Ollama; empty means "same as `model`". */
+  remoteModel: z.string().trim().max(100).optional(),
+  numCtx: z.number().int().min(1024).max(262144).optional(),
+  keepAlive: z.string().trim().regex(OLLAMA_KEEP_ALIVE_PATTERN, 'Use a duration such as 10m, seconds, or -1').optional(),
+  /** Stat-block crops: render DPI and the box a crop is shrunk to fit inside. Not part of the extraction cache key. */
+  cropDpi: z.number().int().min(72).max(600).optional(),
+  cropMaxWidth: z.number().int().min(256).max(8192).optional(),
+  cropMaxHeight: z.number().int().min(256).max(8192).optional(),
+  /** Part of the extraction cache key; change it to re-read documents already extracted. */
+  promptVersion: z.string().trim().min(1).max(20).optional(),
+});
+export type OllamaSettings = z.infer<typeof OllamaSettingsSchema>;
+
+export const OLLAMA_SETTING_FIELDS = [
+  'url',
+  'model',
+  'remoteUrl',
+  'remoteModel',
+  'numCtx',
+  'keepAlive',
+  'cropDpi',
+  'cropMaxWidth',
+  'cropMaxHeight',
+  'promptVersion',
+] as const;
+export type OllamaSettingField = (typeof OLLAMA_SETTING_FIELDS)[number];
+
+// ---------------------------------------------------------------------------
 // Secret encryption. The passphrase (CODEX_SETTINGS_KEY) is an operator-chosen
 // high-entropy secret, so a plain HKDF is enough to derive the AES key.
 // ---------------------------------------------------------------------------

@@ -46,9 +46,9 @@ export async function extractWithSchema<T extends z.ZodType>(
     body: JSON.stringify({
       model: endpoint.model, // one model for text and images
       stream: false,
-      keep_alive: env.OLLAMA_KEEP_ALIVE,
+      keep_alive: endpoint.keepAlive ?? env.OLLAMA_KEEP_ALIVE,
       format: z.toJSONSchema(schema), // Ollama structured outputs
-      options: { temperature: 0, num_ctx: env.OLLAMA_NUM_CTX, ...samplingOverrides },
+      options: { temperature: 0, num_ctx: endpoint.numCtx ?? env.OLLAMA_NUM_CTX, ...samplingOverrides },
       messages: [
         { role: 'system', content: systemPrompt },
         {
@@ -142,10 +142,12 @@ export class LlmExtractionService {
     text: string;
     images?: Buffer[];
     endpoint?: OllamaEndpoint;
+    /** Saved Settings value; the environment's EXTRACT_PROMPT_VERSION when absent. */
+    promptVersion?: string;
   }): Promise<ExtractionOutcome> {
     const endpoint = params.endpoint ?? localEndpoint();
     const model = endpoint.model;
-    const promptVersion = env.EXTRACT_PROMPT_VERSION;
+    const promptVersion = params.promptVersion ?? env.EXTRACT_PROMPT_VERSION;
     const cacheKey = extractionCacheKey(params.contentHash, params.blockHash, model, promptVersion);
     const s3Key = `extract-cache/${params.documentId}/${cacheKey}.json`;
     const list = ENTITY_LISTS[params.type];

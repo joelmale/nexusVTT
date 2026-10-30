@@ -173,6 +173,28 @@ A missing model fails the document permanently with the `ollama pull` command
 to run; an unreachable server or a GPU that stays full fails the attempt and
 BullMQ retries. A remote Ollama (`OLLAMA_REMOTE_URL`) skips the GPU wait.
 
+#### Changing the Ollama settings without redeploying
+
+`OLLAMA_URL`, `VLM_MODEL`, `OLLAMA_REMOTE_URL`, `OLLAMA_REMOTE_MODEL`,
+`OLLAMA_NUM_CTX` and `OLLAMA_KEEP_ALIVE` can be overridden from the admin
+console under **Settings > Ollama (vision model)** (platform_admin only,
+audited). Precedence is saved value, then environment, then default. Each
+extract stage reads the saved values when it starts, so a change applies to the
+next run and a document already being processed keeps what it began with.
+"Reset" on a field drops the override and falls back to the environment.
+
+- Saved values live in the `codex_settings` row `ollama`; no migration is needed.
+- doc-api has no `OLLAMA_*` variables, so doc-processor publishes the values its
+  environment gives (row `ollama-env`) at startup; the page shows them beside
+  each override. Until doc-processor has started once the page cannot show them.
+- A bad or unreadable saved value never fails a stage: the stage logs a warning
+  and uses the environment.
+- "Test local" / "Test remote" probe the saved addresses from doc-api. Neither
+  takes an address from the request.
+- Not covered here (still environment only): `EXTRACT_CROP_DPI`,
+  `EXTRACT_CROP_MAX_WIDTH`, `EXTRACT_CROP_MAX_HEIGHT`, the GPU wait settings and
+  `LLM_TIMEOUT_MS`.
+
 ### DeepSeek extraction backend & runtime settings (optional)
 
 doc-processor can send extraction calls to DeepSeek (platform.deepseek.com)

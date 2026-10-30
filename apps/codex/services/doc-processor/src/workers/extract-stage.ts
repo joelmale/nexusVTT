@@ -9,6 +9,7 @@ import { entityLinkingService } from '../services/entity-linking.service';
 import { layoutClientService } from '../services/layout-client.service';
 import { llmExtractionService } from '../services/llm-extraction.service';
 import { localEndpoint, OllamaEndpoint, resolveOllamaEndpoint } from '../services/ollama-endpoint';
+import type { OllamaOverrides } from '../services/ollama-settings.service';
 import { monsterCropService, type CropResult } from '../services/monster-crop.service';
 import { env } from '../config/env';
 import { Candidate, CandidatePage, detectCandidates } from '../extraction/candidates';
@@ -82,7 +83,8 @@ export async function runExtractStage(
   jobId: string,
   document: ExtractStageDocument,
   hooks: ExtractStageHooks = {},
-  routing: LlmRouting = envLlmRouting()
+  routing: LlmRouting = envLlmRouting(),
+  ollama: OllamaOverrides = {}
 ): Promise<ExtractStageResult> {
   const pages = await prisma.documentPage.findMany({
     where: { documentId: document.id },
@@ -116,9 +118,9 @@ export async function runExtractStage(
 
   // Pick the Ollama endpoint once per stage; a retry re-probes, so a laptop that
   // drops out mid-stage is replaced by the local Ollama on the next attempt.
-  let endpoint = localEndpoint();
+  let endpoint = localEndpoint(ollama);
   if (usesOllama) {
-    const resolved = await resolveOllamaEndpoint();
+    const resolved = await resolveOllamaEndpoint(ollama);
     endpoint = resolved.endpoint;
     await loggingService.logInfo(
       jobId,
@@ -142,7 +144,7 @@ export async function runExtractStage(
   if (document.format === 'pdf' && monsters.length > 0) {
     try {
       const pdf = await s3Service.downloadFile(document.storageKey);
-      crops = await monsterCropService.cropRegionsWithGeometry(pdf, new Map(monsters.map((c) => [c.key, c.regions])));
+      crops = await monsterCropService.cropRegionsWithGeometry(pdf, new Map(monsters.map((c) => [c.key, c.regions])), ollama);
     } catch (error: any) {
       // Text still anchors the extraction; the missing crop is a review reason.
       await loggingService.logWarn(jobId, `Monster crops failed, extracting from text only: ${error.message}`, 'extract');
@@ -189,6 +191,7 @@ export async function runExtractStage(
         text: candidate.markdown,
         images,
         endpoint: viaDeepSeek ? deepseek : endpoint,
+        promptVersion: ollama.promptVersion,
       });
       if (outcome.cached) cachedCalls += 1;
       if (outcome.usage) {

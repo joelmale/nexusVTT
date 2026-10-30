@@ -43,7 +43,44 @@ export interface LlmSettingsPatch {
   deepseekMaxTokens?: number | null
 }
 
+/** Ollama / VLM endpoint overrides (doc-api admin/settings/ollama). An absent field means "use the environment". */
+export interface OllamaSettings {
+  url?: string
+  model?: string
+  remoteUrl?: string
+  remoteModel?: string
+  numCtx?: number
+  keepAlive?: string
+  cropDpi?: number
+  cropMaxWidth?: number
+  cropMaxHeight?: number
+  promptVersion?: string
+}
+
+export type OllamaField = keyof OllamaSettings
+
+export interface OllamaSettingsView {
+  saved: OllamaSettings
+  /** What doc-processor's environment gives; null until doc-processor has started once. */
+  environment: OllamaSettings | null
+  effective: OllamaSettings
+  updatedAt: string | null
+  updatedBy: string | null
+}
+
+/** A value to save, or null to drop the override and fall back to the environment. */
+export type OllamaSettingsPatch = { [K in OllamaField]?: OllamaSettings[K] | null }
+
+export type OllamaCheck =
+  | { ok: true; url: string; version: string | null; model: string; hasModel: boolean; models: string[] }
+  | { ok: false; url: string | null; reason: string }
+
 const base = '/api/admin/settings/llm'
+const ollamaBase = '/api/admin/settings/ollama'
+
+export const getOllamaSettings = (): Promise<OllamaSettingsView> => codexJson(ollamaBase)
+export const saveOllamaSettings = (patch: OllamaSettingsPatch): Promise<OllamaSettingsView> => codexJson(ollamaBase, jsonRequest('PUT', patch))
+export const testOllama = (target: 'local' | 'remote'): Promise<OllamaCheck> => codexJson(`${ollamaBase}/test`, jsonRequest('POST', { target }))
 
 export const getLlmSettings = (): Promise<LlmSettingsView> => codexJson(base)
 export const saveLlmSettings = (patch: LlmSettingsPatch): Promise<LlmSettingsView> => codexJson(base, jsonRequest('PUT', patch))

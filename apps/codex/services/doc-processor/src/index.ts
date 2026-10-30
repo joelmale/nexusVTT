@@ -7,6 +7,7 @@ import { processDocumentWorker } from './workers/process-document.worker';
 import { centralLoggingService } from './services/central-logging.service';
 import { env } from './config/env';
 import { ocrHealthService } from './services/ocr-health.service';
+import { publishOllamaEnvSnapshot } from './services/ollama-settings.service';
 import { startMetricsServer } from './metrics-server';
 import { recordJobOutcome } from './observability/metrics';
 
@@ -49,6 +50,8 @@ async function start() {
   console.log(`Starting document processor worker (canvas backend: ${canvasBackend})...`);
   await centralLoggingService.log('info', `doc-processor starting (canvas: ${canvasBackend})`);
   startMetricsServer();
+  // Lets the admin Settings page show what this environment gives for the Ollama settings.
+  await publishOllamaEnvSnapshot();
 
   if (env.OCR_SERVICE_URL) {
     // Non-fatal at startup: stages that need ocr-service re-check and fail

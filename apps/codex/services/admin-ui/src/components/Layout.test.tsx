@@ -16,7 +16,7 @@ function mainNavLabels() {
 
 describe('navigation by role', () => {
   it.each([
-    ['platform_admin', ['Documents', 'Rules', 'Assets', 'Operations', 'Audit', 'Administrators']],
+    ['platform_admin', ['Documents', 'Rules', 'Assets', 'Operations', 'Settings', 'Audit', 'Administrators']],
     ['content_editor', ['Documents', 'Rules', 'Assets']],
     ['operator', ['Documents', 'Assets', 'Operations', 'Audit']],
     ['auditor', ['Documents', 'Rules', 'Assets', 'Operations', 'Audit']],

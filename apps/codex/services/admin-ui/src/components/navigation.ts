@@ -8,7 +8,7 @@ export interface NavItem {
 }
 
 export interface NavGroup {
-  id: 'documents' | 'rules' | 'assets' | 'operations' | 'audit' | 'administrators'
+  id: 'documents' | 'rules' | 'assets' | 'operations' | 'settings' | 'audit' | 'administrators'
   label: string
   /** Permission needed to see the group (a UI hint; control-api decides). */
   action: AdminAction
@@ -27,7 +27,6 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Documents',
         match: ['/reader/', '/processing', '/bulk-upload', '/deduplication', '/data-quality', '/search'],
       },
-      { path: '/settings', label: 'Extraction Settings' },
     ],
   },
   {
@@ -57,6 +56,15 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: 'settings',
+    label: 'Settings',
+    action: 'manageSettings',
+    items: [
+      { path: '/settings', label: 'Extraction' },
+      { path: '/settings/ollama', label: 'Ollama (vision model)' },
+    ],
+  },
+  {
     id: 'audit',
     label: 'Audit',
     action: 'viewAudit',
@@ -75,9 +83,6 @@ export function visibleNavGroups(permissions: readonly string[]): NavGroup[] {
     let items = group.items
     if (group.id === 'assets' && !hasAnyPermission(permissions, ACTION_PERMISSIONS.editAssets)) {
       items = items.filter((item) => item.path !== '/assets/upload')
-    }
-    if (group.id === 'documents' && !hasAnyPermission(permissions, ACTION_PERMISSIONS.manageSettings)) {
-      items = items.filter((item) => item.path !== '/settings')
     }
     return items === group.items ? group : { ...group, items }
   })

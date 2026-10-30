@@ -155,6 +155,14 @@ export const CODEX_ALLOWLIST: readonly CodexRoute[] = [
   mutate({ method: 'PUT', path: 'admin/settings/llm/key', permission: SETTINGS, recentAuth: true, action: 'codex.settings.llm_key_set', resourceType: 'codex_settings', body: json(1 * KB), stampActor: 'updatedBy' }),
   mutate({ method: 'DELETE', path: 'admin/settings/llm/key', permission: SETTINGS, recentAuth: true, action: 'codex.settings.llm_key_remove', resourceType: 'codex_settings' }),
   mutate({ method: 'POST', path: 'admin/settings/llm/test', permission: SETTINGS, action: 'codex.settings.llm_test', resourceType: 'codex_settings' }),
+  // Ollama / VLM endpoint overrides (urls, models, context size). No secrets, so
+  // the audit summary records the values that were set.
+  read('admin/settings/ollama', 'codex_settings', { permission: SETTINGS }),
+  mutate({
+    method: 'PUT', path: 'admin/settings/ollama', permission: SETTINGS, action: 'codex.settings.ollama_update', resourceType: 'codex_settings', body: json(4 * KB),
+    auditBodyKeys: ['url', 'model', 'remoteUrl', 'remoteModel', 'numCtx', 'keepAlive', 'cropDpi', 'cropMaxWidth', 'cropMaxHeight', 'promptVersion'], stampActor: 'updatedBy',
+  }),
+  mutate({ method: 'POST', path: 'admin/settings/ollama/test', permission: SETTINGS, action: 'codex.settings.ollama_test', resourceType: 'codex_settings', body: json(1 * KB), auditBodyKeys: ['target'] }),
 
   // Deduplication
   read('deduplication/duplicates', 'document'),
