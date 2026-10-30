@@ -163,6 +163,21 @@ describe('level 5 final step', () => {
   });
 });
 
+describe('final step with no name', () => {
+  it('explains the missing name instead of ignoring the press', () => {
+    const onSubmit = vi.fn();
+    const data = { ...base, name: '' } as CharacterCreationData;
+    render(<Step8Traits {...props(data)} onSubmit={onSubmit} isSubmitting={false} submitLabel="Finish" />);
+    expect(screen.queryByText('Character name is required')).toBeNull();
+    const finish = screen.getByRole('button', { name: /Finish/ });
+    expect(finish.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(finish);
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText('Character name is required')).toBeTruthy();
+    expect(document.activeElement?.id).toBe('character-final-name');
+  });
+});
+
 describe('level tile', () => {
   it('does not promise Extra Attack to every class at level 5', () => {
     render(<Step0Level {...props({ ...base, level: 5 } as CharacterCreationData)} />);

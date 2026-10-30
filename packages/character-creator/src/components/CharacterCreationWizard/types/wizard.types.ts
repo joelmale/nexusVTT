@@ -20,6 +20,8 @@ export interface WizardProps {
   onDraftDiscard?: () => void;
   onCancel: () => void;
   onSwitchToGuided?: () => void;
+  /** Show the live character sheet beside the steps. Off by default. */
+  showLiveSheet?: boolean;
   /**
    * Receives the finished character. The host owns persistence; throwing or
    * rejecting surfaces the failure in the wizard and keeps it open.

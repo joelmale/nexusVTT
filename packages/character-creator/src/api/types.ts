@@ -78,6 +78,8 @@ export interface CharacterCreatorProps {
   onDraftDiscard?: () => void;
   /** Optional label for the final submit button (defaults to "Create Character"). */
   submitLabel?: string;
+  /** Show the live character sheet beside the full wizard. Off by default. */
+  showLiveSheet?: boolean;
   /** Called when the player dismisses the wizard without creating anything. */
   onCancel: () => void;
   /** Called with the finished character. May be async; errors are surfaced. */

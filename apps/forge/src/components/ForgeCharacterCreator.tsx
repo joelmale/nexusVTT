@@ -154,6 +154,7 @@ function OpenCreator({
       <CharacterCreator
         isOpen
         theme={forgeTheme}
+        showLiveSheet
         edition={recovery.initialDraft?.edition ?? edition}
         initialMode={recovery.initialPresentation?.mode ?? initialMode}
         initialDraft={recovery.initialDraft}

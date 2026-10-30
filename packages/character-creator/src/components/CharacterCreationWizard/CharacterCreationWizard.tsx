@@ -30,6 +30,19 @@ import {
 } from './steps';
 import { StepHighLevelSetup } from './steps/StepHighLevelSetup';
 import { StepCumulativeASI } from './steps/StepCumulativeASI';
+import { LiveSheet } from '../LiveSheet/LiveSheet';
+import type { SheetSection } from '../LiveSheet/liveSheetModel';
+import layout from './WizardLayout.module.css';
+
+/** The wizard step behind each live-sheet section (same in both editions). */
+const SHEET_SECTION_STEPS: Record<SheetSection, number> = {
+  identity: 1,
+  species: 2,
+  class: 3,
+  abilities: 4,
+  magic: 8,
+  story: 13,
+};
 
 export const CharacterCreationWizard: React.FC<WizardProps> = ({
   isOpen,
@@ -43,6 +56,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
   onCancel,
   onSwitchToGuided,
   onComplete,
+  showLiveSheet = false,
 }) => {
   const { currentStep, setCurrentStep } = useWizardState();
 
@@ -85,6 +99,12 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
   useEffect(() => {
     onPresentationChange?.({ mode: 'full', step: currentStep });
   }, [currentStep, onPresentationChange]);
+
+  // The sheet can reopen any decision the player has already reached.
+  const [furthestStep, setFurthestStep] = useState(currentStep);
+  useEffect(() => {
+    setFurthestStep((furthest) => Math.max(furthest, currentStep));
+  }, [currentStep]);
   const handleUpdateData = session.updateData;
 
   // Never dismiss the wizard while a save is in flight.
@@ -245,7 +265,8 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
       >
         <div
           tabIndex={-1}
-          className="bg-theme-secondary rounded-2xl shadow-2xl w-full max-w-5xl transition-all transform duration-300 scale-100 my-4 sm:my-8 flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]"
+          className="bg-theme-secondary rounded-2xl shadow-2xl w-full max-w-5xl transition-all transform duration-300 scale-100 my-4 sm:my-8 flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] overflow-hidden"
+          style={showLiveSheet ? { maxWidth: '84rem' } : undefined}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Fixed Header */}
@@ -326,10 +347,26 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
           )}
 
           {/* Scrollable Content */}
-          <WizardStepContainer stepKey={currentStep}>
-            {/* Wizard Content */}
-            {renderStep()}
-          </WizardStepContainer>
+          {showLiveSheet ? (
+            <div className={layout.withSheet}>
+              <WizardStepContainer stepKey={currentStep}>
+                {renderStep()}
+              </WizardStepContainer>
+              <LiveSheet
+                data={creationData}
+                canEdit={(section) => {
+                  const step = SHEET_SECTION_STEPS[section];
+                  return step <= furthestStep && visibleStepIndices.includes(step);
+                }}
+                onEdit={(section) => setCurrentStep(SHEET_SECTION_STEPS[section])}
+              />
+            </div>
+          ) : (
+            <WizardStepContainer stepKey={currentStep}>
+              {/* Wizard Content */}
+              {renderStep()}
+            </WizardStepContainer>
+          )}
         </div>
 
         {/* Species Trait Modal */}

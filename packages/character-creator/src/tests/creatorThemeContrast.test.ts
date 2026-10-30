@@ -107,7 +107,8 @@ function pairs(): Array<[string, string, number]> {
   out.push(['--cc-on-surface', '--cc-hover', TEXT]);
   out.push(['--cc-sheet-ink', '--cc-sheet', TEXT]);
   out.push(['--cc-sheet-ink-2', '--cc-sheet', TEXT]);
-  out.push(['--cc-sheet-rule', '--cc-sheet', UI]);
+  // The live sheet uses the rule colour for its section headings.
+  out.push(['--cc-sheet-rule', '--cc-sheet', TEXT]);
   for (const bg of ['--cc-surface', '--cc-raised', '--cc-sunken']) {
     out.push(['--cc-border-strong', bg, UI]);
     out.push(['--cc-focus', bg, UI]);

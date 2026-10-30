@@ -15,7 +15,10 @@ import {
 } from '../../../utils/traitUtils';
 import { LevelResourceSummary } from '../components/LevelResourceSummary';
 import { generateName, GeneratedName } from '../../../utils/nameGenerator';
-import { useRevealValidation } from '../../../hooks/useRevealValidation';
+import {
+  notifyNextAttempt,
+  useRevealValidation,
+} from '../../../hooks/useRevealValidation';
 
 const RandomizeButton: React.FC<{
   onClick: () => void;
@@ -426,8 +429,20 @@ export const Step8Traits: React.FC<
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>
         <button
-          onClick={() => onSubmit(data)}
-          disabled={!validateTraits(data) || isSubmitting}
+          onClick={() => {
+            // An incomplete step stays clickable so the press can explain
+            // what's missing instead of doing nothing.
+            if (!validateTraits(data)) {
+              nameValidation.reveal();
+              notifyNextAttempt();
+              if (!data.name?.trim())
+                document.getElementById('character-final-name')?.focus();
+              return;
+            }
+            onSubmit(data);
+          }}
+          disabled={isSubmitting}
+          aria-disabled={!validateTraits(data) || isSubmitting}
           aria-busy={isSubmitting}
           className={`px-4 py-2 rounded-lg text-theme-primary flex items-center font-bold ${
             validateTraits(data) && !isSubmitting

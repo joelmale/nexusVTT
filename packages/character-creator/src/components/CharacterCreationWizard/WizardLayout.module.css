@@ -1,0 +1,22 @@
+/* Step content beside the live character sheet. Below 1100px the sheet
+   becomes a one-line bar above the step that expands on demand. */
+.withSheet {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+.withSheet > * {
+  min-height: 0;
+}
+
+@media (max-width: 1099px) {
+  .withSheet {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .withSheet > aside {
+    order: -1;
+    max-height: 45vh;
+  }
+}

@@ -48,6 +48,8 @@ export interface CharacterCreatorProps {
   /** Callback fired when the player discards the draft (CC-501). */
   onDraftDiscard?: () => void;
   submitLabel?: string;
+  /** Show the live character sheet beside the full wizard. Off by default. */
+  showLiveSheet?: boolean;
   onCancel: () => void;
   onComplete: CharacterCreationCompleteHandler;
 }
@@ -71,6 +73,7 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
   onDraftChange,
   onDraftDiscard,
   submitLabel,
+  showLiveSheet,
   onCancel,
   onComplete,
 }) => {
@@ -165,6 +168,7 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
         onDraftChange={onDraftChange}
         onDraftDiscard={onDraftDiscard}
         submitLabel={submitLabel}
+        showLiveSheet={showLiveSheet}
         onCancel={onCancel}
         onSwitchToGuided={
           allowModeSwitch
