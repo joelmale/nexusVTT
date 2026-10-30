@@ -25,11 +25,14 @@ export const WizardProgressBar: React.FC<WizardProgressBarProps> = ({
       ? visibleStepIndices
       : stepTitles.map((_, index) => index);
 
-  // Steps are skipped, not renumbered, so the current index has to be located
-  // within the visible set rather than used directly.
-  const position = visible.indexOf(currentStep);
-  const displayPosition = position >= 0 ? position + 1 : 1;
+  // Steps are skipped, not renumbered, so the position is how many counted
+  // steps are at or before the current one. A step left out of the count (the
+  // Feats step) therefore reads as the step just before it.
   const totalSteps = visible.length || 1;
+  const displayPosition = Math.min(
+    Math.max(visible.filter((index) => index <= currentStep).length, 1),
+    totalSteps,
+  );
 
   const sections = visibleSections(visible);
   const currentSection = sectionForStep(currentStep)?.id;

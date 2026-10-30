@@ -100,7 +100,11 @@ export const Step8Traits: React.FC<
     <div className="space-y-6">
       {/* Casters see these in the Magic step; everyone else has no such step. */}
       {!hasSpellcastingAtLevel(data.classSlug, data.level, data.edition) && (
-        <CastingGrantChoices data={data} onChange={updateData} />
+        <CastingGrantChoices
+        data={data}
+        onChange={updateData}
+        omitClassChoices
+      />
       )}
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold text-tone-danger">

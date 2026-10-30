@@ -4,6 +4,8 @@ import { getStepTitles } from '../constants/wizard.constants';
 import { hasSpellcastingAtLevel } from '../../../utils/spellUtils';
 import { getRemainingFeatSlots } from '../../../utils/featUtils';
 
+const FEATS_STEP = 9;
+
 export const useWizardNavigation = (
   currentStep: number,
   setCurrentStep: (step: number) => void,
@@ -97,12 +99,27 @@ export const useWizardNavigation = (
     [stepTitles, creationData],
   );
 
+  /**
+   * What the progress count is measured against.
+   *
+   * The Feats step only exists for leftover feat slots, which the Ability
+   * Score Improvement step decides. Counting it made the total shrink by one
+   * ("7 of 13" then "8 of 12") the moment a player took the ASI. It is
+   * left out of the count, so the total only moves when the class or level
+   * does; the step itself still appears when it applies.
+   */
+  const progressStepIndices = useMemo(
+    () => visibleStepIndices.filter((index) => index !== FEATS_STEP),
+    [visibleStepIndices],
+  );
+
   return {
     nextStep,
     prevStep,
     skipToStep,
     getNextStepLabel,
     visibleStepIndices,
+    progressStepIndices,
   };
 };
 

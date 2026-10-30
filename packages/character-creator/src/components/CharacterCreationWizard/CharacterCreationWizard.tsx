@@ -78,6 +78,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
     skipToStep,
     getNextStepLabel,
     visibleStepIndices,
+    progressStepIndices,
   } = useWizardNavigation(currentStep, setCurrentStep, creationData);
 
   // Get dynamic step titles based on edition
@@ -85,8 +86,11 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
 
   // Announce the position within the steps this character will actually be
   // asked, matching what the progress bar shows.
-  const visibleStepCount = visibleStepIndices.length || stepTitles.length;
-  const stepPosition = Math.max(visibleStepIndices.indexOf(currentStep) + 1, 1);
+  const visibleStepCount = progressStepIndices.length || stepTitles.length;
+  const stepPosition = Math.min(
+    Math.max(progressStepIndices.filter((i) => i <= currentStep).length, 1),
+    visibleStepCount,
+  );
 
   useEffect(() => {
     if (isOpen)
@@ -279,7 +283,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
             <WizardProgressBar
               currentStep={currentStep}
               stepTitles={stepTitles}
-              visibleStepIndices={visibleStepIndices}
+              visibleStepIndices={progressStepIndices}
             />
             {onSwitchToGuided && (
               <button
