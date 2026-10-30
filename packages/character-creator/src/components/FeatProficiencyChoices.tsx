@@ -1,9 +1,12 @@
 import type { CharacterCreationData } from '../types/dnd';
 import { featProficiencyGrants } from '../services/featProficiencies';
 import styles from './CastingGrantChoices.module.css';
+import { humanizeId } from '../utils/displayLabels';
 
 const grantLabel = (key: string) =>
-  key.replace(/^skilled:lesson-/, 'Skilled lesson ');
+  /^skilled:lesson-/.test(key)
+    ? key.replace(/^skilled:lesson-/, 'Skilled lesson ')
+    : humanizeId(key);
 
 export function FeatProficiencyChoices({
   data,
@@ -20,9 +23,10 @@ export function FeatProficiencyChoices({
             {grantLabel(grant.choiceKey)} proficiencies — choose {grant.count}
           </legend>
           {Array.from({ length: grant.count }, (_, index) => (
-            <label key={index}>
+            <label className={styles.field} key={index}>
               {grantLabel(grant.choiceKey)} proficiency {index + 1}
               <select
+                className={styles.select}
                 value={grant.selected[index] ?? ''}
                 onChange={(event) => {
                   const selected = Array.from(

@@ -29,7 +29,7 @@ const RandomizeButton: React.FC<{
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
+      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
       title={title}
     >
       <Shuffle className="w-4 h-4" />
@@ -245,7 +245,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
               e.target.value as CharacterCreationData['abilityScoreMethod'],
             )
           }
-          className="w-full p-3 bg-theme-tertiary text-white rounded-lg font-semibold text-lg"
+          className="w-full p-3 bg-theme-tertiary text-theme-primary rounded-lg font-semibold text-lg"
         >
           {Object.entries(ABILITY_METHOD_TITLES).map(([key, title]) => (
             <option key={key} value={key}>
@@ -256,7 +256,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
       </div>
 
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-red-300">
+        <h3 className="text-xl font-bold text-tone-danger">
           Determine Ability Scores (
           {ABILITY_METHOD_TITLES[data.abilityScoreMethod]})
         </h3>
@@ -381,7 +381,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
             {standardArrayScores.map((s) => (
               <span
                 key={s}
-                className={`px-3 py-1 text-lg font-bold rounded-full ${availableScores.includes(s) ? 'bg-accent-yellow text-gray-900' : 'bg-theme-quaternary text-theme-muted'}`}
+                className={`px-3 py-1 text-lg font-bold rounded-full ${availableScores.includes(s) ? 'bg-accent-yellow text-theme-primary' : 'bg-theme-quaternary text-theme-muted'}`}
               >
                 {s}
               </span>
@@ -398,7 +398,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
               return (
                 <div
                   key={ability}
-                  className="p-3 bg-theme-secondary rounded-lg border-l-4 border-red-500"
+                  className="p-3 bg-theme-secondary rounded-lg border-l-4 border-tone-danger"
                 >
                   <p className="text-lg font-bold text-accent-red-light mb-1">
                     {ability}
@@ -410,7 +410,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
                       onChange={(e) =>
                         handleAssignScore(ability, parseInt(e.target.value))
                       }
-                      className="p-2 bg-theme-tertiary rounded-lg text-white font-mono"
+                      className="p-2 bg-theme-tertiary rounded-lg text-theme-primary font-mono"
                     >
                       <option value={0}>Select...</option>
                       {standardArrayScores.map((s) => (
@@ -449,7 +449,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
                   'standard-roll' | 'classic-roll' | '5d6-drop-2',
               )
             }
-            className="w-full p-3 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white font-bold flex items-center justify-center gap-2"
+            className="w-full p-3 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary font-bold flex items-center justify-center gap-2"
           >
             <Dice6 className="w-5 h-5" />
             {rolledSets.length === 0
@@ -473,7 +473,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
                       return (
                         <div
                           key={idx}
-                          className={`px-3 py-2 rounded-lg ${isAssigned ? 'bg-theme-quaternary' : 'bg-accent-yellow text-gray-900'}`}
+                          className={`px-3 py-2 rounded-lg ${isAssigned ? 'bg-theme-quaternary' : 'bg-accent-yellow text-theme-primary'}`}
                         >
                           <div className="text-xs font-mono">
                             [{set.join(', ')}]
@@ -498,7 +498,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
                   return (
                     <div
                       key={ability}
-                      className="p-3 bg-theme-secondary rounded-lg border-l-4 border-red-500"
+                      className="p-3 bg-theme-secondary rounded-lg border-l-4 border-tone-danger"
                     >
                       <p className="text-lg font-bold text-accent-red-light mb-1">
                         {ability}
@@ -517,7 +517,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
                                 parseInt(e.target.value),
                               )
                             }
-                            className="p-2 bg-theme-tertiary rounded-lg text-white font-mono"
+                            className="p-2 bg-theme-tertiary rounded-lg text-theme-primary font-mono"
                           >
                             <option value={0}>Select...</option>
                             {rolledSets.map((set, setIdx) => {
@@ -553,7 +553,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
       {/* Point Buy UI */}
       {data.abilityScoreMethod === 'point-buy' && (
         <>
-          <div className="p-4 bg-purple-900/30 border border-accent-purple rounded-lg">
+          <div className="p-4 bg-tone-magic-soft border border-accent-purple rounded-lg">
             <div className="flex justify-between items-center">
               <span className="text-sm font-semibold text-theme-tertiary">
                 Points Remaining:
@@ -577,7 +577,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
               return (
                 <div
                   key={ability}
-                  className="p-3 bg-theme-secondary rounded-lg border-l-4 border-red-500"
+                  className="p-3 bg-theme-secondary rounded-lg border-l-4 border-tone-danger"
                 >
                   <p className="text-lg font-bold text-accent-red-light mb-1">
                     {ability}
@@ -588,7 +588,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
                       onChange={(e) =>
                         handlePointBuyChange(ability, parseInt(e.target.value))
                       }
-                      className="p-2 bg-theme-tertiary rounded-lg text-white font-mono"
+                      className="p-2 bg-theme-tertiary rounded-lg text-theme-primary font-mono"
                     >
                       {Object.keys(POINT_BUY_COSTS).map((score) => {
                         const s = parseInt(score);
@@ -627,8 +627,8 @@ export const Step4Abilities: React.FC<StepProps> = ({
       {/* Custom Entry UI */}
       {data.abilityScoreMethod === 'custom' && (
         <>
-          <div className="p-3 bg-yellow-900/30 border border-yellow-500 rounded-lg">
-            <p className="text-sm text-yellow-200">
+          <div className="p-3 bg-tone-warning-soft border border-tone-gold rounded-lg">
+            <p className="text-sm text-tone-gold">
               <span className="font-bold">DM Override:</span> Enter custom
               ability scores (1-20). Consult with your DM.
             </p>
@@ -644,7 +644,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
               return (
                 <div
                   key={ability}
-                  className="p-3 bg-theme-secondary rounded-lg border-l-4 border-red-500"
+                  className="p-3 bg-theme-secondary rounded-lg border-l-4 border-tone-danger"
                 >
                   <p className="text-lg font-bold text-accent-red-light mb-1">
                     {ability}
@@ -658,7 +658,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
                       onChange={(e) =>
                         handleCustomInput(ability, e.target.value)
                       }
-                      className="p-2 bg-theme-tertiary rounded-lg text-white font-mono w-20"
+                      className="p-2 bg-theme-tertiary rounded-lg text-theme-primary font-mono w-20"
                       placeholder="0"
                     />
 
@@ -682,7 +682,7 @@ export const Step4Abilities: React.FC<StepProps> = ({
       <div className="flex justify-between">
         <button
           onClick={prevStep}
-          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white flex items-center"
+          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary flex items-center"
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>

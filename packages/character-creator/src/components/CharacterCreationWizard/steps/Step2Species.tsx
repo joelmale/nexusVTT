@@ -29,7 +29,7 @@ const RandomizeButton: React.FC<RandomizeButtonProps> = ({
   <button
     onClick={onClick}
     title={title}
-    className="p-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-white transition-colors"
+    className="p-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-theme-primary transition-colors"
   >
     <Shuffle className="w-4 h-4" />
   </button>
@@ -71,7 +71,7 @@ export const Step2Species: React.FC<StepProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-red-300">
+        <h3 className="text-xl font-bold text-tone-danger">
           Select Species (Species Bonuses will be applied automatically)
         </h3>
         <RandomizeButton
@@ -90,7 +90,7 @@ export const Step2Species: React.FC<StepProps> = ({
             {/* Category Header */}
             <button
               onClick={() => toggleCategory(category.name)}
-              className="w-full p-4 bg-theme-tertiary hover:bg-gray-650 flex items-center justify-between transition-colors"
+              className="w-full p-4 bg-theme-tertiary hover:bg-theme-quaternary flex items-center justify-between transition-colors"
             >
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{category.icon}</span>
@@ -139,7 +139,7 @@ export const Step2Species: React.FC<StepProps> = ({
                       }
                       className={`p-3 rounded-lg text-left border-2 transition-all ${
                         data.speciesSlug === species.slug
-                          ? 'bg-accent-red-darker border-red-500 shadow-md'
+                          ? 'bg-accent-red-darker border-tone-danger shadow-md'
                           : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                       }`}
                     >
@@ -162,7 +162,7 @@ export const Step2Species: React.FC<StepProps> = ({
         <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3 relative">
           <button
             onClick={() => setShowSpeciesInfo(false)}
-            className="absolute top-2 right-2 text-theme-muted hover:text-white transition-colors"
+            className="absolute top-2 right-2 text-theme-muted hover:text-theme-primary transition-colors"
             title="Close"
           >
             <XCircle className="w-5 h-5" />
@@ -216,7 +216,7 @@ export const Step2Species: React.FC<StepProps> = ({
                       ([ability, bonus]) => (
                         <span
                           key={ability}
-                          className="px-2 py-1 bg-blue-700 text-white text-xs rounded"
+                          className="px-2 py-1 bg-fill-info text-theme-primary text-xs rounded"
                         >
                           {ability} +{bonus}
                         </span>
@@ -408,7 +408,7 @@ export const Step2Species: React.FC<StepProps> = ({
                       };
                       openTraitModal?.(trait, position);
                     }}
-                    className="px-2 py-1 bg-accent-green-dark hover:bg-accent-green text-white text-xs rounded transition-colors cursor-pointer"
+                    className="px-2 py-1 bg-accent-green-dark hover:bg-accent-green text-theme-primary text-xs rounded transition-colors cursor-pointer"
                     title={`Click to learn more about ${trait}`}
                   >
                     {trait}
@@ -445,7 +445,7 @@ export const Step2Species: React.FC<StepProps> = ({
             <select
               value={data.speciesFeat || ''}
               onChange={(e) => updateData({ speciesFeat: e.target.value })}
-              className="w-full p-3 bg-theme-tertiary text-white rounded-lg"
+              className="w-full p-3 bg-theme-tertiary text-theme-primary rounded-lg"
             >
               <option value="">Select a feat...</option>
               {selectedSpecies.speciesFeatOptions.map((feat) => (
@@ -479,7 +479,7 @@ export const Step2Species: React.FC<StepProps> = ({
       <div className="flex justify-between">
         <button
           onClick={prevStep}
-          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white flex items-center"
+          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary flex items-center"
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>

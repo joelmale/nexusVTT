@@ -122,11 +122,11 @@ export const GuidedCharacterCreator: React.FC<GuidedCharacterCreatorProps> = ({
                 aria-live="assertive"
                 className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-lg w-[calc(100%-2rem)]"
               >
-                <div className="bg-red-900 border border-accent-red-dark rounded-lg p-4 text-sm text-red-200 flex items-start gap-3">
+                <div className="bg-tone-danger-soft border border-accent-red-dark rounded-lg p-4 text-sm text-tone-danger flex items-start gap-3">
                   <span className="flex-1">{error}</span>
                   <button
                     onClick={() => setError(null)}
-                    className="text-accent-red-light hover:text-white"
+                    className="text-accent-red-light hover:text-theme-primary"
                   >
                     <span className="sr-only">Dismiss</span>✕
                   </button>
@@ -168,10 +168,10 @@ export const GuidedCharacterCreator: React.FC<GuidedCharacterCreatorProps> = ({
 
             {isSubmitting && (
               <div
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
                 aria-busy="true"
               >
-                <div className="bg-theme-secondary rounded-xl px-6 py-4 text-white">
+                <div className="bg-theme-secondary rounded-xl px-6 py-4 text-theme-primary">
                   Saving…
                 </div>
               </div>

@@ -671,3 +671,538 @@ code {
   ) {
   color: rgb(var(--color-on-action));
 }
+
+/* ==========================================================================
+   CREATOR THEMES: parchment (default) and dark
+   --------------------------------------------------------------------------
+   The creator root always carries one of these two values (see
+   `resolveCreatorTheme`). The older light / paper / dark-colorful blocks
+   above stay because Forge applies them to its whole app.
+
+   Rules for everything inside the creator:
+   - Every fill has a paired ink. A fill utility (`bg-fill-*`, `bg-accent-*`)
+     sets its own text color, so text on a fill never falls back to a
+     surface ink.
+   - Components never use a literal color or a Tailwind palette class.
+     `src/tests/creatorThemeColors.test.ts` fails on any that slip in.
+   - Ratios below are WCAG contrast. `creatorThemeContrast.test.ts` checks
+     every declared pair in both themes.
+   - The character sheet (`--cc-sheet*`) is parchment in both themes.
+   ========================================================================== */
+
+[data-theme='parchment'] {
+  color-scheme: light;
+
+  /* Surfaces */
+  --cc-surface: #f6efdc; /* dialog ground */
+  --cc-raised: #fffaf0; /* cards, panels */
+  --cc-sunken: #efe6cf; /* inputs, wells */
+  --cc-hover: #e6dbbf;
+  /* Inks: valid on surface, raised and sunken */
+  --cc-on-surface: #2a1c0f;
+  --cc-on-raised: #2a1c0f;
+  --cc-text-2: #3f2d1c;
+  --cc-muted: #66503a;
+  --cc-disabled: #6e5a45;
+  /* Lines */
+  --cc-border: #cdbf9e; /* decorative */
+  --cc-border-strong: #8f7b58; /* inputs and controls */
+  /* Primary action */
+  --cc-accent: #8e2a17;
+  --cc-on-accent: #ffffff;
+  --cc-accent-hover: #a5341e;
+  /* Selection: text on it stays --cc-on-surface */
+  --cc-selected-bg: #f3e0c9;
+  --cc-selected-border: #8e2a17;
+  --cc-focus: #1f4e8c;
+  /* Tones as text on any surface */
+  --cc-tone-info: #1f4e8c;
+  --cc-tone-magic: #5b2d86;
+  --cc-tone-success: #2a632a;
+  --cc-tone-warning: #744600;
+  --cc-tone-danger: #9b1c1c;
+  --cc-tone-gold: #6f4c00;
+  /* Tone washes: tone text and on-surface text both pass on them */
+  --cc-tone-info-soft: #e3ebf4;
+  --cc-tone-magic-soft: #ece3f2;
+  --cc-tone-success-soft: #e3eedf;
+  --cc-tone-warning-soft: #f6e9cc;
+  --cc-tone-danger-soft: #f6e0dc;
+  /* Tone fills with their own ink */
+  --cc-fill-info: #1f4e8c;
+  --cc-fill-magic: #5b2d86;
+  --cc-fill-success: #2e6b2e;
+  --cc-fill-warning: #7a4a00;
+  --cc-fill-danger: #9b1c1c;
+  --cc-on-fill: #ffffff;
+  /* The character sheet */
+  --cc-sheet: #fcf6e3;
+  --cc-sheet-ink: #3d2817;
+  --cc-sheet-ink-2: #5c4834;
+  --cc-sheet-rule: #8b4513;
+  --cc-overlay: rgb(42 28 15 / 0.45);
+
+  /* Legacy RGB channels, so existing bg-theme-* / text-theme-* /
+     *-accent-* utilities render parchment. */
+  --color-bg-primary: 246 239 220;
+  --color-bg-secondary: 255 250 240;
+  --color-bg-tertiary: 239 230 207;
+  --color-bg-quaternary: 230 219 191;
+  --color-bg-hover: 220 208 178;
+  --color-text-primary: 42 28 15;
+  --color-text-secondary: 63 45 28;
+  --color-text-tertiary: 79 59 39;
+  --color-text-muted: 102 80 58;
+  --color-text-disabled: 110 90 69;
+  --color-border-primary: 143 123 88;
+  --color-border-secondary: 185 168 130;
+  --color-border-tertiary: 205 191 158;
+  --color-accent-red-light: 142 42 23;
+  --color-accent-red: 142 42 23;
+  --color-accent-red-dark: 120 34 18;
+  --color-accent-red-darker: 100 28 14;
+  --color-accent-purple-light: 91 45 134;
+  --color-accent-purple: 91 45 134;
+  --color-accent-purple-dark: 74 36 110;
+  --color-accent-purple-darker: 58 28 87;
+  --color-accent-green-light: 42 99 42;
+  --color-accent-green: 46 107 46;
+  --color-accent-green-dark: 37 90 37;
+  --color-accent-green-darker: 30 74 30;
+  --color-accent-blue-light: 31 78 140;
+  --color-accent-blue: 31 78 140;
+  --color-accent-blue-dark: 25 63 115;
+  --color-accent-blue-darker: 20 50 92;
+  --color-accent-yellow-light: 111 76 0;
+  --color-accent-yellow: 111 76 0;
+  --color-accent-yellow-dark: 92 63 0;
+  --color-accent-yellow-darker: 74 50 0;
+  --color-shadow: 74 54 34;
+  --color-shadow-red: 100 28 14;
+  --color-shadow-purple: 58 28 87;
+  --color-on-action: 255 255 255;
+  --color-on-yellow: 255 255 255;
+  --color-action-green: 46 107 46;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --cc-surface: #1f2937;
+  --cc-raised: #374151;
+  --cc-sunken: #111827;
+  --cc-hover: #4b5563;
+  --cc-on-surface: #f3f4f6;
+  --cc-on-raised: #f3f4f6;
+  --cc-text-2: #e5e7eb;
+  --cc-muted: #d1d5db;
+  --cc-disabled: #b4bac4;
+  --cc-border: #374151;
+  --cc-border-strong: #8b93a1;
+  --cc-accent: #b91c1c;
+  --cc-on-accent: #ffffff;
+  --cc-accent-hover: #c62828;
+  --cc-selected-bg: #3b1f24;
+  --cc-selected-border: #f87171;
+  --cc-focus: #fde047;
+  --cc-tone-info: #93c5fd;
+  --cc-tone-magic: #d8b4fe;
+  --cc-tone-success: #86efac;
+  --cc-tone-warning: #fcd34d;
+  --cc-tone-danger: #fca5a5;
+  --cc-tone-gold: #fde047;
+  --cc-tone-info-soft: #172a46;
+  --cc-tone-magic-soft: #2a1d40;
+  --cc-tone-success-soft: #14301f;
+  --cc-tone-warning-soft: #3a2c0b;
+  --cc-tone-danger-soft: #3b1a1a;
+  --cc-fill-info: #1d4ed8;
+  --cc-fill-magic: #7e22ce;
+  --cc-fill-success: #15803d;
+  --cc-fill-warning: #92400e;
+  --cc-fill-danger: #b91c1c;
+  --cc-on-fill: #ffffff;
+  --cc-sheet: #fcf6e3;
+  --cc-sheet-ink: #3d2817;
+  --cc-sheet-ink-2: #5c4834;
+  --cc-sheet-rule: #8b4513;
+  --cc-overlay: rgb(0 0 0 / 0.6);
+
+  --color-bg-primary: 17 24 39;
+  --color-bg-secondary: 31 41 55;
+  --color-bg-tertiary: 55 65 81;
+  --color-bg-quaternary: 75 85 99;
+  --color-bg-hover: 99 106 119;
+  --color-text-primary: 243 244 246;
+  --color-text-secondary: 229 231 235;
+  --color-text-tertiary: 209 213 219;
+  --color-text-muted: 209 213 219;
+  --color-text-disabled: 180 186 196;
+  --color-border-primary: 139 147 161;
+  --color-border-secondary: 75 85 99;
+  --color-border-tertiary: 55 65 81;
+  --color-accent-red-light: 252 165 165;
+  --color-accent-red: 185 28 28;
+  --color-accent-red-dark: 153 27 27;
+  --color-accent-red-darker: 127 29 29;
+  --color-accent-purple-light: 216 180 254;
+  --color-accent-purple: 126 34 206;
+  --color-accent-purple-dark: 107 33 168;
+  --color-accent-purple-darker: 88 28 135;
+  --color-accent-green-light: 134 239 172;
+  --color-accent-green: 21 128 61;
+  --color-accent-green-dark: 22 101 52;
+  --color-accent-green-darker: 20 83 45;
+  --color-accent-blue-light: 147 197 253;
+  --color-accent-blue: 29 78 216;
+  --color-accent-blue-dark: 30 64 175;
+  --color-accent-blue-darker: 30 58 138;
+  --color-accent-yellow-light: 253 224 71;
+  --color-accent-yellow: 234 179 8;
+  --color-accent-yellow-dark: 202 138 4;
+  --color-accent-yellow-darker: 161 98 7;
+  --color-shadow: 0 0 0;
+  --color-shadow-red: 153 27 27;
+  --color-shadow-purple: 107 33 168;
+  --color-on-action: 255 255 255;
+  --color-on-yellow: 31 19 0;
+  --color-action-green: 21 128 61;
+}
+
+/* The creator root paints its own ink, so nothing leaks in from the host. */
+[data-theme='parchment'],
+[data-theme='dark'] {
+  color: var(--cc-on-surface);
+}
+
+/* ---------- Semantic utilities (targets of the colour codemod) ---------- */
+.text-tone-info {
+  color: var(--cc-tone-info);
+}
+.text-tone-magic {
+  color: var(--cc-tone-magic);
+}
+.text-tone-success {
+  color: var(--cc-tone-success);
+}
+.text-tone-warning {
+  color: var(--cc-tone-warning);
+}
+.text-tone-danger {
+  color: var(--cc-tone-danger);
+}
+.text-tone-gold {
+  color: var(--cc-tone-gold);
+}
+.group:hover .group-hover\:text-tone-info {
+  color: var(--cc-tone-info);
+}
+.group:hover .group-hover\:text-tone-magic {
+  color: var(--cc-tone-magic);
+}
+.group:hover .group-hover\:text-tone-success {
+  color: var(--cc-tone-success);
+}
+.group:hover .group-hover\:text-tone-danger {
+  color: var(--cc-tone-danger);
+}
+.hover\:text-tone-info:hover {
+  color: var(--cc-tone-info);
+}
+.hover\:text-theme-primary:hover {
+  color: rgb(var(--color-text-primary));
+}
+
+.border-tone-info {
+  border-color: var(--cc-tone-info);
+}
+.border-tone-magic {
+  border-color: var(--cc-tone-magic);
+}
+.border-tone-success {
+  border-color: var(--cc-tone-success);
+}
+.border-tone-warning {
+  border-color: var(--cc-tone-warning);
+}
+.border-tone-danger {
+  border-color: var(--cc-tone-danger);
+}
+.border-tone-gold {
+  border-color: var(--cc-tone-gold);
+}
+.hover\:border-tone-info:hover {
+  border-color: var(--cc-tone-info);
+}
+.hover\:border-tone-magic:hover {
+  border-color: var(--cc-tone-magic);
+}
+.hover\:border-tone-success:hover {
+  border-color: var(--cc-tone-success);
+}
+.hover\:border-tone-warning:hover {
+  border-color: var(--cc-tone-warning);
+}
+.hover\:border-tone-danger:hover {
+  border-color: var(--cc-tone-danger);
+}
+.hover\:border-tone-gold:hover {
+  border-color: var(--cc-tone-gold);
+}
+.focus\:border-tone-danger:focus {
+  border-color: var(--cc-tone-danger);
+}
+.focus\:border-tone-gold:focus {
+  border-color: var(--cc-tone-gold);
+}
+.ring-tone-focus,
+.focus\:ring-tone-focus:focus {
+  --tw-ring-color: var(--cc-focus);
+}
+
+/* Washes. Text on them uses the surface ink or a tone; both pass. */
+.bg-tone-info-soft {
+  background-color: var(--cc-tone-info-soft);
+}
+.bg-tone-magic-soft {
+  background-color: var(--cc-tone-magic-soft);
+}
+.bg-tone-success-soft {
+  background-color: var(--cc-tone-success-soft);
+}
+.bg-tone-warning-soft {
+  background-color: var(--cc-tone-warning-soft);
+}
+.bg-tone-danger-soft {
+  background-color: var(--cc-tone-danger-soft);
+}
+.hover\:bg-tone-info-soft:hover {
+  background-color: var(--cc-tone-info-soft);
+}
+.hover\:bg-tone-success-soft:hover {
+  background-color: var(--cc-tone-success-soft);
+}
+.hover\:bg-tone-warning-soft:hover {
+  background-color: var(--cc-tone-warning-soft);
+}
+.hover\:bg-tone-danger-soft:hover {
+  background-color: var(--cc-tone-danger-soft);
+}
+
+/* Fills always carry their ink. */
+.bg-fill-info {
+  background-color: var(--cc-fill-info);
+  color: var(--cc-on-fill);
+}
+.bg-fill-magic {
+  background-color: var(--cc-fill-magic);
+  color: var(--cc-on-fill);
+}
+.bg-fill-success {
+  background-color: var(--cc-fill-success);
+  color: var(--cc-on-fill);
+}
+.bg-fill-warning {
+  background-color: var(--cc-fill-warning);
+  color: var(--cc-on-fill);
+}
+.bg-fill-danger {
+  background-color: var(--cc-fill-danger);
+  color: var(--cc-on-fill);
+}
+.hover\:bg-fill-info:hover {
+  background-color: var(--cc-fill-info);
+  color: var(--cc-on-fill);
+}
+.hover\:bg-fill-magic:hover {
+  background-color: var(--cc-fill-magic);
+  color: var(--cc-on-fill);
+}
+.hover\:bg-fill-success:hover {
+  background-color: var(--cc-fill-success);
+  color: var(--cc-on-fill);
+}
+.hover\:bg-fill-danger:hover {
+  background-color: var(--cc-fill-danger);
+  color: var(--cc-on-fill);
+}
+.hover\:bg-fill-warning:hover {
+  background-color: var(--cc-fill-warning);
+  color: var(--cc-on-fill);
+}
+.bg-overlay {
+  background-color: var(--cc-overlay);
+}
+
+/* Theme utilities the markup already used without a rule. Forge's own
+   Tailwind config happened to generate some of them; VTT's scoped build
+   did not, so they are defined here once for both hosts. */
+.bg-theme-primary\/50 {
+  background-color: rgb(var(--color-bg-primary) / 0.5);
+}
+.bg-theme-secondary\/30 {
+  background-color: rgb(var(--color-bg-secondary) / 0.3);
+}
+.bg-theme-quaternary\/40 {
+  background-color: rgb(var(--color-bg-quaternary) / 0.4);
+}
+.bg-theme-disabled,
+.disabled\:bg-theme-disabled:disabled,
+.disabled\:bg-theme-quaternary:disabled {
+  background-color: rgb(var(--color-bg-quaternary));
+}
+.disabled\:text-theme-muted:disabled {
+  color: rgb(var(--color-text-muted));
+}
+.bg-theme-border {
+  background-color: rgb(var(--color-border-primary));
+}
+.text-theme-text {
+  color: rgb(var(--color-text-primary));
+}
+.border-theme-border {
+  border-color: rgb(var(--color-border-primary));
+}
+.border-theme-primary\/30 {
+  border-color: rgb(var(--color-border-primary) / 0.3);
+}
+.border-theme-primary\/20 {
+  border-color: rgb(var(--color-border-primary) / 0.2);
+}
+.border-theme-quaternary {
+  border-color: rgb(var(--color-border-secondary));
+}
+.border-theme-quaternary\/50 {
+  border-color: rgb(var(--color-border-secondary) / 0.5);
+}
+.hover\:bg-theme-primary:hover {
+  background-color: rgb(var(--color-bg-primary));
+}
+.hover\:bg-theme-quaternary\/40:hover {
+  background-color: rgb(var(--color-bg-quaternary) / 0.4);
+}
+.hover\:bg-theme-quaternary\/80:hover {
+  background-color: rgb(var(--color-bg-quaternary) / 0.8);
+}
+.hover\:border-theme-secondary:hover {
+  border-color: rgb(var(--color-border-secondary));
+}
+.hover\:border-theme-muted:hover {
+  border-color: rgb(var(--color-text-muted));
+}
+.bg-theme-primary\/30 {
+  background-color: rgb(var(--color-bg-primary) / 0.3);
+}
+.hover\:bg-theme-tertiary\/50:hover {
+  background-color: rgb(var(--color-bg-tertiary) / 0.5);
+}
+.placeholder-theme-muted::placeholder {
+  color: var(--cc-muted);
+}
+
+/* Solid accent fills (including the -darker shades the markup uses for
+   selected cards) carry the on-action ink, and every theme, accent or tone
+   text inside them inherits it. A gold or brown label inside a red
+   selected card is white, never 1.6:1. */
+.bg-accent-red-dark,
+.bg-accent-red-darker,
+.bg-accent-purple-dark,
+.bg-accent-purple-darker,
+.bg-accent-green-darker,
+.bg-accent-blue-dark,
+.bg-accent-blue-darker,
+:is(
+    .bg-accent-red,
+    .bg-accent-purple,
+    .bg-accent-green,
+    .bg-accent-blue
+  ):is([class*='text-theme-'], [class*='text-accent-'], [class*='text-tone-']) {
+  color: rgb(var(--color-on-action));
+}
+:is(
+    .bg-fill-info,
+    .bg-fill-magic,
+    .bg-fill-success,
+    .bg-fill-warning,
+    .bg-fill-danger,
+    .bg-accent-red,
+    .bg-accent-red-dark,
+    .bg-accent-red-darker,
+    .bg-accent-purple,
+    .bg-accent-purple-dark,
+    .bg-accent-purple-darker,
+    .bg-accent-green,
+    .bg-accent-green-dark,
+    .bg-accent-green-darker,
+    .bg-accent-blue,
+    .bg-accent-blue-dark,
+    .bg-accent-blue-darker
+  )
+  :is([class*='text-theme-'], [class*='text-accent-'], [class*='text-tone-']) {
+  color: inherit;
+}
+
+/* Translucent dark washes (`bg-accent-*-darker/20`) read well over a dark
+   ground but turn muddy over parchment, where body text drops under 4.5:1.
+   In parchment they become the matching soft tone. */
+[data-theme='parchment'] .bg-accent-green-darker\/20,
+[data-theme='parchment'] .bg-accent-green-darker\/30 {
+  background-color: var(--cc-tone-success-soft);
+}
+[data-theme='parchment'] .bg-accent-purple-darker\/20 {
+  background-color: var(--cc-tone-magic-soft);
+}
+[data-theme='parchment'] .bg-accent-blue-darker\/20 {
+  background-color: var(--cc-tone-info-soft);
+}
+[data-theme='parchment'] .bg-accent-yellow-darker\/20 {
+  background-color: var(--cc-tone-warning-soft);
+}
+/* Lighter washes the markup also uses; defined here for both hosts. */
+.bg-accent-purple\/10 {
+  background-color: rgb(var(--color-accent-purple) / 0.1);
+}
+.bg-accent-purple\/20 {
+  background-color: rgb(var(--color-accent-purple) / 0.2);
+}
+.bg-accent-yellow-dark\/20 {
+  background-color: rgb(var(--color-accent-yellow-dark) / 0.2);
+}
+.bg-accent-yellow-dark\/30 {
+  background-color: rgb(var(--color-accent-yellow-dark) / 0.3);
+}
+[data-theme='parchment'] :is(.bg-accent-purple\/10, .bg-accent-purple\/20) {
+  background-color: var(--cc-tone-magic-soft);
+}
+[data-theme='parchment']
+  :is(.bg-accent-yellow-dark\/20, .bg-accent-yellow-dark\/30) {
+  background-color: var(--cc-tone-warning-soft);
+}
+
+/* Yellow fills are light gold in dark and deep amber in parchment, so they
+   get their own paired ink instead of the white on-action ink. */
+:is(.bg-accent-yellow, .bg-accent-yellow-dark, .bg-accent-yellow-light),
+:is(.bg-accent-yellow, .bg-accent-yellow-dark, .bg-accent-yellow-light):is(
+    [class*='text-theme-'],
+    [class*='text-accent-'],
+    [class*='text-tone-']
+  ),
+:is(.bg-accent-yellow, .bg-accent-yellow-dark, .bg-accent-yellow-light)
+  :is([class*='text-theme-'], [class*='text-accent-'], [class*='text-tone-']) {
+  color: rgb(var(--color-on-yellow));
+}
+
+/* A disabled fill swaps to a neutral background, so its ink swaps too.
+   Declared after the fill rules so it wins at equal specificity. */
+:is(.disabled\:bg-theme-disabled, .disabled\:bg-theme-quaternary):disabled,
+:is(.disabled\:bg-theme-disabled, .disabled\:bg-theme-quaternary):disabled
+  :is([class*='text-theme-'], [class*='text-accent-'], [class*='text-tone-']) {
+  color: rgb(var(--color-text-disabled));
+}
+
+/* Focus is visible in both themes. */
+[data-theme='parchment'] :focus-visible,
+[data-theme='dark'] :focus-visible {
+  outline: 2px solid var(--cc-focus);
+  outline-offset: 2px;
+}

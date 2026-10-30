@@ -36,7 +36,7 @@ const RandomizeButton: React.FC<{
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
+      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
       title={title}
     >
       <Shuffle className="w-4 h-4" />
@@ -417,11 +417,11 @@ export const Step4Spells: React.FC<StepProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="text-xl font-bold text-red-300">Select Your Spells</h3>
+          <h3 className="text-xl font-bold text-tone-danger">Select Your Spells</h3>
           <p className="text-sm text-theme-muted mt-1">
             {selectedClass.name} - {modeDescription}
           </p>
-          <p className="text-xs text-purple-300 mt-1">
+          <p className="text-xs text-tone-magic mt-1">
             Spellcasting Ability:{' '}
             <span className="font-bold">{spellcasting.ability}</span>
           </p>
@@ -461,18 +461,18 @@ export const Step4Spells: React.FC<StepProps> = ({
                   disabled={!isSelected && !canSelect}
                   className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                     isSelected
-                      ? 'bg-blue-900 border-blue-500'
+                      ? 'bg-tone-info-soft border-tone-info'
                       : canSelect
-                        ? 'bg-theme-tertiary border-theme-primary hover:border-blue-400'
+                        ? 'bg-theme-tertiary border-theme-primary hover:border-tone-info'
                         : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="font-semibold text-white">
+                      <div className="font-semibold text-theme-primary">
                         {spell.name}
                       </div>
-                      <div className="text-xs text-purple-300">
+                      <div className="text-xs text-tone-magic">
                         {spell.school}
                       </div>
                     </div>
@@ -493,7 +493,7 @@ export const Step4Spells: React.FC<StepProps> = ({
                     e.stopPropagation();
                     openSpellModal(spell);
                   }}
-                  className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-white transition-colors z-10"
+                  className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
                   title="View full spell details"
                 >
                   <MoreHorizontal className="w-3 h-3" />
@@ -533,18 +533,18 @@ export const Step4Spells: React.FC<StepProps> = ({
                       disabled={!isSelected && !canSelect}
                       className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                         isSelected
-                          ? 'bg-blue-900 border-blue-500'
+                          ? 'bg-tone-info-soft border-tone-info'
                           : canSelect
-                            ? 'bg-theme-tertiary border-theme-primary hover:border-blue-400'
+                            ? 'bg-theme-tertiary border-theme-primary hover:border-tone-info'
                             : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="font-semibold text-white">
+                          <div className="font-semibold text-theme-primary">
                             {spell.name}
                           </div>
-                          <div className="text-xs text-purple-300">
+                          <div className="text-xs text-tone-magic">
                             {spell.school}
                           </div>
                         </div>
@@ -566,7 +566,7 @@ export const Step4Spells: React.FC<StepProps> = ({
                         e.stopPropagation();
                         openSpellModal(spell);
                       }}
-                      className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-white transition-colors z-10"
+                      className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
                       title="View full spell details"
                     >
                       <MoreHorizontal className="w-3 h-3" />
@@ -622,18 +622,18 @@ export const Step4Spells: React.FC<StepProps> = ({
                       disabled={!isSelected && !canSelect}
                       className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                         isSelected
-                          ? 'bg-green-900 border-green-500'
+                          ? 'bg-tone-success-soft border-tone-success'
                           : canSelect
-                            ? 'bg-theme-tertiary border-theme-primary hover:border-green-400'
+                            ? 'bg-theme-tertiary border-theme-primary hover:border-tone-success'
                             : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="font-semibold text-white">
+                          <div className="font-semibold text-theme-primary">
                             {spell.name}
                           </div>
-                          <div className="text-xs text-purple-300">
+                          <div className="text-xs text-tone-magic">
                             {spell.school}
                           </div>
                         </div>
@@ -655,7 +655,7 @@ export const Step4Spells: React.FC<StepProps> = ({
                         e.stopPropagation();
                         openSpellModal(spell);
                       }}
-                      className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-white transition-colors z-10"
+                      className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
                       title="View full spell details"
                     >
                       <MoreHorizontal className="w-3 h-3" />
@@ -709,18 +709,18 @@ export const Step4Spells: React.FC<StepProps> = ({
                           disabled={!isSelected && !canSelect}
                           className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                             isSelected
-                              ? 'bg-blue-900 border-blue-500'
+                              ? 'bg-tone-info-soft border-tone-info'
                               : canSelect
-                                ? 'bg-theme-tertiary border-theme-primary hover:border-blue-400'
+                                ? 'bg-theme-tertiary border-theme-primary hover:border-tone-info'
                                 : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
                           }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="font-semibold text-white">
+                              <div className="font-semibold text-theme-primary">
                                 {spell.name}
                               </div>
-                              <div className="text-xs text-purple-300">
+                              <div className="text-xs text-tone-magic">
                                 {spell.school}
                               </div>
                             </div>
@@ -742,7 +742,7 @@ export const Step4Spells: React.FC<StepProps> = ({
                             e.stopPropagation();
                             openSpellModal(spell);
                           }}
-                          className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-white transition-colors z-10"
+                          className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
                           title="View full spell details"
                         >
                           <MoreHorizontal className="w-3 h-3" />
@@ -799,18 +799,18 @@ export const Step4Spells: React.FC<StepProps> = ({
                           disabled={!isSelected && !canSelect}
                           className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                             isSelected
-                              ? 'bg-blue-900 border-blue-500'
+                              ? 'bg-tone-info-soft border-tone-info'
                               : canSelect
-                                ? 'bg-theme-tertiary border-theme-primary hover:border-blue-400'
+                                ? 'bg-theme-tertiary border-theme-primary hover:border-tone-info'
                                 : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
                           }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <div className="font-semibold text-white">
+                              <div className="font-semibold text-theme-primary">
                                 {spell.name}
                               </div>
-                              <div className="text-xs text-purple-300">
+                              <div className="text-xs text-tone-magic">
                                 {spell.school}
                               </div>
                             </div>
@@ -832,7 +832,7 @@ export const Step4Spells: React.FC<StepProps> = ({
                             e.stopPropagation();
                             openSpellModal(spell);
                           }}
-                          className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-white transition-colors z-10"
+                          className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
                           title="View full spell details"
                         >
                           <MoreHorizontal className="w-3 h-3" />
@@ -854,7 +854,7 @@ export const Step4Spells: React.FC<StepProps> = ({
             onClick={() => {
               prevStep();
             }}
-            className="px-4 py-2 bg-theme-quaternary text-white rounded-lg hover:bg-theme-hover flex items-center gap-2"
+            className="px-4 py-2 bg-theme-quaternary text-theme-primary rounded-lg hover:bg-theme-hover flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -864,7 +864,7 @@ export const Step4Spells: React.FC<StepProps> = ({
             disabled={!allSelectionsComplete}
             className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
               allSelectionsComplete
-                ? 'bg-accent-red-dark text-white hover:bg-accent-red'
+                ? 'bg-accent-red-dark text-theme-primary hover:bg-accent-red'
                 : 'bg-theme-tertiary text-theme-disabled cursor-not-allowed'
             }`}
           >
@@ -876,7 +876,7 @@ export const Step4Spells: React.FC<StepProps> = ({
         {/* Validation Feedback */}
         {!allSelectionsComplete && validationMessages.length > 0 && (
           <div className="flex justify-end">
-            <div className="text-sm text-orange-400 space-y-1">
+            <div className="text-sm text-tone-warning space-y-1">
               {validationMessages.map((message, index) => (
                 <div key={index}>• {message}</div>
               ))}

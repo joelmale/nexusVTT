@@ -47,8 +47,9 @@ export function LevelUpWeaponMasteryChoices({
         You have chosen {selected.length} of {count}. You can keep your earlier
         weapons or swap them.
       </p>
+      <div className={styles.options}>
       {options.map((weapon) => (
-        <label key={weapon.slug}>
+        <label className={styles.option} key={weapon.slug}>
           <input
             type="checkbox"
             checked={isChosen(weapon.name)}
@@ -63,22 +64,30 @@ export function LevelUpWeaponMasteryChoices({
               })
             }
           />
-          {weapon.name}
+          <span>{weapon.name}</span>
         </label>
       ))}
+      </div>
       {errors.length > 0 && (
-        <ul role="alert">
+        <ul role="alert" className={styles.errors}>
           {errors.map((message) => (
             <li key={message}>{message}</li>
           ))}
         </ul>
       )}
-      <button type="button" onClick={onPrev}>
-        Back
-      </button>
-      <button type="button" disabled={errors.length > 0} onClick={onNext}>
-        Continue
-      </button>
+      <div className={styles.actions}>
+        <button type="button" className={styles.button} onClick={onPrev}>
+          Back
+        </button>
+        <button
+          type="button"
+          className={`${styles.button} ${styles.primary}`}
+          disabled={errors.length > 0}
+          onClick={onNext}
+        >
+          Continue
+        </button>
+      </div>
     </section>
   );
 }

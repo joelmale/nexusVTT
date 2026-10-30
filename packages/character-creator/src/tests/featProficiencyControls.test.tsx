@@ -29,13 +29,13 @@ describe('feat proficiency controls', () => {
     render(<Host />);
     for (const [index, name] of ['Arcana', 'History', 'Lute'].entries())
       fireEvent.change(
-        screen.getByLabelText(`skilled proficiency ${index + 1}`),
+        screen.getByLabelText(`Skilled proficiency ${index + 1}`),
         { target: { value: name } },
       );
     expect(screen.getByRole('status')).toHaveTextContent('Complete');
-    expect(screen.getByLabelText('skilled proficiency 1')).toHaveValue(
+    expect(screen.getByLabelText('Skilled proficiency 1')).toHaveValue(
       'Arcana',
     );
-    expect(screen.getByLabelText('skilled proficiency 3')).toHaveValue('Lute');
+    expect(screen.getByLabelText('Skilled proficiency 3')).toHaveValue('Lute');
   });
 });

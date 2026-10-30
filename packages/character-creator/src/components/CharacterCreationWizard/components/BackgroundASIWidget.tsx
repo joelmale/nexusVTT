@@ -77,7 +77,7 @@ export const BackgroundASIWidget: React.FC<BackgroundASIWidgetProps> = ({
     <div className="flex items-center gap-2 mb-2">
       <span className="text-sm font-medium text-theme-tertiary w-12">{label}</span>
       <select
-        className="bg-theme-secondary border border-theme-primary text-white text-sm rounded p-1"
+        className="bg-theme-secondary border border-theme-primary text-theme-primary text-sm rounded p-1"
         value={Object.keys(bonuses).find(key => bonuses[key as AbilityName] === value) || ''}
         onChange={(e) => handleBonusChange(e.target.value as AbilityName, value)}
       >
@@ -100,8 +100,8 @@ export const BackgroundASIWidget: React.FC<BackgroundASIWidgetProps> = ({
           onClick={() => setMethod('2/1')}
           className={`flex-1 py-2 px-3 text-xs rounded border ${
             method === '2/1'
-              ? 'bg-accent-blue border-accent-blue text-white'
-              : 'bg-transparent border-theme-primary text-theme-muted hover:text-white'
+              ? 'bg-accent-blue border-accent-blue text-theme-primary'
+              : 'bg-transparent border-theme-primary text-theme-muted hover:text-theme-primary'
           }`}
         >
           +2 / +1
@@ -110,8 +110,8 @@ export const BackgroundASIWidget: React.FC<BackgroundASIWidgetProps> = ({
           onClick={() => setMethod('1/1/1')}
           className={`flex-1 py-2 px-3 text-xs rounded border ${
             method === '1/1/1'
-              ? 'bg-accent-blue border-accent-blue text-white'
-              : 'bg-transparent border-theme-primary text-theme-muted hover:text-white'
+              ? 'bg-accent-blue border-accent-blue text-theme-primary'
+              : 'bg-transparent border-theme-primary text-theme-muted hover:text-theme-primary'
           }`}
         >
           +1 / +1 / +1
@@ -130,7 +130,7 @@ export const BackgroundASIWidget: React.FC<BackgroundASIWidgetProps> = ({
              <div key={idx} className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-medium text-theme-tertiary w-12">+1</span>
                 <select
-                    className="bg-theme-secondary border border-theme-primary text-white text-sm rounded p-1"
+                    className="bg-theme-secondary border border-theme-primary text-theme-primary text-sm rounded p-1"
                     // This logic is simplified; for 1/1/1 we just need 3 unique selections.
                     // A proper multi-select or 3 separate dropdowns managing a shared list is better.
                     // Here, we'll let the user pick for "Slot 1", "Slot 2", "Slot 3" but storing them is tricky with just `bonuses` map.

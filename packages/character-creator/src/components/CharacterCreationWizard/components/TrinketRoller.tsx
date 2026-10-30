@@ -64,7 +64,7 @@ export const TrinketRoller: React.FC<TrinketRollerProps> = ({
       <button
         onClick={rollTrinket}
         disabled={isRolling}
-        className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-accent-purple hover:bg-accent-purple-light disabled:bg-theme-quaternary disabled:cursor-not-allowed rounded-lg text-white font-medium transition-colors"
+        className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-accent-purple hover:bg-accent-purple-light disabled:bg-theme-quaternary disabled:cursor-not-allowed rounded-lg text-theme-primary font-medium transition-colors"
       >
         <Dice6 className={`w-5 h-5 ${isRolling ? 'animate-spin' : ''}`} />
         <span>

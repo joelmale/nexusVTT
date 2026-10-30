@@ -1,7 +1,9 @@
 import { QuickStartItem, ShopItem } from '../types/equipment';
-import { loadQuickStartEquipment, loadStartingWealthRules, loadNewPlayerShop, loadEquipment } from './dataService';
+import { loadQuickStartEquipment, loadStartingWealthRules, loadNewPlayerShop, loadEquipment, transformEquipment } from './dataService';
 import { Equipment } from '../types/dnd';
 import { log } from '../utils/logger';
+import srdEquipment2014 from '../data/srd/2014/5e-SRD-Equipment.json';
+import { mergeEquipmentCatalog } from './equipmentCatalog';
 
 export const COIN_REGEX = /^\s*(\d+)\s*(cp|sp|ep|gp|pp)\s*$/i;
 
@@ -189,4 +191,49 @@ export function canAffordPurchase(
 ): boolean {
   const cost = calculatePurchaseCost(purchasedItems);
   return startingGold >= cost;
+}
+
+
+interface SRDEquipment2014 {
+  index: string;
+  name: string;
+  equipment_category: { index: string; name: string };
+  gear_category?: { index: string; name: string };
+  weapon_category?: string;
+  weapon_range?: string;
+  armor_category?: string;
+  cost: { quantity: number; unit: string };
+  weight?: number;
+  [key: string]: unknown;
+}
+
+/** 2014 SRD equipment, shaped like the 2024 records and tagged `year: 2014`. */
+export function loadEquipment2014(): Equipment[] {
+  return (srdEquipment2014 as unknown as SRDEquipment2014[]).map((raw) => {
+    const item = transformEquipment({
+      ...raw,
+      weight: raw.weight ?? 0,
+      equipment_categories: [raw.equipment_category],
+    } as unknown as Parameters<typeof transformEquipment>[0]);
+    return {
+      ...item,
+      year: 2014,
+      weapon_category:
+        (raw.weapon_category as Equipment['weapon_category']) ??
+        item.weapon_category,
+      weapon_range:
+        (raw.weapon_range as Equipment['weapon_range']) ?? item.weapon_range,
+    };
+  });
+}
+
+/**
+ * The equipment catalog shown to players: 2014 and 2024 SRD merged into one
+ * list, preferring 2024. Display only; rules lookups keep using loadEquipment.
+ */
+export function loadEquipmentCatalog(): Equipment[] {
+  return mergeEquipmentCatalog(
+    loadEquipment2014(),
+    loadEquipment().filter((item) => item.year === 2024),
+  );
 }

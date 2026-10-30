@@ -277,7 +277,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
               <div
                 role="alert"
                 aria-live="assertive"
-                className="bg-red-900 border border-accent-red-dark rounded-lg p-4"
+                className="bg-tone-danger-soft border border-accent-red-dark rounded-lg p-4"
               >
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -294,17 +294,17 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
                     </svg>
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-200">
+                    <h3 className="text-sm font-medium text-tone-danger">
                       Character Creation Error
                     </h3>
-                    <div className="mt-2 text-sm text-red-300">
+                    <div className="mt-2 text-sm text-tone-danger">
                       <p>{error}</p>
                     </div>
                   </div>
                   <div className="ml-auto pl-3">
                     <button
                       onClick={() => setError(null)}
-                      className="inline-flex rounded-md bg-red-900 p-1.5 text-accent-red-light hover:bg-accent-red-darker focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+                      className="inline-flex rounded-md bg-tone-danger-soft p-1.5 text-accent-red-light hover:bg-accent-red-darker focus:outline-none focus:ring-2 focus:ring-tone-focus focus:ring-offset-2"
                     >
                       <span className="sr-only">Dismiss</span>
                       <svg
@@ -326,7 +326,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
           )}
 
           {/* Scrollable Content */}
-          <WizardStepContainer>
+          <WizardStepContainer stepKey={currentStep}>
             {/* Wizard Content */}
             {renderStep()}
           </WizardStepContainer>

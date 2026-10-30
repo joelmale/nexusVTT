@@ -36,18 +36,18 @@ export function RulesEngineDebugPanel({
 
   if (!character || !derived) {
     return (
-      <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg shadow-lg">
+      <div className="fixed bottom-4 right-4 bg-theme-secondary text-theme-primary p-4 rounded-lg shadow-lg">
         <p className="text-sm">Rules Engine Debug Panel</p>
-        <p className="text-xs text-gray-400">No character or derived state available</p>
+        <p className="text-xs text-theme-muted">No character or derived state available</p>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-gray-900 text-white rounded-lg shadow-2xl max-w-2xl z-50">
+    <div className="fixed bottom-4 right-4 bg-theme-primary text-theme-primary rounded-lg shadow-2xl max-w-2xl z-50">
       {/* Header */}
       <div
-        className="bg-gray-800 p-3 rounded-t-lg flex justify-between items-center cursor-pointer"
+        className="bg-theme-secondary p-3 rounded-t-lg flex justify-between items-center cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export function RulesEngineDebugPanel({
           <h3 className="font-semibold">Rules Engine Debug</h3>
         </div>
         <button
-          className="text-gray-400 hover:text-white transition-colors"
+          className="text-theme-muted hover:text-theme-primary transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             setIsExpanded(!isExpanded);
@@ -69,12 +69,12 @@ export function RulesEngineDebugPanel({
       {isExpanded && (
         <div className="p-4 max-h-96 overflow-y-auto">
           {/* Tabs */}
-          <div className="flex gap-2 mb-4 border-b border-gray-700">
+          <div className="flex gap-2 mb-4 border-b border-theme-secondary">
             <button
               className={`px-3 py-2 text-sm font-medium ${
                 activeTab === 'provenance'
-                  ? 'border-b-2 border-blue-500 text-blue-400'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'border-b-2 border-tone-info text-tone-info'
+                  : 'text-theme-muted hover:text-theme-primary'
               }`}
               onClick={() => setActiveTab('provenance')}
             >
@@ -83,8 +83,8 @@ export function RulesEngineDebugPanel({
             <button
               className={`px-3 py-2 text-sm font-medium ${
                 activeTab === 'derived'
-                  ? 'border-b-2 border-blue-500 text-blue-400'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'border-b-2 border-tone-info text-tone-info'
+                  : 'text-theme-muted hover:text-theme-primary'
               }`}
               onClick={() => setActiveTab('derived')}
             >
@@ -93,8 +93,8 @@ export function RulesEngineDebugPanel({
             <button
               className={`px-3 py-2 text-sm font-medium ${
                 activeTab === 'raw'
-                  ? 'border-b-2 border-blue-500 text-blue-400'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'border-b-2 border-tone-info text-tone-info'
+                  : 'text-theme-muted hover:text-theme-primary'
               }`}
               onClick={() => setActiveTab('raw')}
             >
@@ -113,26 +113,26 @@ export function RulesEngineDebugPanel({
                       key={index}
                       className={`p-2 rounded text-xs ${
                         effect.applied
-                          ? 'bg-green-900/30 border border-green-700'
-                          : 'bg-red-900/30 border border-red-700'
+                          ? 'bg-tone-success-soft border border-tone-success'
+                          : 'bg-tone-danger-soft border border-tone-danger'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-mono">{effect.sourceId}</span>
                         <span
                           className={`px-2 py-0.5 rounded ${
-                            effect.applied ? 'bg-green-700' : 'bg-red-700'
+                            effect.applied ? 'bg-fill-success' : 'bg-fill-danger'
                           }`}
                         >
                           {effect.applied ? 'Applied' : 'Skipped'}
                         </span>
                       </div>
-                      <div className="text-gray-400 mt-1">{effect.effectId}</div>
+                      <div className="text-theme-muted mt-1">{effect.effectId}</div>
                       {effect.reason && (
-                        <div className="text-gray-500 italic mt-1">Reason: {effect.reason}</div>
+                        <div className="text-theme-muted italic mt-1">Reason: {effect.reason}</div>
                       )}
                       {effect.value !== undefined && (
-                        <div className="text-blue-400 mt-1">
+                        <div className="text-tone-info mt-1">
                           Value: {JSON.stringify(effect.value)}
                         </div>
                       )}
@@ -140,7 +140,7 @@ export function RulesEngineDebugPanel({
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-sm">No effects applied yet</p>
+                <p className="text-theme-muted text-sm">No effects applied yet</p>
               )}
             </div>
           )}
@@ -151,12 +151,12 @@ export function RulesEngineDebugPanel({
               <div className="space-y-3">
                 {/* Abilities */}
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-400 mb-1">Abilities</h5>
+                  <h5 className="text-xs font-semibold text-theme-muted mb-1">Abilities</h5>
                   <div className="grid grid-cols-3 gap-2">
                     {Object.entries(derived.abilities || {}).map(([ability, data]) => (
-                      <div key={ability} className="bg-gray-800 p-2 rounded text-xs">
+                      <div key={ability} className="bg-theme-secondary p-2 rounded text-xs">
                         <div className="font-semibold">{ability}</div>
-                        <div className="text-gray-400">
+                        <div className="text-theme-muted">
                           {data.score} ({data.modifier >= 0 ? '+' : ''}
                           {data.modifier})
                         </div>
@@ -167,22 +167,22 @@ export function RulesEngineDebugPanel({
 
                 {/* Proficiencies */}
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-400 mb-1">Proficiencies</h5>
-                  <div className="bg-gray-800 p-2 rounded text-xs">
+                  <h5 className="text-xs font-semibold text-theme-muted mb-1">Proficiencies</h5>
+                  <div className="bg-theme-secondary p-2 rounded text-xs">
                     <div>
-                      <span className="text-gray-400">Armor:</span>{' '}
+                      <span className="text-theme-muted">Armor:</span>{' '}
                       {derived.proficiencies?.armor?.length || 0}
                     </div>
                     <div>
-                      <span className="text-gray-400">Weapons:</span>{' '}
+                      <span className="text-theme-muted">Weapons:</span>{' '}
                       {derived.proficiencies?.weapons?.length || 0}
                     </div>
                     <div>
-                      <span className="text-gray-400">Tools:</span>{' '}
+                      <span className="text-theme-muted">Tools:</span>{' '}
                       {derived.proficiencies?.tools?.length || 0}
                     </div>
                     <div>
-                      <span className="text-gray-400">Languages:</span>{' '}
+                      <span className="text-theme-muted">Languages:</span>{' '}
                       {derived.proficiencies?.languages?.length || 0}
                     </div>
                   </div>
@@ -191,12 +191,12 @@ export function RulesEngineDebugPanel({
                 {/* Tags */}
                 {derived.tags && derived.tags.length > 0 && (
                   <div>
-                    <h5 className="text-xs font-semibold text-gray-400 mb-1">Tags</h5>
+                    <h5 className="text-xs font-semibold text-theme-muted mb-1">Tags</h5>
                     <div className="flex flex-wrap gap-1">
                       {derived.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="bg-blue-900/50 text-blue-300 px-2 py-0.5 rounded text-xs"
+                          className="bg-tone-info-soft text-tone-info px-2 py-0.5 rounded text-xs"
                         >
                           {tag}
                         </span>
@@ -211,7 +211,7 @@ export function RulesEngineDebugPanel({
           {activeTab === 'raw' && (
             <div>
               <h4 className="text-sm font-semibold mb-2">Raw JSON Data</h4>
-              <pre className="bg-gray-800 p-2 rounded text-xs overflow-x-auto">
+              <pre className="bg-theme-secondary p-2 rounded text-xs overflow-x-auto">
                 {JSON.stringify(derived, null, 2)}
               </pre>
             </div>

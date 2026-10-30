@@ -31,6 +31,10 @@ export {
   type Edition,
 } from './api/types';
 
+export { resolveRequestedEdition } from './api/edition';
+export { resolveCreatorTheme, type CreatorTheme } from './api/theme';
+export { mergeEquipmentCatalog } from './services/equipmentCatalog';
+
 // The completion handshake, exported so hosts can unit-test their own
 // persistence against the same contract the wizard uses.
 export { isPristineDraft } from './adapters/draftAdapter';

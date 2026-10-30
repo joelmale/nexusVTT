@@ -94,7 +94,7 @@ export const HumanVariantSelector: React.FC<HumanVariantSelectorProps> = ({
           </div>
         </label>
 
-        <label className="flex items-start gap-3 p-3 border border-accent-orange rounded cursor-pointer hover:bg-orange-50">
+        <label className="flex items-start gap-3 p-3 border border-tone-warning rounded cursor-pointer hover:bg-tone-warning-soft">
           <input
             type="radio"
             name="humanVariant"
@@ -104,7 +104,7 @@ export const HumanVariantSelector: React.FC<HumanVariantSelectorProps> = ({
             className="mt-1"
           />
           <div className="flex-1">
-            <div className="font-semibold text-accent-orange">
+            <div className="font-semibold text-tone-warning">
               Variant Human ⭐
             </div>
             <div className="text-sm text-theme-muted mb-2">
@@ -120,8 +120,8 @@ export const HumanVariantSelector: React.FC<HumanVariantSelectorProps> = ({
 
       {/* Variant Human Options */}
       {data.selectedSpeciesVariant === 'variant' && (
-        <div className="space-y-4 p-4 bg-orange-50 rounded-lg border border-accent-orange/20">
-          <h5 className="font-semibold text-accent-orange">
+        <div className="space-y-4 p-4 bg-tone-warning-soft rounded-lg border border-tone-warning">
+          <h5 className="font-semibold text-tone-warning">
             Variant Human Selections
           </h5>
 
@@ -141,10 +141,10 @@ export const HumanVariantSelector: React.FC<HumanVariantSelectorProps> = ({
                   onClick={() => handleAbilityToggle(ability as AbilityName)}
                   className={`p-2 text-sm font-medium rounded transition-colors ${
                     data.variantAbilityBonuses?.[ability as AbilityName]
-                      ? 'bg-accent-orange text-white'
+                      ? 'bg-fill-warning text-theme-primary'
                       : totalBonuses >= 2 &&
                           !data.variantAbilityBonuses?.[ability as AbilityName]
-                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        ? 'bg-theme-tertiary text-theme-muted cursor-not-allowed'
                         : 'bg-theme-secondary hover:bg-theme-tertiary text-theme-primary'
                   }`}
                   disabled={

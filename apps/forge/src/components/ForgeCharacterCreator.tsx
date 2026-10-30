@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useContext, useRef, useEffect, useState } from 'react';
+import { ThemeContext } from '../context/ThemeContext';
 import {
   CharacterCreator,
   type CharacterCreationCompleteHandler,
@@ -53,6 +54,9 @@ function OpenCreator({
   onComplete,
 }: Omit<Props, 'isOpen'>) {
   const recovery = useCreatorRecovery(repository, 'forge:local:creation');
+  // The creator resolves Forge's theme to parchment or dark. Read the context
+  // directly so the creator still renders outside a ThemeProvider (tests).
+  const forgeTheme = useContext(ThemeContext)?.theme;
   const dialog = useRef<HTMLDialogElement>(null);
   const [actionError, setActionError] = useState<string>();
   const completionInFlight = useRef<Promise<void> | undefined>(undefined);
@@ -149,6 +153,7 @@ function OpenCreator({
       )}
       <CharacterCreator
         isOpen
+        theme={forgeTheme}
         edition={recovery.initialDraft?.edition ?? edition}
         initialMode={recovery.initialPresentation?.mode ?? initialMode}
         initialDraft={recovery.initialDraft}

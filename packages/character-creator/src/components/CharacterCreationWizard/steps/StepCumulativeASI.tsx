@@ -37,8 +37,16 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
 
   const [currentASIIndex, setCurrentASIIndex] = useState(0);
 
-  // Initialize choices based on ASI levels
-  const [choices, setChoices] = useState<ASIChoice[]>(() => {
+  // Resume saved choices when they still match this class's ASI levels, so
+  // leaving the step with Back and returning keeps the player's allocation.
+  const [choices, setLocalChoices] = useState<ASIChoice[]>(() => {
+    const saved = data.cumulativeASI as ASIChoice[] | undefined;
+    if (
+      saved?.length === asiLevels.length &&
+      saved.every((choice, i) => choice.level === asiLevels[i])
+    ) {
+      return saved;
+    }
     return asiLevels.map(level => ({
       level,
       type: 'asi',
@@ -52,6 +60,12 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
       }
     }));
   });
+
+  // Every change is saved to the draft right away, not only on Next.
+  const setChoices = (next: ASIChoice[]) => {
+    setLocalChoices(next);
+    updateData({ cumulativeASI: next });
+  };
 
   const [showLegacy, setShowLegacy] = useState(false);
 
@@ -205,7 +219,7 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
               index === currentASIIndex
                 ? 'w-8 bg-accent-gold'
                 : index < currentASIIndex
-                  ? 'w-6 bg-green-500'
+                  ? 'w-6 bg-fill-success'
                   : 'w-6 bg-theme-border'
             }`}
           />
@@ -218,16 +232,16 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
           onClick={() => handleTypeChange('asi')}
           className={`p-6 rounded-lg border-2 transition-all ${
             currentChoice?.type === 'asi'
-              ? 'bg-accent-red border-red-400 shadow-lg'
+              ? 'bg-accent-red border-tone-danger shadow-lg'
               : 'bg-theme-tertiary border-theme-border hover:border-accent-gold/50'
           }`}
         >
           <div className="text-center">
-            <TrendingUp className={`w-8 h-8 mx-auto mb-2 ${currentChoice?.type === 'asi' ? 'text-white' : 'text-accent-gold'}`} />
-            <div className={`font-bold text-lg ${currentChoice?.type === 'asi' ? 'text-white' : 'text-theme-text'}`}>
+            <TrendingUp className={`w-8 h-8 mx-auto mb-2 ${currentChoice?.type === 'asi' ? 'text-theme-primary' : 'text-accent-gold'}`} />
+            <div className={`font-bold text-lg ${currentChoice?.type === 'asi' ? 'text-theme-primary' : 'text-theme-text'}`}>
               Ability Score Improvement
             </div>
-            <div className={`text-sm mt-1 ${currentChoice?.type === 'asi' ? 'text-gray-200' : 'text-theme-tertiary'}`}>
+            <div className={`text-sm mt-1 ${currentChoice?.type === 'asi' ? 'text-theme-secondary' : 'text-theme-tertiary'}`}>
               Increase 2 abilities by +1 each, or 1 ability by +2
             </div>
           </div>
@@ -237,16 +251,16 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
           onClick={() => handleTypeChange('feat')}
           className={`p-6 rounded-lg border-2 transition-all ${
             currentChoice?.type === 'feat'
-              ? 'bg-accent-red border-red-400 shadow-lg'
+              ? 'bg-accent-red border-tone-danger shadow-lg'
               : 'bg-theme-tertiary border-theme-border hover:border-accent-gold/50'
           }`}
         >
           <div className="text-center">
-            <Award className={`w-8 h-8 mx-auto mb-2 ${currentChoice?.type === 'feat' ? 'text-white' : 'text-accent-gold'}`} />
-            <div className={`font-bold text-lg ${currentChoice?.type === 'feat' ? 'text-white' : 'text-theme-text'}`}>
+            <Award className={`w-8 h-8 mx-auto mb-2 ${currentChoice?.type === 'feat' ? 'text-theme-primary' : 'text-accent-gold'}`} />
+            <div className={`font-bold text-lg ${currentChoice?.type === 'feat' ? 'text-theme-primary' : 'text-theme-text'}`}>
               Take a Feat
             </div>
-            <div className={`text-sm mt-1 ${currentChoice?.type === 'feat' ? 'text-gray-200' : 'text-theme-tertiary'}`}>
+            <div className={`text-sm mt-1 ${currentChoice?.type === 'feat' ? 'text-theme-secondary' : 'text-theme-tertiary'}`}>
               Gain a special ability or feature
             </div>
           </div>
@@ -283,7 +297,7 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
                     </div>
                     <div className="text-sm text-theme-tertiary">
                       Current: {baseScore} → New: {newScore}
-                      {atMax && <span className="text-amber-400 ml-2">(Max)</span>}
+                      {atMax && <span className="text-tone-warning ml-2">(Max)</span>}
                     </div>
                   </div>
 
@@ -303,7 +317,7 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
                     <button
                       onClick={() => handleIncrement(ability)}
                       disabled={remainingPoints === 0 || atMax}
-                      className="w-8 h-8 bg-theme-quaternary hover:bg-green-600 disabled:bg-theme-disabled disabled:cursor-not-allowed rounded-lg flex items-center justify-center transition-colors"
+                      className="w-8 h-8 bg-theme-quaternary hover:bg-fill-success disabled:bg-theme-disabled disabled:cursor-not-allowed rounded-lg flex items-center justify-center transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -314,7 +328,7 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
           </div>
 
           {remainingPoints > 0 && (
-            <div className="mt-4 p-3 bg-amber-400/20 border border-amber-400 rounded-lg text-amber-200 text-sm">
+            <div className="mt-4 p-3 bg-tone-warning-soft border border-tone-warning rounded-lg text-tone-warning text-sm">
               ⚠️ You must allocate all {maxPoints} points before proceeding.
             </div>
           )}
@@ -357,7 +371,7 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
                 }}
                 className={`p-4 rounded-lg border-2 text-left transition-all ${
                   currentChoice.featSlug === feat.slug
-                    ? 'bg-accent-green border-green-400 shadow-lg'
+                    ? 'bg-accent-green border-tone-success shadow-lg'
                     : 'bg-theme-secondary border-theme-border hover:border-accent-gold/50'
                 }`}
               >
@@ -381,7 +395,7 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
           )}
 
           {!currentChoice.featSlug && availableFeats.length > 0 && (
-            <div className="mt-4 p-3 bg-amber-400/20 border border-amber-400 rounded-lg text-amber-200 text-sm">
+            <div className="mt-4 p-3 bg-tone-warning-soft border border-tone-warning rounded-lg text-tone-warning text-sm">
               ⚠️ You must select a feat before proceeding.
             </div>
           )}
@@ -426,7 +440,7 @@ export const StepCumulativeASI: React.FC<StepProps> = ({
         <button
           onClick={handleNext}
           disabled={!canProceed}
-          className="px-6 py-3 bg-accent-red hover:bg-accent-red-light disabled:bg-theme-disabled disabled:cursor-not-allowed rounded-lg text-white flex items-center transition-colors"
+          className="px-6 py-3 bg-accent-red hover:bg-accent-red-light disabled:bg-theme-disabled disabled:cursor-not-allowed rounded-lg text-theme-primary flex items-center transition-colors"
         >
           {currentASIIndex < asiLevels.length - 1 ? 'Next ASI' : getNextStepLabel?.() || 'Continue'}
           <ArrowRight className="w-5 h-5 ml-2" />

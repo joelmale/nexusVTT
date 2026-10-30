@@ -75,10 +75,16 @@ export function creationDataToDraft(
         ...(data.spellSelection?.spellbook || []),
       ]),
     ],
+    // A Wizard prepares from the spellbook into `dailyPrepared`; every other
+    // caster uses `preparedSpells`. Both fields come back as arrays after a
+    // round trip, so pick by class: `dailyPrepared || preparedSpells` let an
+    // empty `[]` overwrite a Warlock's or Cleric's picks on every update.
     prepared: [
-      ...(data.spellSelection?.dailyPrepared ||
-        data.spellSelection?.preparedSpells ||
-        []),
+      ...((data.classSlug === 'wizard'
+        ? (data.spellSelection?.dailyPrepared ??
+          data.spellSelection?.preparedSpells)
+        : (data.spellSelection?.preparedSpells ??
+          data.spellSelection?.dailyPrepared)) || []),
     ],
   };
 

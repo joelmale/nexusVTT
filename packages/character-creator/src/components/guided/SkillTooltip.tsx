@@ -67,7 +67,7 @@ const SkillTooltip: React.FC<SkillTooltipProps> = ({ skillName, children }) => {
         >
           {/* Skill Name and Ability */}
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-bold text-purple-300">{skillData.name}</h3>
+            <h3 className="text-lg font-bold text-tone-magic">{skillData.name}</h3>
             <span className="text-xs px-2 py-1 bg-theme-tertiary rounded text-theme-tertiary">
               {skillData.ability}
             </span>
@@ -81,7 +81,7 @@ const SkillTooltip: React.FC<SkillTooltipProps> = ({ skillName, children }) => {
           {/* Example */}
           <div className="bg-theme-secondary rounded p-3 border-l-4 border-accent-purple">
             <p className="text-xs text-theme-muted mb-1 font-semibold">Example Usage:</p>
-            <p className="text-sm text-purple-200 italic">"{skillData.example}"</p>
+            <p className="text-sm text-tone-magic italic">"{skillData.example}"</p>
           </div>
 
           {/* Arrow pointer */}

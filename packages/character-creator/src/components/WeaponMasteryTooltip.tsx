@@ -71,7 +71,7 @@ const WeaponMasteryTooltip: React.FC<WeaponMasteryTooltipProps> = ({ weapon, chi
         >
           {/* Weapon Header */}
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-purple-300">{weapon.name}</h3>
+            <h3 className="text-lg font-bold text-tone-magic">{weapon.name}</h3>
             <div className="flex items-center gap-2">
               <span className="text-xs px-2 py-1 bg-theme-tertiary rounded text-theme-tertiary capitalize">
                 {weapon.category}
@@ -101,7 +101,7 @@ const WeaponMasteryTooltip: React.FC<WeaponMasteryTooltipProps> = ({ weapon, chi
               </div>
             )}
             {weapon.isTwoHanded && (
-              <div className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded inline-block">
+              <div className="text-xs text-theme-muted bg-theme-tertiary px-2 py-1 rounded inline-block">
                 Two-Handed
               </div>
             )}
@@ -111,9 +111,9 @@ const WeaponMasteryTooltip: React.FC<WeaponMasteryTooltipProps> = ({ weapon, chi
           <div className="bg-theme-secondary rounded p-3 border-l-4 border-accent-purple">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-sm font-bold text-accent-purple">🎯 Weapon Mastery:</span>
-              <span className="text-sm font-semibold text-purple-300">{masteryData.name}</span>
+              <span className="text-sm font-semibold text-tone-magic">{masteryData.name}</span>
             </div>
-            <p className="text-sm text-purple-200 leading-relaxed">
+            <p className="text-sm text-tone-magic leading-relaxed">
               {masteryData.description}
             </p>
           </div>

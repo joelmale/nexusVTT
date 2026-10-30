@@ -37,9 +37,9 @@ const Toast: React.FC<ToastProps> = ({
   };
 
   const styles = {
-    error: 'bg-red-500/90 text-white',
-    success: 'bg-green-500/90 text-white',
-    info: 'bg-blue-500/90 text-white'
+    error: 'bg-fill-danger text-theme-primary',
+    success: 'bg-fill-success text-theme-primary',
+    info: 'bg-fill-info text-theme-primary'
   };
 
   return (

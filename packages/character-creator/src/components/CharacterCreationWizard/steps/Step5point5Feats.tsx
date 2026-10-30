@@ -21,7 +21,7 @@ const RandomizeButton: React.FC<{ onClick: () => void; title?: string; className
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
+      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
       title={title}
     >
       <Shuffle className="w-4 h-4" />
@@ -111,12 +111,12 @@ export const Step5point5Feats: React.FC<StepProps> = ({ data, updateData, nextSt
     <div className='space-y-6'>
       <div className='flex justify-between items-start'>
         <div className='flex-1'>
-          <h3 className='text-xl font-bold text-red-300'>Choose Feats (Optional)</h3>
+          <h3 className='text-xl font-bold text-tone-danger'>Choose Feats (Optional)</h3>
           <p className='text-sm text-theme-muted mt-2'>
             Feats represent special talents or areas of expertise. At certain levels, you can choose to take a feat instead of an Ability Score Improvement.
           </p>
-          <div className="mt-2 p-3 bg-blue-900/30 border border-accent-blue-dark rounded-lg">
-            <div className="text-sm text-blue-300">
+          <div className="mt-2 p-3 bg-tone-info-soft border border-accent-blue-dark rounded-lg">
+            <div className="text-sm text-tone-info">
               <strong>Level {data.level}:</strong> You can select up to {maxFeats} feat{maxFeats !== 1 ? 's' : ''}
             </div>
           </div>
@@ -164,7 +164,7 @@ export const Step5point5Feats: React.FC<StepProps> = ({ data, updateData, nextSt
             {selectedFeats.map(slug => {
               const feat = FEAT_DATABASE.find(f => f.slug === slug);
               return (
-                <span key={slug} className="px-2 py-1 bg-accent-green-dark text-white text-xs rounded">
+                <span key={slug} className="px-2 py-1 bg-accent-green-dark text-theme-primary text-xs rounded">
                   {feat?.name}
                 </span>
               );
@@ -186,29 +186,29 @@ export const Step5point5Feats: React.FC<StepProps> = ({ data, updateData, nextSt
                   disabled={(!canSelect && !isSelected) || !isAvailable}
                   className={`w-full p-3 rounded-lg text-left border-2 transition-all ${
                     isSelected
-                      ? 'bg-green-800 border-green-500 shadow-md'
+                      ? 'bg-fill-success border-tone-success shadow-md'
                       : isAvailable && canSelect
                       ? 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                       : isAvailable
                       ? 'bg-theme-secondary border-theme-secondary text-theme-disabled cursor-not-allowed'
-                      : 'bg-gray-800 border-gray-600 text-gray-500 opacity-60'
+                      : 'bg-theme-secondary border-theme-primary text-theme-muted opacity-60'
                   }`}
                 >
                   <div className="flex items-start justify-between">
-                    <p className={`text-sm font-bold ${isAvailable ? 'text-accent-yellow-light' : 'text-gray-400'}`}>
+                    <p className={`text-sm font-bold ${isAvailable ? 'text-accent-yellow-light' : 'text-theme-muted'}`}>
                       {feat.name}
                     </p>
                     {featProvidesAbilityIncrease(feat) && (
-                      <span className="text-xs bg-accent-blue text-white px-1 py-0.5 rounded ml-2">
+                      <span className="text-xs bg-accent-blue text-theme-primary px-1 py-0.5 rounded ml-2">
                         +ASI
                       </span>
                     )}
                   </div>
-                  <p className={`text-xs mt-1 ${isAvailable ? 'text-theme-disabled' : 'text-gray-500'}`}>
+                  <p className={`text-xs mt-1 ${isAvailable ? 'text-theme-disabled' : 'text-theme-muted'}`}>
                     {getFeatSourceInfo(feat)}
                   </p>
                   {!isAvailable && (
-                    <p className="text-xs text-red-400 mt-1">
+                    <p className="text-xs text-tone-danger mt-1">
                       Unavailable: {reason || requirements}
                     </p>
                   )}
@@ -217,7 +217,7 @@ export const Step5point5Feats: React.FC<StepProps> = ({ data, updateData, nextSt
                       Requires: {feat.prerequisite}
                     </p>
                   )}
-                  <p className={`text-xs mt-2 line-clamp-2 ${isAvailable ? 'text-theme-muted' : 'text-gray-500'}`}>
+                  <p className={`text-xs mt-2 line-clamp-2 ${isAvailable ? 'text-theme-muted' : 'text-theme-muted'}`}>
                     {feat.description}
                   </p>
                 </button>
@@ -226,7 +226,7 @@ export const Step5point5Feats: React.FC<StepProps> = ({ data, updateData, nextSt
                     e.stopPropagation();
                     setShowFeatDetails(showFeatDetails === feat.slug ? null : feat.slug);
                   }}
-                  className="absolute top-2 right-2 text-xs text-accent-blue-light hover:text-blue-300"
+                  className="absolute top-2 right-2 text-xs text-accent-blue-light hover:text-tone-info"
                   title="View details"
                 >
                   {showFeatDetails === feat.slug ? '✕' : 'ℹ️'}
@@ -259,12 +259,12 @@ export const Step5point5Feats: React.FC<StepProps> = ({ data, updateData, nextSt
       )}
 
       <div className='flex justify-between'>
-        <button onClick={prevStep} className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white flex items-center">
+        <button onClick={prevStep} className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary flex items-center">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>
         <button
           onClick={nextStep}
-          className="px-4 py-2 bg-accent-red hover:bg-accent-red-light rounded-lg text-white flex items-center"
+          className="px-4 py-2 bg-accent-red hover:bg-accent-red-light rounded-lg text-theme-primary flex items-center"
         >
           Next: {getNextStepLabel?.() || 'Continue'} <ArrowRight className="w-4 h-4 ml-2" />
         </button>

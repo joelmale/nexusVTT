@@ -39,10 +39,10 @@ export const FeatDetailsModal: React.FC<FeatDetailsModalProps> = ({
   };
 
   const getFeatTypeColor = (feat: Feat) => {
-    if (feat.category === 'origin') return 'text-purple-400';
-    if (feat.category === 'fighting_style') return 'text-red-400';
-    if (feat.name.toLowerCase().includes('spell')) return 'text-blue-400';
-    return 'text-green-400';
+    if (feat.category === 'origin') return 'text-tone-magic';
+    if (feat.category === 'fighting_style') return 'text-tone-danger';
+    if (feat.name.toLowerCase().includes('spell')) return 'text-tone-info';
+    return 'text-tone-success';
   };
 
   const formatPrerequisites = (feat: Feat) => {
@@ -136,7 +136,7 @@ export const FeatDetailsModal: React.FC<FeatDetailsModalProps> = ({
         <div className="flex justify-end p-6 border-t border-theme-primary">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white transition-colors"
+            className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary transition-colors"
           >
             Close
           </button>

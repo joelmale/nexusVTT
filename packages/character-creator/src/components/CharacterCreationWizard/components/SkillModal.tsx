@@ -314,7 +314,7 @@ export const SkillModal: React.FC<SkillModalProps> = ({
             <h3 className="text-sm font-semibold text-theme-muted uppercase mb-2">Related Feats</h3>
             <div className="flex flex-wrap gap-2">
               {currentSkillData.relatedFeats.map((feat, index) => (
-                <span key={index} className="px-3 py-1 bg-accent-purple text-white text-xs rounded-full">
+                <span key={index} className="px-3 py-1 bg-accent-purple text-theme-primary text-xs rounded-full">
                   {feat}
                 </span>
               ))}
@@ -334,7 +334,7 @@ export const SkillModal: React.FC<SkillModalProps> = ({
         <div className="flex justify-end p-6 border-t border-theme-primary">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white transition-colors"
+            className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary transition-colors"
           >
             Close
           </button>

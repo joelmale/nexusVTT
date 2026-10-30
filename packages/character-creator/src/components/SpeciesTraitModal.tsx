@@ -76,7 +76,7 @@ const SpeciesTraitModal: React.FC<SpeciesTraitModalProps> = ({
                e.stopPropagation();
                onClose();
              }}
-             className="text-theme-muted hover:text-white transition-colors"
+             className="text-theme-muted hover:text-theme-primary transition-colors"
            >
             <X className="w-6 h-6" />
           </button>
@@ -85,7 +85,7 @@ const SpeciesTraitModal: React.FC<SpeciesTraitModalProps> = ({
         <div className="p-4 space-y-3">
            <div>
              <span className="text-sm text-theme-muted">From: </span>
-             <span className="text-sm text-blue-300">{speciesName}</span>
+             <span className="text-sm text-tone-info">{speciesName}</span>
            </div>
 
           <div>

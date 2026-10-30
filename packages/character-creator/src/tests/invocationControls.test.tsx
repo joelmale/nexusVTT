@@ -33,9 +33,17 @@ describe('higher-level invocation choices', () => {
     expect(
       screen.getByRole('group', { name: 'Eldritch Invocations (2/5)' }),
     ).toBeInTheDocument();
+    // Level 12 is above this level 5 character: collapsed with its reason, not listed as a choice.
     expect(
-      screen.getByRole('checkbox', { name: /Devouring Blade/ }),
-    ).toBeDisabled();
+      screen.queryByRole('checkbox', { name: /Devouring Blade/ }),
+    ).not.toBeInTheDocument();
+    const unlocks = screen.getByText(/Unlocks at higher levels/).closest('details')!;
+    expect(unlocks).not.toHaveAttribute('open');
+    expect(within(unlocks).getByText('Devouring Blade')).toBeInTheDocument();
+    expect(unlocks).toHaveTextContent('requires level 12');
+    expect(
+      screen.getByRole('checkbox', { name: /^Thirsting Blade/ }),
+    ).toBeEnabled();
     fireEvent.click(screen.getByRole('checkbox', { name: /^Agonizing Blast/ }));
     const targets = screen.getByRole('group', {
       name: /Agonizing Blast: choose/,

@@ -6,6 +6,7 @@ import {
   legacyInvocationUnavailable,
 } from '../services/legacyInvocations';
 import styles from './CastingGrantChoices.module.css';
+import { humanizeId } from '../utils/displayLabels';
 
 export function LegacyInvocationChoices({
   data,
@@ -24,7 +25,7 @@ export function LegacyInvocationChoices({
       .filter((id) => !LEGACY_INVOCATIONS.some((entry) => entry.id === id))
       .map((id) => ({
         id,
-        name: id,
+        name: humanizeId(id),
         level: 1,
         requiredSpell: undefined,
         requiredPact: undefined,
@@ -33,9 +34,10 @@ export function LegacyInvocationChoices({
   return (
     <section className={styles.grants} aria-label="Legacy Warlock choices">
       {(data.level >= 3 || data.pactBoon) && (
-        <label>
+        <label className={styles.field}>
           Pact Boon
           <select
+            className={styles.select}
             aria-label="Legacy Pact Boon"
             value={data.pactBoon ?? ''}
             onChange={(event) =>
@@ -54,17 +56,18 @@ export function LegacyInvocationChoices({
           </select>
         </label>
       )}
-      <fieldset>
+      <fieldset className={styles.group}>
         <legend>
           Legacy Eldritch Invocations ({selected.length}/{count})
         </legend>
+        <div className={styles.options}>
         {options.map((entry) => {
           const checked = selected.some(
             (id) => legacyInvocationId(id) === entry.id,
           );
           const reason = legacyInvocationUnavailable(data, entry.id);
           return (
-            <label key={entry.id}>
+            <label className={styles.option} key={entry.id}>
               <input
                 type="checkbox"
                 checked={checked}
@@ -79,11 +82,14 @@ export function LegacyInvocationChoices({
                   })
                 }
               />
-              {entry.name}
-              {reason ? ` — ${reason}` : ''}
+              <span className={styles.optionText}>
+                <span>{entry.name}</span>
+                {reason && <span className={styles.description}>{reason}</span>}
+              </span>
             </label>
           );
         })}
+        </div>
       </fieldset>
     </section>
   );

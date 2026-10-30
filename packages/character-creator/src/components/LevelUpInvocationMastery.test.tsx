@@ -145,11 +145,14 @@ describe('LevelUpInvocationChoices', () => {
         onChoices={() => undefined}
       />,
     );
-    const ascendant = screen.getByLabelText(
-      /Ascendant Step/,
-    ) as HTMLInputElement;
-    expect(ascendant.disabled).toBe(true);
-    expect(ascendant.parentElement?.textContent).toMatch(/Warlock level 5/);
+    // Higher-level invocations are not offered as choices; they are listed collapsed with the reason.
+    expect(screen.queryByLabelText(/Ascendant Step/)).toBeNull();
+    const unlocks = screen
+      .getByText(/Unlocks at higher levels/)
+      .closest('details')!;
+    expect(unlocks).not.toHaveAttribute('open');
+    expect(unlocks.textContent).toMatch(/Ascendant Step/);
+    expect(unlocks.textContent).toMatch(/requires level 5/);
   });
 
   it('lets a deselected invocation be replaced and clears its targets', () => {

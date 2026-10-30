@@ -32,19 +32,19 @@ export const AutomaticWidget: React.FC<AutomaticWidgetProps> = ({
   return (
     <div className="automatic-widget mb-6">
       {/* Feature Card */}
-      <div className="p-6 rounded-xl border-2 border-gray-600 bg-gray-800/50">
+      <div className="p-6 rounded-xl border-2 border-theme-primary bg-theme-secondary/50">
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
-          <h3 className="text-xl font-bold text-amber-400">
+          <h3 className="text-xl font-bold text-tone-warning">
             {feature.name}
           </h3>
-          <div className="text-xs font-semibold text-green-400 px-3 py-1 rounded-full bg-green-400/20 border border-green-400/50">
+          <div className="text-xs font-semibold text-tone-success px-3 py-1 rounded-full bg-tone-success-soft border border-tone-success">
             AUTO-GRANTED
           </div>
         </div>
 
         {/* Description */}
-        <p className="text-gray-300 text-sm mb-4">
+        <p className="text-theme-muted text-sm mb-4">
           {feature.id === 'pact_magic' && data?.level
             ? describePactMagic(data.level)
             : feature.desc}
@@ -52,23 +52,23 @@ export const AutomaticWidget: React.FC<AutomaticWidgetProps> = ({
 
         {/* Grants Section */}
         {(config.grants || config.bonus_language_choices || config.effect) && (
-          <div className="mt-4 pt-4 border-t border-gray-600">
-            <div className="text-xs font-semibold text-amber-400 mb-2">
+          <div className="mt-4 pt-4 border-t border-theme-primary">
+            <div className="text-xs font-semibold text-tone-warning mb-2">
               You Receive:
             </div>
             <ul className="space-y-1">
               {/* Automatic Grants */}
               {config.grants?.map((grant, index) => (
-                <li key={index} className="text-sm text-gray-300 flex items-start gap-2">
-                  <span className="text-green-400">✓</span>
+                <li key={index} className="text-sm text-theme-muted flex items-start gap-2">
+                  <span className="text-tone-success">✓</span>
                   <span>{formatGrant(grant)}</span>
                 </li>
               ))}
 
               {/* Bonus Language Choices */}
               {config.bonus_language_choices && (
-                <li className="text-sm text-gray-300 flex items-start gap-2">
-                  <span className="text-green-400">✓</span>
+                <li className="text-sm text-theme-muted flex items-start gap-2">
+                  <span className="text-tone-success">✓</span>
                   <span>
                     Choice of {config.bonus_language_choices} additional{' '}
                     {config.bonus_language_choices === 1 ? 'language' : 'languages'}
@@ -78,8 +78,8 @@ export const AutomaticWidget: React.FC<AutomaticWidgetProps> = ({
 
               {/* Effect */}
               {config.effect && (
-                <li className="text-sm text-gray-300 flex items-start gap-2">
-                  <span className="text-green-400">✓</span>
+                <li className="text-sm text-theme-muted flex items-start gap-2">
+                  <span className="text-tone-success">✓</span>
                   <span>{formatEffect(config.effect)}</span>
                 </li>
               )}

@@ -88,7 +88,7 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-theme-secondary">
           <div>
-            <h2 className="text-xl font-bold text-white">Edit Skills</h2>
+            <h2 className="text-xl font-bold text-theme-primary">Edit Skills</h2>
             <p className="text-sm text-theme-muted">
               Choose {maxSkills} skill{maxSkills !== 1 ? 's' : ''} from your
               class proficiencies
@@ -132,7 +132,7 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <h4 className="font-semibold text-white">{skill}</h4>
+                          <h4 className="font-semibold text-theme-primary">{skill}</h4>
                           <p className="text-xs text-theme-muted">
                             {skillInfo?.ability || 'Unknown'}
                           </p>
@@ -182,7 +182,7 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h4 className="font-semibold text-white flex items-center gap-2">
+                        <h4 className="font-semibold text-theme-primary flex items-center gap-2">
                           {skill}
                           {isBackgroundSkill && (
                             <span className="text-xs text-accent-green-light">
@@ -214,7 +214,7 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
         <div className="flex items-center justify-between p-6 border-t border-theme-secondary bg-theme-primary">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-white transition-colors"
+            className="px-6 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-theme-primary transition-colors"
           >
             Cancel
           </button>
@@ -223,7 +223,7 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
             disabled={selectedClassSkills.length !== maxSkills}
             className={`px-6 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
               selectedClassSkills.length === maxSkills
-                ? 'bg-accent-purple hover:bg-accent-purple-light text-white'
+                ? 'bg-accent-purple hover:bg-accent-purple-light text-theme-primary'
                 : 'bg-theme-quaternary text-theme-muted cursor-not-allowed'
             }`}
           >

@@ -48,7 +48,7 @@ export const OriginFeatSelector: React.FC<OriginFeatSelectorProps> = ({
               }`}
             >
               <div>
-                <div className={`text-sm font-bold ${selectedFeat === feat.slug ? 'text-white' : 'text-accent-yellow-light'}`}>
+                <div className={`text-sm font-bold ${selectedFeat === feat.slug ? 'text-theme-primary' : 'text-accent-yellow-light'}`}>
                   {feat.name}
                 </div>
                 {selectedFeat === feat.slug && (
@@ -59,7 +59,7 @@ export const OriginFeatSelector: React.FC<OriginFeatSelectorProps> = ({
                 role="button"
                 tabIndex={0}
                 onClick={(e) => handleToggleDetails(feat.slug, e)}
-                className="text-theme-muted hover:text-white p-1"
+                className="text-theme-muted hover:text-theme-primary p-1"
                 title="View Details"
               >
                 <BookOpen className="w-4 h-4" />
@@ -69,8 +69,8 @@ export const OriginFeatSelector: React.FC<OriginFeatSelectorProps> = ({
             {showDetails === feat.slug && (
               <div className="absolute z-20 top-full left-0 w-full mt-1 p-3 bg-theme-secondary border border-theme-primary rounded-lg shadow-xl">
                 <div className="flex justify-between items-start mb-2">
-                  <h5 className="font-bold text-white text-sm">{feat.name}</h5>
-                  <button onClick={() => setShowDetails(null)} className="text-theme-muted hover:text-white">
+                  <h5 className="font-bold text-theme-primary text-sm">{feat.name}</h5>
+                  <button onClick={() => setShowDetails(null)} className="text-theme-muted hover:text-theme-primary">
                     <XCircle className="w-4 h-4" />
                   </button>
                 </div>

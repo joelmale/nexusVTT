@@ -2,6 +2,7 @@ import type { Character, LevelUpChoices } from '../types/dnd';
 import { levelUpClassCastingData } from '../services/levelUpClassCasting';
 import { classFreeCastingErrors } from '../services/castingSources';
 import { CastingGrantChoices } from './CastingGrantChoices';
+import styles from './CastingGrantChoices.module.css';
 
 export function LevelUpClassCastingChoices({
   character,
@@ -26,16 +27,19 @@ export function LevelUpClassCastingChoices({
           onChange({ castingSourcesChosen: update.additionalCastingSources })
         }
       />
-      <button type="button" onClick={onPrev}>
+      <div className={styles.actions}>
+      <button type="button" className={styles.button} onClick={onPrev}>
         Back
       </button>
       <button
         type="button"
+        className={`${styles.button} ${styles.primary}`}
         onClick={onNext}
         disabled={classFreeCastingErrors(data).length > 0}
       >
         Continue
       </button>
+      </div>
     </section>
   );
 }

@@ -2,6 +2,7 @@ import type { CharacterCreationData, SkillName } from '../types/dnd';
 import { ALL_SKILLS, FEAT_DATABASE } from '../services/dataService';
 import { choiceId, humanOriginFeat } from '../services/originChoices';
 import styles from './CastingGrantChoices.module.css';
+import { humanizeId } from '../utils/displayLabels';
 
 export function OriginGrantChoices({
   data,
@@ -21,9 +22,10 @@ export function OriginGrantChoices({
     <section className={styles.grants} aria-label="Species choices">
       <h3>Species choices</h3>
       {!human && (
-        <label>
+        <label className={styles.field}>
           Elven lineage{' '}
           <select
+            className={styles.select}
             value={choiceId(data.selectedLineage ?? '')}
             onChange={(event) =>
               onChange({ selectedLineage: event.target.value })
@@ -31,14 +33,17 @@ export function OriginGrantChoices({
           >
             <option value="">Choose a lineage</option>
             {['high-elf', 'wood-elf', 'drow'].map((lineage) => (
-              <option key={lineage}>{lineage}</option>
+              <option key={lineage} value={lineage}>
+                {humanizeId(lineage)}
+              </option>
             ))}
           </select>
         </label>
       )}
-      <label>
+      <label className={styles.field}>
         Species skill{' '}
         <select
+          className={styles.select}
           value={data.speciesSkillProficiency ?? ''}
           onChange={(event) =>
             onChange({
@@ -48,14 +53,17 @@ export function OriginGrantChoices({
         >
           <option value="">Choose a skill</option>
           {skills.map((skill) => (
-            <option key={skill}>{skill}</option>
+            <option key={skill} value={skill}>
+              {humanizeId(skill)}
+            </option>
           ))}
         </select>
       </label>
       {human && (
-        <label>
+        <label className={styles.field}>
           Human Origin feat{' '}
           <select
+            className={styles.select}
             value={humanOriginFeat(data) ?? ''}
             onChange={(event) =>
               onChange({

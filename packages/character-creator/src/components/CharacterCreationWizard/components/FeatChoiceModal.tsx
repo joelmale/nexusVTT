@@ -110,7 +110,7 @@ export const FeatChoiceModal: React.FC<FeatChoiceModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-overlay bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-theme-primary border border-theme-primary rounded-lg p-6 max-w-md w-full mx-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-accent-yellow-light">{choiceConfig.title}</h3>
@@ -171,7 +171,7 @@ export const FeatChoiceModal: React.FC<FeatChoiceModalProps> = ({
                 ? !(selections[choiceConfig.key] && selections[choiceConfig.key].length === (choiceConfig.maxSelect || 0))
                 : !selections[choiceConfig.key]
             }
-            className="px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue-light disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-accent-blue text-theme-primary rounded-lg hover:bg-accent-blue-light disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Confirm
           </button>

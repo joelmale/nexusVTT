@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ArrowLeft, ArrowRight, Shuffle } from 'lucide-react';
 import { EquipmentBrowserProps } from '../types/wizard.types';
-import { loadEquipment } from '../../../services/dataService';
+import { loadEquipmentCatalog } from '../../../services/equipmentService';
 import { randomizeAdditionalEquipment, filterEquipment, getEquipmentCategories, isInInventory, addToInventory, removeFromInventory, getEquipmentDisplayInfo } from '../../../utils/equipmentBrowserUtils';
 
 const RandomizeButton: React.FC<{ onClick: () => void; title?: string; className?: string }> = ({
@@ -12,7 +12,7 @@ const RandomizeButton: React.FC<{ onClick: () => void; title?: string; className
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
+      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
       title={title}
     >
       <Shuffle className="w-4 h-4" />
@@ -30,10 +30,9 @@ export const Step7EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
-  const [yearFilter, setYearFilter] = useState<number | 'all'>('all');
 
   // Load equipment database
-  const equipmentDatabase = useMemo(() => loadEquipment(), []);
+  const equipmentDatabase = useMemo(() => loadEquipmentCatalog(), []);
 
   // Get all equipment categories
   const categories = getEquipmentCategories(equipmentDatabase);
@@ -41,8 +40,7 @@ export const Step7EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({
   // Filter equipment
   const filteredEquipment = filterEquipment(equipmentDatabase, {
     searchQuery,
-    category: categoryFilter,
-    year: yearFilter
+    category: categoryFilter
   });
 
   // Check if item is already in starting inventory
@@ -87,28 +85,18 @@ export const Step7EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({
           placeholder="Search equipment..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-2 bg-theme-tertiary text-white rounded-lg border border-theme-primary focus:border-yellow-500 focus:outline-none"
+          className="w-full px-4 py-2 bg-theme-tertiary text-theme-primary rounded-lg border border-theme-primary focus:border-tone-gold focus:outline-none"
         />
 
         <div className="flex gap-2 flex-wrap">
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 bg-theme-tertiary text-white rounded-lg border border-theme-primary focus:border-yellow-500 focus:outline-none"
+            className="px-3 py-2 bg-theme-tertiary text-theme-primary rounded-lg border border-theme-primary focus:border-tone-gold focus:outline-none"
           >
             {categories.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
-          </select>
-
-          <select
-            value={yearFilter}
-            onChange={(e) => setYearFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-            className="px-3 py-2 bg-theme-tertiary text-white rounded-lg border border-theme-primary focus:border-yellow-500 focus:outline-none"
-          >
-            <option value="all">All Editions</option>
-            <option value="2014">2014 SRD</option>
-            <option value="2024">2024 SRD</option>
           </select>
         </div>
       </div>
@@ -128,14 +116,16 @@ export const Step7EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-grow min-w-0">
                     <div className="text-left">
-                      <div className="font-semibold text-white">{displayInfo.name}</div>
+                      <div className="font-semibold text-theme-primary">{displayInfo.name}</div>
                       <div className="text-xs text-theme-muted flex items-center gap-2 flex-wrap">
                         <span>{displayInfo.category}</span>
                         <span>•</span>
                         <span>{displayInfo.cost}</span>
                         <span>•</span>
                         <span>{displayInfo.weight}</span>
-                        <span className="bg-theme-quaternary px-2 py-0.5 rounded">{displayInfo.year}</span>
+                        {eq.year === 2014 && (
+                          <span className="border border-theme-primary text-theme-muted px-2 py-0.5 rounded">2014</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -191,13 +181,13 @@ export const Step7EquipmentBrowser: React.FC<EquipmentBrowserProps> = ({
       <div className="flex justify-between pt-4">
         <button
           onClick={prevStep}
-          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white flex items-center"
+          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary flex items-center"
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>
         <button
           onClick={nextStep}
-          className="px-4 py-2 bg-accent-red hover:bg-accent-red-light rounded-lg text-white flex items-center"
+          className="px-4 py-2 bg-accent-red hover:bg-accent-red-light rounded-lg text-theme-primary flex items-center"
         >
           Next: {getNextStepLabel?.() || 'Continue'} <ArrowRight className="w-4 h-4 ml-2" />
         </button>

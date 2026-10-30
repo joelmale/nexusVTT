@@ -15,6 +15,7 @@ import {
 } from '../../../utils/traitUtils';
 import { LevelResourceSummary } from '../components/LevelResourceSummary';
 import { generateName, GeneratedName } from '../../../utils/nameGenerator';
+import { useRevealValidation } from '../../../hooks/useRevealValidation';
 
 const RandomizeButton: React.FC<{
   onClick: () => void;
@@ -24,7 +25,7 @@ const RandomizeButton: React.FC<{
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
+      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
       title={title}
     >
       <Shuffle className="w-4 h-4" />
@@ -49,6 +50,7 @@ export const Step8Traits: React.FC<
 }) => {
   const [currentGeneratedName, setCurrentGeneratedName] =
     useState<GeneratedName | null>(null);
+  const nameValidation = useRevealValidation();
 
   // Name generator functions
   const generateNewName = () => {
@@ -94,7 +96,7 @@ export const Step8Traits: React.FC<
     <div className="space-y-6">
       <CastingGrantChoices data={data} onChange={updateData} />
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-red-300">
+        <h3 className="text-xl font-bold text-tone-danger">
           Final Details: Name & Personality
         </h3>
         <RandomizeButton
@@ -112,7 +114,7 @@ export const Step8Traits: React.FC<
           htmlFor="character-final-name"
           className="block text-sm font-medium text-theme-tertiary mb-2"
         >
-          Character Name <span className="text-red-400">*</span>
+          Character Name <span className="text-tone-danger">*</span>
         </label>
         <div className={styles.nameControls}>
           <input
@@ -120,14 +122,18 @@ export const Step8Traits: React.FC<
             type="text"
             placeholder="Enter character name..."
             value={data.name || ''}
-            onChange={(e) => updateData({ name: e.target.value })}
-            className={`flex-1 p-3 bg-theme-tertiary text-white rounded-lg focus:ring-red-500 focus:border-red-500 ${
-              !data.name || !data.name.trim() ? 'border-red-500' : ''
+            onChange={(e) => {
+              nameValidation.onInteract();
+              updateData({ name: e.target.value });
+            }}
+            onBlur={nameValidation.onInteract}
+            className={`flex-1 p-3 bg-theme-tertiary text-theme-primary rounded-lg focus:ring-tone-focus focus:border-tone-danger ${
+              nameValidation.revealed && (!data.name || !data.name.trim()) ? 'border-tone-danger' : ''
             }`}
           />
           <button
             onClick={generateNewName}
-            className="px-4 py-3 bg-accent-blue hover:bg-accent-blue-light text-white rounded-lg transition-colors flex items-center gap-2"
+            className="px-4 py-3 bg-accent-blue hover:bg-accent-blue-light text-theme-primary rounded-lg transition-colors flex items-center gap-2"
             title="Generate name suggestion"
           >
             <BookOpen className="w-4 h-4" />
@@ -148,8 +154,8 @@ export const Step8Traits: React.FC<
           />
         </div>
 
-        {(!data.name || !data.name.trim()) && (
-          <p className="text-xs text-red-400 mt-1">
+        {nameValidation.revealed && (!data.name || !data.name.trim()) && (
+          <p className="text-xs text-tone-danger mt-1" role="status">
             Character name is required
           </p>
         )}
@@ -158,12 +164,12 @@ export const Step8Traits: React.FC<
         {currentGeneratedName && (
           <div className="bg-theme-tertiary rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xl font-bold text-white">
+              <h4 className="text-xl font-bold text-theme-primary">
                 {currentGeneratedName.name}
               </h4>
               <button
                 onClick={() => selectGeneratedName(currentGeneratedName.name)}
-                className="bg-accent-green hover:bg-accent-green text-white px-4 py-2 rounded text-sm transition-colors"
+                className="bg-accent-green hover:bg-accent-green text-theme-primary px-4 py-2 rounded text-sm transition-colors"
               >
                 Use This Name
               </button>
@@ -205,7 +211,7 @@ export const Step8Traits: React.FC<
           id="character-final-personality"
           value={data.personality || ''}
           onChange={(e) => updateData({ personality: e.target.value })}
-          className="w-full h-20 p-3 bg-theme-tertiary text-white rounded-lg focus:ring-red-500 focus:border-red-500 resize-none"
+          className="w-full h-20 p-3 bg-theme-tertiary text-theme-primary rounded-lg focus:ring-tone-focus focus:border-tone-danger resize-none"
         />
       </div>
 
@@ -229,7 +235,7 @@ export const Step8Traits: React.FC<
           id="character-final-ideals"
           value={data.ideals || ''}
           onChange={(e) => updateData({ ideals: e.target.value })}
-          className="w-full h-16 p-3 bg-theme-tertiary text-white rounded-lg focus:ring-red-500 focus:border-red-500 resize-none"
+          className="w-full h-16 p-3 bg-theme-tertiary text-theme-primary rounded-lg focus:ring-tone-focus focus:border-tone-danger resize-none"
         />
       </div>
 
@@ -254,7 +260,7 @@ export const Step8Traits: React.FC<
             id="character-final-bonds"
             value={data.bonds || ''}
             onChange={(e) => updateData({ bonds: e.target.value })}
-            className="w-full h-16 p-3 bg-theme-tertiary text-white rounded-lg focus:ring-red-500 focus:border-red-500 resize-none"
+            className="w-full h-16 p-3 bg-theme-tertiary text-theme-primary rounded-lg focus:ring-tone-focus focus:border-tone-danger resize-none"
           />
         </div>
         <div>
@@ -277,7 +283,7 @@ export const Step8Traits: React.FC<
             id="character-final-flaws"
             value={data.flaws || ''}
             onChange={(e) => updateData({ flaws: e.target.value })}
-            className="w-full h-16 p-3 bg-theme-tertiary text-white rounded-lg focus:ring-red-500 focus:border-red-500 resize-none"
+            className="w-full h-16 p-3 bg-theme-tertiary text-theme-primary rounded-lg focus:ring-tone-focus focus:border-tone-danger resize-none"
           />
         </div>
       </div>
@@ -317,7 +323,7 @@ export const Step8Traits: React.FC<
               {totalHp !== null && (
                 <div className="text-xs text-theme-disabled">
                   Final HP:{' '}
-                  <span className="text-white font-bold">{totalHp} HP</span>
+                  <span className="text-theme-primary font-bold">{totalHp} HP</span>
                 </div>
               )}
             </div>
@@ -344,11 +350,11 @@ export const Step8Traits: React.FC<
                 }
                 className={`p-3 rounded-lg border-2 text-left transition-all ${
                   data.hpCalculationMethod === 'max'
-                    ? 'bg-accent-blue-darker border-blue-500'
+                    ? 'bg-accent-blue-darker border-tone-info'
                     : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                 }`}
               >
-                <div className="font-semibold text-white">
+                <div className="font-semibold text-theme-primary">
                   Take Maximum (Recommended)
                 </div>
                 <div className="text-sm text-theme-tertiary mt-1">
@@ -371,11 +377,11 @@ export const Step8Traits: React.FC<
                 }}
                 className={`p-3 rounded-lg border-2 text-left transition-all ${
                   data.hpCalculationMethod === 'rolled'
-                    ? 'bg-accent-blue-darker border-blue-500'
+                    ? 'bg-accent-blue-darker border-tone-info'
                     : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                 }`}
               >
-                <div className="font-semibold text-white">Roll Hit Die</div>
+                <div className="font-semibold text-theme-primary">Roll Hit Die</div>
                 <div className="text-sm text-theme-tertiary mt-1">
                   {data.hpCalculationMethod === 'rolled' && data.rolledHP ? (
                     <>
@@ -398,7 +404,7 @@ export const Step8Traits: React.FC<
 
             <div className="text-xs text-theme-disabled mt-2">
               Final HP:{' '}
-              <span className="text-white font-bold">
+              <span className="text-theme-primary font-bold">
                 {data.hpCalculationMethod === 'max'
                   ? selectedClass.hit_die + conModifier
                   : data.rolledHP
@@ -415,7 +421,7 @@ export const Step8Traits: React.FC<
         <button
           onClick={prevStep}
           disabled={isSubmitting}
-          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white flex items-center disabled:opacity-60 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary flex items-center disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>
@@ -423,7 +429,7 @@ export const Step8Traits: React.FC<
           onClick={() => onSubmit(data)}
           disabled={!validateTraits(data) || isSubmitting}
           aria-busy={isSubmitting}
-          className={`px-4 py-2 rounded-lg text-white flex items-center font-bold ${
+          className={`px-4 py-2 rounded-lg text-theme-primary flex items-center font-bold ${
             validateTraits(data) && !isSubmitting
               ? 'bg-accent-green hover:bg-accent-green'
               : 'bg-theme-hover cursor-not-allowed'

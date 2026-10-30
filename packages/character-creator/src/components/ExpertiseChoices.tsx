@@ -5,6 +5,7 @@ import {
 } from '../services/expertiseChoices';
 import { skillId } from '../services/originChoices';
 import styles from './CastingGrantChoices.module.css';
+import { humanizeId } from '../utils/displayLabels';
 
 export function ExpertiseChoices({
   data,
@@ -20,12 +21,13 @@ export function ExpertiseChoices({
   return (
     <fieldset className={styles.grants}>
       <legend>Expertise — choose {count}</legend>
+      <div className={styles.options}>
       {options.map((option) => {
         const checked = selected.some(
           (value) => skillId(value) === skillId(option),
         );
         return (
-          <label key={option}>
+          <label className={styles.option} key={option}>
             <input
               type="checkbox"
               checked={checked}
@@ -39,10 +41,11 @@ export function ExpertiseChoices({
                 })
               }
             />
-            {option}
+            <span>{humanizeId(option)}</span>
           </label>
         );
       })}
+      </div>
     </fieldset>
   );
 }

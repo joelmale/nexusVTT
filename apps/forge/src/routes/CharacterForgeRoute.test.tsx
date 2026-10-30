@@ -61,18 +61,34 @@ describe('CharacterForgeRoute', () => {
     addCharacter.mockResolvedValue('character-1');
   });
 
-  it('lets the player choose edition and creation style before opening the wizard', () => {
+  it('does not offer a rules edition choice and opens guided creation on 2024', () => {
     render(<CharacterForgeRoute />);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText('2014 rules'));
+    expect(screen.queryByLabelText(/2014/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Rules edition')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Guided creation' }));
 
     const wizard = screen.getByRole('dialog', {
       name: 'Character creation wizard',
     });
-    expect(wizard).toHaveAttribute('data-edition', '2014');
+    expect(wizard).toHaveAttribute('data-edition', '2024');
     expect(wizard).toHaveAttribute('data-mode', 'guided');
+  });
+
+  it('opens 2014 rules when the edition query parameter asks for them', () => {
+    window.history.pushState({}, '', '/?edition=2014');
+    try {
+      render(<CharacterForgeRoute />);
+      fireEvent.click(screen.getByRole('button', { name: 'Guided creation' }));
+
+      expect(screen.getByRole('dialog')).toHaveAttribute(
+        'data-edition',
+        '2014',
+      );
+    } finally {
+      window.history.pushState({}, '', '/');
+    }
   });
 
   it('opens the full wizard on the default 2024 rules', () => {

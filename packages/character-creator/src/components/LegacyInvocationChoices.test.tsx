@@ -46,7 +46,7 @@ describe('legacy invocation choice repairs', () => {
         onChange={onChange}
       />,
     );
-    fireEvent.click(screen.getByRole('checkbox', { name: /mystery/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Mystery/ }));
     expect(onChange).toHaveBeenCalledWith({ eldritchInvocations: [] });
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } });
     expect(onChange).toHaveBeenLastCalledWith({ pactBoon: undefined });

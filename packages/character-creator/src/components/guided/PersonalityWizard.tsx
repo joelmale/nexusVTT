@@ -337,7 +337,7 @@ const PersonalityWizard: React.FC<PersonalityWizardProps> = ({
           <div className="flex items-center justify-between mb-8">
             <button
               onClick={onBack}
-              className="flex items-center space-x-2 px-4 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-white transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-theme-primary transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>{backLabel}</span>
@@ -476,7 +476,7 @@ const WelcomeStep: React.FC<{ onChoice: (choice: PathChoice) => void }> = ({
     </div>
 
     <div className="bg-theme-secondary rounded-xl p-8 max-w-3xl mx-auto">
-      <h3 className="text-2xl font-bold text-purple-300 mb-6">
+      <h3 className="text-2xl font-bold text-tone-magic mb-6">
         A great challenge stands in your way. How do you instinctively want to
         overcome it?
       </h3>
@@ -484,11 +484,11 @@ const WelcomeStep: React.FC<{ onChoice: (choice: PathChoice) => void }> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <button
           onClick={() => onChoice('skill')}
-          className="p-6 bg-theme-tertiary hover:bg-green-800 rounded-lg border-2 border-theme-primary hover:border-green-500 transition-all text-left group"
+          className="p-6 bg-theme-tertiary hover:bg-fill-success rounded-lg border-2 border-theme-primary hover:border-tone-success transition-all text-left group"
         >
           <div className="flex items-center mb-4">
-            <Shield className="w-8 h-8 text-accent-green-light mr-3 group-hover:text-green-300" />
-            <h4 className="text-xl font-semibold text-green-300">
+            <Shield className="w-8 h-8 text-accent-green-light mr-3 group-hover:text-tone-success" />
+            <h4 className="text-xl font-semibold text-tone-success">
               With my own natural talents
             </h4>
           </div>
@@ -500,11 +500,11 @@ const WelcomeStep: React.FC<{ onChoice: (choice: PathChoice) => void }> = ({
 
         <button
           onClick={() => onChoice('magic')}
-          className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-blue-500 transition-all text-left group"
+          className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-tone-info transition-all text-left group"
         >
           <div className="flex items-center mb-4">
-            <Zap className="w-8 h-8 text-accent-blue-light mr-3 group-hover:text-blue-300" />
-            <h4 className="text-xl font-semibold text-blue-300">
+            <Zap className="w-8 h-8 text-accent-blue-light mr-3 group-hover:text-tone-info" />
+            <h4 className="text-xl font-semibold text-tone-info">
               With a supernatural gift
             </h4>
           </div>
@@ -537,11 +537,11 @@ const SkillPathStep: React.FC<{ onChoice: (choice: SkillChoice) => void }> = ({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
       <button
         onClick={() => onChoice('guardian')}
-        className="p-6 bg-theme-tertiary hover:bg-green-800 rounded-lg border-2 border-theme-primary hover:border-green-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-fill-success rounded-lg border-2 border-theme-primary hover:border-tone-success transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Heart className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-green-300" />
-          <h4 className="text-lg font-semibold text-green-300">I'm going in</h4>
+          <Heart className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-tone-success" />
+          <h4 className="text-lg font-semibold text-tone-success">I'm going in</h4>
         </div>
         <p className="text-sm text-theme-tertiary leading-relaxed">
           I wade into the middle of the fight, trusting my strength and
@@ -554,11 +554,11 @@ const SkillPathStep: React.FC<{ onChoice: (choice: SkillChoice) => void }> = ({
 
       <button
         onClick={() => onChoice('precisionist')}
-        className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-blue-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-tone-info transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Zap className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-blue-300" />
-          <h4 className="text-lg font-semibold text-blue-300">
+          <Zap className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-tone-info" />
+          <h4 className="text-lg font-semibold text-tone-info">
             I'll be smart about this
           </h4>
         </div>
@@ -573,7 +573,7 @@ const SkillPathStep: React.FC<{ onChoice: (choice: SkillChoice) => void }> = ({
 
       <button
         onClick={() => onChoice('survivor')}
-        className="p-6 bg-theme-tertiary hover:bg-yellow-800 rounded-lg border-2 border-theme-primary hover:border-yellow-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-fill-warning rounded-lg border-2 border-theme-primary hover:border-tone-gold transition-all text-left group"
       >
         <div className="flex items-center mb-4">
           <Sparkles className="w-6 h-6 text-accent-yellow-light mr-2 group-hover:text-accent-yellow-light" />
@@ -615,8 +615,8 @@ const MagicPathStep: React.FC<{ onChoice: (choice: MagicChoice) => void }> = ({
           className="p-6 bg-theme-tertiary hover:bg-accent-purple-darker rounded-lg border-2 border-theme-primary hover:border-accent-purple transition-all text-left group"
         >
           <div className="flex items-center mb-4">
-            <Sparkles className="w-6 h-6 text-accent-purple-light mr-2 group-hover:text-purple-300" />
-            <h4 className="text-lg font-semibold text-purple-300">
+            <Sparkles className="w-6 h-6 text-accent-purple-light mr-2 group-hover:text-tone-magic" />
+            <h4 className="text-lg font-semibold text-tone-magic">
               I earned it through study
             </h4>
           </div>
@@ -632,11 +632,11 @@ const MagicPathStep: React.FC<{ onChoice: (choice: MagicChoice) => void }> = ({
 
         <button
           onClick={() => onChoice('prodigy')}
-          className="p-6 bg-theme-tertiary hover:bg-pink-800 rounded-lg border-2 border-theme-primary hover:border-pink-500 transition-all text-left group"
+          className="p-6 bg-theme-tertiary hover:bg-fill-magic rounded-lg border-2 border-theme-primary hover:border-tone-magic transition-all text-left group"
         >
           <div className="flex items-center mb-4">
-            <Heart className="w-6 h-6 text-pink-400 mr-2 group-hover:text-pink-300" />
-            <h4 className="text-lg font-semibold text-pink-300">
+            <Heart className="w-6 h-6 text-tone-magic mr-2 group-hover:text-tone-magic" />
+            <h4 className="text-lg font-semibold text-tone-magic">
               I was born with it
             </h4>
           </div>
@@ -645,18 +645,18 @@ const MagicPathStep: React.FC<{ onChoice: (choice: MagicChoice) => void }> = ({
             bargain I struck. It comes from my soul, my bloodline, or my force
             of personality.
           </p>
-          <div className="mt-4 text-xs text-pink-400 font-medium">
+          <div className="mt-4 text-xs text-tone-magic font-medium">
             → The Prodigy
           </div>
         </button>
 
         <button
           onClick={() => onChoice('oracle')}
-          className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-blue-500 transition-all text-left group"
+          className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-tone-info transition-all text-left group"
         >
           <div className="flex items-center mb-4">
-            <Shield className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-blue-300" />
-            <h4 className="text-lg font-semibold text-blue-300">
+            <Shield className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-tone-info" />
+            <h4 className="text-lg font-semibold text-tone-info">
               I serve the gods
             </h4>
           </div>
@@ -672,11 +672,11 @@ const MagicPathStep: React.FC<{ onChoice: (choice: MagicChoice) => void }> = ({
 
         <button
           onClick={() => onChoice('wildheart')}
-          className="p-6 bg-theme-tertiary hover:bg-green-800 rounded-lg border-2 border-theme-primary hover:border-green-500 transition-all text-left group"
+          className="p-6 bg-theme-tertiary hover:bg-fill-success rounded-lg border-2 border-theme-primary hover:border-tone-success transition-all text-left group"
         >
           <div className="flex items-center mb-4">
-            <Sparkles className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-green-300" />
-            <h4 className="text-lg font-semibold text-green-300">
+            <Sparkles className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-tone-success" />
+            <h4 className="text-lg font-semibold text-tone-success">
               I commune with nature
             </h4>
           </div>
@@ -776,11 +776,11 @@ const ProfileDisplay: React.FC<{
                     onClick={() => handleClassSelect(rec.class)}
                     className={`p-4 rounded-lg border-2 transition-all text-left ${
                       selectedClass === rec.class
-                        ? 'bg-green-800 border-green-500 shadow-md'
+                        ? 'bg-fill-success border-tone-success shadow-md'
                         : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                     }`}
                   >
-                    <h4 className="font-semibold text-green-300 mb-2">
+                    <h4 className="font-semibold text-tone-success mb-2">
                       {rec.class}
                     </h4>
                     <p className="text-sm text-theme-tertiary">{rec.reason}</p>
@@ -806,11 +806,11 @@ const ProfileDisplay: React.FC<{
                     onClick={() => handleSpeciesSelect(rec.race)}
                     className={`p-4 rounded-lg border-2 transition-all text-left ${
                       selectedSpecies === rec.race
-                        ? 'bg-accent-blue-darker border-blue-500 shadow-md'
+                        ? 'bg-accent-blue-darker border-tone-info shadow-md'
                         : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                     }`}
                   >
-                    <h4 className="font-semibold text-blue-300 mb-2">
+                    <h4 className="font-semibold text-tone-info mb-2">
                       {rec.race}
                     </h4>
                     <p className="text-sm text-theme-tertiary">{rec.reason}</p>
@@ -852,7 +852,7 @@ const ProfileDisplay: React.FC<{
                       : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                   }`}
                 >
-                  <h4 className="font-semibold text-purple-300 mb-2">
+                  <h4 className="font-semibold text-tone-magic mb-2">
                     {rec.background}
                   </h4>
                   <p className="text-sm text-theme-tertiary">{rec.reason}</p>
@@ -895,7 +895,7 @@ const ProfileDisplay: React.FC<{
       <div className="flex justify-center space-x-4">
         <button
           onClick={onBack}
-          className="px-6 py-3 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white transition-colors flex items-center"
+          className="px-6 py-3 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary transition-colors flex items-center"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Choices
@@ -903,7 +903,7 @@ const ProfileDisplay: React.FC<{
         <button
           onClick={onContinue}
           disabled={!selectedClass || !selectedSpecies || !selectedBackground}
-          className="px-6 py-3 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white font-semibold transition-colors flex items-center"
+          className="px-6 py-3 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary font-semibold transition-colors flex items-center"
         >
           Create Character
           <ArrowRight className="w-4 h-4 ml-2" />
@@ -931,11 +931,11 @@ const CombatStyleStep: React.FC<{
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
       <button
         onClick={() => onChoice('frontline')}
-        className="p-6 bg-theme-tertiary hover:bg-accent-red-darker rounded-lg border-2 border-theme-primary hover:border-red-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-accent-red-darker rounded-lg border-2 border-theme-primary hover:border-tone-danger transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Shield className="w-6 h-6 text-accent-red-light mr-2 group-hover:text-red-300" />
-          <h4 className="text-lg font-semibold text-red-300">
+          <Shield className="w-6 h-6 text-accent-red-light mr-2 group-hover:text-tone-danger" />
+          <h4 className="text-lg font-semibold text-tone-danger">
             Frontline Warrior
           </h4>
         </div>
@@ -948,11 +948,11 @@ const CombatStyleStep: React.FC<{
 
       <button
         onClick={() => onChoice('skirmisher')}
-        className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-blue-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-tone-info transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Zap className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-blue-300" />
-          <h4 className="text-lg font-semibold text-blue-300">
+          <Zap className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-tone-info" />
+          <h4 className="text-lg font-semibold text-tone-info">
             Mobile Skirmisher
           </h4>
         </div>
@@ -967,8 +967,8 @@ const CombatStyleStep: React.FC<{
         className="p-6 bg-theme-tertiary hover:bg-accent-purple-darker rounded-lg border-2 border-theme-primary hover:border-accent-purple transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Sparkles className="w-6 h-6 text-accent-purple-light mr-2 group-hover:text-purple-300" />
-          <h4 className="text-lg font-semibold text-purple-300">
+          <Sparkles className="w-6 h-6 text-accent-purple-light mr-2 group-hover:text-tone-magic" />
+          <h4 className="text-lg font-semibold text-tone-magic">
             Overwhelming Force
           </h4>
         </div>
@@ -981,11 +981,11 @@ const CombatStyleStep: React.FC<{
 
       <button
         onClick={() => onChoice('tactical')}
-        className="p-6 bg-theme-tertiary hover:bg-green-800 rounded-lg border-2 border-theme-primary hover:border-green-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-fill-success rounded-lg border-2 border-theme-primary hover:border-tone-success transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Heart className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-green-300" />
-          <h4 className="text-lg font-semibold text-green-300">
+          <Heart className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-tone-success" />
+          <h4 className="text-lg font-semibold text-tone-success">
             Tactical Commander
           </h4>
         </div>
@@ -1005,7 +1005,7 @@ const SocialApproachStep: React.FC<{
 }> = ({ onChoice }) => (
   <div className="text-center">
     <div className="mb-8">
-      <Heart className="w-12 h-12 text-pink-400 mx-auto mb-4" />
+      <Heart className="w-12 h-12 text-tone-magic mx-auto mb-4" />
       <h2 className="text-2xl font-bold text-accent-yellow-light mb-4">
         Social Approach
       </h2>
@@ -1017,7 +1017,7 @@ const SocialApproachStep: React.FC<{
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
       <button
         onClick={() => onChoice('leader')}
-        className="p-6 bg-theme-tertiary hover:bg-yellow-800 rounded-lg border-2 border-theme-primary hover:border-yellow-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-fill-warning rounded-lg border-2 border-theme-primary hover:border-tone-gold transition-all text-left group"
       >
         <div className="flex items-center mb-4">
           <Sparkles className="w-6 h-6 text-accent-yellow-light mr-2 group-hover:text-accent-yellow-light" />
@@ -1033,11 +1033,11 @@ const SocialApproachStep: React.FC<{
 
       <button
         onClick={() => onChoice('supporter')}
-        className="p-6 bg-theme-tertiary hover:bg-green-800 rounded-lg border-2 border-theme-primary hover:border-green-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-fill-success rounded-lg border-2 border-theme-primary hover:border-tone-success transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Heart className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-green-300" />
-          <h4 className="text-lg font-semibold text-green-300">
+          <Heart className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-tone-success" />
+          <h4 className="text-lg font-semibold text-tone-success">
             Loyal Supporter
           </h4>
         </div>
@@ -1049,11 +1049,11 @@ const SocialApproachStep: React.FC<{
 
       <button
         onClick={() => onChoice('independent')}
-        className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-blue-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-tone-info transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Shield className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-blue-300" />
-          <h4 className="text-lg font-semibold text-blue-300">
+          <Shield className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-tone-info" />
+          <h4 className="text-lg font-semibold text-tone-info">
             Independent Spirit
           </h4>
         </div>
@@ -1068,8 +1068,8 @@ const SocialApproachStep: React.FC<{
         className="p-6 bg-theme-tertiary hover:bg-accent-purple-darker rounded-lg border-2 border-theme-primary hover:border-accent-purple transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Zap className="w-6 h-6 text-accent-purple-light mr-2 group-hover:text-purple-300" />
-          <h4 className="text-lg font-semibold text-purple-300">
+          <Zap className="w-6 h-6 text-accent-purple-light mr-2 group-hover:text-tone-magic" />
+          <h4 className="text-lg font-semibold text-tone-magic">
             Peaceful Mediator
           </h4>
         </div>
@@ -1081,11 +1081,11 @@ const SocialApproachStep: React.FC<{
 
       <button
         onClick={() => onChoice('enforcer')}
-        className="p-6 bg-theme-tertiary hover:bg-accent-red-darker rounded-lg border-2 border-theme-primary hover:border-red-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-accent-red-darker rounded-lg border-2 border-theme-primary hover:border-tone-danger transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Shield className="w-6 h-6 text-accent-red-light mr-2 group-hover:text-red-300" />
-          <h4 className="text-lg font-semibold text-red-300">Firm Enforcer</h4>
+          <Shield className="w-6 h-6 text-accent-red-light mr-2 group-hover:text-tone-danger" />
+          <h4 className="text-lg font-semibold text-tone-danger">Firm Enforcer</h4>
         </div>
         <p className="text-sm text-theme-tertiary leading-relaxed">
           I maintain order and ensure rules are followed. I have little patience
@@ -1096,11 +1096,11 @@ const SocialApproachStep: React.FC<{
 
       <button
         onClick={() => onChoice('counselor')}
-        className="p-6 bg-theme-tertiary hover:bg-pink-800 rounded-lg border-2 border-theme-primary hover:border-pink-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-fill-magic rounded-lg border-2 border-theme-primary hover:border-tone-magic transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Heart className="w-6 h-6 text-pink-400 mr-2 group-hover:text-pink-300" />
-          <h4 className="text-lg font-semibold text-pink-300">
+          <Heart className="w-6 h-6 text-tone-magic mr-2 group-hover:text-tone-magic" />
+          <h4 className="text-lg font-semibold text-tone-magic">
             Wise Counselor
           </h4>
         </div>
@@ -1119,7 +1119,7 @@ const WorldPhilosophyStep: React.FC<{
 }> = ({ onChoice }) => (
   <div className="text-center">
     <div className="mb-8">
-      <Sparkles className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
+      <Sparkles className="w-12 h-12 text-tone-info mx-auto mb-4" />
       <h2 className="text-2xl font-bold text-accent-yellow-light mb-4">
         World Philosophy
       </h2>
@@ -1131,11 +1131,11 @@ const WorldPhilosophyStep: React.FC<{
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
       <button
         onClick={() => onChoice('guardian')}
-        className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-blue-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-accent-blue-darker rounded-lg border-2 border-theme-primary hover:border-tone-info transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Shield className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-blue-300" />
-          <h4 className="text-lg font-semibold text-blue-300">
+          <Shield className="w-6 h-6 text-accent-blue-light mr-2 group-hover:text-tone-info" />
+          <h4 className="text-lg font-semibold text-tone-info">
             Protective Guardian
           </h4>
         </div>
@@ -1147,11 +1147,11 @@ const WorldPhilosophyStep: React.FC<{
 
       <button
         onClick={() => onChoice('revolutionary')}
-        className="p-6 bg-theme-tertiary hover:bg-accent-red-darker rounded-lg border-2 border-theme-primary hover:border-red-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-accent-red-darker rounded-lg border-2 border-theme-primary hover:border-tone-danger transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Zap className="w-6 h-6 text-accent-red-light mr-2 group-hover:text-red-300" />
-          <h4 className="text-lg font-semibold text-red-300">
+          <Zap className="w-6 h-6 text-accent-red-light mr-2 group-hover:text-tone-danger" />
+          <h4 className="text-lg font-semibold text-tone-danger">
             Bold Revolutionary
           </h4>
         </div>
@@ -1163,11 +1163,11 @@ const WorldPhilosophyStep: React.FC<{
 
       <button
         onClick={() => onChoice('pragmatist')}
-        className="p-6 bg-theme-tertiary hover:bg-green-800 rounded-lg border-2 border-theme-primary hover:border-green-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-fill-success rounded-lg border-2 border-theme-primary hover:border-tone-success transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Heart className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-green-300" />
-          <h4 className="text-lg font-semibold text-green-300">
+          <Heart className="w-6 h-6 text-accent-green-light mr-2 group-hover:text-tone-success" />
+          <h4 className="text-lg font-semibold text-tone-success">
             Practical Pragmatist
           </h4>
         </div>
@@ -1182,8 +1182,8 @@ const WorldPhilosophyStep: React.FC<{
         className="p-6 bg-theme-tertiary hover:bg-accent-purple-darker rounded-lg border-2 border-theme-primary hover:border-accent-purple transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Sparkles className="w-6 h-6 text-accent-purple-light mr-2 group-hover:text-purple-300" />
-          <h4 className="text-lg font-semibold text-purple-300">
+          <Sparkles className="w-6 h-6 text-accent-purple-light mr-2 group-hover:text-tone-magic" />
+          <h4 className="text-lg font-semibold text-tone-magic">
             Spiritual Seeker
           </h4>
         </div>
@@ -1195,7 +1195,7 @@ const WorldPhilosophyStep: React.FC<{
 
       <button
         onClick={() => onChoice('free_spirit')}
-        className="p-6 bg-theme-tertiary hover:bg-yellow-800 rounded-lg border-2 border-theme-primary hover:border-yellow-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-fill-warning rounded-lg border-2 border-theme-primary hover:border-tone-gold transition-all text-left group"
       >
         <div className="flex items-center mb-4">
           <Sparkles className="w-6 h-6 text-accent-yellow-light mr-2 group-hover:text-accent-yellow-light" />
@@ -1211,11 +1211,11 @@ const WorldPhilosophyStep: React.FC<{
 
       <button
         onClick={() => onChoice('justice')}
-        className="p-6 bg-theme-tertiary hover:bg-indigo-800 rounded-lg border-2 border-theme-primary hover:border-indigo-500 transition-all text-left group"
+        className="p-6 bg-theme-tertiary hover:bg-fill-info rounded-lg border-2 border-theme-primary hover:border-tone-info transition-all text-left group"
       >
         <div className="flex items-center mb-4">
-          <Shield className="w-6 h-6 text-indigo-400 mr-2 group-hover:text-indigo-300" />
-          <h4 className="text-lg font-semibold text-indigo-300">
+          <Shield className="w-6 h-6 text-tone-info mr-2 group-hover:text-tone-info" />
+          <h4 className="text-lg font-semibold text-tone-info">
             Justice Bringer
           </h4>
         </div>

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { CharacterCreationCompleteHandler, Edition } from '../api/types';
+import { resolveCreatorTheme } from '../api/theme';
 import { CharacterCreationWizard } from './CharacterCreationWizard';
 import { GuidedCharacterCreator } from './guided/GuidedCharacterCreator';
 import {
@@ -23,7 +24,10 @@ import type { CreationDraft, CreatorPresentation } from '../types/draft';
 export interface CharacterCreatorProps {
   isOpen: boolean;
   edition?: Edition;
-  /** Written to `data-theme` on the creator root — the explicit theme boundary. */
+  /**
+   * Host theme name. Resolved to `parchment` (default) or `dark` and written
+   * to `data-theme` on the creator root — the explicit theme boundary.
+   */
   theme?: string;
   /**
    * Which door opens first. Defaults to `guided`: a new player should not have
@@ -71,6 +75,8 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
   onComplete,
 }) => {
   const session = useCreationSession({ initialDraft, edition, onDraftChange });
+  // Hosts pass their own theme names; the creator only knows two.
+  const creatorTheme = resolveCreatorTheme(theme);
   const [mode, setMode] = useState<CreationMode>(
     initialPresentation?.mode || initialMode,
   );
@@ -114,7 +120,7 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
         <GuidedCharacterCreator
           isOpen
           edition={edition}
-          theme={theme}
+          theme={creatorTheme}
           initialDraft={initialDraft}
           initialPresentation={{
             ...presentation,
@@ -146,7 +152,7 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
       <CharacterCreationWizard
         isOpen
         edition={edition}
-        theme={theme}
+        theme={creatorTheme}
         initialDraft={initialDraft}
         initialPresentation={{
           ...presentation,

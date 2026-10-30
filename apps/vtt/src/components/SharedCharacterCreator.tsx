@@ -4,7 +4,7 @@ import {
   createdCharacterToNexus,
   type CharacterCreationResult,
   type CreationMode,
-  type Edition,
+  resolveRequestedEdition,
   useCreatorRecovery,
 } from '@nexus/character-creator';
 import '@nexus/character-creator/styles.css';
@@ -85,15 +85,17 @@ const PlayerCharacterCreator: React.FC<
 }) => {
   const theme = useTheme();
   const recovery = useCreatorRecovery(repository, recoveryKey);
-  const [edition, setEdition] = useState<Edition>();
+  // 2024 only; `?edition=2014` keeps the older rules reachable for testing.
+  const [edition] = useState(() =>
+    resolveRequestedEdition(window.location.search),
+  );
   const [actionError, setActionError] = useState<string>();
   const completionInFlight = useRef<Promise<void> | undefined>(undefined);
   const dialog = useRef<HTMLDialogElement>(null);
   const submission = useRef<
     { attemptId: string; character: Character; savedId?: string } | undefined
   >(undefined);
-  const showGate =
-    recovery.phase !== 'ready' || (!recovery.initialDraft && !edition);
+  const showGate = recovery.phase !== 'ready';
 
   useEffect(() => {
     if (showGate && dialog.current && !dialog.current.open)
@@ -194,18 +196,7 @@ const PlayerCharacterCreator: React.FC<
               </button>
             </div>
           </>
-        ) : (
-          <>
-            <p>
-              Use the rules edition agreed with your DM. Existing characters are
-              not converted.
-            </p>
-            <div className={styles.actions}>
-              <button onClick={() => setEdition('2014')}>Use 2014 rules</button>
-              <button onClick={() => setEdition('2024')}>Use 2024 rules</button>
-            </div>
-          </>
-        )}
+        ) : null}
         <button onClick={onCancel}>Close</button>
       </dialog>
     );

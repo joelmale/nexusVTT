@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { XCircle, ArrowLeft, Shuffle } from 'lucide-react';
 import { StepProps } from '../types/wizard.types';
-import { ALIGNMENTS_DATA, BACKGROUNDS, ALIGNMENTS, randomizeIdentity, randomizeSpecies, randomizeClassAndSkills, randomizeFightingStyle, randomizeSpells, randomizeAbilities, randomizeFeats, randomizeLanguages, randomizePersonality, randomizeStartingEquipment, randomizeBackgroundAbilityChoices } from '../../../services/dataService';
+import { ALIGNMENTS_DATA, BACKGROUNDS, ALIGNMENTS, randomizeIdentity, randomizeSpecies, randomizeClassAndSkills, randomizeFightingStyle, randomizeSpells, randomizeAbilities, randomizeFeats, randomizeLanguages, randomizePersonality, randomizeStartingEquipment, randomizeBackgroundAbilityChoices, FEAT_DATABASE } from '../../../services/dataService';
+import { humanizeId } from '../../../utils/displayLabels';
 import { getToolDescription as getToolData } from '../../../services/toolService';
 import { generateName } from '../../../utils/nameGenerator';
 import skillsData from '../../../data/skills.json';
@@ -25,7 +26,7 @@ const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onClick, title }) => 
   <button
     onClick={onClick}
     title={title}
-    className="p-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-white transition-colors"
+    className="p-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-theme-primary transition-colors"
   >
     <Shuffle className="w-4 h-4" />
   </button>
@@ -38,7 +39,7 @@ const RandomizeAllButton: React.FC<RandomizeAllButtonProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg text-white font-bold transition-all flex items-center gap-2 shadow-lg ${className}`}
+      className={`px-4 py-3 bg-fill-magic rounded-lg text-theme-primary font-bold transition-all flex items-center gap-2 shadow-lg ${className}`}
       title="Randomize the entire character"
     >
       <Shuffle className="w-5 h-5" />
@@ -61,13 +62,13 @@ const ProficiencyModal: React.FC<ProficiencyModalProps> = ({ isOpen, onClose, ti
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-overlay bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-theme-tertiary border border-theme-primary rounded-lg p-6 max-w-md w-full mx-4">
         <div className="flex justify-between items-start mb-4">
           <h3 className="text-lg font-bold text-accent-yellow-light">{title}</h3>
           <button
             onClick={onClose}
-            className="text-theme-muted hover:text-white transition-colors"
+            className="text-theme-muted hover:text-theme-primary transition-colors"
           >
             <XCircle className="w-6 h-6" />
           </button>
@@ -144,7 +145,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
   return (
     <div className='space-y-4'>
       <div className='flex justify-between items-center'>
-        <h3 className='text-xl font-bold text-red-300'>Basic Identity</h3>
+        <h3 className='text-xl font-bold text-tone-danger'>Basic Identity</h3>
         <div className='flex gap-2'>
           <RandomizeButton
             onClick={() => {
@@ -206,7 +207,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
         <select
           value={data.alignment}
           onChange={(e) => updateData({ alignment: e.target.value })}
-          className="w-full p-3 bg-theme-tertiary text-white rounded-lg focus:ring-red-500 focus:border-red-500"
+          className="w-full p-3 bg-theme-tertiary text-theme-primary rounded-lg focus:ring-tone-focus focus:border-tone-danger"
         >
           <option value="">Select Alignment</option>
           {ALIGNMENTS.map(alignment => (
@@ -219,7 +220,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
         <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3 relative">
           <button
             onClick={() => setShowAlignmentInfo(false)}
-            className="absolute top-2 right-2 text-theme-muted hover:text-white transition-colors"
+            className="absolute top-2 right-2 text-theme-muted hover:text-theme-primary transition-colors"
             title="Close"
           >
             <XCircle className="w-5 h-5" />
@@ -230,7 +231,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
 
           {selectedAlignmentData.examples && selectedAlignmentData.examples.length > 0 && (
             <div className="mb-3">
-              <h5 className="text-sm font-semibold text-yellow-200 mb-2">Examples:</h5>
+              <h5 className="text-sm font-semibold text-tone-gold mb-2">Examples:</h5>
               <ul className="text-xs text-theme-tertiary space-y-1">
                 {selectedAlignmentData.examples.map((example, idx) => (
                   <li key={idx} className="flex items-start">
@@ -253,7 +254,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
         <select
           value={data.background}
           onChange={(e) => updateData({ background: e.target.value })}
-          className="w-full p-3 bg-theme-tertiary text-white rounded-lg focus:ring-red-500 focus:border-red-500"
+          className="w-full p-3 bg-theme-tertiary text-theme-primary rounded-lg focus:ring-tone-focus focus:border-tone-danger"
         >
           <option value="">Select Background</option>
            {BACKGROUNDS.filter(bg => bg.edition === data.edition).map(bg => (
@@ -274,7 +275,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
         <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-4 relative max-h-[70vh] overflow-y-auto">
           <button
             onClick={() => setShowBackgroundInfo(false)}
-            className="absolute top-2 right-2 text-theme-muted hover:text-white transition-colors"
+            className="absolute top-2 right-2 text-theme-muted hover:text-theme-primary transition-colors"
             title="Close"
           >
             <XCircle className="w-5 h-5" />
@@ -289,7 +290,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
               {isLongDescription && (
                 <button
                   onClick={() => setShowDetailedDescription(!showDetailedDescription)}
-                  className="text-accent-blue-light hover:text-blue-300 text-xs mt-1 underline"
+                  className="text-accent-blue-light hover:text-tone-info text-xs mt-1 underline"
                 >
                   {showDetailedDescription ? 'Show Less' : 'Read More'}
                 </button>
@@ -301,7 +302,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
           {selectedBackground.edition === '2024' && selectedBackground.originFeat && (
             <div className="border-t border-theme-primary pt-3">
                <div className="flex items-center gap-2 mb-2">
-                 <h5 className="text-sm font-semibold text-yellow-200">Origin Feat: {selectedBackground.originFeat}</h5>
+                 <h5 className="text-sm font-semibold text-tone-gold">Origin Feat: {FEAT_DATABASE.find((feat) => feat.slug === selectedBackground.originFeat)?.name ?? humanizeId(selectedBackground.originFeat)}</h5>
                </div>
               <p className="text-xs text-theme-tertiary">
                 This feat is granted at 1st level by your background.
@@ -311,13 +312,13 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
 
           {/* Skill Proficiencies */}
           <div className="border-t border-theme-primary pt-3">
-            <h5 className="text-sm font-semibold text-yellow-200 mb-2">Skill Proficiencies</h5>
+            <h5 className="text-sm font-semibold text-tone-gold mb-2">Skill Proficiencies</h5>
             <div className="flex flex-wrap gap-2">
                {selectedBackground.skill_proficiencies.map(skill => (
                  <button
                    key={skill}
                    onClick={() => openProficiencyModal(skill, 'skill')}
-                   className="px-2 py-1 bg-blue-700 hover:bg-blue-600 text-white text-xs rounded cursor-pointer transition-colors"
+                   className="px-2 py-1 bg-fill-info hover:bg-fill-info text-theme-primary text-xs rounded cursor-pointer transition-colors"
                    title={`Click to see ${skill} description`}
                  >
                    {skill}
@@ -329,13 +330,13 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
           {/* Tool Proficiencies */}
           {selectedBackground.tool_proficiencies && selectedBackground.tool_proficiencies.length > 0 && (
             <div className="border-t border-theme-primary pt-3">
-              <h5 className="text-sm font-semibold text-yellow-200 mb-2">Tool Proficiencies</h5>
+              <h5 className="text-sm font-semibold text-tone-gold mb-2">Tool Proficiencies</h5>
               <div className="flex flex-wrap gap-2">
                 {selectedBackground.tool_proficiencies.map((tool: string) => (
                   <button
                     key={tool}
                     onClick={() => openProficiencyModal(tool, 'tool')}
-                    className="px-2 py-1 bg-purple-700 hover:bg-purple-600 text-white text-xs rounded cursor-pointer transition-colors"
+                    className="px-2 py-1 bg-fill-magic hover:bg-fill-magic text-theme-primary text-xs rounded cursor-pointer transition-colors"
                     title={`Click to see ${tool} description`}
                   >
                     {tool}
@@ -348,10 +349,10 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
           {/* Languages */}
           {selectedBackground.languages && selectedBackground.languages.length > 0 && (
             <div className="border-t border-theme-primary pt-3">
-              <h5 className="text-sm font-semibold text-yellow-200 mb-2">Languages</h5>
+              <h5 className="text-sm font-semibold text-tone-gold mb-2">Languages</h5>
               <div className="flex flex-wrap gap-2">
                 {selectedBackground.languages.map(language => (
-                  <span key={language} className="px-2 py-1 bg-accent-green-dark text-white text-xs rounded">
+                  <span key={language} className="px-2 py-1 bg-accent-green-dark text-theme-primary text-xs rounded">
                     {language}
                   </span>
                 ))}
@@ -363,7 +364,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
           {/* Equipment Options */}
           {selectedBackground.equipmentOptions && selectedBackground.equipmentOptions.length > 0 && (
             <div className="border-t border-theme-primary pt-3 space-y-3">
-              <h5 className="text-sm font-semibold text-yellow-200">Starting Equipment</h5>
+              <h5 className="text-sm font-semibold text-tone-gold">Starting Equipment</h5>
               <div className="text-xs text-theme-tertiary space-y-2">
                 {selectedBackground.equipmentOptions.map((opt) => (
                   <div key={opt.label} className="bg-theme-quaternary/40 border border-theme-primary rounded p-2">
@@ -392,7 +393,7 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
       <div className='flex justify-between'>
         <button
           onClick={prevStep}
-          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white flex items-center"
+          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary flex items-center"
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Level
         </button>

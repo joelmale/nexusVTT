@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { calculatePreparationLimit } from '@nexus/rules-5e';
 import { REFERENCE_BUILDS } from './fixtures/referenceBuilds';
@@ -6,6 +7,7 @@ import type { CharacterCreationData } from '../types/dnd';
 import { Step4Spells } from '../components/CharacterCreationWizard/steps/Step4Spells';
 import { Step8Traits } from '../components/CharacterCreationWizard/steps/Step8Traits';
 import { Step0Level } from '../components/CharacterCreationWizard/steps/Step0Level';
+import { StepCumulativeASI } from '../components/CharacterCreationWizard/steps/StepCumulativeASI';
 import {
   getCantripsByClass,
   getLeveledSpellsByClass,
@@ -65,6 +67,65 @@ describe('level 5 Wizard spell step', () => {
     expect(screen.getByText(/Add 8 more spells to spellbook/)).toBeTruthy();
     const next = screen.getByRole('button', { name: /^Next/ }) as HTMLButtonElement;
     expect(next.disabled).toBe(true);
+  });
+});
+
+describe('level 5 Warlock spell step', () => {
+  // A stateful host, so picks round-trip through updateData like the wizard.
+  function Host({ initial }: { initial: CharacterCreationData }) {
+    const [data, setData] = React.useState(initial);
+    const updateData = React.useCallback(
+      (update: Partial<CharacterCreationData>) =>
+        setData((prev) => ({ ...prev, ...update })),
+      [],
+    );
+    return <Step4Spells {...props(data)} updateData={updateData} />;
+  }
+
+  it('keeps a prepared spell the player picks, and Randomize fills the quota', () => {
+    const data = {
+      ...base,
+      classSlug: 'warlock',
+      level: 5,
+      spellSelection: { selectedCantrips: [], spellbook: [] },
+    } as unknown as CharacterCreationData;
+    render(<Host initial={data} />);
+    const first = getLeveledSpellsByClass('warlock', 1, '2024')[0];
+    fireEvent.click(screen.getByText(first.name));
+    expect(screen.getByText(/Prepared Spells \(1 \/\s*6 selected\)/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Randomize/ }));
+    expect(screen.getByText(/Prepared Spells \(6 \/\s*6 selected\)/)).toBeTruthy();
+  });
+});
+
+describe('ASI step keeps the allocation across Back and Next', () => {
+  const level5 = { ...base, level: 5 } as CharacterCreationData;
+  const zero = { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 };
+
+  it('resumes a saved allocation instead of starting from zero', () => {
+    const data = {
+      ...level5,
+      cumulativeASI: [{ level: 4, type: 'asi', asiAllocations: { ...zero, INT: 2 } }],
+    } as CharacterCreationData;
+    render(<StepCumulativeASI {...props(data)} />);
+    expect(screen.getByText(/0 \/ 2 points remaining/)).toBeTruthy();
+  });
+
+  it('saves each change to the draft, not only on Next', () => {
+    const p = props(level5);
+    render(<StepCumulativeASI {...p} />);
+    const intRow = [...document.querySelectorAll('div')]
+      .filter(
+        (d) =>
+          /^INT\s*Current/.test(d.textContent?.trim() ?? '') &&
+          d.querySelectorAll('button').length >= 2,
+      )
+      .pop()!;
+    const plus = [...intRow.querySelectorAll('button')].pop()!;
+    fireEvent.click(plus);
+    const calls = p.updateData.mock.calls;
+    const saved = calls[calls.length - 1]?.[0]?.cumulativeASI;
+    expect(saved?.[0]?.asiAllocations?.INT).toBe(1);
   });
 });
 

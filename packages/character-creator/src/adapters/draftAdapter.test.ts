@@ -62,6 +62,42 @@ describe('draftAdapter (CC-201)', () => {
   });
 });
 
+describe('prepared spells survive a draft round trip', () => {
+  const roundTrip = (data: typeof initialCreationData) =>
+    draftToCreationData(creationDataToDraft(data));
+
+  it('keeps a Warlock pick even though dailyPrepared is an empty array', () => {
+    const data = {
+      ...initialCreationData,
+      edition: '2024',
+      classSlug: 'warlock',
+      level: 5,
+      spellSelection: {
+        ...initialCreationData.spellSelection,
+        dailyPrepared: [],
+        preparedSpells: ['hex'],
+      },
+    } as typeof initialCreationData;
+    expect(roundTrip(data).spellSelection.preparedSpells).toEqual(['hex']);
+  });
+
+  it('keeps a Wizard deselection instead of resurrecting the stale copy', () => {
+    const data = {
+      ...initialCreationData,
+      edition: '2024',
+      classSlug: 'wizard',
+      level: 5,
+      spellSelection: {
+        ...initialCreationData.spellSelection,
+        spellbook: ['shield'],
+        dailyPrepared: [],
+        preparedSpells: ['shield'],
+      },
+    } as typeof initialCreationData;
+    expect(roundTrip(data).spellSelection.dailyPrepared).toEqual([]);
+  });
+});
+
 describe('isPristineDraft', () => {
   it('is true for the blank starting draft', () => {
     expect(

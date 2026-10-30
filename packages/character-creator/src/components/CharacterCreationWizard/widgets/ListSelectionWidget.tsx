@@ -48,12 +48,12 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
     <div className="list-selection-widget mb-6">
       {/* Header */}
       <div className="mb-4">
-        <h3 className="text-xl font-bold text-amber-400 mb-2">
+        <h3 className="text-xl font-bold text-tone-warning mb-2">
           {feature.name}
         </h3>
-        <p className="text-gray-300 text-sm mb-3">{feature.desc}</p>
+        <p className="text-theme-muted text-sm mb-3">{feature.desc}</p>
         {!selectedOption && (
-          <div className="text-amber-400 text-sm">
+          <div className="text-tone-warning text-sm">
             ⚠️ Please choose one option
           </div>
         )}
@@ -76,24 +76,24 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
                 p-5 rounded-xl border-2 text-left transition-all
                 ${
                   isSelected
-                    ? 'border-amber-400 bg-amber-400/20 shadow-2xl shadow-amber-400/50 scale-[1.02]'
+                    ? 'border-tone-warning bg-tone-warning-soft shadow-2xl scale-[1.02]'
                     : option.prerequisite && !option.prerequisiteMet
-                      ? 'border-gray-700 bg-gray-800/30 opacity-50 cursor-not-allowed'
-                      : 'border-gray-600 bg-gray-800/50 hover:border-amber-400/50 hover:bg-gray-700/50 cursor-pointer'
+                      ? 'border-theme-secondary bg-theme-tertiary/30 opacity-50 cursor-not-allowed'
+                      : 'border-theme-primary bg-theme-secondary/50 hover:border-tone-warning hover:bg-theme-tertiary/50 cursor-pointer'
                 }
               `}
             >
               {/* Option Header */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                  <h4 className="text-lg font-bold text-white mb-1">
+                  <h4 className="text-lg font-bold text-theme-primary mb-1">
                     {option.name}
                     {isSelected && (
-                      <span className="ml-2 text-amber-400">✓</span>
+                      <span className="ml-2 text-tone-warning">✓</span>
                     )}
                   </h4>
                   {option.shortDesc && (
-                    <p className="text-xs text-amber-300 font-semibold">
+                    <p className="text-xs text-tone-warning font-semibold">
                       {option.shortDesc}
                     </p>
                   )}
@@ -101,12 +101,12 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
               </div>
 
               {/* Description */}
-              <p className="text-sm text-gray-300 mb-3">{option.description}</p>
+              <p className="text-sm text-theme-muted mb-3">{option.description}</p>
 
               {/* Prerequisites (if any) */}
               {option.prerequisite && (
-                <div className="pt-3 border-t border-gray-600">
-                  <p className="text-xs text-gray-400">
+                <div className="pt-3 border-t border-theme-primary">
+                  <p className="text-xs text-theme-muted">
                     <strong>Prerequisite:</strong> {option.prerequisite}
                   </p>
                 </div>
@@ -114,8 +114,8 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
 
               {/* Selection Indicator */}
               {isSelected && (
-                <div className="mt-3 pt-3 border-t border-amber-400/30">
-                  <div className="text-xs font-semibold text-amber-400 text-center">
+                <div className="mt-3 pt-3 border-t border-tone-warning">
+                  <div className="text-xs font-semibold text-tone-warning text-center">
                     ✓ SELECTED
                   </div>
                 </div>
@@ -127,10 +127,10 @@ export const ListSelectionWidget: React.FC<ListSelectionWidgetProps> = ({
 
       {/* Selection Confirmation */}
       {selectedOption && (
-        <div className="mt-4 p-4 bg-green-900/30 border border-green-500/50 rounded-lg">
-          <div className="text-green-300 text-sm">
+        <div className="mt-4 p-4 bg-tone-success-soft border border-tone-success rounded-lg">
+          <div className="text-tone-success text-sm">
             ✓ Selected:{' '}
-            <strong className="text-green-400">
+            <strong className="text-tone-success">
               {options.find((o) => o.id === selectedOption)?.name}
             </strong>
           </div>

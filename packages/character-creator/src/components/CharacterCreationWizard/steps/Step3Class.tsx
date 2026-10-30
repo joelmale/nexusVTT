@@ -31,6 +31,7 @@ import {
 import { AnySkillPickerModal } from '../AnySkillPickerModal';
 import ChooseSubclassModal from '../../ChooseSubclassModal';
 import { SmartNavigationButton } from '../components';
+import { useRevealValidation } from '../../../hooks/useRevealValidation';
 import { useStepValidation } from '../hooks';
 import { ClassGrantChoices } from '../../ClassGrantChoices';
 import { getSubclassLevel } from '../../../data/supportManifest';
@@ -48,7 +49,7 @@ const RandomizeButton: React.FC<RandomizeButtonProps> = ({
   <button
     onClick={onClick}
     title={title}
-    className="p-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-white transition-colors"
+    className="p-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-theme-primary transition-colors"
   >
     <Shuffle className="w-4 h-4" />
   </button>
@@ -65,6 +66,9 @@ export const Step3Class: React.FC<StepProps> = ({
     new Set(['Core Classes']),
   );
   const [showClassInfo, setShowClassInfo] = useState(true);
+  const skillValidation = useRevealValidation();
+  const instrumentValidation = useRevealValidation();
+  const subclassValidation = useRevealValidation();
 
   // Duplicate skill modal state
   const [showDuplicateSkillModal, setShowDuplicateSkillModal] = useState(false);
@@ -98,7 +102,7 @@ export const Step3Class: React.FC<StepProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-red-300">
+        <h3 className="text-xl font-bold text-tone-danger">
           Select Class {data.level >= 3 ? '& Subclass ' : ''}(Hit Die and
           Starting Proficiencies)
         </h3>
@@ -130,7 +134,7 @@ export const Step3Class: React.FC<StepProps> = ({
             {/* Category Header */}
             <button
               onClick={() => toggleCategory(category.name)}
-              className="w-full p-4 bg-theme-tertiary hover:bg-gray-650 flex items-center justify-between transition-colors"
+              className="w-full p-4 bg-theme-tertiary hover:bg-theme-quaternary flex items-center justify-between transition-colors"
             >
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{category.icon}</span>
@@ -170,7 +174,7 @@ export const Step3Class: React.FC<StepProps> = ({
                     }
                     className={`p-3 rounded-lg text-left border-2 transition-all ${
                       data.classSlug === _class.slug
-                        ? 'bg-accent-red-darker border-red-500 shadow-md'
+                        ? 'bg-accent-red-darker border-tone-danger shadow-md'
                         : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                     }`}
                   >
@@ -196,7 +200,7 @@ export const Step3Class: React.FC<StepProps> = ({
         <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3 relative">
           <button
             onClick={() => setShowClassInfo(false)}
-            className="absolute top-2 right-2 text-theme-muted hover:text-white transition-colors"
+            className="absolute top-2 right-2 text-theme-muted hover:text-theme-primary transition-colors"
             title="Close"
           >
             <XCircle className="w-5 h-5" />
@@ -316,7 +320,7 @@ export const Step3Class: React.FC<StepProps> = ({
                         {backgroundSkills.map((skill) => (
                           <span
                             key={skill}
-                            className="px-2 py-1 bg-accent-green-dark text-white text-xs rounded"
+                            className="px-2 py-1 bg-accent-green-dark text-theme-primary text-xs rounded"
                           >
                             {skill}
                           </span>
@@ -349,6 +353,7 @@ export const Step3Class: React.FC<StepProps> = ({
                     <button
                       key={skill}
                       onClick={() => {
+                        skillValidation.onInteract();
                         // 2024 Rule: If skill is already granted by background, trigger "Any Skill" replacement
                         if (isBackgroundSkill && data.edition === '2024') {
                           setDuplicateSkill(skill);
@@ -383,9 +388,9 @@ export const Step3Class: React.FC<StepProps> = ({
                         isBackgroundSkill && data.edition === '2014'
                           ? 'bg-accent-green-darker/20 border-accent-green-dark text-accent-green-light cursor-not-allowed opacity-60'
                           : isBackgroundSkill && data.edition === '2024'
-                            ? 'bg-amber-900/30 border-amber-500/50 hover:border-amber-400 text-amber-300 cursor-pointer'
+                            ? 'bg-tone-warning-soft border-tone-warning hover:border-tone-warning text-tone-warning cursor-pointer'
                             : isSelected
-                              ? 'bg-accent-blue-darker border-blue-500 text-white'
+                              ? 'bg-accent-blue-darker border-tone-info text-theme-primary'
                               : canSelect
                                 ? 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary text-theme-tertiary'
                                 : 'bg-theme-secondary border-theme-secondary text-theme-disabled cursor-not-allowed'
@@ -410,10 +415,11 @@ export const Step3Class: React.FC<StepProps> = ({
                 })}
               </div>
 
-              {data.selectedSkills.length <
+              {skillValidation.revealed &&
+                data.selectedSkills.length <
                 (selectedClass.num_skill_choices || 0) && (
-                <div className="text-xs text-accent-yellow-light mt-2">
-                  ⚠️ Please select{' '}
+                <div className="text-xs text-accent-yellow-light mt-2" role="status">
+                  Please select{' '}
                   {totalSkillChoices - data.selectedSkills.length} more skill
                   {totalSkillChoices - data.selectedSkills.length !== 1
                     ? 's'
@@ -452,6 +458,7 @@ export const Step3Class: React.FC<StepProps> = ({
                   <button
                     key={instrument}
                     onClick={() => {
+                      instrumentValidation.onInteract();
                       if (isSelected) {
                         // Remove instrument
                         updateData({
@@ -472,7 +479,7 @@ export const Step3Class: React.FC<StepProps> = ({
                     }}
                     className={`p-3 rounded-lg text-left border-2 transition-all ${
                       isSelected
-                        ? 'bg-accent-red-darker border-red-500 shadow-md'
+                        ? 'bg-accent-red-darker border-tone-danger shadow-md'
                         : canSelect
                           ? 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                           : 'bg-theme-disabled border-theme-primary opacity-50 cursor-not-allowed'
@@ -487,10 +494,11 @@ export const Step3Class: React.FC<StepProps> = ({
             )}
           </div>
 
-          {data.selectedMusicalInstruments.length <
+          {instrumentValidation.revealed &&
+            data.selectedMusicalInstruments.length <
             (selectedClass.num_instrument_choices || 0) && (
-            <div className="text-xs text-accent-yellow-light mt-2">
-              ⚠️ Please select{' '}
+            <div className="text-xs text-accent-yellow-light mt-2" role="status">
+              Please select{' '}
               {(selectedClass.num_instrument_choices || 0) -
                 data.selectedMusicalInstruments.length}{' '}
               more musical instrument
@@ -685,7 +693,10 @@ export const Step3Class: React.FC<StepProps> = ({
                     {availableSubclasses.map((subclass, index) => (
                       <button
                         key={`${subclass.slug}-${index}`}
-                        onClick={() => setShowSubclassModal(true)}
+                        onClick={() => {
+                          subclassValidation.onInteract();
+                          setShowSubclassModal(true);
+                        }}
                         className={`p-3 rounded-lg text-left border-2 transition-all ${
                           data.subclassSlug === subclass.slug
                             ? 'bg-accent-purple-darker border-accent-purple shadow-md'
@@ -705,9 +716,9 @@ export const Step3Class: React.FC<StepProps> = ({
                     ))}
                   </div>
 
-                  {!data.subclassSlug && (
-                    <div className="text-xs text-accent-yellow-light mt-2">
-                      ⚠️ Please select a subclass
+                  {subclassValidation.revealed && !data.subclassSlug && (
+                    <div className="text-xs text-accent-yellow-light mt-2" role="status">
+                      Please select a subclass
                     </div>
                   )}
                 </>
@@ -748,7 +759,7 @@ export const Step3Class: React.FC<StepProps> = ({
       <div className="flex justify-between">
         <button
           onClick={prevStep}
-          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white flex items-center"
+          className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary flex items-center"
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>
@@ -800,7 +811,10 @@ export const Step3Class: React.FC<StepProps> = ({
       {showSubclassModal && selectedClass && (
         <ChooseSubclassModal
           isOpen={showSubclassModal}
-          onClose={() => setShowSubclassModal(false)}
+          onClose={() => {
+            subclassValidation.onInteract();
+            setShowSubclassModal(false);
+          }}
           subclasses={availableSubclasses}
           onSelect={(subclass) => {
             updateData({ subclassSlug: subclass.slug });

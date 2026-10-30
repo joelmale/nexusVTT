@@ -4,6 +4,7 @@ import {
   levelUpExpertiseErrors,
 } from '../services/levelUpExpertise';
 import styles from './CastingGrantChoices.module.css';
+import { humanizeId } from '../utils/displayLabels';
 
 export function LevelUpExpertiseChoices({
   character,
@@ -27,8 +28,9 @@ export function LevelUpExpertiseChoices({
         Existing Expertise is retained. Choose additional proficient skills for
         this level.
       </p>
+      <div className={styles.options}>
       {options.map((name) => (
-        <label key={name}>
+        <label className={styles.option} key={name}>
           <input
             type="checkbox"
             checked={selected.includes(name)}
@@ -40,19 +42,23 @@ export function LevelUpExpertiseChoices({
               })
             }
           />
-          {name}
+          <span>{humanizeId(name)}</span>
         </label>
       ))}
-      <button type="button" onClick={onPrev}>
+      </div>
+      <div className={styles.actions}>
+      <button type="button" className={styles.button} onClick={onPrev}>
         Back
       </button>
       <button
         type="button"
+        className={`${styles.button} ${styles.primary}`}
         disabled={levelUpExpertiseErrors(character, selected).length > 0}
         onClick={onNext}
       >
         Continue
       </button>
+      </div>
     </section>
   );
 }

@@ -138,7 +138,7 @@ export const QuickStartEquipment: React.FC<QuickStartEquipmentProps> = ({
       <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-theme-primary">
         <button
           onClick={onAccept}
-          className="flex-1 px-6 py-3 bg-accent-green hover:bg-accent-green-dark rounded-lg text-white font-semibold transition-colors flex items-center justify-center gap-2"
+          className="flex-1 px-6 py-3 bg-accent-green hover:bg-accent-green-dark rounded-lg text-theme-primary font-semibold transition-colors flex items-center justify-center gap-2"
         >
           <Check className="w-4 h-4" />
           Accept Loadout
@@ -146,7 +146,7 @@ export const QuickStartEquipment: React.FC<QuickStartEquipmentProps> = ({
 
         <button
           onClick={onBuyInstead}
-          className="flex-1 px-6 py-3 bg-accent-blue hover:bg-accent-blue-dark rounded-lg text-white font-semibold transition-colors flex items-center justify-center gap-2"
+          className="flex-1 px-6 py-3 bg-accent-blue hover:bg-accent-blue-dark rounded-lg text-theme-primary font-semibold transition-colors flex items-center justify-center gap-2"
         >
           <Package className="w-4 h-4" />
           Buy Equipment Instead
@@ -155,7 +155,7 @@ export const QuickStartEquipment: React.FC<QuickStartEquipmentProps> = ({
         {onCancel && (
           <button
             onClick={onCancel}
-            className="px-6 py-3 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white transition-colors flex items-center justify-center"
+            className="px-6 py-3 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary transition-colors flex items-center justify-center"
           >
             <X className="w-4 h-4" />
           </button>

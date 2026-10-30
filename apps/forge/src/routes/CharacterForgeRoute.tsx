@@ -3,7 +3,7 @@ import React, { useCallback, useState } from 'react';
 import {
   type CharacterCreationResult,
   type CreationMode,
-  type Edition,
+  resolveRequestedEdition,
 } from '@nexus/character-creator';
 import Hammer from 'lucide-react/dist/esm/icons/hammer';
 
@@ -12,7 +12,10 @@ import { ForgeCharacterCreator } from '../components/ForgeCharacterCreator';
 
 export const CharacterForgeRoute: React.FC = () => {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [edition, setEdition] = useState<Edition>('2024');
+  // 2024 only; `?edition=2014` keeps the older rules reachable for testing.
+  const [edition] = useState(() =>
+    resolveRequestedEdition(window.location.search),
+  );
   const [mode, setMode] = useState<CreationMode>('full');
   const [createdCharacterName, setCreatedCharacterName] = useState<
     string | null
@@ -59,33 +62,7 @@ export const CharacterForgeRoute: React.FC = () => {
             </p>
           )}
 
-          <fieldset className="mt-7 flex justify-center gap-3 border-0 p-0">
-            <legend className="mb-2 text-sm font-semibold text-theme-muted">
-              Rules edition
-            </legend>
-            {(['2024', '2014'] as const).map((value) => (
-              <label
-                key={value}
-                className={`cursor-pointer rounded-lg border px-4 py-2 font-semibold ${
-                  edition === value
-                    ? 'border-accent-yellow-light bg-theme-tertiary'
-                    : 'border-theme-primary'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="edition"
-                  value={value}
-                  checked={edition === value}
-                  onChange={() => setEdition(value)}
-                  className="sr-only"
-                />
-                {value} rules
-              </label>
-            ))}
-          </fieldset>
-
-          <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
+          <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
             <button
               type="button"
               onClick={() => openWizard('guided')}

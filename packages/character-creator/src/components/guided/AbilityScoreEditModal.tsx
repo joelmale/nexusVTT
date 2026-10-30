@@ -78,7 +78,7 @@ const AbilityScoreEditModal: React.FC<AbilityScoreEditModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-theme-secondary">
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold text-theme-primary">
               Edit Ability Scores
             </h2>
             <p className="text-sm text-theme-muted">
@@ -105,7 +105,7 @@ const AbilityScoreEditModal: React.FC<AbilityScoreEditModalProps> = ({
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-white">Points Avail</h3>
+                <h3 className="text-lg font-bold text-theme-primary">Points Avail</h3>
                 <p className="text-xs text-theme-muted">
                   {pointsAvailable === 0
                     ? 'All standard array values assigned correctly'
@@ -160,7 +160,7 @@ const AbilityScoreEditModal: React.FC<AbilityScoreEditModalProps> = ({
                       disabled={!canDecrease}
                       className={`flex-1 px-3 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1 ${
                         canDecrease
-                          ? 'bg-accent-red-dark hover:bg-accent-red text-white'
+                          ? 'bg-accent-red-dark hover:bg-accent-red text-theme-primary'
                           : 'bg-theme-quaternary text-theme-muted cursor-not-allowed'
                       }`}
                     >
@@ -171,7 +171,7 @@ const AbilityScoreEditModal: React.FC<AbilityScoreEditModalProps> = ({
                       disabled={!canIncrease}
                       className={`flex-1 px-3 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-1 ${
                         canIncrease
-                          ? 'bg-accent-green-dark hover:bg-accent-green text-white'
+                          ? 'bg-accent-green-dark hover:bg-accent-green text-theme-primary'
                           : 'bg-theme-quaternary text-theme-muted cursor-not-allowed'
                       }`}
                     >
@@ -210,14 +210,14 @@ const AbilityScoreEditModal: React.FC<AbilityScoreEditModalProps> = ({
         <div className="flex items-center justify-between p-6 border-t border-theme-secondary bg-theme-primary">
           <button
             onClick={handleReset}
-            className="px-6 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-white transition-colors"
+            className="px-6 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-theme-primary transition-colors"
           >
             Reset
           </button>
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-white transition-colors"
+              className="px-6 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-theme-primary transition-colors"
             >
               Cancel
             </button>
@@ -226,7 +226,7 @@ const AbilityScoreEditModal: React.FC<AbilityScoreEditModalProps> = ({
               disabled={pointsAvailable !== 0}
               className={`px-6 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
                 pointsAvailable === 0
-                  ? 'bg-accent-purple hover:bg-accent-purple-light text-white'
+                  ? 'bg-accent-purple hover:bg-accent-purple-light text-theme-primary'
                   : 'bg-theme-quaternary text-theme-muted cursor-not-allowed'
               }`}
             >

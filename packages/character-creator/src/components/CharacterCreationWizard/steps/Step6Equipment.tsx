@@ -32,7 +32,7 @@ const EquipmentPackDisplay: React.FC<EquipmentPackDisplayProps> = ({
   return (
     <div className={`border-2 rounded-lg transition-all ${
       isSelected
-        ? 'bg-accent-blue-darker border-blue-500'
+        ? 'bg-accent-blue-darker border-tone-info'
         : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
     }`}>
       <button
@@ -41,12 +41,12 @@ const EquipmentPackDisplay: React.FC<EquipmentPackDisplayProps> = ({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="text-white font-medium">{pack.name}</span>
+            <span className="text-theme-primary font-medium">{pack.name}</span>
             {pack.startingGold && pack.startingGold > 0 && (
               <span className="text-accent-yellow-light text-sm">({pack.startingGold} gp)</span>
             )}
             {showRecommendation && isRecommended && (
-              <span className="px-2 py-1 text-xs bg-accent-green-dark text-green-200 rounded">
+              <span className="px-2 py-1 text-xs bg-accent-green-dark text-tone-success rounded">
                 Recommended
               </span>
             )}
@@ -96,7 +96,7 @@ const RandomizeButton: React.FC<{ onClick: () => void; title?: string; className
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
+      className={`px-3 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary text-sm font-medium transition-colors flex items-center gap-2 ${className}`}
       title={title}
     >
       <Shuffle className="w-4 h-4" />
@@ -244,7 +244,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
     <div className='space-y-6'>
       <div className='flex justify-between items-start'>
         <div className='flex-1'>
-          <h3 className='text-xl font-bold text-red-300'>Select Starting Equipment</h3>
+          <h3 className='text-xl font-bold text-tone-danger'>Select Starting Equipment</h3>
           <p className="text-sm text-theme-muted mt-1">
             Choose your starting equipment based on your class. Your background will also grant additional items.
           </p>
@@ -452,7 +452,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
                     setStartingGold(rolledGold);
                     setGoldRolled(true);
                   }}
-                  className="px-4 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white font-medium"
+                  className="px-4 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary font-medium"
                 >
                   Roll for Gold
                 </button>
@@ -462,7 +462,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
                     setStartingGold(averageGold);
                     setGoldRolled(true);
                   }}
-                  className="px-4 py-2 bg-accent-blue hover:bg-accent-blue-dark rounded-lg text-white font-medium"
+                  className="px-4 py-2 bg-accent-blue hover:bg-accent-blue-dark rounded-lg text-theme-primary font-medium"
                 >
                   Take Average
                 </button>
@@ -525,14 +525,14 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
                     onClick={() => handleEquipmentChoice(choice.choiceId, optionIdx)}
                     className={`p-3 rounded-lg border-2 text-left transition-all ${
                       choice.selected === optionIdx
-                        ? 'bg-accent-blue-darker border-blue-500'
+                        ? 'bg-accent-blue-darker border-tone-info'
                         : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
                     }`}
                   >
                     <div className="space-y-1">
                       {option.map((item, itemIdx) => (
                         <div key={itemIdx} className="text-sm">
-                          <span className="text-white font-medium">{item.name}</span>
+                          <span className="text-theme-primary font-medium">{item.name}</span>
                           {item.quantity > 1 && (
                             <span className="text-theme-muted ml-1">x{item.quantity}</span>
                           )}
@@ -596,7 +596,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
                 className={`border-2 rounded-lg p-3 text-left transition-all ${
                   selectedFighterBuild === 'defender'
                     ? 'bg-accent-green-darker border-accent-green'
-                    : 'bg-green-900/10 border-accent-green hover:bg-green-900/20'
+                    : 'bg-tone-success-soft border-accent-green hover:bg-tone-success-soft'
                 }`}
               >
                 <h5 className="font-semibold text-accent-green-light text-sm">The Defender (Tank)</h5>
@@ -612,7 +612,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
                 className={`border-2 rounded-lg p-3 text-left transition-all ${
                   selectedFighterBuild === 'striker'
                     ? 'bg-accent-red-darker border-accent-red'
-                    : 'bg-red-900/10 border-accent-red hover:bg-red-900/20'
+                    : 'bg-tone-danger-soft border-accent-red hover:bg-tone-danger-soft'
                 }`}
               >
                 <h5 className="font-semibold text-accent-red-light text-sm">The Striker (Two-Handed Damage)</h5>
@@ -628,7 +628,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
                 className={`border-2 rounded-lg p-3 text-left transition-all ${
                   selectedFighterBuild === 'archer'
                     ? 'bg-accent-blue-darker border-accent-blue'
-                    : 'bg-blue-900/10 border-accent-blue hover:bg-blue-900/20'
+                    : 'bg-tone-info-soft border-accent-blue hover:bg-tone-info-soft'
                 }`}
               >
                 <h5 className="font-semibold text-accent-blue-light text-sm">The Archer (Dexterity-Based)</h5>
@@ -640,7 +640,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
             </div>
 
             {/* Build 4: Gold Option - Info only */}
-            <div className="border border-accent-yellow rounded-lg p-3 bg-yellow-900/10">
+            <div className="border border-accent-yellow rounded-lg p-3 bg-tone-warning-soft">
               <h5 className="font-semibold text-accent-yellow-light text-sm">💡 Pro-Tip: The Gold Option</h5>
               <p className="text-xs text-theme-tertiary mt-1">Take starting gold instead of equipment for maximum flexibility.</p>
               <div className="text-xs text-theme-muted mt-2 space-y-1">
@@ -669,7 +669,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
         />
 
        <div className='flex justify-between items-center gap-3'>
-        <button onClick={prevStep} className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white flex items-center">
+        <button onClick={prevStep} className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary flex items-center">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>
         <button
@@ -682,7 +682,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
               nextStep();
             }
           }}
-          className="px-4 py-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-white flex items-center"
+          className="px-4 py-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-theme-primary flex items-center"
         >
           {getNextStepLabel?.() || 'Continue'} <ArrowRight className="w-4 h-4 ml-2" />
         </button>
@@ -696,7 +696,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
               skipToStep(13); // Skip to Traits/Final details step
             }
           }}
-          className="px-4 py-2 bg-accent-red hover:bg-accent-red-light rounded-lg text-white flex items-center"
+          className="px-4 py-2 bg-accent-red hover:bg-accent-red-light rounded-lg text-theme-primary flex items-center"
         >
           Skip to Traits <ArrowRight className="w-4 h-4 ml-2" />
         </button>
@@ -723,7 +723,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
             <div className="flex justify-end">
               <button
                 onClick={() => setShowMissingChoicesModal(false)}
-                className="px-4 py-2 bg-accent-blue hover:bg-accent-blue-dark rounded-lg text-white font-medium"
+                className="px-4 py-2 bg-accent-blue hover:bg-accent-blue-dark rounded-lg text-theme-primary font-medium"
               >
                 Got it
               </button>

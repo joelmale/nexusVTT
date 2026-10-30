@@ -38,7 +38,7 @@ const SpellDetailsModal: React.FC<SpellDetailsModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-overlay backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -48,7 +48,7 @@ const SpellDetailsModal: React.FC<SpellDetailsModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-theme-primary">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-purple-300">{spell.name}</h2>
+            <h2 className="text-xl font-bold text-tone-magic">{spell.name}</h2>
             <div className="flex items-center gap-2">
               <span className="text-xs px-2 py-1 bg-theme-tertiary rounded text-theme-tertiary">
                 {spell.level === 0 ? 'Cantrip' : `${spell.level}${spell.level === 1 ? 'st' : spell.level === 2 ? 'nd' : spell.level === 3 ? 'rd' : 'th'} Level`}
@@ -60,10 +60,10 @@ const SpellDetailsModal: React.FC<SpellDetailsModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-red-600 rounded-lg transition-colors ml-2"
+            className="p-2 hover:bg-fill-danger rounded-lg transition-colors ml-2"
             title="Close modal"
           >
-            <X className="w-5 h-5 text-gray-400 hover:text-white" />
+            <X className="w-5 h-5 text-theme-muted hover:text-theme-primary" />
           </button>
         </div>
 
@@ -73,19 +73,19 @@ const SpellDetailsModal: React.FC<SpellDetailsModalProps> = ({
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="bg-theme-secondary rounded p-3">
               <div className="text-xs text-theme-muted mb-1">Casting Time</div>
-              <div className="text-sm text-purple-200 font-medium">{spell.castingTime}</div>
+              <div className="text-sm text-tone-magic font-medium">{spell.castingTime}</div>
             </div>
             <div className="bg-theme-secondary rounded p-3">
               <div className="text-xs text-theme-muted mb-1">Range</div>
-              <div className="text-sm text-purple-200 font-medium">{spell.range}</div>
+              <div className="text-sm text-tone-magic font-medium">{spell.range}</div>
             </div>
             <div className="bg-theme-secondary rounded p-3">
               <div className="text-xs text-theme-muted mb-1">Components</div>
-              <div className="text-sm text-purple-200 font-medium">{formatComponents()}</div>
+              <div className="text-sm text-tone-magic font-medium">{formatComponents()}</div>
             </div>
             <div className="bg-theme-secondary rounded p-3">
               <div className="text-xs text-theme-muted mb-1">Duration</div>
-              <div className="text-sm text-purple-200 font-medium">{spell.duration}</div>
+              <div className="text-sm text-tone-magic font-medium">{spell.duration}</div>
             </div>
           </div>
 
@@ -94,7 +94,7 @@ const SpellDetailsModal: React.FC<SpellDetailsModalProps> = ({
             <div className="flex items-center gap-2">
               <span className={`text-xs px-3 py-1 rounded-full ${
                 spell.concentration
-                  ? 'bg-yellow-900 text-yellow-200'
+                  ? 'bg-tone-warning-soft text-tone-gold'
                   : 'bg-theme-secondary text-theme-muted'
               }`}>
                 {spell.concentration ? '🧠 Concentration' : 'No Concentration'}
@@ -103,7 +103,7 @@ const SpellDetailsModal: React.FC<SpellDetailsModalProps> = ({
             <div className="flex items-center gap-2">
               <span className={`text-xs px-3 py-1 rounded-full ${
                 spell.ritual
-                  ? 'bg-blue-900 text-blue-200'
+                  ? 'bg-tone-info-soft text-tone-info'
                   : 'bg-theme-secondary text-theme-muted'
               }`}>
                 {spell.ritual ? '📖 Ritual' : 'No Ritual'}
@@ -126,7 +126,7 @@ const SpellDetailsModal: React.FC<SpellDetailsModalProps> = ({
             <div className="mb-4">
               <h3 className="text-sm font-semibold text-theme-tertiary mb-2">At Higher Levels</h3>
               <div className="bg-theme-secondary rounded p-4 border-l-4 border-accent-purple">
-                <p className="text-sm text-purple-200">
+                <p className="text-sm text-tone-magic">
                   {spell.atHigherLevels}
                 </p>
               </div>
@@ -139,13 +139,13 @@ const SpellDetailsModal: React.FC<SpellDetailsModalProps> = ({
               {spell.damageType && (
                 <div className="flex items-center gap-2">
                   <span className="text-theme-tertiary">Damage:</span>
-                  <span className="text-red-300 font-medium">{spell.damageType}</span>
+                  <span className="text-tone-danger font-medium">{spell.damageType}</span>
                 </div>
               )}
               {spell.saveType && (
                 <div className="flex items-center gap-2">
                   <span className="text-theme-tertiary">Save:</span>
-                  <span className="text-orange-300 font-medium">{spell.saveType}</span>
+                  <span className="text-tone-warning font-medium">{spell.saveType}</span>
                 </div>
               )}
             </div>
@@ -159,9 +159,9 @@ const SpellDetailsModal: React.FC<SpellDetailsModalProps> = ({
             disabled={!canSelect && !isSelected}
             className={`px-6 py-2 rounded-lg font-medium transition-colors ${
               isSelected
-                ? 'bg-green-600 text-white cursor-default'
+                ? 'bg-fill-success text-theme-primary cursor-default'
                 : canSelect
-                ? 'bg-accent-purple hover:bg-accent-purple-light text-white shadow-lg'
+                ? 'bg-accent-purple hover:bg-accent-purple-light text-theme-primary shadow-lg'
                 : 'bg-theme-secondary text-theme-muted cursor-not-allowed'
             }`}
           >

@@ -269,8 +269,8 @@ export const EquipmentShop: React.FC<EquipmentShopProps> = ({
                       disabled={!canAffordThis}
                       className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                         inCart > 0
-                          ? 'bg-accent-blue text-white'
-                          : 'bg-accent-green hover:bg-accent-green-dark text-white'
+                          ? 'bg-accent-blue text-theme-primary'
+                          : 'bg-accent-green hover:bg-accent-green-dark text-theme-primary'
                       } disabled:bg-theme-quaternary disabled:text-theme-muted disabled:cursor-not-allowed`}
                     >
                       {inCart > 0 ? 'Add More' : 'Add to Cart'}
@@ -287,7 +287,7 @@ export const EquipmentShop: React.FC<EquipmentShopProps> = ({
       <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-theme-primary">
         <button
           onClick={onBack}
-          className="px-6 py-3 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white transition-colors"
+          className="px-6 py-3 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary transition-colors"
         >
           ← Back to Equipment Options
         </button>
@@ -297,7 +297,7 @@ export const EquipmentShop: React.FC<EquipmentShopProps> = ({
         <button
           onClick={handlePurchaseComplete}
           disabled={cartItems.length === 0 || !canAfford}
-          className="px-6 py-3 bg-accent-green hover:bg-accent-green-dark disabled:bg-theme-quaternary disabled:cursor-not-allowed rounded-lg text-white font-semibold transition-colors flex items-center justify-center gap-2"
+          className="px-6 py-3 bg-accent-green hover:bg-accent-green-dark disabled:bg-theme-quaternary disabled:cursor-not-allowed rounded-lg text-theme-primary font-semibold transition-colors flex items-center justify-center gap-2"
         >
           <ShoppingCart className="w-4 h-4" />
           Complete Purchase ({cartItems.length} items)

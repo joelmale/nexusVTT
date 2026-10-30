@@ -194,21 +194,21 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
               onClick={() => setUseAverage(true)}
               className={`p-4 rounded-lg border-2 transition-all ${
                 useAverage
-                  ? 'bg-accent-red border-red-400 shadow-lg'
+                  ? 'bg-accent-red border-tone-danger shadow-lg'
                   : 'bg-theme-secondary border-theme-border hover:border-accent-gold/50'
               }`}
             >
               <div className="text-center">
                 <TrendingUp
-                  className={`w-6 h-6 mx-auto mb-2 ${useAverage ? 'text-white' : 'text-accent-gold'}`}
+                  className={`w-6 h-6 mx-auto mb-2 ${useAverage ? 'text-theme-primary' : 'text-accent-gold'}`}
                 />
                 <div
-                  className={`font-bold ${useAverage ? 'text-white' : 'text-theme-text'}`}
+                  className={`font-bold ${useAverage ? 'text-theme-primary' : 'text-theme-text'}`}
                 >
                   Take Average
                 </div>
                 <div
-                  className={`text-xs mt-1 ${useAverage ? 'text-gray-200' : 'text-theme-tertiary'}`}
+                  className={`text-xs mt-1 ${useAverage ? 'text-theme-secondary' : 'text-theme-tertiary'}`}
                 >
                   Consistent, recommended
                 </div>
@@ -219,21 +219,21 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
               onClick={() => setUseAverage(false)}
               className={`p-4 rounded-lg border-2 transition-all ${
                 !useAverage
-                  ? 'bg-accent-red border-red-400 shadow-lg'
+                  ? 'bg-accent-red border-tone-danger shadow-lg'
                   : 'bg-theme-secondary border-theme-border hover:border-accent-gold/50'
               }`}
             >
               <div className="text-center">
                 <Dices
-                  className={`w-6 h-6 mx-auto mb-2 ${!useAverage ? 'text-white' : 'text-accent-gold'}`}
+                  className={`w-6 h-6 mx-auto mb-2 ${!useAverage ? 'text-theme-primary' : 'text-accent-gold'}`}
                 />
                 <div
-                  className={`font-bold ${!useAverage ? 'text-white' : 'text-theme-text'}`}
+                  className={`font-bold ${!useAverage ? 'text-theme-primary' : 'text-theme-text'}`}
                 >
                   Roll Dice
                 </div>
                 <div
-                  className={`text-xs mt-1 ${!useAverage ? 'text-gray-200' : 'text-theme-tertiary'}`}
+                  className={`text-xs mt-1 ${!useAverage ? 'text-theme-secondary' : 'text-theme-tertiary'}`}
                 >
                   Random, risky
                 </div>
@@ -264,7 +264,7 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => rollHP(index - 1)}
-                        className="px-2 py-1 bg-accent-red hover:bg-accent-red-light rounded text-xs text-white"
+                        className="px-2 py-1 bg-accent-red hover:bg-accent-red-light rounded text-xs text-theme-primary"
                       >
                         <Dices className="w-3 h-3" />
                       </button>
@@ -308,7 +308,7 @@ export const StepHighLevelSetup: React.FC<StepProps> = ({
 
         <button
           onClick={handleNext}
-          className="px-6 py-3 bg-accent-red hover:bg-accent-red-light rounded-lg text-white flex items-center transition-colors"
+          className="px-6 py-3 bg-accent-red hover:bg-accent-red-light rounded-lg text-theme-primary flex items-center transition-colors"
         >
           Next: {getNextStepLabel?.() || 'Continue'}
           <ArrowRight className="w-5 h-5 ml-2" />

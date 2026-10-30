@@ -30,6 +30,7 @@ import SpellEditModal from './SpellEditModal';
 import { CastingGrantChoices } from '../CastingGrantChoices';
 import type { CreationDraft, CreatorPresentation } from '../../types/draft';
 import { studyRecorder } from '../../services/studyRecorder';
+import { humanizeId } from '../../utils/displayLabels';
 
 export interface FourScreenNewcomerFlowProps {
   isOpen: boolean;
@@ -279,7 +280,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
         <div className="p-4 md:px-6 border-b border-theme-quaternary flex items-center justify-between bg-theme-tertiary">
           <button
             onClick={screen === 0 ? onClose : () => setScreen((s) => s - 1)}
-            className="flex items-center space-x-2 px-3 py-1.5 bg-theme-quaternary hover:bg-theme-quaternary/80 rounded-lg text-white text-sm transition-colors min-h-[44px]"
+            className="flex items-center space-x-2 px-3 py-1.5 bg-theme-quaternary hover:bg-theme-quaternary/80 rounded-lg text-theme-primary text-sm transition-colors min-h-[44px]"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{screen === 0 ? backLabel : 'Back'}</span>
@@ -315,7 +316,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
             )}
             <button
               onClick={onClose}
-              className="text-theme-muted hover:text-white p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="text-theme-muted hover:text-theme-primary p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Close"
             >
               ✕
@@ -329,7 +330,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
           {screen === 0 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-1">
+                <h2 className="text-2xl font-bold text-theme-primary mb-1">
                   How do you want to play?
                 </h2>
                 <p className="text-sm text-theme-muted">
@@ -360,7 +361,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                         {intent.icon}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-white">
+                        <h3 className="font-semibold text-theme-primary">
                           {intent.title}
                         </h3>
                         <p className="text-xs text-theme-muted mt-0.5">
@@ -388,8 +389,8 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                         }}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors min-h-[44px] flex items-center ${
                           isSelected
-                            ? 'bg-accent-purple border-accent-purple text-white'
-                            : 'bg-theme-tertiary border-theme-quaternary text-theme-muted hover:text-white hover:border-theme-muted'
+                            ? 'bg-accent-purple border-accent-purple text-theme-primary'
+                            : 'bg-theme-tertiary border-theme-quaternary text-theme-muted hover:text-theme-primary hover:border-theme-muted'
                         }`}
                       >
                         {cert.name}
@@ -416,7 +417,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                   id="species-select"
                   value={selectedSpecies}
                   onChange={(e) => setSelectedSpecies(e.target.value)}
-                  className="bg-theme-tertiary border border-theme-quaternary rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-accent-purple min-h-[44px]"
+                  className="bg-theme-tertiary border border-theme-quaternary rounded-lg px-3 py-2 text-theme-primary text-sm focus:outline-none focus:border-accent-purple min-h-[44px]"
                 >
                   <option value="">Recommended Match</option>
                   {availableSpecies.map((s) => (
@@ -449,7 +450,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                   <span className="text-xs text-accent-purple-light font-bold uppercase tracking-wider">
                     Recommended Character
                   </span>
-                  <h2 className="text-3xl font-extrabold text-white mt-1">
+                  <h2 className="text-3xl font-extrabold text-theme-primary mt-1">
                     {recommendation.draft.classSlug?.toUpperCase()} •{' '}
                     <span className="text-theme-muted font-normal text-2xl">
                       {recommendation.draft.speciesSlug?.replace(/-2024$/, '')}
@@ -463,14 +464,14 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowAbilityModal(true)}
-                    className="px-3 py-1.5 bg-theme-quaternary hover:bg-theme-quaternary/80 rounded-lg text-xs font-semibold text-white flex items-center space-x-1.5 min-h-[44px]"
+                    className="px-3 py-1.5 bg-theme-quaternary hover:bg-theme-quaternary/80 rounded-lg text-xs font-semibold text-theme-primary flex items-center space-x-1.5 min-h-[44px]"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>Customize Stats</span>
                   </button>
                   <button
                     onClick={() => setShowSkillModal(true)}
-                    className="px-3 py-1.5 bg-theme-quaternary hover:bg-theme-quaternary/80 rounded-lg text-xs font-semibold text-white flex items-center space-x-1.5 min-h-[44px]"
+                    className="px-3 py-1.5 bg-theme-quaternary hover:bg-theme-quaternary/80 rounded-lg text-xs font-semibold text-theme-primary flex items-center space-x-1.5 min-h-[44px]"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>Customize Skills</span>
@@ -480,7 +481,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
 
               {/* Three Practical Strengths */}
               <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-3">
+                <h3 className="text-sm font-bold text-theme-primary uppercase tracking-wider mb-3">
                   Key Strengths in Play
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -489,7 +490,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                       key={idx}
                       className="bg-theme-tertiary border border-theme-quaternary rounded-lg p-3.5 space-y-1"
                     >
-                      <h4 className="font-semibold text-white text-sm flex items-center space-x-1.5">
+                      <h4 className="font-semibold text-theme-primary text-sm flex items-center space-x-1.5">
                         <Check className="w-4 h-4 text-accent-green-light shrink-0" />
                         <span>{str.title}</span>
                       </h4>
@@ -514,7 +515,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                         <span className="text-[11px] text-theme-muted block font-bold">
                           {ability}
                         </span>
-                        <span className="text-lg font-bold text-white">
+                        <span className="text-lg font-bold text-theme-primary">
                           {score}
                         </span>
                       </div>
@@ -530,7 +531,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                     {activeSkills.map((sk) => (
                       <span
                         key={sk}
-                        className="px-2.5 py-1 bg-theme-primary border border-theme-quaternary rounded text-xs font-medium text-white"
+                        className="px-2.5 py-1 bg-theme-primary border border-theme-quaternary rounded text-xs font-medium text-theme-primary"
                       >
                         {sk}
                       </span>
@@ -539,7 +540,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                       <span
                         key={`bg-${sk}`}
                         title="From your background"
-                        className="px-2.5 py-1 bg-theme-primary border border-theme-quaternary rounded text-xs font-medium text-white"
+                        className="px-2.5 py-1 bg-theme-primary border border-theme-quaternary rounded text-xs font-medium text-theme-primary"
                       >
                         {sk} (background)
                       </span>
@@ -558,7 +559,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                 onChange={session.updateData}
               />
               <div>
-                <h2 className="text-2xl font-bold text-white mb-1">
+                <h2 className="text-2xl font-bold text-theme-primary mb-1">
                   Equipment & Spell Package
                 </h2>
                 <p className="text-sm text-theme-muted">
@@ -569,7 +570,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
               {/* Equipment Items */}
               <div className="bg-theme-tertiary border border-theme-quaternary rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-white text-sm uppercase tracking-wider">
+                  <h3 className="font-bold text-theme-primary text-sm uppercase tracking-wider">
                     Starting Loadout & Currency
                   </h3>
                   <span className="text-xs font-bold text-accent-gold-light">
@@ -582,8 +583,8 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                       key={idx}
                       className="flex items-center justify-between p-2 bg-theme-primary border border-theme-quaternary rounded-lg text-xs"
                     >
-                      <span className="text-white font-medium capitalize">
-                        {item.quantity} � {item.name}
+                      <span className="text-theme-primary font-medium capitalize">
+                        {item.quantity} &times; {humanizeId(item.name)}
                       </span>
                       {item.equipped && (
                         <span className="text-[10px] bg-accent-purple/20 text-accent-purple-light px-1.5 py-0.5 rounded font-bold">
@@ -601,7 +602,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                   recommendation.draft.spells.prepared.length > 0) && (
                   <div className="bg-theme-tertiary border border-theme-quaternary rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-white text-sm uppercase tracking-wider">
+                      <h3 className="font-bold text-theme-primary text-sm uppercase tracking-wider">
                         Prepared Spells & Cantrips
                       </h3>
                       <button
@@ -653,7 +654,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
           {screen === 3 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-2xl font-bold text-white mb-1">
+                <h2 className="text-2xl font-bold text-theme-primary mb-1">
                   Name & Finalize
                 </h2>
                 <p className="text-sm text-theme-muted">
@@ -681,7 +682,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                         session.updateData({ name: e.target.value });
                       }}
                       placeholder="Enter a name..."
-                      className="flex-1 bg-theme-tertiary border border-theme-quaternary rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-accent-purple min-h-[44px]"
+                      className="flex-1 bg-theme-tertiary border border-theme-quaternary rounded-lg px-3 py-2 text-theme-primary text-sm focus:outline-none focus:border-accent-purple min-h-[44px]"
                     />
                     <button
                       onClick={() =>
@@ -693,7 +694,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                         )
                       }
                       title="Randomize Name"
-                      className="px-3 py-2 bg-theme-quaternary hover:bg-theme-quaternary/80 rounded-lg text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      className="px-3 py-2 bg-theme-quaternary hover:bg-theme-quaternary/80 rounded-lg text-theme-primary transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                     >
                       <Dices className="w-5 h-5" />
                     </button>
@@ -714,7 +715,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                       setSelectedAlignment(e.target.value);
                       session.updateData({ alignment: e.target.value });
                     }}
-                    className="w-full bg-theme-tertiary border border-theme-quaternary rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-accent-purple min-h-[44px]"
+                    className="w-full bg-theme-tertiary border border-theme-quaternary rounded-lg px-3 py-2 text-theme-primary text-sm focus:outline-none focus:border-accent-purple min-h-[44px]"
                   >
                     {ALIGNMENTS.map((al) => (
                       <option key={al.value} value={al.value}>
@@ -734,7 +735,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
 
                 <div className="space-y-2 text-xs">
                   <div>
-                    <span className="font-bold text-white block">
+                    <span className="font-bold text-theme-primary block">
                       Standard Action:
                     </span>
                     <span className="text-theme-muted">
@@ -743,7 +744,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                   </div>
                   {recommendation.firstTurnGuidance.bonusAction && (
                     <div>
-                      <span className="font-bold text-white block">
+                      <span className="font-bold text-theme-primary block">
                         Bonus Action:
                       </span>
                       <span className="text-theme-muted">
@@ -753,7 +754,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
                   )}
                   {recommendation.firstTurnGuidance.reaction && (
                     <div>
-                      <span className="font-bold text-white block">
+                      <span className="font-bold text-theme-primary block">
                         Reaction:
                       </span>
                       <span className="text-theme-muted">
@@ -778,14 +779,14 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
         {/* Footer Actions */}
         <div className="p-4 md:px-6 border-t border-theme-quaternary bg-theme-tertiary flex items-center justify-between">
           <span className="text-xs text-theme-muted">
-            Edition: <span className="font-bold text-white">{edition}</span>
+            Edition: <span className="font-bold text-theme-primary">{edition}</span>
           </span>
 
           <div className="flex space-x-3">
             {screen < 3 ? (
               <button
                 onClick={() => setScreen((s) => s + 1)}
-                className="px-6 py-2.5 bg-accent-purple hover:bg-accent-purple-dark text-white font-semibold rounded-lg flex items-center space-x-2 transition-all min-h-[44px]"
+                className="px-6 py-2.5 bg-accent-purple hover:bg-accent-purple-dark text-theme-primary font-semibold rounded-lg flex items-center space-x-2 transition-all min-h-[44px]"
               >
                 <span>Continue</span>
                 <ArrowRight className="w-4 h-4" />
@@ -793,7 +794,7 @@ export const FourScreenNewcomerFlow: React.FC<FourScreenNewcomerFlowProps> = ({
             ) : (
               <button
                 onClick={handleCreate}
-                className="px-6 py-2.5 bg-accent-green hover:bg-accent-green-dark text-white font-bold rounded-lg flex items-center space-x-2 transition-all shadow-lg min-h-[44px]"
+                className="px-6 py-2.5 bg-accent-green hover:bg-accent-green-dark text-theme-primary font-bold rounded-lg flex items-center space-x-2 transition-all shadow-lg min-h-[44px]"
               >
                 <span>Create Character</span>
                 <Check className="w-4 h-4" />

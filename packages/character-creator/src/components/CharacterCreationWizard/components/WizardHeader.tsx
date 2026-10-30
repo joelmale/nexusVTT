@@ -11,10 +11,10 @@ export const WizardHeader: React.FC<WizardHeaderProps> = ({ currentStep, stepTit
   const title = stepTitles?.[currentStep] || 'Character Creation';
   return (
     <div className="flex justify-between items-center border-b border-accent-red-dark pb-3">
-      <h2 className="text-2xl font-bold text-red-500 flex items-center">
+      <h2 className="text-2xl font-bold text-tone-danger flex items-center">
         <Dice6 className="w-6 h-6 mr-2" /> {title}
       </h2>
-      <button onClick={onClose} className="text-theme-muted hover:text-white text-xl font-bold">&times;</button>
+      <button onClick={onClose} className="text-theme-muted hover:text-theme-primary text-xl font-bold">&times;</button>
     </div>
   );
 };

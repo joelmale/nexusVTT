@@ -62,7 +62,7 @@ const ChooseSubclassModal: React.FC<ChooseSubclassModalProps> = ({
             <h2 className="text-2xl font-bold text-accent-yellow-light">Choose a {characterClass} Subclass</h2>
             <button
               onClick={onClose}
-              className="text-theme-muted hover:text-white transition-colors"
+              className="text-theme-muted hover:text-theme-primary transition-colors"
               title="Close"
             >
               <X className="w-6 h-6" />
@@ -151,7 +151,7 @@ const ChooseSubclassModal: React.FC<ChooseSubclassModalProps> = ({
                       <div className="pt-4 border-t border-theme-primary">
                         <button
                           onClick={() => onSelect(subclass)}
-                          className="w-full bg-accent-red hover:bg-accent-red-light text-white font-medium py-3 px-4 rounded-lg transition-colors"
+                          className="w-full bg-accent-red hover:bg-accent-red-light text-theme-primary font-medium py-3 px-4 rounded-lg transition-colors"
                         >
                           Choose {subclass.name}
                         </button>

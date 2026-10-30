@@ -4,6 +4,7 @@ import { SelectionPoolWidgetProps, SkillOption, WeaponOption, SelectionPoolConfi
 import { loadEquipment } from '../../../services/dataService';
 import { Equipment } from '../../../types/dnd';
 import WeaponMasteryTooltip from '../../WeaponMasteryTooltip';
+import { useRevealValidation } from '../../../hooks/useRevealValidation';
 
 /**
  * SelectionPoolWidget
@@ -18,6 +19,7 @@ export const SelectionPoolWidget: React.FC<SelectionPoolWidgetProps> = ({
   onSelectionChange,
 }) => {
   const config = feature.widget_config;
+  const { revealed, onInteract } = useRevealValidation();
 
   // ============================================================================
   // Get Available Options Based on Source (Memoized for Performance)
@@ -187,6 +189,7 @@ export const SelectionPoolWidget: React.FC<SelectionPoolWidgetProps> = ({
   // ============================================================================
 
   const handleSelect = useCallback((id: string) => {
+    onInteract();
     if (currentSelection.includes(id)) {
       // Deselect
       onSelectionChange(currentSelection.filter(item => item !== id));
@@ -194,7 +197,7 @@ export const SelectionPoolWidget: React.FC<SelectionPoolWidgetProps> = ({
       // Select
       onSelectionChange([...currentSelection, id]);
     }
-  }, [currentSelection, config.count, onSelectionChange]);
+  }, [currentSelection, config.count, onSelectionChange, onInteract]);
 
   const isSelected = (id: string): boolean => {
     return currentSelection.includes(id);
@@ -218,6 +221,7 @@ export const SelectionPoolWidget: React.FC<SelectionPoolWidgetProps> = ({
       handleSelect={handleSelect}
       isSelected={isSelected}
       isMaxSelected={isMaxSelected}
+      showValidation={revealed}
     />;
   }
 
@@ -225,13 +229,13 @@ export const SelectionPoolWidget: React.FC<SelectionPoolWidgetProps> = ({
   return (
     <div className="selection-pool-widget mb-6">
       <div className="mb-4">
-        <h3 className="text-xl font-bold text-amber-400 mb-2">
+        <h3 className="text-xl font-bold text-tone-warning mb-2">
           {feature.name}
         </h3>
-        <p className="text-gray-300 text-sm mb-3">
+        <p className="text-theme-muted text-sm mb-3">
           {feature.desc}
         </p>
-        <div className="text-amber-400 text-sm font-semibold">
+        <div className="text-tone-warning text-sm font-semibold">
           Selected: {currentSelection.length} / {config.count}
           {currentSelection.length === config.count && ' ✓'}
         </div>
@@ -255,9 +259,9 @@ export const SelectionPoolWidget: React.FC<SelectionPoolWidgetProps> = ({
         })}
       </div>
 
-      {currentSelection.length === 0 && (
-        <div className="mt-4 text-amber-400 text-sm">
-          ⚠️ Please select {config.count} weapons
+      {revealed && currentSelection.length === 0 && (
+        <div className="mt-4 text-tone-warning text-sm" role="status">
+          Please select {config.count} weapons
         </div>
       )}
     </div>
@@ -276,6 +280,7 @@ interface WeaponGroupedUIProps {
   handleSelect: (id: string) => void;
   isSelected: (id: string) => boolean;
   isMaxSelected: () => boolean;
+  showValidation?: boolean;
 }
 
 const WeaponGroupedUI: React.FC<WeaponGroupedUIProps> = ({
@@ -285,7 +290,8 @@ const WeaponGroupedUI: React.FC<WeaponGroupedUIProps> = ({
   currentSelection,
   handleSelect,
   isSelected,
-  isMaxSelected
+  isMaxSelected,
+  showValidation = false
 }) => {
   // Group weapons
   const simpleMelee = weapons.filter(w => w.category === 'simple' && w.weaponRange === 'Melee');
@@ -298,13 +304,13 @@ const WeaponGroupedUI: React.FC<WeaponGroupedUIProps> = ({
     <div className="weapon-grouped-widget mb-6">
       {/* Header */}
       <div className="mb-4">
-        <h3 className="text-xl font-bold text-amber-400 mb-2">
+        <h3 className="text-xl font-bold text-tone-warning mb-2">
           {feature.name}
         </h3>
-        <p className="text-gray-300 text-sm mb-3">
+        <p className="text-theme-muted text-sm mb-3">
           {feature.desc}
         </p>
-        <div className="text-amber-400 text-sm font-semibold">
+        <div className="text-tone-warning text-sm font-semibold">
           Selected: {currentSelection.length} / {config.count}
           {currentSelection.length === config.count && ' ✓'}
         </div>
@@ -368,9 +374,9 @@ const WeaponGroupedUI: React.FC<WeaponGroupedUIProps> = ({
         )}
       </div>
 
-      {currentSelection.length === 0 && (
-        <div className="mt-4 text-amber-400 text-sm">
-          ⚠️ Please select {config.count} weapons
+      {showValidation && currentSelection.length === 0 && (
+        <div className="mt-4 text-tone-warning text-sm" role="status">
+          Please select {config.count} weapons
         </div>
       )}
     </div>
@@ -403,31 +409,31 @@ const WeaponGroup: React.FC<WeaponGroupProps> = ({
   const selectedCount = weapons.filter(w => isSelected(w.slug)).length;
 
   return (
-    <div className="border border-gray-600 rounded-lg overflow-hidden">
+    <div className="border border-theme-primary rounded-lg overflow-hidden">
       {/* Group Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 bg-gray-800/50 hover:bg-gray-700/50 flex items-center justify-between transition-colors"
+        className="w-full px-4 py-3 bg-theme-secondary/50 hover:bg-theme-tertiary/50 flex items-center justify-between transition-colors"
       >
         <div className="flex items-center gap-3">
-          <span className="text-white font-semibold">{title}</span>
-          <span className="text-sm text-gray-400">({weapons.length} weapons)</span>
+          <span className="text-theme-primary font-semibold">{title}</span>
+          <span className="text-sm text-theme-muted">({weapons.length} weapons)</span>
           {selectedCount > 0 && (
-            <span className="text-sm text-amber-400 font-semibold">
+            <span className="text-sm text-tone-warning font-semibold">
               ✓ {selectedCount} selected
             </span>
           )}
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-gray-400" />
+          <ChevronUp className="w-5 h-5 text-theme-muted" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-gray-400" />
+          <ChevronDown className="w-5 h-5 text-theme-muted" />
         )}
       </button>
 
       {/* Weapons Grid */}
       {isExpanded && (
-        <div className="p-3 bg-gray-900/30">
+        <div className="p-3 bg-theme-primary/30">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
             {weapons.map((weapon) => {
               const selected = isSelected(weapon.slug);
@@ -470,18 +476,18 @@ const SkillCard: React.FC<SkillCardProps> = ({ option, selected, disabled, onCli
       className={`
         p-3 rounded-lg border-2 text-left transition-all
         ${selected
-          ? 'border-amber-400 bg-amber-400/20 shadow-lg'
+          ? 'border-tone-warning bg-tone-warning-soft shadow-lg'
           : disabled
-          ? 'border-gray-600 bg-gray-800/50 opacity-50 cursor-not-allowed'
-          : 'border-gray-600 bg-gray-800/50 hover:border-amber-400/50 cursor-pointer'
+          ? 'border-theme-primary bg-theme-secondary/50 opacity-50 cursor-not-allowed'
+          : 'border-theme-primary bg-theme-secondary/50 hover:border-tone-warning cursor-pointer'
         }
       `}
     >
-      <div className="font-semibold text-white">
+      <div className="font-semibold text-theme-primary">
         {option.name}
-        {selected && <span className="ml-2 text-amber-400">✓</span>}
+        {selected && <span className="ml-2 text-tone-warning">✓</span>}
       </div>
-      <div className="text-xs text-gray-400 capitalize mt-1">
+      <div className="text-xs text-theme-muted capitalize mt-1">
         {option.type} • {option.source}
       </div>
     </button>
@@ -504,30 +510,30 @@ const WeaponCard: React.FC<WeaponCardProps> = ({ option, selected, disabled, sho
       className={`
         p-2 rounded-lg border-2 text-left transition-all text-sm w-full
         ${selected
-          ? 'border-amber-400 bg-amber-400/20'
+          ? 'border-tone-warning bg-tone-warning-soft'
           : disabled
-          ? 'border-gray-700 bg-gray-800/30 opacity-40 cursor-not-allowed'
-          : 'border-gray-700 bg-gray-800/30 hover:border-amber-400/50 cursor-pointer'
+          ? 'border-theme-secondary bg-theme-tertiary/30 opacity-40 cursor-not-allowed'
+          : 'border-theme-secondary bg-theme-tertiary/30 hover:border-tone-warning cursor-pointer'
         }
       `}
     >
       <div className="flex items-start justify-between">
-        <div className="font-semibold text-white text-sm">
+        <div className="font-semibold text-theme-primary text-sm">
           {option.name}
-          {selected && <span className="ml-1 text-amber-400">✓</span>}
+          {selected && <span className="ml-1 text-tone-warning">✓</span>}
         </div>
         {option.isTwoHanded && (
-          <div className="text-[10px] text-gray-400 bg-gray-700 px-1 rounded">2H</div>
+          <div className="text-[10px] text-theme-muted bg-theme-tertiary px-1 rounded">2H</div>
         )}
       </div>
 
-      <div className="text-xs text-gray-400 mt-1">
+      <div className="text-xs text-theme-muted mt-1">
         {option.damage}
       </div>
 
       {showMastery && option.mastery && (
-        <div className="mt-1 pt-1 border-t border-gray-700">
-          <div className="text-[10px] text-amber-400 font-semibold">
+        <div className="mt-1 pt-1 border-t border-theme-secondary">
+          <div className="text-[10px] text-tone-warning font-semibold">
             {formatMasteryName(option.mastery)}
           </div>
         </div>

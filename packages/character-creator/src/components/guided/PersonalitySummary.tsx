@@ -220,7 +220,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
       case 'the scholar':
         return <Sparkles className="w-6 h-6 text-accent-purple-light" />;
       case 'the prodigy':
-        return <Heart className="w-6 h-6 text-pink-400" />;
+        return <Heart className="w-6 h-6 text-tone-magic" />;
       case 'the oracle':
         return <Shield className="w-6 h-6 text-accent-blue-light" />;
       case 'the wildheart':
@@ -239,13 +239,13 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
     );
 
   return (
-    <div className="min-h-screen bg-theme-primary text-white font-sans">
+    <div className="min-h-screen bg-theme-primary text-theme-primary font-sans">
       <div className="max-w-4xl mx-auto p-4 md:p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={onBack}
-            className="flex items-center space-x-2 px-4 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-white transition-colors"
+            className="flex items-center space-x-2 px-4 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-theme-primary transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Personality</span>
@@ -279,7 +279,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
               </h3>
               <button
                 onClick={() => setEditingClass(!editingClass)}
-                className="text-theme-muted hover:text-white transition-colors"
+                className="text-theme-muted hover:text-theme-primary transition-colors"
               >
                 <Edit3 className="w-4 h-4" />
               </button>
@@ -292,7 +292,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                   setCurrentClass(e.target.value);
                   onClassSelect?.(e.target.value);
                 }}
-                className="w-full p-2 bg-theme-tertiary border border-theme-primary rounded text-white"
+                className="w-full p-2 bg-theme-tertiary border border-theme-primary rounded text-theme-primary"
               >
                 {availableClasses.map((cls) => (
                   <option key={cls} value={cls}>
@@ -301,7 +301,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                 ))}
               </select>
             ) : (
-              <div className="text-white font-medium">{currentClass}</div>
+              <div className="text-theme-primary font-medium">{currentClass}</div>
             )}
 
             <div className="mt-3 text-xs text-theme-muted">
@@ -318,7 +318,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
               </h3>
               <button
                 onClick={() => setEditingSpecies(!editingSpecies)}
-                className="text-theme-muted hover:text-white transition-colors"
+                className="text-theme-muted hover:text-theme-primary transition-colors"
               >
                 <Edit3 className="w-4 h-4" />
               </button>
@@ -331,7 +331,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                   setCurrentSpecies(e.target.value);
                   onSpeciesSelect?.(e.target.value);
                 }}
-                className="w-full p-2 bg-theme-tertiary border border-theme-primary rounded text-white"
+                className="w-full p-2 bg-theme-tertiary border border-theme-primary rounded text-theme-primary"
               >
                 {availableSpecies.map((species) => (
                   <option key={species} value={species}>
@@ -340,7 +340,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                 ))}
               </select>
             ) : (
-              <div className="text-white font-medium">{currentSpecies}</div>
+              <div className="text-theme-primary font-medium">{currentSpecies}</div>
             )}
 
             <div className="mt-3 text-xs text-theme-muted">
@@ -357,7 +357,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
               </h3>
               <button
                 onClick={() => setEditingBackground(!editingBackground)}
-                className="text-theme-muted hover:text-white transition-colors"
+                className="text-theme-muted hover:text-theme-primary transition-colors"
               >
                 <Edit3 className="w-4 h-4" />
               </button>
@@ -370,7 +370,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                   setCurrentBackground(e.target.value);
                   onBackgroundSelect?.(e.target.value);
                 }}
-                className="w-full p-2 bg-theme-tertiary border border-theme-primary rounded text-white"
+                className="w-full p-2 bg-theme-tertiary border border-theme-primary rounded text-theme-primary"
               >
                 {availableBackgrounds.map((bg) => (
                   <option key={bg} value={bg}>
@@ -379,7 +379,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                 ))}
               </select>
             ) : (
-              <div className="text-white font-medium">{currentBackground}</div>
+              <div className="text-theme-primary font-medium">{currentBackground}</div>
             )}
 
             <div className="mt-3 text-xs text-theme-muted">
@@ -405,7 +405,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
               {onAbilitiesChange && (
                 <button
                   onClick={() => setShowAbilityModal(true)}
-                  className="text-theme-muted hover:text-white transition-colors p-1"
+                  className="text-theme-muted hover:text-theme-primary transition-colors p-1"
                   aria-label="Edit ability scores"
                 >
                   <Pencil className="w-4 h-4" />
@@ -440,7 +440,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
               </p>
               <button
                 onClick={() => setShowArrayModal(true)}
-                className="text-theme-muted hover:text-white transition-colors"
+                className="text-theme-muted hover:text-theme-primary transition-colors"
                 aria-label="Learn about standard array"
               >
                 <HelpCircle className="w-4 h-4" />
@@ -450,25 +450,25 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
 
           {/* Combat Stats */}
           <div className="mb-6">
-            <h4 className="text-md font-semibold text-red-300 mb-3">
+            <h4 className="text-md font-semibold text-tone-danger mb-3">
               Combat Stats
             </h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-theme-tertiary p-3 rounded text-center">
                 <div className="text-xs text-theme-muted">Hit Die</div>
-                <div className="text-lg font-bold text-red-300">
+                <div className="text-lg font-bold text-tone-danger">
                   d{characterPreview.hitDie}
                 </div>
               </div>
               <div className="bg-theme-tertiary p-3 rounded text-center">
                 <div className="text-xs text-theme-muted">Armor Class</div>
-                <div className="text-lg font-bold text-blue-300">
+                <div className="text-lg font-bold text-tone-info">
                   {characterPreview.armorClass}
                 </div>
               </div>
               <div className="bg-theme-tertiary p-3 rounded text-center">
                 <div className="text-xs text-theme-muted">Hit Points</div>
-                <div className="text-lg font-bold text-green-300">
+                <div className="text-lg font-bold text-tone-success">
                   {characterPreview.hitPoints}
                 </div>
               </div>
@@ -484,13 +484,13 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
           {/* Proficient Skills */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-md font-semibold text-purple-300">
+              <h4 className="text-md font-semibold text-tone-magic">
                 Proficient Skills
               </h4>
               {onSkillsChange && (
                 <button
                   onClick={() => setShowSkillModal(true)}
-                  className="text-theme-muted hover:text-white transition-colors p-1"
+                  className="text-theme-muted hover:text-theme-primary transition-colors p-1"
                   aria-label="Edit skills"
                 >
                   <Pencil className="w-4 h-4" />
@@ -500,7 +500,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
             <div className="flex flex-wrap gap-2">
               {characterPreview.proficientSkills.map((skill, idx) => (
                 <SkillTooltip key={idx} skillName={skill}>
-                  <span className="px-3 py-1 bg-purple-700 text-purple-200 text-sm rounded cursor-help transition-all hover:bg-accent-purple">
+                  <span className="px-3 py-1 bg-fill-magic text-tone-magic text-sm rounded cursor-help transition-all hover:bg-accent-purple">
                     {skill}
                   </span>
                 </SkillTooltip>
@@ -516,10 +516,10 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
           {spellInfo && (spellInfo.hasSpells || spellInfo.hasspells) && (
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-md font-semibold text-blue-300">Spells</h4>
+                <h4 className="text-md font-semibold text-tone-info">Spells</h4>
                 <button
                   onClick={() => setShowSpellModal(true)}
-                  className="text-theme-muted hover:text-white transition-colors p-1"
+                  className="text-theme-muted hover:text-theme-primary transition-colors p-1"
                   aria-label="Edit spells"
                 >
                   <Pencil className="w-4 h-4" />
@@ -536,7 +536,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                     {spellInfo.cantrips.map((spell, idx) => (
                       <span
                         key={idx}
-                        className="px-3 py-1 bg-blue-700 text-blue-200 text-sm rounded"
+                        className="px-3 py-1 bg-fill-info text-tone-info text-sm rounded"
                       >
                         {spell}
                       </span>
@@ -557,7 +557,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                         {spellInfo.spellbook.map((spell, idx) => (
                           <span
                             key={idx}
-                            className="px-3 py-1 bg-purple-700 text-purple-200 text-sm rounded"
+                            className="px-3 py-1 bg-fill-magic text-tone-magic text-sm rounded"
                           >
                             {spell}
                           </span>
@@ -574,7 +574,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                         {spellInfo.prepared.map((spell, idx) => (
                           <span
                             key={idx}
-                            className="px-3 py-1 bg-accent-green-dark text-green-200 text-sm rounded"
+                            className="px-3 py-1 bg-accent-green-dark text-tone-success text-sm rounded"
                           >
                             {spell}
                           </span>
@@ -597,7 +597,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
                       {spellInfo.spells.map((spell, idx) => (
                         <span
                           key={idx}
-                          className="px-3 py-1 bg-purple-700 text-purple-200 text-sm rounded"
+                          className="px-3 py-1 bg-fill-magic text-tone-magic text-sm rounded"
                         >
                           {spell}
                         </span>
@@ -655,14 +655,14 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
         <div className="flex justify-center space-x-4">
           <button
             onClick={onBack}
-            className="px-6 py-3 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white transition-colors flex items-center"
+            className="px-6 py-3 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary transition-colors flex items-center"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Personality
           </button>
           <button
             onClick={handleContinue}
-            className="px-6 py-3 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white font-semibold transition-colors flex items-center"
+            className="px-6 py-3 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary font-semibold transition-colors flex items-center"
           >
             Review Character
             <ArrowRight className="w-4 h-4 ml-2" />
@@ -680,7 +680,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
               </h3>
               <button
                 onClick={() => setShowArrayModal(false)}
-                className="text-theme-muted hover:text-white transition-colors"
+                className="text-theme-muted hover:text-theme-primary transition-colors"
               >
                 <span className="text-2xl">&times;</span>
               </button>
@@ -731,7 +731,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setShowArrayModal(false)}
-                className="px-4 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white transition-colors"
+                className="px-4 py-2 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-theme-primary transition-colors"
               >
                 Got it!
               </button>

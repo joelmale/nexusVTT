@@ -6,6 +6,7 @@ import styles from './CastingGrantChoices.module.css';
 import { OriginGrantChoices } from './OriginGrantChoices';
 import { ClassGrantChoices } from './ClassGrantChoices';
 import { FeatProficiencyChoices } from './FeatProficiencyChoices';
+import { humanizeId } from '../utils/displayLabels';
 
 export function CastingGrantChoices({
   data,
@@ -64,11 +65,12 @@ export function CastingGrantChoices({
           eligibleSpellSlugs,
         }) => (
           <fieldset className={styles.grant} key={source.id}>
-            <legend>{source.sourceSlug}</legend>
+            <legend>{humanizeId(source.sourceSlug)}</legend>
             {chooseSpellClass && (
-              <label>
+              <label className={styles.field}>
                 Magic Initiate spell list{' '}
                 <select
+                  className={styles.select}
                   value={spellClass}
                   onChange={(event) =>
                     onChange({
@@ -86,7 +88,9 @@ export function CastingGrantChoices({
                   }
                 >
                   {['cleric', 'druid', 'wizard'].map((name) => (
-                    <option key={name}>{name}</option>
+                    <option key={name} value={name}>
+                      {humanizeId(name)}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -94,9 +98,10 @@ export function CastingGrantChoices({
             {source.sourceType === 'class' ? (
               <p>Spellcasting ability: {source.ability}</p>
             ) : (
-              <label>
+              <label className={styles.field}>
                 Casting ability{' '}
                 <select
+                  className={styles.select}
                   aria-label={`Casting ability for ${source.sourceSlug}`}
                   value={source.ability}
                   onChange={(event) =>
@@ -126,7 +131,7 @@ export function CastingGrantChoices({
                         (!spellClass || spell.classes.includes(spellClass)),
                     )
                     .map((spell) => (
-                      <label className={styles.choice} key={spell.slug}>
+                      <label className={styles.option} key={spell.slug}>
                         <input
                           type="checkbox"
                           checked={source.cantrips.includes(spell.slug)}
@@ -144,24 +149,25 @@ export function CastingGrantChoices({
                             })
                           }
                         />
-                        {spell.name}
+                        <span>{spell.name}</span>
                       </label>
                     ))}
                 </div>
               </>
             ) : (
-              <p>Cantrips: {source.cantrips.join(', ')}</p>
+              <p>Cantrips: {source.cantrips.map(humanizeId).join(', ')}</p>
             )}
             {spellChoices > 1 && (
-              <fieldset>
+              <fieldset className={styles.group}>
                 <legend>Choose {spellChoices} level 1 rituals</legend>
+                <div className={styles.options}>
                 {catalog
                   .filter(
                     (spell) =>
                       spell.level === 1 && (!ritualChoices || spell.ritual),
                   )
                   .map((spell) => (
-                    <label className={styles.choice} key={spell.slug}>
+                    <label className={styles.option} key={spell.slug}>
                       <input
                         type="checkbox"
                         checked={source.preparedSpells.includes(spell.slug)}
@@ -177,15 +183,17 @@ export function CastingGrantChoices({
                           })
                         }
                       />
-                      {spell.name}
+                      <span>{spell.name}</span>
                     </label>
                   ))}
+                </div>
               </fieldset>
             )}
             {spellChoices === 1 && (
-              <label>
+              <label className={styles.field}>
                 Level {spellLevel} spell{' '}
                 <select
+                  className={styles.select}
                   aria-label={`Level ${spellLevel} spell for ${source.sourceSlug}`}
                   value={source.preparedSpells[0] ?? ''}
                   onChange={(event) =>

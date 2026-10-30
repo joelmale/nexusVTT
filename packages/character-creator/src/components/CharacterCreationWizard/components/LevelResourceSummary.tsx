@@ -54,13 +54,13 @@ export const LevelResourceSummary: React.FC<{ data: CharacterCreationData }> = (
       </h4>
       {slots.length > 0 && (
         <div className="text-theme-tertiary">
-          Spell slots: <span className="text-white">{slots.join(', ')}</span>
+          Spell slots: <span className="text-theme-primary">{slots.join(', ')}</span>
         </div>
       )}
       {invocations && invocations.allowed > 0 && (
         <div className="text-theme-tertiary">
           Eldritch Invocations:{' '}
-          <span className="text-white">
+          <span className="text-theme-primary">
             {invocations.chosen} / {invocations.allowed} chosen
           </span>
         </div>

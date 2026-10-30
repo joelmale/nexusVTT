@@ -28,14 +28,14 @@ export const BranchChoiceWidget: React.FC<BranchChoiceWidgetProps> = ({
     <div className="branch-choice-widget mb-6">
       {/* Header */}
       <div className="mb-4">
-        <h3 className="text-xl font-bold text-amber-400 mb-2">
+        <h3 className="text-xl font-bold text-tone-warning mb-2">
           {feature.name}
         </h3>
-        <p className="text-gray-300 text-sm mb-3">
+        <p className="text-theme-muted text-sm mb-3">
           {feature.desc}
         </p>
         {!currentChoice && (
-          <div className="text-amber-400 text-sm">
+          <div className="text-tone-warning text-sm">
             ⚠️ Please choose one option
           </div>
         )}
@@ -83,8 +83,8 @@ const BranchCard: React.FC<BranchCardProps> = ({ option, selected, onClick }) =>
       className={`
         p-6 rounded-xl border-2 text-left transition-all
         ${selected
-          ? 'border-amber-400 bg-amber-400/20 shadow-2xl shadow-amber-400/50 scale-105'
-          : 'border-gray-600 bg-gray-800/50 hover:border-amber-400/50 hover:bg-gray-700/50 hover:scale-102 cursor-pointer'
+          ? 'border-tone-warning bg-tone-warning-soft shadow-2xl scale-105'
+          : 'border-theme-primary bg-theme-secondary/50 hover:border-tone-warning hover:bg-theme-tertiary/50 hover:scale-102 cursor-pointer'
         }
       `}
     >
@@ -95,29 +95,29 @@ const BranchCard: React.FC<BranchCardProps> = ({ option, selected, onClick }) =>
             <div className="text-3xl">{option.icon}</div>
           )}
           <div>
-            <h4 className="text-lg font-bold text-white">
+            <h4 className="text-lg font-bold text-theme-primary">
               {option.label}
-              {selected && <span className="ml-2 text-amber-400">✓</span>}
+              {selected && <span className="ml-2 text-tone-warning">✓</span>}
             </h4>
           </div>
         </div>
       </div>
 
       {/* Description */}
-      <p className="text-gray-300 text-sm mb-4">
+      <p className="text-theme-muted text-sm mb-4">
         {option.description}
       </p>
 
       {/* Grants/Benefits */}
       {option.grants && option.grants.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-600">
-          <div className="text-xs font-semibold text-amber-400 mb-2">
+        <div className="mt-4 pt-4 border-t border-theme-primary">
+          <div className="text-xs font-semibold text-tone-warning mb-2">
             Benefits:
           </div>
           <ul className="space-y-1">
             {option.grants.map((grant, index) => (
-              <li key={index} className="text-sm text-gray-300 flex items-start gap-2">
-                <span className="text-amber-400">•</span>
+              <li key={index} className="text-sm text-theme-muted flex items-start gap-2">
+                <span className="text-tone-warning">•</span>
                 <span>{formatGrant(grant)}</span>
               </li>
             ))}
@@ -127,8 +127,8 @@ const BranchCard: React.FC<BranchCardProps> = ({ option, selected, onClick }) =>
 
       {/* Selection Indicator */}
       {selected && (
-        <div className="mt-4 pt-4 border-t border-amber-400/30">
-          <div className="text-xs font-semibold text-amber-400 text-center">
+        <div className="mt-4 pt-4 border-t border-tone-warning">
+          <div className="text-xs font-semibold text-tone-warning text-center">
             ✓ SELECTED
           </div>
         </div>

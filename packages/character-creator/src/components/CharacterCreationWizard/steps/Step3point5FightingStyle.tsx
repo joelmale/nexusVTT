@@ -12,7 +12,7 @@ const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onClick, title }) => 
   <button
     onClick={onClick}
     title={title}
-    className="p-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-white transition-colors"
+    className="p-2 bg-accent-yellow-dark hover:bg-accent-yellow rounded-lg text-theme-primary transition-colors"
   >
     <Shuffle className="w-4 h-4" />
   </button>
@@ -90,7 +90,7 @@ export const Step3point5FightingStyle: React.FC<StepProps> = ({ data, updateData
     <div className='space-y-6'>
       <div className='flex justify-between items-start'>
         <div>
-          <h3 className='text-xl font-bold text-red-300'>Choose Fighting Style</h3>
+          <h3 className='text-xl font-bold text-tone-danger'>Choose Fighting Style</h3>
           <p className='text-sm text-theme-muted mt-2'>
             As a {selectedClass.name}, you learn a particular style of fighting. Select one Fighting Style option.
           </p>
@@ -105,8 +105,8 @@ export const Step3point5FightingStyle: React.FC<StepProps> = ({ data, updateData
       </div>
 
       {recommendedStyle && (
-        <div className="bg-blue-900/30 border border-accent-blue-dark rounded-lg p-3">
-          <div className="text-sm text-blue-300">
+        <div className="bg-tone-info-soft border border-accent-blue-dark rounded-lg p-3">
+          <div className="text-sm text-tone-info">
             💡 <strong>Recommended for {selectedClass.name}:</strong> {recommendedStyle.name}
             <br />
             <span className="text-xs text-theme-muted">
@@ -127,14 +127,14 @@ export const Step3point5FightingStyle: React.FC<StepProps> = ({ data, updateData
               onClick={() => updateData({ selectedFightingStyle: style.name })}
               className={`p-4 rounded-lg text-left border-2 transition-all ${
                 isSelected
-                  ? 'bg-orange-800 border-orange-500 shadow-md'
+                  ? 'bg-fill-warning border-tone-warning shadow-md'
                   : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
               }`}
             >
               <div className="flex items-start justify-between">
                 <p className="text-base font-bold text-accent-yellow-light">{style.name}</p>
                 {isRecommended && (
-                  <span className="text-xs bg-accent-blue text-white px-2 py-1 rounded ml-2">
+                  <span className="text-xs bg-accent-blue text-theme-primary px-2 py-1 rounded ml-2">
                     Recommended
                   </span>
                 )}
@@ -146,13 +146,13 @@ export const Step3point5FightingStyle: React.FC<StepProps> = ({ data, updateData
       </div>
 
       <div className='flex justify-between'>
-        <button onClick={prevStep} className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-white flex items-center">
+        <button onClick={prevStep} className="px-4 py-2 bg-theme-quaternary hover:bg-theme-hover rounded-lg text-theme-primary flex items-center">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </button>
         <button
           onClick={nextStep}
           disabled={!data.selectedFightingStyle}
-          className="px-4 py-2 bg-accent-red hover:bg-accent-red-light rounded-lg text-white flex items-center disabled:bg-theme-quaternary disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-accent-red hover:bg-accent-red-light rounded-lg text-theme-primary flex items-center disabled:bg-theme-quaternary disabled:cursor-not-allowed"
         >
           Next: {selectedClass.spellcasting ? 'Spells' : 'Abilities'} <ArrowRight className="w-4 h-4 ml-2" />
         </button>
