@@ -28,6 +28,7 @@ vi.mock('@nexus/character-creator', () => ({
     </button>
   ),
   createdCharacterToNexus: mocks.convert,
+  resolveRequestedEdition: () => '2024',
   useCreatorRecovery: () => ({
     phase: 'ready',
     initialDraft: { edition: '2024' },

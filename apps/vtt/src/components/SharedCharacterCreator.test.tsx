@@ -40,9 +40,6 @@ vi.mock('@nexus/character-creator/styles.css', () => ({}));
 vi.mock('@/services/characterHandoff', () => ({
   handoffSavedCharacter: vi.fn(),
 }));
-vi.mock('@/services/creatorCapabilities', () => ({
-  creatorDefaultMode: () => 'full',
-}));
 vi.mock('@/services/rulesCatalogClient', () => ({
   getRulesCatalogVersion: vi.fn(),
 }));

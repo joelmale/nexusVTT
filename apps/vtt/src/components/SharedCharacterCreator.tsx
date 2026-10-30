@@ -10,7 +10,6 @@ import {
 import '@nexus/character-creator/styles.css';
 import type { Character } from '@nexus/character-contracts';
 import { handoffSavedCharacter } from '@/services/characterHandoff';
-import { creatorDefaultMode } from '@/services/creatorCapabilities';
 import { getRulesCatalogVersion } from '@/services/rulesCatalogClient';
 import { storageWorkerClient } from '@/services/storageWorkerClient';
 import { useCharacterStore } from '@/stores/characterStore';
@@ -80,7 +79,7 @@ const PlayerCharacterCreator: React.FC<
   playerId,
   onComplete,
   onCancel,
-  initialMode = creatorDefaultMode(),
+  initialMode = 'full',
   recoveryKey,
 }) => {
   const theme = useTheme();
