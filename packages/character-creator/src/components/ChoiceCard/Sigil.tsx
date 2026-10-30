@@ -8,6 +8,12 @@ import React from 'react';
  * adding an entry to `artCredits.ts` and an image source here; nothing else
  * about the card changes.
  */
+/** Two letters, so Human/Halfling and Dwarf/Dragonborn stay distinguishable. */
+function monogram(name: string): string {
+  const letters = name.trim().replace(/[^A-Za-z]/g, '');
+  return letters.charAt(0).toUpperCase() + letters.charAt(1).toLowerCase();
+}
+
 export const Sigil: React.FC<{ name: string; size?: number }> = ({
   name,
   size = 40,
@@ -30,12 +36,12 @@ export const Sigil: React.FC<{ name: string; size?: number }> = ({
       x="20"
       y="25"
       textAnchor="middle"
-      fontSize="16"
+      fontSize="14"
       fontWeight="700"
       fill="currentColor"
       fontFamily="Georgia, serif"
     >
-      {name.trim().charAt(0).toUpperCase()}
+      {monogram(name)}
     </text>
   </svg>
 );

@@ -162,7 +162,13 @@ export const Step3Class: React.FC<StepProps> = ({
                   <ChoiceCard
                     key={_class.slug}
                     title={_class.name}
-                    details={[`Hit Die: d${_class.hit_die}`, String(_class.primary_stat ?? '')].filter(Boolean)}
+                    details={[
+                      `Hit Die: d${_class.hit_die}`,
+                      // "Varies" says nothing, so it is left off the card.
+                      /^varies$/i.test(String(_class.primary_stat ?? ''))
+                        ? ''
+                        : String(_class.primary_stat ?? ''),
+                    ].filter(Boolean)}
                     selected={data.classSlug === _class.slug}
                     onSelect={() =>
                       updateData({
