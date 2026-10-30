@@ -1,5 +1,5 @@
 # Build stage
-FROM node:26.11.1-alpine AS builder
+FROM node:26.12.1-alpine AS builder
 
 # Install OpenSSL for Prisma
 # APK_REFRESH keys the apk layers to the calendar week (CI passes it), so a
@@ -24,7 +24,7 @@ RUN npm run prisma:generate --workspace=nexus-codex-doc-websocket && \
     npm run build --workspace=nexus-codex-doc-websocket
 
 # Production stage
-FROM node:26.11.1-alpine
+FROM node:26.12.1-alpine
 
 # npm's own bundled undici/brace-expansion carry High advisories (Trivy
 # --ignore-unfixed) that even the latest npm release still ships. Swap in patched
