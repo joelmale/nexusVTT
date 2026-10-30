@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
-import OllamaSettingsPage, { buildPatch } from './OllamaSettings'
+import OllamaSettingsPage from './OllamaSettings'
+import { buildPatch } from './ollamaForm'
 import type { OllamaSettingsView } from '@/lib/settingsApi'
 import { json, meWith, renderPage, requestsTo, stubFetch } from '@/test/utils'
 
