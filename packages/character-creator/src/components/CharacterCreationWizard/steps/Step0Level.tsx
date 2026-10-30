@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowRight, Shuffle } from 'lucide-react';
 import { StepProps } from '../types/wizard.types';
 import { randomizeLevel } from '../../../services/dataService';
+import { RecommendedPicks } from '../../RecommendedPicks/RecommendedPicks';
 
 interface RandomizeButtonProps {
   onClick: () => void;
@@ -18,7 +19,7 @@ const RandomizeButton: React.FC<RandomizeButtonProps> = ({ onClick, title }) => 
   </button>
 );
 
-export const Step0Level: React.FC<StepProps> = ({ data, updateData, nextStep, getNextStepLabel }) => {
+export const Step0Level: React.FC<StepProps> = ({ data, updateData, nextStep, getNextStepLabel, applyRecommended }) => {
   const milestoneLevels = [2, 3, 4, 5, 6, 8, 11, 12, 14, 16, 17, 19, 20];
 
   const getMilestoneIcon = (level: number) => {
@@ -123,6 +124,16 @@ export const Step0Level: React.FC<StepProps> = ({ data, updateData, nextStep, ge
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {applyRecommended && (
+        <div className='max-w-4xl mx-auto'>
+          <RecommendedPicks
+            data={data}
+            onApply={applyRecommended}
+            onApplied={nextStep}
+          />
         </div>
       )}
 

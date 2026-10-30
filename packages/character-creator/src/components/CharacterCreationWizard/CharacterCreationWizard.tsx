@@ -162,6 +162,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
       stepIndex: currentStep,
       getNextStepLabel,
       openTraitModal,
+      applyRecommended: session.replaceRecommended,
     };
 
     // Dynamic Step Rendering based on Edition

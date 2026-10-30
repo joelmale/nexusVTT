@@ -38,6 +38,8 @@ export interface StepProps {
   skipToStep?: (step: number) => void;
   getNextStepLabel?: () => string;
   openTraitModal?: (trait: string, position?: { x: number; y: number }) => void;
+  /** Replaces the draft's recommended answers, keeping the player's own. */
+  applyRecommended?: (draft: CreationDraft) => void;
 }
 
 export interface EquipmentBrowserProps extends StepProps {
