@@ -5,7 +5,7 @@
 # only nginx:alpine ships) -- pin to a patch with the CVEs fixed upstream
 # rather than relying on apk upgrade, which only patches Alpine packages, not
 # the Node.js binary baked into this image.
-FROM node:26.11.1-alpine
+FROM node:26.12.1-alpine
 
 # Set working directory
 WORKDIR /workspace

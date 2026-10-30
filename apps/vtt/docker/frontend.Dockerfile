@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Nexus Unified Frontend Gateway
 
 # Stage 1: Development
-FROM node:26.11.1-alpine AS development
+FROM node:26.12.1-alpine AS development
 
 WORKDIR /workspace
 
@@ -26,7 +26,7 @@ CMD ["npm", "run", "dev", "--workspace=nexus-vtt", "--", "--host", "0.0.0.0"]
 
 
 # Stage 2: VTT Builder
-FROM node:26.11.1-alpine AS vtt-builder
+FROM node:26.12.1-alpine AS vtt-builder
 
 WORKDIR /workspace
 
@@ -72,7 +72,7 @@ RUN node scripts/build-workspace-dependencies.mjs --workspace nexus-vtt && \
 
 
 # Stage 3: Forge Builder
-FROM node:26.11.1-alpine AS forge-builder
+FROM node:26.12.1-alpine AS forge-builder
 
 WORKDIR /workspace
 
@@ -103,7 +103,7 @@ RUN node scripts/build-workspace-dependencies.mjs --workspace nexus-forge && \
 
 
 # Stage 4: Codex DM UI Builder
-FROM node:26.11.1-alpine AS codex-dm-builder
+FROM node:26.12.1-alpine AS codex-dm-builder
 
 WORKDIR /workspace
 
@@ -136,7 +136,7 @@ RUN node scripts/build-workspace-dependencies.mjs --workspace @nexus/campaign-st
 
 
 # Stage 5: Codex Admin UI Builder
-FROM node:26.11.1-alpine AS codex-admin-builder
+FROM node:26.12.1-alpine AS codex-admin-builder
 
 WORKDIR /workspace
 
