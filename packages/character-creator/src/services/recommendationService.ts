@@ -27,6 +27,7 @@ import {
 } from './dataService';
 import { calculatePreparationLimit } from '@nexus/rules-5e';
 import { creationDataToDraft } from '../adapters/draftAdapter';
+import { starterKitFor } from '../data/recommendations/2024/starterKits';
 
 export type CombatIntent =
   'close_combat' | 'archery' | 'sneak' | 'cast' | 'support';
@@ -239,9 +240,12 @@ export function getRecommendation(
     intent === 'archery' || (finalClassSlug === 'rogue' && intent === 'sneak');
 
   // Species resolution
+  const kit = edition === '2024' ? starterKitFor(finalClassSlug) : undefined;
   let speciesSlug = req.speciesSlug;
   if (!speciesSlug) {
-    if (edition === '2024') {
+    if (kit) {
+      speciesSlug = isArcher ? 'elf-2024' : kit.speciesSlug;
+    } else if (edition === '2024') {
       speciesSlug = isArcher ? 'elf-2024' : 'human-2024';
     } else {
       speciesSlug = isArcher ? 'elf' : 'human';
@@ -265,7 +269,9 @@ export function getRecommendation(
 
   // Background resolution
   let backgroundSlug: string;
-  if (finalClassSlug === 'fighter') {
+  if (kit) {
+    backgroundSlug = kit.backgroundSlug;
+  } else if (finalClassSlug === 'fighter') {
     backgroundSlug = edition === '2024' ? 'soldier-2024' : 'soldier-2014';
   } else if (finalClassSlug === 'rogue') {
     backgroundSlug = edition === '2024' ? 'criminal-2024' : 'criminal-2014';
@@ -311,7 +317,9 @@ export function getRecommendation(
   // Background ASI (2024)
   const backgroundAbilityChoices =
     edition === '2024'
-      ? finalClassSlug === 'fighter'
+      ? kit && !(finalClassSlug === 'fighter' && isArcher)
+        ? { method: '2/1' as const, bonuses: { ...kit.bonuses } }
+        : finalClassSlug === 'fighter'
         ? isArcher
           ? { method: '2/1' as const, bonuses: { DEX: 2, CON: 1 } }
           : { method: '2/1' as const, bonuses: { STR: 2, CON: 1 } }
