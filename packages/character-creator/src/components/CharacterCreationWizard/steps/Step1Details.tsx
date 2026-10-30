@@ -7,6 +7,7 @@ import { getToolDescription as getToolData } from '../../../services/toolService
 import { generateName } from '../../../utils/nameGenerator';
 import skillsData from '../../../data/skills.json';
 
+import { ChoiceCard } from '../../ChoiceCard/ChoiceCard';
 import { BackgroundASIWidget, SmartNavigationButton } from '../components';
 import { useStepValidation } from '../hooks';
 import { useToast } from '../../../hooks/useToast';
@@ -250,17 +251,27 @@ export const Step1Details: React.FC<StepProps> = ({ data, updateData, nextStep, 
       )}
 
       <div>
-        <label className="block text-sm font-medium text-theme-tertiary mb-2">Background</label>
-        <select
-          value={data.background}
-          onChange={(e) => updateData({ background: e.target.value })}
-          className="w-full p-3 bg-theme-tertiary text-theme-primary rounded-lg focus:ring-tone-focus focus:border-tone-danger"
+        <span id="background-label" className="block text-sm font-medium text-theme-tertiary mb-2">Background</span>
+        <div
+          role="group"
+          aria-labelledby="background-label"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
         >
-          <option value="">Select Background</option>
-           {BACKGROUNDS.filter(bg => bg.edition === data.edition).map(bg => (
-            <option key={bg.slug} value={bg.slug}>{bg.name}</option>
+          {BACKGROUNDS.filter(bg => bg.edition === data.edition).map(bg => (
+            <ChoiceCard
+              key={bg.slug}
+              title={bg.name}
+              details={[
+                bg.skill_proficiencies.join(', '),
+                bg.edition === '2024' && bg.originFeat
+                  ? `Feat: ${FEAT_DATABASE.find((feat) => feat.slug === bg.originFeat)?.name ?? humanizeId(bg.originFeat)}`
+                  : '',
+              ].filter(Boolean)}
+              selected={data.background === bg.slug}
+              onSelect={() => updateData({ background: bg.slug })}
+            />
           ))}
-        </select>
+        </div>
       </div>
 
       {/* 2024 Background Ability Score Selection */}
