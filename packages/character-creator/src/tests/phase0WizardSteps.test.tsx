@@ -57,7 +57,9 @@ describe('level 5 Wizard spell step', () => {
 
   it('asks for 14 spellbook spells and enables Next once they are chosen', () => {
     render(<Step4Spells {...props(complete(spellbook))} />);
-    expect(screen.getByText(/Spellbook \(14 \/\s*14 selected\)/)).toBeTruthy();
+    expect(
+      screen.getByRole('region', { name: 'Spellbook' }).textContent,
+    ).toContain('14 / 14 chosen');
     const next = screen.getByRole('button', { name: /^Next/ }) as HTMLButtonElement;
     expect(next.disabled).toBe(false);
   });
@@ -92,9 +94,11 @@ describe('level 5 Warlock spell step', () => {
     render(<Host initial={data} />);
     const first = getLeveledSpellsByClass('warlock', 1, '2024')[0];
     fireEvent.click(screen.getByText(first.name));
-    expect(screen.getByText(/Prepared Spells \(1 \/\s*6 selected\)/)).toBeTruthy();
+    const prepared = () =>
+      screen.getByRole('region', { name: 'Prepared Spells' }).textContent;
+    expect(prepared()).toContain('1 / 6 chosen');
     fireEvent.click(screen.getByRole('button', { name: /Randomize/ }));
-    expect(screen.getByText(/Prepared Spells \(6 \/\s*6 selected\)/)).toBeTruthy();
+    expect(prepared()).toContain('6 / 6 chosen');
   });
 });
 

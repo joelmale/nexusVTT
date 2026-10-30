@@ -1,15 +1,10 @@
 import { calculatePreparationLimit } from '@nexus/rules-5e';
 import { calculateCharacterStats } from '../../../utils/characterCreationUtils';
 import React, { useRef, useEffect, useState } from 'react';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Shuffle,
-  MoreHorizontal,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Shuffle } from 'lucide-react';
 import { StepProps } from '../types/wizard.types';
 import { CastingGrantChoices } from '../../CastingGrantChoices';
+import { SpellPicker } from '../../SpellPicker/SpellPicker';
 import {
   loadClasses,
   getCantripsByClass,
@@ -225,15 +220,17 @@ export const Step4Spells: React.FC<StepProps> = ({
   const handleSpellToggle = (
     spellSlug: string,
     field: keyof typeof data.spellSelection,
+    maxOverride?: number,
   ) => {
     const current = (data.spellSelection[field] as string[]) || [];
     const isSelected = current.includes(spellSlug);
 
     // Determine max count based on field and spell type
     const maxCount =
-      field === 'preparedSpells' || field === 'knownSpells'
+      maxOverride ??
+      (field === 'preparedSpells' || field === 'knownSpells'
         ? maxPreparedSpellsAtLevel
-        : spellcasting.spellsKnownOrPrepared;
+        : spellcasting.spellsKnownOrPrepared);
 
     if (isSelected) {
       // Deselect
@@ -405,6 +402,15 @@ export const Step4Spells: React.FC<StepProps> = ({
   };
 
   const validationMessages = getValidationMessages();
+  const wizardDailyMax =
+    spellcastingType === 'wizard'
+      ? calculatePreparationLimit(
+          data.classSlug,
+          data.level,
+          calculateCharacterStats(data).abilities.INT.modifier,
+          data.edition,
+        )
+      : 0;
 
   // Spell mode description
   const modeDescription =
@@ -436,417 +442,67 @@ export const Step4Spells: React.FC<StepProps> = ({
 
       <LevelResourceSummary data={data} />
 
-      {/* Cantrips Section */}
-      <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3">
-        <h4 className="text-lg font-bold text-accent-yellow-light">
-          Cantrips ({data.spellSelection.selectedCantrips.length} /{' '}
-          {cantripsKnownAtLevel} selected)
-        </h4>
-        <p className="text-xs text-theme-muted">
-          Cantrips are 0-level spells that can be cast at will, without
-          expending spell slots.
-        </p>
+      <SpellPicker
+        title="Cantrips"
+        hint="Cantrips are 0-level spells that can be cast at will, without expending spell slots."
+        spells={availableCantrips}
+        selected={data.spellSelection.selectedCantrips}
+        max={cantripsKnownAtLevel}
+        onToggle={handleCantripToggle}
+        onDetails={openSpellModal}
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {availableCantrips.map((spell) => {
-            const isSelected = data.spellSelection.selectedCantrips.includes(
-              spell.slug,
-            );
-            const canSelect =
-              data.spellSelection.selectedCantrips.length <
-              cantripsKnownAtLevel;
-
-            return (
-              <div key={spell.slug} className="relative">
-                <button
-                  onClick={() => handleCantripToggle(spell.slug)}
-                  disabled={!isSelected && !canSelect}
-                  className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                    isSelected
-                      ? 'bg-tone-info-soft border-tone-info'
-                      : canSelect
-                        ? 'bg-theme-tertiary border-theme-primary hover:border-tone-info'
-                        : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="font-semibold text-theme-primary">
-                        {spell.name}
-                      </div>
-                      <div className="text-xs text-tone-magic">
-                        {spell.school}
-                      </div>
-                    </div>
-                    {isSelected && (
-                      <Check className="w-5 h-5 text-accent-green-light" />
-                    )}
-                  </div>
-                  <div className="text-xs text-theme-muted mt-2 line-clamp-2">
-                    {spell.description}
-                  </div>
-                  <div className="text-xs text-theme-disabled mt-1">
-                    {spell.castingTime} • {spell.range}
-                    {spell.concentration && ' • Concentration'}
-                  </div>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openSpellModal(spell);
-                  }}
-                  className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
-                  title="View full spell details"
-                >
-                  <MoreHorizontal className="w-3 h-3" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Spell Selection Sections - Varies by spellcasting type */}
       {spellcastingType === 'wizard' && (
         <>
-          {/* Wizard Spellbook Section */}
-          <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3">
-            <h4 className="text-lg font-bold text-accent-yellow-light">
-              Spellbook ({data.spellSelection.spellbook?.length || 0} /{' '}
-              {spellbookSize} selected)
-            </h4>
-            <p className="text-xs text-theme-muted">
-              Choose {spellbookSize} spells for your permanent spellbook (6 at
-              1st level, plus 2 for each level after). You can prepare a
-              subset of these each day.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {availableSpells.map((spell) => {
-                const isSelected =
-                  data.spellSelection.spellbook?.includes(spell.slug) || false;
-                const canSelect =
-                  (data.spellSelection.spellbook?.length || 0) < spellbookSize;
-
-                return (
-                  <div key={spell.slug} className="relative">
-                    <button
-                      onClick={() => handleSpellToggle(spell.slug, 'spellbook')}
-                      disabled={!isSelected && !canSelect}
-                      className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                        isSelected
-                          ? 'bg-tone-info-soft border-tone-info'
-                          : canSelect
-                            ? 'bg-theme-tertiary border-theme-primary hover:border-tone-info'
-                            : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-semibold text-theme-primary">
-                            {spell.name}
-                          </div>
-                          <div className="text-xs text-tone-magic">
-                            {spell.school}
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <Check className="w-5 h-5 text-accent-green-light" />
-                        )}
-                      </div>
-                      <div className="text-xs text-theme-muted mt-2 line-clamp-2">
-                        {spell.description}
-                      </div>
-                      <div className="text-xs text-theme-disabled mt-1">
-                        {spell.castingTime} • {spell.range}
-                        {spell.concentration && ' • Concentration'}
-                        {spell.ritual && ' • Ritual'}
-                      </div>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openSpellModal(spell);
-                      }}
-                      className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
-                      title="View full spell details"
-                    >
-                      <MoreHorizontal className="w-3 h-3" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Wizard Daily Preparation Section */}
-          <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3">
-            <h4 className="text-lg font-bold text-accent-yellow-light">
-              Daily Preparation (
-              {data.spellSelection.dailyPrepared?.length || 0} /{' '}
-              {calculatePreparationLimit(
-                data.classSlug,
-                data.level,
-                calculateCharacterStats(data).abilities.INT.modifier,
-                data.edition,
-              )}{' '}
-              selected)
-            </h4>
-            <p className="text-xs text-theme-muted">
-              Choose spells to prepare for today from your spellbook. You can
-              change this after a long rest.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(data.spellSelection.spellbook || []).map((spellSlug) => {
-                const spell = availableSpells.find((s) => s.slug === spellSlug);
-                if (!spell) return null;
-
-                const isSelected =
-                  data.spellSelection.dailyPrepared?.includes(spell.slug) ||
-                  false;
-                const maxPrepared = calculatePreparationLimit(
-                  data.classSlug,
-                  data.level,
-                  calculateCharacterStats(data).abilities.INT.modifier,
-                  data.edition,
-                );
-                const canSelect =
-                  (data.spellSelection.dailyPrepared?.length || 0) <
-                  maxPrepared;
-
-                return (
-                  <div key={spellSlug} className="relative">
-                    <button
-                      onClick={() =>
-                        handleSpellToggle(spell.slug, 'dailyPrepared')
-                      }
-                      disabled={!isSelected && !canSelect}
-                      className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                        isSelected
-                          ? 'bg-tone-success-soft border-tone-success'
-                          : canSelect
-                            ? 'bg-theme-tertiary border-theme-primary hover:border-tone-success'
-                            : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-semibold text-theme-primary">
-                            {spell.name}
-                          </div>
-                          <div className="text-xs text-tone-magic">
-                            {spell.school}
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <Check className="w-5 h-5 text-accent-green-light" />
-                        )}
-                      </div>
-                      <div className="text-xs text-theme-muted mt-2 line-clamp-2">
-                        {spell.description}
-                      </div>
-                      <div className="text-xs text-theme-disabled mt-1">
-                        {spell.castingTime} • {spell.range}
-                        {spell.concentration && ' • Concentration'}
-                        {spell.ritual && ' • Ritual'}
-                      </div>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openSpellModal(spell);
-                      }}
-                      className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
-                      title="View full spell details"
-                    >
-                      <MoreHorizontal className="w-3 h-3" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <SpellPicker
+            title="Spellbook"
+            hint={`Choose ${spellbookSize} spells for your permanent spellbook (6 at 1st level, plus 2 for each level after). You can prepare a subset of these each day.`}
+            spells={availableSpells}
+            selected={data.spellSelection.spellbook ?? []}
+            max={spellbookSize}
+            groupByLevel
+            onToggle={(slug) => handleSpellToggle(slug, 'spellbook', spellbookSize)}
+            onDetails={openSpellModal}
+          />
+          <SpellPicker
+            title="Daily Preparation"
+            hint="Choose spells to prepare for today from your spellbook. You can change this after a long rest."
+            spells={(data.spellSelection.spellbook ?? []).flatMap(
+              (slug) => availableSpells.find((s) => s.slug === slug) ?? [],
+            )}
+            selected={data.spellSelection.dailyPrepared ?? []}
+            max={wizardDailyMax}
+            groupByLevel
+            onToggle={(slug) => handleSpellToggle(slug, 'dailyPrepared', wizardDailyMax)}
+            onDetails={openSpellModal}
+          />
         </>
       )}
 
       {spellcastingType === 'known' && (
-        <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3">
-          <h4 className="text-lg font-bold text-accent-yellow-light">
-            Spells Known ({data.spellSelection.knownSpells?.length || 0} /{' '}
-            {maxPreparedSpellsAtLevel} selected)
-          </h4>
-          <p className="text-xs text-theme-muted">
-            These are the spells your character knows permanently. You can
-            change them when you level up.
-          </p>
-
-          {/* Group spells by level */}
-          {availableSpellLevels.map((spellLevel) => {
-            const spellsOfLevel = availableSpells.filter(
-              (s) => s.level === spellLevel,
-            );
-            if (spellsOfLevel.length === 0) return null;
-
-            return (
-              <div key={spellLevel} className="space-y-2">
-                <h5 className="text-sm font-semibold text-accent-blue-light">
-                  Level {spellLevel} Spells
-                </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {spellsOfLevel.map((spell) => {
-                    const isSelected =
-                      data.spellSelection.knownSpells?.includes(spell.slug) ||
-                      false;
-                    const canSelect =
-                      (data.spellSelection.knownSpells?.length || 0) <
-                      maxPreparedSpellsAtLevel;
-
-                    return (
-                      <div key={spell.slug} className="relative">
-                        <button
-                          onClick={() =>
-                            handleSpellToggle(spell.slug, 'knownSpells')
-                          }
-                          disabled={!isSelected && !canSelect}
-                          className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                            isSelected
-                              ? 'bg-tone-info-soft border-tone-info'
-                              : canSelect
-                                ? 'bg-theme-tertiary border-theme-primary hover:border-tone-info'
-                                : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="font-semibold text-theme-primary">
-                                {spell.name}
-                              </div>
-                              <div className="text-xs text-tone-magic">
-                                {spell.school}
-                              </div>
-                            </div>
-                            {isSelected && (
-                              <Check className="w-5 h-5 text-accent-green-light" />
-                            )}
-                          </div>
-                          <div className="text-xs text-theme-muted mt-2 line-clamp-2">
-                            {spell.description}
-                          </div>
-                          <div className="text-xs text-theme-disabled mt-1">
-                            {spell.castingTime} • {spell.range}
-                            {spell.concentration && ' • Concentration'}
-                            {spell.ritual && ' • Ritual'}
-                          </div>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openSpellModal(spell);
-                          }}
-                          className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
-                          title="View full spell details"
-                        >
-                          <MoreHorizontal className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <SpellPicker
+          title="Spells Known"
+          hint="These are the spells your character knows permanently. You can change them when you level up."
+          spells={availableSpells}
+          selected={data.spellSelection.knownSpells ?? []}
+          max={maxPreparedSpellsAtLevel}
+          groupByLevel
+          onToggle={(slug) => handleSpellToggle(slug, 'knownSpells')}
+          onDetails={openSpellModal}
+        />
       )}
 
       {spellcastingType === 'prepared' && (
-        <div className="bg-theme-tertiary/50 border border-theme-primary rounded-lg p-4 space-y-3">
-          <h4 className="text-lg font-bold text-accent-yellow-light">
-            Prepared Spells ({data.spellSelection.preparedSpells?.length || 0} /{' '}
-            {maxPreparedSpellsAtLevel} selected)
-          </h4>
-          <p className="text-xs text-theme-muted">
-            Choose spells to prepare. You can change your prepared spells after
-            a long rest.
-          </p>
-
-          {/* Group spells by level */}
-          {availableSpellLevels.map((spellLevel) => {
-            const spellsOfLevel = availableSpells.filter(
-              (s) => s.level === spellLevel,
-            );
-            if (spellsOfLevel.length === 0) return null;
-
-            return (
-              <div key={spellLevel} className="space-y-2">
-                <h5 className="text-sm font-semibold text-accent-blue-light">
-                  Level {spellLevel} Spells
-                </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {spellsOfLevel.map((spell) => {
-                    const isSelected =
-                      data.spellSelection.preparedSpells?.includes(
-                        spell.slug,
-                      ) || false;
-                    const canSelect =
-                      (data.spellSelection.preparedSpells?.length || 0) <
-                      maxPreparedSpellsAtLevel;
-
-                    return (
-                      <div key={spell.slug} className="relative">
-                        <button
-                          onClick={() =>
-                            handleSpellToggle(spell.slug, 'preparedSpells')
-                          }
-                          disabled={!isSelected && !canSelect}
-                          className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                            isSelected
-                              ? 'bg-tone-info-soft border-tone-info'
-                              : canSelect
-                                ? 'bg-theme-tertiary border-theme-primary hover:border-tone-info'
-                                : 'bg-theme-secondary border-theme-secondary opacity-50 cursor-not-allowed'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="font-semibold text-theme-primary">
-                                {spell.name}
-                              </div>
-                              <div className="text-xs text-tone-magic">
-                                {spell.school}
-                              </div>
-                            </div>
-                            {isSelected && (
-                              <Check className="w-5 h-5 text-accent-green-light" />
-                            )}
-                          </div>
-                          <div className="text-xs text-theme-muted mt-2 line-clamp-2">
-                            {spell.description}
-                          </div>
-                          <div className="text-xs text-theme-disabled mt-1">
-                            {spell.castingTime} • {spell.range}
-                            {spell.concentration && ' • Concentration'}
-                            {spell.ritual && ' • Ritual'}
-                          </div>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openSpellModal(spell);
-                          }}
-                          className="absolute top-2 right-2 w-6 h-6 bg-theme-secondary hover:bg-theme-primary rounded-full flex items-center justify-center text-theme-muted hover:text-theme-primary transition-colors z-10"
-                          title="View full spell details"
-                        >
-                          <MoreHorizontal className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <SpellPicker
+          title="Prepared Spells"
+          hint="Choose spells to prepare. You can change your prepared spells after a long rest."
+          spells={availableSpells}
+          selected={data.spellSelection.preparedSpells ?? []}
+          max={maxPreparedSpellsAtLevel}
+          groupByLevel
+          onToggle={(slug) => handleSpellToggle(slug, 'preparedSpells')}
+          onDetails={openSpellModal}
+        />
       )}
 
       {/* Navigation */}
