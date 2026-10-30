@@ -54,7 +54,6 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
   onPresentationChange,
   onDraftChange,
   onCancel,
-  onSwitchToGuided,
   onComplete,
   showLiveSheet = false,
 }) => {
@@ -286,15 +285,6 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
               stepTitles={stepTitles}
               visibleStepIndices={progressStepIndices}
             />
-            {onSwitchToGuided && (
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={onSwitchToGuided}
-              >
-                Use guided creation
-              </button>
-            )}
           </div>
 
           {/* Error Display */}

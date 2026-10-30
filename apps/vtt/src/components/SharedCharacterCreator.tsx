@@ -231,7 +231,7 @@ const PlayerCharacterCreator: React.FC<
         onDraftChange={recovery.onDraftChange}
         onPresentationChange={recovery.onPresentationChange}
         onDraftDiscard={() => void recovery.discard()}
-        allowModeSwitch
+        showLiveSheet
         onCancel={() => {
           void recovery
             .flush()

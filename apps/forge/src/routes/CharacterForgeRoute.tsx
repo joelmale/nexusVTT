@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 
 import {
   type CharacterCreationResult,
-  type CreationMode,
   resolveRequestedEdition,
 } from '@nexus/character-creator';
 import Hammer from 'lucide-react/dist/esm/icons/hammer';
@@ -16,7 +15,6 @@ export const CharacterForgeRoute: React.FC = () => {
   const [edition] = useState(() =>
     resolveRequestedEdition(window.location.search),
   );
-  const [mode, setMode] = useState<CreationMode>('full');
   const [createdCharacterName, setCreatedCharacterName] = useState<
     string | null
   >(null);
@@ -30,9 +28,8 @@ export const CharacterForgeRoute: React.FC = () => {
     [],
   );
 
-  const openWizard = (nextMode: CreationMode): void => {
+  const openWizard = (): void => {
     setCreatedCharacterName(null);
-    setMode(nextMode);
     setIsWizardOpen(true);
   };
 
@@ -62,26 +59,19 @@ export const CharacterForgeRoute: React.FC = () => {
             </p>
           )}
 
-          <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
+          <div className="mt-7 flex justify-center">
             <button
               type="button"
-              onClick={() => openWizard('guided')}
+              onClick={openWizard}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent-red px-6 py-3 font-bold text-white shadow-lg transition-colors hover:bg-accent-red-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-yellow-light"
             >
               <Hammer size={18} aria-hidden="true" />
-              Guided creation
-            </button>
-            <button
-              type="button"
-              onClick={() => openWizard('full')}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-theme-primary px-6 py-3 font-bold transition-colors hover:bg-theme-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-yellow-light"
-            >
-              Full step-by-step wizard
+              Create a character
             </button>
           </div>
           <p className="mt-3 text-sm text-theme-muted">
-            Guided asks about your character's personality first. The full
-            wizard covers every rules choice in order.
+            Start with recommended picks for a class, or build every choice
+            yourself. Both end in the same step-by-step review.
           </p>
         </section>
       )}
@@ -89,7 +79,7 @@ export const CharacterForgeRoute: React.FC = () => {
       <ForgeCharacterCreator
         isOpen={isWizardOpen}
         edition={edition}
-        initialMode={mode}
+        initialMode="full"
         submitLabel="Save Character"
         onCancel={() => setIsWizardOpen(false)}
         onComplete={handleComplete}

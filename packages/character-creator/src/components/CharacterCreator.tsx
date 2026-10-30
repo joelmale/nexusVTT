@@ -1,21 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import type { CharacterCreationCompleteHandler, Edition } from '../api/types';
 import { resolveCreatorTheme } from '../api/theme';
 import { CharacterCreationWizard } from './CharacterCreationWizard';
-import { GuidedCharacterCreator } from './guided/GuidedCharacterCreator';
 import {
   CreationSessionContext,
   useCreationSession,
 } from '../hooks/useCreationSession';
 
 /**
- * The two doors into character creation.
- *
- * - `guided` asks about temperament and playstyle and derives the rules.
- * - `full` is the fourteen-step wizard with every choice exposed.
- *
- * Both produce the same `CharacterCreationResult`, so switching between them is
- * a presentation choice, not a data one.
+ * There is one creator. `full` is that creator; `guided` is kept so hosts and
+ * saved drafts that still say it keep working, and opens the same creator. The
+ * "recommended picks" lane lives on its first step.
  */
 export type CreationMode = 'guided' | 'full';
 
@@ -30,14 +25,11 @@ export interface CharacterCreatorProps {
    */
   theme?: string;
   /**
-   * Which door opens first. Defaults to `guided`: a new player should not have
-   * to predict which flow they want before seeing either of them.
+   * @deprecated There is one creator now; `guided` and `full` open the same
+   * flow. Kept so existing hosts and saved drafts keep working.
    */
   initialMode?: CreationMode;
-  /**
-   * Whether the player can switch doors mid-flow. Hosts that present their own
-   * chooser up front (Nexus Forge) pass `false` and drive the mode themselves.
-   */
+  /** @deprecated There is one creator now; this has no effect. */
   allowModeSwitch?: boolean;
   /** Initial draft to resume from (CC-501). */
   initialDraft?: CreationDraft;
@@ -57,16 +49,14 @@ export interface CharacterCreatorProps {
 /**
  * Host-facing entry point for character creation.
  *
- * This is the component applications should render. It owns which door is open
- * and lets the player move between them without losing the session, so the
- * guided flow is an on-ramp rather than a dead end.
+ * This is the component applications should render. Hosts own persistence; the
+ * creator owns the single flow, including the recommended-picks lane.
  */
 export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
   isOpen,
   edition,
   theme,
   initialMode = 'guided',
-  allowModeSwitch = true,
   initialDraft,
   initialPresentation,
   onPresentationChange,
@@ -80,9 +70,6 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
   const session = useCreationSession({ initialDraft, edition, onDraftChange });
   // Hosts pass their own theme names; the creator only knows two.
   const creatorTheme = resolveCreatorTheme(theme);
-  const [mode, setMode] = useState<CreationMode>(
-    initialPresentation?.mode || initialMode,
-  );
   const [presentation, setPresentation] = useState<CreatorPresentation>(
     initialPresentation ?? { mode: initialMode },
   );
@@ -103,52 +90,12 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
       };
       latestPresentation.current = merged;
       setPresentation(merged);
-      setMode(next.mode);
       onPresentationChange?.(merged);
     },
     [onPresentationChange],
   );
 
-  // Reopening returns to the host's preferred door rather than wherever the
-  // player happened to leave off last time.
-  useEffect(() => {
-    if (isOpen) setMode(initialPresentation?.mode || initialMode);
-  }, [isOpen, initialMode, initialPresentation?.mode]);
-
   if (!isOpen) return null;
-
-  if (mode === 'guided') {
-    return (
-      <CreationSessionContext.Provider value={session}>
-        <GuidedCharacterCreator
-          isOpen
-          edition={edition}
-          theme={creatorTheme}
-          initialDraft={initialDraft}
-          initialPresentation={{
-            ...presentation,
-            mode: 'guided',
-            step:
-              presentation.positions?.[
-                presentation.guidedFlow === 'quiz' ? 'quiz' : 'fourScreen'
-              ] ?? presentation.step,
-          }}
-          onPresentationChange={reportPresentation}
-          onDraftChange={onDraftChange}
-          onDraftDiscard={onDraftDiscard}
-          onCancel={onCancel}
-          onComplete={onComplete}
-          onSwitchToFullWizard={
-            allowModeSwitch
-              ? () => {
-                  reportPresentation({ mode: 'full' });
-                }
-              : undefined
-          }
-        />
-      </CreationSessionContext.Provider>
-    );
-  }
 
   return (
     <CreationSessionContext.Provider value={session}>
@@ -170,11 +117,6 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
         submitLabel={submitLabel}
         showLiveSheet={showLiveSheet}
         onCancel={onCancel}
-        onSwitchToGuided={
-          allowModeSwitch
-            ? () => reportPresentation({ mode: 'guided' })
-            : undefined
-        }
         onComplete={onComplete}
       />
     </CreationSessionContext.Provider>

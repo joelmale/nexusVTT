@@ -19,7 +19,6 @@ export interface WizardProps {
   /** Callback fired when draft is discarded (CC-501). */
   onDraftDiscard?: () => void;
   onCancel: () => void;
-  onSwitchToGuided?: () => void;
   /** Show the live character sheet beside the steps. Off by default. */
   showLiveSheet?: boolean;
   /**

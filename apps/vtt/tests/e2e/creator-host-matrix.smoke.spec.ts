@@ -18,7 +18,8 @@ const fixtures = JSON.parse(
 
 /** Real UI completion/recovery and persistence; input authoring is fixture-seeded. */
 for (const host of ['forge', 'vtt'] as const)
-  for (const mode of ['full', 'guided'] as const)
+  // The guided flows were retired into the single creator; only it remains.
+  for (const mode of ['full'] as const)
     for (const [reference, fixture] of Object.entries(fixtures)) {
       for (const theme of host === 'forge' && reference === 'F24'
         ? ['dark', 'light', 'paper']
@@ -133,38 +134,6 @@ for (const host of ['forge', 'vtt'] as const)
             await page
               .getByRole('button', { name: 'Resume creation', exact: true })
               .click();
-            if (reference === 'F24' && mode === 'guided') {
-              await page
-                .getByRole('button', { name: 'Back', exact: true })
-                .click();
-              await page
-                .getByRole('button', { name: 'Back', exact: true })
-                .click();
-              const customize = page.getByRole('button', {
-                name: 'Customize Stats',
-                exact: true,
-              });
-              await customize.click();
-              const nested = page.getByRole('dialog', {
-                name: 'Edit Ability Scores',
-                exact: true,
-              });
-              await expect(nested).toBeVisible();
-              await page.keyboard.press('Tab');
-              await page.keyboard.press('Shift+Tab');
-              await expect(nested).toContainText(
-                'Redistribute the standard array',
-              );
-              await page.keyboard.press('Escape');
-              await expect(nested).toBeHidden();
-              await expect(customize).toBeFocused();
-              await page
-                .getByRole('button', { name: 'Continue', exact: true })
-                .click();
-              await page
-                .getByRole('button', { name: 'Continue', exact: true })
-                .click();
-            }
             const submit = page
               .locator('dialog[open]')
               .last()
