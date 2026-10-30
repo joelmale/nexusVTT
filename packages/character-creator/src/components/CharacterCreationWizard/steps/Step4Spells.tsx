@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import { StepProps } from '../types/wizard.types';
+import { CastingGrantChoices } from '../../CastingGrantChoices';
 import {
   loadClasses,
   getCantripsByClass,
@@ -415,6 +416,7 @@ export const Step4Spells: React.FC<StepProps> = ({
 
   return (
     <div className="space-y-6">
+      <CastingGrantChoices data={data} onChange={updateData} />
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-xl font-bold text-tone-danger">Select Your Spells</h3>

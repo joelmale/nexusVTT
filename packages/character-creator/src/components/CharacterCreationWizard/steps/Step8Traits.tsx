@@ -3,6 +3,7 @@ import { CastingGrantChoices } from '../../CastingGrantChoices';
 import styles from './Step8Traits.module.css';
 import { ArrowLeft, Check, Shuffle, BookOpen } from 'lucide-react';
 import { StepProps } from '../types/wizard.types';
+import { hasSpellcastingAtLevel } from '../../../utils/spellUtils';
 import { CharacterCreationData } from '../../../types/dnd';
 import { loadClasses, getModifier } from '../../../services/dataService';
 import { rollDice } from '../../../services/diceService';
@@ -97,7 +98,10 @@ export const Step8Traits: React.FC<
 
   return (
     <div className="space-y-6">
-      <CastingGrantChoices data={data} onChange={updateData} />
+      {/* Casters see these in the Magic step; everyone else has no such step. */}
+      {!hasSpellcastingAtLevel(data.classSlug, data.level, data.edition) && (
+        <CastingGrantChoices data={data} onChange={updateData} />
+      )}
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold text-tone-danger">
           Final Details: Name & Personality
