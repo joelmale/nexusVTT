@@ -34,6 +34,7 @@ import { SmartNavigationButton } from '../components';
 import { useRevealValidation } from '../../../hooks/useRevealValidation';
 import { useStepValidation } from '../hooks';
 import { ClassGrantChoices } from '../../ClassGrantChoices';
+import { ChoiceCard } from '../../ChoiceCard/ChoiceCard';
 import { getSubclassLevel } from '../../../data/supportManifest';
 import { pruneSpellSelectionForClass } from '../../../utils/spellSelectionRules';
 
@@ -158,9 +159,12 @@ export const Step3Class: React.FC<StepProps> = ({
             {expandedCategories.has(category.name) && (
               <div className="p-4 bg-theme-secondary/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {category.classes.map((_class) => (
-                  <button
+                  <ChoiceCard
                     key={_class.slug}
-                    onClick={() =>
+                    title={_class.name}
+                    details={[`Hit Die: d${_class.hit_die}`, String(_class.primary_stat ?? '')].filter(Boolean)}
+                    selected={data.classSlug === _class.slug}
+                    onSelect={() =>
                       updateData({
                         classSlug: _class.slug,
                         selectedSkills: [],
@@ -172,22 +176,7 @@ export const Step3Class: React.FC<StepProps> = ({
                         ),
                       })
                     }
-                    className={`p-3 rounded-lg text-left border-2 transition-all ${
-                      data.classSlug === _class.slug
-                        ? 'bg-accent-red-darker border-tone-danger shadow-md'
-                        : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
-                    }`}
-                  >
-                    <p className="text-sm font-bold text-accent-yellow-light">
-                      {_class.name}
-                    </p>
-                    <p className="text-xs text-theme-disabled mt-1">
-                      Hit Die: d{_class.hit_die}
-                    </p>
-                    <p className="text-xs text-theme-disabled">
-                      {_class.primary_stat}
-                    </p>
-                  </button>
+                  />
                 ))}
               </div>
             )}

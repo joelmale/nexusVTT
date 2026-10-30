@@ -16,6 +16,7 @@ import {
 } from '../../../services/dataService';
 import { HumanVariantSelector, SmartNavigationButton } from '../components';
 import { useStepValidation } from '../hooks';
+import { ChoiceCard } from '../../ChoiceCard/ChoiceCard';
 
 interface RandomizeButtonProps {
   onClick: () => void;
@@ -129,27 +130,18 @@ export const Step2Species: React.FC<StepProps> = ({
                   )
                   .map((species) => (
                     // Filter by edition
-                    <button
+                    <ChoiceCard
                       key={species.slug}
-                      onClick={() =>
+                      title={species.name}
+                      details={[species.source].filter(Boolean)}
+                      selected={data.speciesSlug === species.slug}
+                      onSelect={() =>
                         updateData({
                           speciesSlug: species.slug,
                           selectedLineage: undefined,
                         })
                       }
-                      className={`p-3 rounded-lg text-left border-2 transition-all ${
-                        data.speciesSlug === species.slug
-                          ? 'bg-accent-red-darker border-tone-danger shadow-md'
-                          : 'bg-theme-tertiary border-theme-primary hover:bg-theme-quaternary'
-                      }`}
-                    >
-                      <p className="text-sm font-bold text-accent-yellow-light">
-                        {species.name}
-                      </p>
-                      <p className="text-xs text-theme-disabled mt-1">
-                        {species.source}
-                      </p>
-                    </button>
+                    />
                   ))}
               </div>
             )}

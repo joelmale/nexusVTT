@@ -1,0 +1,47 @@
+/* One accent system for every pick-one card: raised ground, accent ring when
+   chosen. Uses only the --cc tokens that creatorThemeContrast.test.ts checks. */
+.card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.2rem 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  color: var(--cc-on-raised);
+  background-color: var(--cc-raised);
+  border: 2px solid var(--cc-border-strong);
+  border-radius: 0.5rem;
+  transition: background-color 120ms, border-color 120ms;
+}
+.card:hover {
+  background-color: var(--cc-hover);
+}
+.card[aria-pressed='true'] {
+  background-color: var(--cc-selected-bg);
+  border-color: var(--cc-selected-border);
+  box-shadow: 0 0 0 1px var(--cc-selected-border);
+}
+.card:focus-visible {
+  outline: 3px solid var(--cc-focus);
+  outline-offset: 2px;
+}
+.sigil {
+  grid-row: span 3;
+  color: var(--cc-on-raised);
+}
+.title {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.detail {
+  font-size: 0.8rem;
+  color: var(--cc-muted);
+}
+.check {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--cc-on-raised);
+}
