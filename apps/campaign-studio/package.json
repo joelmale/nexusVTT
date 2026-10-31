@@ -29,7 +29,7 @@
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "date-fns": "^3.6.0",
-    "dexie": "^4.0.8",
+    "dexie": "^4.4.7",
     "dexie-react-hooks": "^1.1.7",
     "file-saver": "^2.0.5",
     "fuse.js": "^7.0.0",
