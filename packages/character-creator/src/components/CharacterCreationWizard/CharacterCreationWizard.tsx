@@ -152,6 +152,12 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
 
   if (!isOpen) return null;
 
+  const selectedSpeciesForTrait = creationData.speciesSlug
+    ? getAllSpecies(creationData.edition).find(
+        (s) => s.slug === creationData.speciesSlug,
+      )
+    : undefined;
+
   const renderStep = () => {
     const commonProps = {
       data: creationData,
@@ -370,13 +376,9 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
             isOpen={showTraitModal}
             onClose={closeTraitModal}
             traitName={selectedTrait}
-            speciesName={
-              creationData.speciesSlug
-                ? getAllSpecies().find(
-                    (s) => s.slug === creationData.speciesSlug,
-                  )?.name || 'Unknown Species'
-                : 'Unknown Species'
-            }
+            speciesName={selectedSpeciesForTrait?.name || 'Unknown Species'}
+            edition={creationData.edition || '2014'}
+            detailedTraits={selectedSpeciesForTrait?.traits}
             position={modalPosition}
           />
         )}
