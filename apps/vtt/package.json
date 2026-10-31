@@ -164,7 +164,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
     "fake-indexeddb": "^6.2.5",
-    "glob": "^13.0.6",
+    "glob": "^14.0.2",
     "globals": "^17.6.0",
     "hermes-estree": "^0.37.0",
     "hermes-parser": "^0.37.0",
