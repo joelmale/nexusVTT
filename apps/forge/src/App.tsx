@@ -1658,6 +1658,8 @@ const App: React.FC = () => {
                       subclasses={subclasses}
                       onSelect={handleSubclassSelected}
                       characterClass={character.class}
+                      classSlug={subclassModalState.characterClass!}
+                      edition={character.edition ?? '2014'}
                     />
                   );
                 })()}
