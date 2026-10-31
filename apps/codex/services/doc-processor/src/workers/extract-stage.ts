@@ -59,6 +59,12 @@ const searchTextFor = (type: EntityType, entity: ExtractedEntity) => {
 };
 
 /**
+ * One slow crop is kept for review and skipped; this many in a row means
+ * Ollama itself is stuck, and skipping the rest would cost LLM_TIMEOUT_MS each.
+ */
+export const MAX_CONSECUTIVE_TIMEOUTS = 3;
+
+/**
  * v2 extract stage (plan: Extraction). DocumentPage blocks -> candidate
  * detection -> one cached LLM/VLM call per candidate -> zod validation and
  * cross-checks -> StructuredData rows via the entity resolver.
@@ -158,6 +164,7 @@ export async function runExtractStage(
   let needsReview = 0;
   let cachedCalls = 0;
   let ollamaReady = !(env.OLLAMA_PREFLIGHT && usesOllama);
+  let consecutiveTimeouts = 0;
   const spend = { calls: 0, promptTokens: 0, cacheHitTokens: 0, completionTokens: 0 };
 
   try {
@@ -194,6 +201,23 @@ export async function runExtractStage(
         promptVersion: ollama.promptVersion,
       });
       if (outcome.cached) cachedCalls += 1;
+      if (outcome.failureReason === 'model_timeout') {
+        consecutiveTimeouts += 1;
+        const label = `${candidate.type} "${candidate.title}" (p. ${candidate.pageNumber})`;
+        if (consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
+          throw new Error(
+            `${consecutiveTimeouts} candidates in a row timed out after ${Math.round(env.LLM_TIMEOUT_MS / 1000)}s (last: ${label}); ` +
+              `check that ${outcome.model} fits in VRAM, or raise LLM_TIMEOUT_MS`
+          );
+        }
+        await loggingService.logWarn(
+          jobId,
+          `${outcome.model} timed out after ${Math.round(env.LLM_TIMEOUT_MS / 1000)}s on ${label}; kept for review`,
+          'extract'
+        );
+      } else {
+        consecutiveTimeouts = 0;
+      }
       if (outcome.usage) {
         spend.calls += 1;
         spend.promptTokens += outcome.usage.promptTokens;

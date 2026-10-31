@@ -22,6 +22,21 @@ export class OllamaRepeatLimitError extends Error {
 
 const isRepeatLimit = (status: number, body: string) => status === 500 && /token repeat limit/i.test(body);
 
+/**
+ * The call outlived LLM_TIMEOUT_MS (or undici's 5-minute header/body timeout,
+ * since stream:false sends nothing until generation ends). At temperature 0 the
+ * same crop takes as long on every retry, so this is a per-candidate failure.
+ */
+export class OllamaTimeoutError extends Error {
+  constructor(cause: unknown) {
+    super(`Ollama did not answer within ${Math.round(env.LLM_TIMEOUT_MS / 1000)}s`, { cause });
+    this.name = 'OllamaTimeoutError';
+  }
+}
+
+const UNDICI_TIMEOUTS = new Set(['UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_BODY_TIMEOUT']);
+const isTimeout = (error: any) => error?.name === 'TimeoutError' || UNDICI_TIMEOUTS.has(error?.cause?.code);
+
 /** Sampling used for the one retry after a repeat-limit abort: breaks the greedy loop. */
 const REPEAT_RETRY_OPTIONS = { temperature: 0.3, repeat_penalty: 1.15 };
 
@@ -38,6 +53,21 @@ export async function extractWithSchema<T extends z.ZodType>(
   input: ExtractInput,
   endpoint: OllamaEndpoint = localEndpoint(),
   samplingOverrides: Record<string, number> = {},
+): Promise<{ parsed: z.infer<T> | null; raw: string }> {
+  try {
+    return await chatWithSchema(schema, systemPrompt, input, endpoint, samplingOverrides);
+  } catch (error) {
+    if (isTimeout(error)) throw new OllamaTimeoutError(error);
+    throw error;
+  }
+}
+
+async function chatWithSchema<T extends z.ZodType>(
+  schema: T,
+  systemPrompt: string,
+  input: ExtractInput,
+  endpoint: OllamaEndpoint,
+  samplingOverrides: Record<string, number>,
 ): Promise<{ parsed: z.infer<T> | null; raw: string }> {
   const response = await fetch(ollamaUrl(endpoint, '/api/chat'), {
     method: 'POST',
@@ -118,7 +148,7 @@ export type ExtractionOutcome = {
   model: string;
   promptVersion: string;
   /** Set when the model could not produce a response for this candidate (it is then kept for review). */
-  failureReason?: 'model_repeat_limit';
+  failureReason?: 'model_repeat_limit' | 'model_timeout';
   /** Token usage of a paid API call; absent for Ollama and for cache hits. */
   usage?: DeepSeekUsage;
 };
@@ -155,6 +185,17 @@ export class LlmExtractionService {
     let raw: string;
     let cached = false;
     let usage: DeepSeekUsage | undefined;
+    // Not cached, so a later model, prompt or timeout change gets a fresh attempt.
+    const giveUp = (failureReason: NonNullable<ExtractionOutcome['failureReason']>): ExtractionOutcome => ({
+      entities: [],
+      parseFailed: true,
+      raw: '',
+      cacheKey,
+      cached: false,
+      model,
+      promptVersion,
+      failureReason,
+    });
     const hit = await s3Service.downloadFileIfExists(s3Key);
     if (hit) {
       raw = (JSON.parse(hit.toString('utf-8')) as CachedExtraction).raw;
@@ -169,25 +210,18 @@ export class LlmExtractionService {
       } else try {
         raw = (await extractWithSchema(list, SYSTEM_PROMPTS[params.type], input, endpoint)).raw;
       } catch (error) {
+        // A timeout or a repeated loop gives up on this candidate only: failing
+        // the stage would replay the same call and block every other entity in
+        // the document.
+        if (error instanceof OllamaTimeoutError) return giveUp('model_timeout');
         if (!(error instanceof OllamaRepeatLimitError)) throw error;
-        // One retry with sampling noise. If the model still loops, give up on
-        // this candidate only: failing the stage would retry the same loop and
-        // block every other entity in the document. Not cached, so a later
-        // model or prompt change gets a fresh attempt.
+        // One retry with sampling noise before giving up on a loop.
         try {
           raw = (await extractWithSchema(list, SYSTEM_PROMPTS[params.type], input, endpoint, REPEAT_RETRY_OPTIONS)).raw;
         } catch (retryError) {
+          if (retryError instanceof OllamaTimeoutError) return giveUp('model_timeout');
           if (!(retryError instanceof OllamaRepeatLimitError)) throw retryError;
-          return {
-            entities: [],
-            parseFailed: true,
-            raw: '',
-            cacheKey,
-            cached: false,
-            model,
-            promptVersion,
-            failureReason: 'model_repeat_limit',
-          };
+          return giveUp('model_repeat_limit');
         }
       }
       const entry: CachedExtraction = {

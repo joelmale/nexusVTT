@@ -14,7 +14,13 @@ vi.mock('../s3.service', () => ({
 
 import { env } from '../../config/env';
 import { ENTITY_LISTS } from '../../extraction/schemas';
-import { extractionCacheKey, extractWithSchema, LlmExtractionService, OllamaRepeatLimitError } from '../llm-extraction.service';
+import {
+  extractionCacheKey,
+  extractWithSchema,
+  LlmExtractionService,
+  OllamaRepeatLimitError,
+  OllamaTimeoutError,
+} from '../llm-extraction.service';
 
 const recorded = (name: string) =>
   JSON.parse(readFileSync(join(__dirname, '../../extraction/__tests__/fixtures/ollama', name), 'utf8'));
@@ -170,6 +176,37 @@ describe('LlmExtractionService', () => {
     it('extractWithSchema raises a typed error for the loop abort', async () => {
       globalThis.fetch = vi.fn().mockResolvedValue(loop()) as any;
       await expect(extractWithSchema(ENTITY_LISTS.spell, 's', { text: 't' })).rejects.toBeInstanceOf(OllamaRepeatLimitError);
+    });
+  });
+
+  describe('timeouts', () => {
+    const abortTimeout = () => new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+    const headersTimeout = () => Object.assign(new TypeError('fetch failed'), { cause: { code: 'UND_ERR_HEADERS_TIMEOUT' } });
+
+    it('extractWithSchema raises a typed error for LLM_TIMEOUT_MS and undici timeouts', async () => {
+      globalThis.fetch = vi.fn().mockRejectedValue(abortTimeout()) as any;
+      await expect(extractWithSchema(ENTITY_LISTS.spell, 's', { text: 't' })).rejects.toBeInstanceOf(OllamaTimeoutError);
+      globalThis.fetch = vi.fn().mockRejectedValue(headersTimeout()) as any;
+      await expect(extractWithSchema(ENTITY_LISTS.spell, 's', { text: 't' })).rejects.toBeInstanceOf(OllamaTimeoutError);
+    });
+
+    it('gives up on the candidate, not the stage, without retrying or caching', async () => {
+      const fetchMock = vi.fn().mockRejectedValue(abortTimeout());
+      globalThis.fetch = fetchMock as any;
+
+      const outcome = await new LlmExtractionService().extractCandidate(params);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(outcome).toMatchObject({ entities: [], parseFailed: true, cached: false, failureReason: 'model_timeout' });
+      expect(store.size).toBe(0);
+    });
+
+    it('a repeat-limit retry that times out also gives up on the candidate', async () => {
+      globalThis.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: false, status: 500, text: vi.fn().mockResolvedValue('token repeat limit reached') })
+        .mockRejectedValueOnce(abortTimeout()) as any;
+      expect((await new LlmExtractionService().extractCandidate(params)).failureReason).toBe('model_timeout');
     });
   });
 });
