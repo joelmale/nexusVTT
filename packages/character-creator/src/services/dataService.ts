@@ -696,7 +696,9 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
     name: srdClass.name,
     source:
       srdClass.index === 'artificer'
-        ? `Unverified ${year === 2024 ? 'Eberron: Forge of the Artificer' : "Tasha's Cauldron of Everything"}`
+        ? year === 2024
+          ? 'Eberron: Forge of the Artificer'
+          : "Tasha's Cauldron of Everything"
         : `SRD ${year}`,
     edition, // Add edition field
     hit_die: srdClass.hit_die,
@@ -712,7 +714,7 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
     class_features: [], // Would need to be populated from features database
     description:
       srdClass.index === 'artificer'
-        ? 'Supplemental Artificer catalog. Source and edition revision await verification.'
+        ? 'Artificer from the supplemental catalog; rules text is not bundled.'
         : `${srdClass.name} from the System Reference Document.`,
     keyRole: 'Varies', // Would need manual mapping
     spellcasting, // Include spellcasting data

@@ -230,7 +230,8 @@ that the build is certified.
 `data/supportManifest.ts` lists 13 classes (including Artificer), each with both
 editions, **all `level1Certified: false`**, and every scope from
 `getClassSupportScopes()` has `certified: false`. Artificer creation is
-`blocked-unverified-source`; other classes are `implemented-awaiting-acceptance`.
+`implemented-awaiting-acceptance` like the other classes, but its `sourceStatus` stays
+`unverified-supplemental` (rules text is not bundled and mechanics are unchecked).
 The export name `CERTIFIED_SUPPORT_MANIFEST` is historical — treat it as a
 support inventory. `data/contentProvenance.ts` separates SRD 5.1 / SRD 5.2.1 core
 content from supplemental or unverified sources; unverified sources are rejected

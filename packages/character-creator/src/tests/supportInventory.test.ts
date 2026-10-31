@@ -32,16 +32,17 @@ const CLASSES = [
 ];
 
 describe('advertised creator support inventory', () => {
-  it('reports blocked Artificer creation independently of preservation and certification', () => {
+  it('reports unblocked but uncertified Artificer creation independently of preservation and certification', () => {
     const scopes = getClassSupportScopes();
     expect(scopes).toHaveLength(26);
     for (const scope of scopes.filter(
       (entry) => entry.classSlug === 'artificer',
     ))
       expect(scope).toMatchObject({
-        creation: 'blocked-unverified-source',
-        laterLevelCreation: 'blocked-unverified-source',
-        levelUp: 'unverified',
+        sourceStatus: 'unverified-supplemental',
+        creation: 'implemented-awaiting-acceptance',
+        laterLevelCreation: 'implemented-awaiting-acceptance',
+        levelUp: 'implemented-awaiting-acceptance',
         importedPreservation: 'awaiting-acceptance',
         certified: false,
       });
@@ -68,7 +69,9 @@ describe('advertised creator support inventory', () => {
         loadClasses(edition).find((entry) => entry.slug === 'artificer')
           ?.source,
       ).toBe(
-        `Unverified ${edition === '2024' ? 'Eberron: Forge of the Artificer' : "Tasha's Cauldron of Everything"}`,
+        edition === '2024'
+          ? 'Eberron: Forge of the Artificer'
+          : "Tasha's Cauldron of Everything",
       );
     },
   );
@@ -77,13 +80,6 @@ describe('advertised creator support inventory', () => {
       `%s ${edition} produces a valid recommended draft and lossless saved selections`,
       (classSlug) => {
         const recommendation = getRecommendation({ classSlug, edition });
-        if (classSlug === 'artificer') {
-          expect(
-            recommendation.evaluation.issues.map((issue) => issue.id),
-          ).toContain('UNVERIFIED_CLASS_SOURCE');
-          expect(recommendation.evaluation.isValid).toBe(false);
-          return;
-        }
         expect(
           recommendation.evaluation.issues.filter(
             (issue) => issue.severity === 'error',

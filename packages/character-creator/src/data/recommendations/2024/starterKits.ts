@@ -7,7 +7,7 @@ import type { AbilityName } from '../../../types/dnd';
  * why. The recommendation service still resolves skills, spells, equipment and
  * masteries; a legality test runs every kit through `evaluateDraft`.
  */
-/* Artificer has no kit: the evaluator blocks it until its source is verified. */
+/* Artificer picks follow community optimisation advice; they inform choices only. */
 export interface StarterKit {
   classSlug: string;
   speciesSlug: string;
@@ -19,6 +19,16 @@ export interface StarterKit {
 }
 
 export const STARTER_KITS_2024: readonly StarterKit[] = [
+  {
+    classSlug: 'artificer',
+    speciesSlug: 'human-2024',
+    backgroundSlug: 'sage-2024',
+    bonuses: { INT: 2, CON: 1 },
+    why: {
+      origin: 'Sage brings Magic Initiate and the knowledge skills; Human adds a skill and Heroic Inspiration.',
+      abilities: 'Intelligence drives spells and Flash of Genius; Constitution protects concentration.',
+    },
+  },
   {
     classSlug: 'barbarian',
     speciesSlug: 'human-2024',

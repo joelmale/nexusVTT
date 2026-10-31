@@ -41,18 +41,9 @@ export function getClassSupportScopes(): ClassSupportScope[] {
         entry.classSlug === 'artificer'
           ? ('unverified-supplemental' as const)
           : ('verified-core' as const),
-      creation:
-        entry.classSlug === 'artificer'
-          ? ('blocked-unverified-source' as const)
-          : ('implemented-awaiting-acceptance' as const),
-      laterLevelCreation:
-        entry.classSlug === 'artificer'
-          ? ('blocked-unverified-source' as const)
-          : ('implemented-awaiting-acceptance' as const),
-      levelUp:
-        entry.classSlug === 'artificer'
-          ? ('unverified' as const)
-          : ('implemented-awaiting-acceptance' as const),
+      creation: 'implemented-awaiting-acceptance' as const,
+      laterLevelCreation: 'implemented-awaiting-acceptance' as const,
+      levelUp: 'implemented-awaiting-acceptance' as const,
       editing: 'preservation-awaiting-acceptance' as const,
       importedPreservation: 'awaiting-acceptance' as const,
       certified: false as const,
@@ -67,7 +58,7 @@ export const CERTIFIED_SUPPORT_MANIFEST: ClassSupportCertification[] = [
     editions: ['2014', '2024'],
     level1Certified: false,
     spellcaster: true,
-    recommendationSupported: false,
+    recommendationSupported: true,
     subclassLevels: [3],
     notes:
       "User authorized broad Artificer support. Recommended foundations: Tasha's Cauldron of Everything for legacy, Eberron: Forge of the Artificer for revised. Merge compatible options with source provenance; never stack replacement features or combine progression tables. Existing catalog mechanics await verification against those foundations; imports remain preserved.",

@@ -4,11 +4,8 @@ import { getRecommendation } from './recommendationService';
 import { loadClasses, BACKGROUNDS } from './dataService';
 
 describe('authored 2024 starter kits', () => {
-  it('covers every verified 2024 class once', () => {
-    const classes = loadClasses('2024')
-      .map((c) => c.slug)
-      .filter((slug) => slug !== 'artificer')
-      .sort();
+  it('covers every 2024 class once', () => {
+    const classes = loadClasses('2024').map((c) => c.slug).sort();
     expect(STARTER_KITS_2024.map((k) => k.classSlug).sort()).toEqual(classes);
   });
 

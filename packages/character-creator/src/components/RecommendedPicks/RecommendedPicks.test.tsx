@@ -26,9 +26,9 @@ describe('RecommendedPicks', () => {
     expect(onApplied).toHaveBeenCalledTimes(1);
   });
 
-  it('offers no Artificer, which has no authored kit', () => {
+  it('offers an Artificer kit', () => {
     render(<RecommendedPicks data={data2024} onApply={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: /^Artificer/ })).toBeNull();
+    expect(screen.getAllByRole('button', { name: /^Artificer/ }).length).toBeGreaterThan(0);
   });
 
   it('is hidden for 2014, where no kits are authored', () => {
