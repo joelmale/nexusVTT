@@ -280,8 +280,11 @@ test('Studio toolkit persists compendium items with a holder, inbox notes, and o
       page.getByRole('heading', { level: 2, name: 'Moonblade' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('link', { name: 'Captain Valen' }),
-    ).toBeVisible();
+      page.getByRole('link', { name: 'Captain Valen', exact: true }),
+    ).toHaveAttribute(
+      'href',
+      `/codex-dm/campaigns/${campaign.id}/npcs/${npc.id}`,
+    );
 
     // 6. Verify pin list reflects pinned NPC
     const pinsRes = await context.request.get(
