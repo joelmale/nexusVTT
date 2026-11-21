@@ -353,6 +353,11 @@ support claims and verified guides. A pushed commit alone does not close this pl
 
 ## Starting work and recording completion
 
+The October 30 changes consolidated the creator into one wizard across Forge
+and VTT. The [November stabilization handoff](../operations/november-2026-stabilization.md)
+tracks current verification. Use this tranche plan to recover acceptance
+criteria and evidence requirements for the remaining work.
+
 The next engineering change should be **T-02 resource contract/definitions plus
 the Fighter/Barbarian/Bard slice**, preceded by the narrow T-01 source/support
 verification needed for those classes. Do not wait for the entire source audit

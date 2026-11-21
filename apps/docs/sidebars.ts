@@ -15,6 +15,7 @@ const sidebars: SidebarsConfig = {
         'object-models-and-data-flow',
         'ci-cd-pipelines',
         'ci-test-catalog',
+        'operations/november-2026-stabilization',
         'operations/ci-cd-optimization-plan',
       ],
     },

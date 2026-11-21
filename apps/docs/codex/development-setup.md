@@ -2,83 +2,31 @@
 
 This guide covers setting up the NexusCodex development environment on your local machine.
 
-## Prerequisites
+## Quick start
 
-### System Requirements
-
-- **Node.js**: 20.x or later
-- **Docker**: 24.x or later
-- **Docker Compose**: 2.x or later
-- **Git**: 2.x or later
-
-### Recommended Tools
-
-- **VS Code** with TypeScript and React extensions
-- **Postman** or **Insomnia** for API testing
-- **DBeaver** or **pgAdmin** for database management
-
-## Quick Start
-
-### 1. Clone the Repository
+1. Clone the Nexus monorepo and install dependencies from its root with
+   `npm ci`. Use the Node.js version in `.nvmrc` and npm 11.
+2. Provide a disposable PostgreSQL database, Redis, and an S3-compatible store
+   with a documents bucket. Copy the service `.env.example` files to `.env`
+   and adapt their addresses and credentials to your local services.
+3. From the monorepo root, prepare the shared packages and Prisma clients with
+   `npm run build:codex`. Apply migrations to the local development database
+   with `npm run prisma:migrate --workspace nexus-codex-doc-api`.
+4. Start the required apps from the monorepo root, in separate terminals.
 
 ```bash
-git clone <repository-url>
-cd nexus-codex
+npm run dev --workspace nexus-codex-doc-api
+npm run dev --workspace nexus-codex-doc-processor
+npm run dev --workspace nexus-codex-doc-websocket
+npm run dev --workspace admin-ui
 ```
 
-### 2. Start Development Environment
+Use the service URLs in your local configuration and the URL printed by Vite.
+For the integrated deployment layout, see the
+[homelab runbook](operations/nexuscodex-homelab.md).
 
-```bash
-# Start all services (PostgreSQL, Redis, MinIO)
-docker compose up --build -d
-
-# Check service status
-docker compose ps
-```
-
-### 3. Install Dependencies
-
-```bash
-# Install dependencies for all services
-cd services/doc-api && npm install
-cd ../doc-processor && npm install
-cd ../doc-websocket && npm install
-cd ../admin-ui && npm install
-```
-
-### 4. Database Setup
-
-```bash
-# Generate Prisma client and push schema
-cd services/doc-api
-npm run prisma:generate
-npm run prisma:push
-```
-
-### 5. Start Development Servers
-
-```bash
-# Terminal 1: API Server
-cd services/doc-api && npm run dev
-
-# Terminal 2: Document Processor
-cd services/doc-processor && npm run dev
-
-# Terminal 3: WebSocket Server
-cd services/doc-websocket && npm run dev
-
-# Terminal 4: Admin UI
-cd services/admin-ui && npm run dev
-```
-
-### 6. Access Applications
-
-- **Admin UI**: http://localhost:3001
-- **API Documentation**: http://localhost:3000
-- **MinIO Console**: http://localhost:9001 (admin/password)
-- **pgAdmin**: http://localhost:5050 (admin@example.com/admin)
-
-## Detailed Setup
+Run `npm run test:codex-eval` from the repo root to check the extraction scorer
+with synthetic input. It runs without the document services or a model.
 
 ## Environment Configuration
 

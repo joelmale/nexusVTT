@@ -30,6 +30,7 @@ flakes or failure modes**, and **How to reproduce locally**.
 | Control API: validation                | `ci.yml` (`control-api`)               | PR              | Yes    | Stub       |
 | Forge                                  | `ci.yml` (`forge`)                     | PR              | Yes    | Stub       |
 | Codex                                  | `ci.yml` (`codex`)                     | PR              | Yes    | Stub       |
+| Codex extraction evaluation tests      | `codex-ci.yml` (`test-inventory`)      | PR and weekly   | Yes    | Yes        |
 | Documentation checks                   | `ci.yml` (`docs`)                      | PR              | Yes    | Stub       |
 | Security validation                    | `ci.yml` (`security`)                  | PR              | Yes    | Stub       |
 | Multiplayer soak and chaos             | `nightly.yml` / `multiplayer-soak.yml` | Weekly          | No     | Stub       |
@@ -74,6 +75,15 @@ compare-and-swap writes, version-neutral reconnects, event order).
 - **Artifacts on failure:** `weekly-playwright-smoke-report` (14 days).
 - **Reproduce locally:** `cd apps/vtt && npm run test:e2e` (see
   [Testing Nexus VTT](/vtt/developer/testing)).
+
+## Codex extraction evaluation tests
+
+The reusable Codex workflow checks service test inventory and runs
+`npm run test:codex-eval` on the checked-out source. The affected-target
+catalog routes changes to Codex scripts and labels into this workflow, which
+also runs from weekly validation. Tests use a synthetic fixture and run without
+model, database, or object-store services. CI logs report scorer and CLI
+failures. Run the same command from the repo root.
 
 ## Stubs
 

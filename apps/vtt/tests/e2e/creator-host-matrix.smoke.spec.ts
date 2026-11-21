@@ -70,12 +70,12 @@ for (const host of ['forge', 'vtt'] as const)
               await page
                 .getByRole('button', { name: 'Create Character', exact: true })
                 .click();
-              await expect(
-                page.getByRole('button', { name: 'Use 2024 rules' }),
-              ).toBeVisible();
-              await page
-                .getByRole('button', { name: 'Close', exact: true })
-                .click();
+              const wizard = page.getByRole('dialog', {
+                name: /^Create a character — step 1\b/,
+              });
+              await expect(wizard).toBeVisible();
+              await page.keyboard.press('Escape');
+              await expect(wizard).toBeHidden();
             }
             await page.evaluate(
               async ({ database, key, record }) => {
@@ -126,17 +126,24 @@ for (const host of ['forge', 'vtt'] as const)
                 },
               },
             );
-            if (host === 'forge') await page.goto('/forge/character-creator');
-            else
+            if (host === 'forge') {
+              await page.goto('/forge/character-creator');
+              await page
+                .getByRole('button', {
+                  name: 'Create a character',
+                  exact: true,
+                })
+                .click();
+            } else {
               await page
                 .getByRole('button', { name: 'Create Character', exact: true })
                 .click();
+            }
             await page
               .getByRole('button', { name: 'Resume creation', exact: true })
               .click();
             const submit = page
-              .locator('dialog[open]')
-              .last()
+              .getByRole('dialog', { name: /Final Details & Personality/ })
               .getByRole('button', {
                 name:
                   host === 'forge' && mode === 'full'

@@ -160,27 +160,24 @@ const Section: React.FC<{
   canEdit?: (section: SheetSection) => boolean;
 }> = ({ id, title, children, sheet, onEdit, canEdit }) => {
   const editable = Boolean(onEdit) && (canEdit?.(id) ?? true);
-  const body = (
-    <>
+  return (
+    <div className={`${styles.section}${editable ? ` ${styles.editableSection}` : ''}`}>
       <span className={styles.sectionTitle}>
         {title}
-        {editable && <span className={styles.editHint}>Change</span>}
+        {editable && (
+          <button
+            type="button"
+            className={styles.editHint}
+            aria-label={`Change ${title}`}
+            onClick={() => onEdit?.(id)}
+          >
+            Change
+          </button>
+        )}
       </span>
       {children}
       {sheet.pending[id] && <span className={styles.pending}>{sheet.pending[id]}</span>}
-    </>
-  );
-  return editable ? (
-    <button
-      type="button"
-      className={styles.section}
-      onClick={() => onEdit?.(id)}
-      aria-label={`${title}: change`}
-    >
-      {body}
-    </button>
-  ) : (
-    <div className={styles.section}>{body}</div>
+    </div>
   );
 };
 

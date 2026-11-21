@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
+import { campaignEntrySchema, type CampaignEntry } from '@nexus/game-contracts';
 import { expect, test } from './support/diagnostics';
 import { hasManagedSmokeStack } from './support/stack';
 
@@ -156,7 +157,7 @@ test('Studio authors and reloads a session through real persistence', async ({
   }
 });
 
-test('Studio toolkit persists compendium items with holder, hoard loot, inbox notes, and object pins', async ({
+test('Studio toolkit persists compendium items with a holder, inbox notes, and object pins', async ({
   context,
   page,
   diagnostics,
@@ -203,66 +204,89 @@ test('Studio toolkit persists compendium items with holder, hoard loot, inbox no
     expect(campaignRes.status()).toBe(201);
     const campaign: { id: string } = await campaignRes.json();
 
-    // 1. Create NPC holder
-    const npcRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects`, {
-      data: {
-        kind: 'npc',
-        requestId: randomUUID(),
-        data: {
-          name: 'Captain Valen',
-          role: 'Town Guard Captain',
-          ancestry: 'Human',
-          summary: 'Guards the gate',
+    const createEntry = async (
+      kind: CampaignEntry['kind'],
+      title: string,
+      fields: Record<string, unknown>,
+    ): Promise<CampaignEntry> => {
+      const timestamp = new Date().toISOString();
+      const data = campaignEntrySchema.parse({
+        id: randomUUID(),
+        campaignId: campaign.id,
+        revision: 1,
+        schemaVersion: 1,
+        kind,
+        title,
+        visibility: 'dm-only',
+        content: {
+          format: 'lexical',
+          schemaVersion: 1,
+          value: {
+            root: { type: 'root', children: [] },
+            nexusStudio: { v: 1, fields },
+          },
         },
-      },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      const response = await context.request.post(
+        `/api/campaigns/${campaign.id}/prep/objects`,
+        { data: { kind, requestId: randomUUID(), data } },
+      );
+      expect(response.status(), await response.text()).toBe(201);
+      return campaignEntrySchema.parse((await response.json()).data);
+    };
+
+    const npc = await createEntry('npc', 'Captain Valen', {
+      role: 'Town Guard Captain',
+      ancestry: 'Human',
     });
-    expect(npcRes.status()).toBe(201);
-    const npc: { id: string } = await npcRes.json();
 
     // 2. Toggle pin on NPC (CS-64)
-    const pinRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects/${npc.id}/pin`, {
-      data: { pinned: true },
-    });
+    const pinRes = await context.request.post(
+      `/api/campaigns/${campaign.id}/prep/objects/${npc.id}/pin`,
+      {
+        data: { pinned: true },
+      },
+    );
     expect(pinRes.ok()).toBe(true);
 
     // 3. Create compendium item assigned to holder (CS-01, CS-02)
-    const itemRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects`, {
-      data: {
-        kind: 'item',
-        requestId: randomUUID(),
-        data: {
-          name: 'Moonblade',
-          itemType: 'weapon',
-          requiresAttunement: true,
-          holderId: npc.id,
-          holderType: 'npc',
-          valueGp: 5000,
-          rarity: 'legendary',
-        },
-      },
+    const item = await createEntry('item', 'Moonblade', {
+      itemType: 'weapon',
+      requiresAttunement: true,
+      holder: { kind: 'npc', id: npc.id },
+      valueGp: 5000,
+      rarity: 'legendary',
     });
-    expect(itemRes.status()).toBe(201);
 
     // 4. Create inbox note (CS-65)
-    const inboxRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects`, {
-      data: {
-        kind: 'inbox-note',
-        requestId: randomUUID(),
-        data: {
-          content: 'Secret rendezvous at the docks at midnight',
-          status: 'unfiled',
-          source: 'quick-capture',
-        },
-      },
-    });
-    expect(inboxRes.status()).toBe(201);
+    const inbox = await createEntry(
+      'inbox-note',
+      'Secret rendezvous at the docks at midnight',
+      {},
+    );
+    const inboxRes = await context.request.get(
+      `/api/campaigns/${campaign.id}/prep/objects?kind=inbox-note`,
+    );
+    expect(inboxRes.status(), await inboxRes.text()).toBe(200);
+    expect((await inboxRes.json()).objects).toContainEqual(
+      expect.objectContaining({ id: inbox.id, title: inbox.title }),
+    );
 
     // 5. Navigate to items section in UI and verify persisted entity with holder
-    await page.goto(`/codex-dm/campaigns/${campaign.id}/items`);
-    await expect(page.getByRole('heading', { level: 2, name: 'Moonblade' })).toBeVisible();
+    await page.goto(`/codex-dm/campaigns/${campaign.id}/items/${item.id}`);
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Moonblade' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Captain Valen' }),
+    ).toBeVisible();
 
     // 6. Verify pin list reflects pinned NPC
-    const pinsRes = await context.request.get(`/api/campaigns/${campaign.id}/prep/pins`);
+    const pinsRes = await context.request.get(
+      `/api/campaigns/${campaign.id}/prep/pins`,
+    );
     expect(pinsRes.ok()).toBe(true);
     const pins: { pinnedObjectIds: string[] } = await pinsRes.json();
     expect(pins.pinnedObjectIds).toContain(npc.id);
