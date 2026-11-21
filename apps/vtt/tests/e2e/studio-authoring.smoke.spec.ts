@@ -1,40 +1,9 @@
-import { execFile } from 'node:child_process';
-import { createHmac, randomUUID } from 'node:crypto';
-import { promisify } from 'node:util';
+import { randomUUID } from 'node:crypto';
 import { campaignEntrySchema, type CampaignEntry } from '@nexus/game-contracts';
 import { expect, test } from './support/diagnostics';
 import { hasManagedSmokeStack } from './support/stack';
 
-const executeFile = promisify(execFile);
-
-/** Seed only an authenticated test identity in the disposable managed stack. */
-async function smokeSql(sql: string) {
-  if (!hasManagedSmokeStack())
-    throw new Error('Requires the disposable managed smoke stack.');
-  await executeFile(
-    'docker',
-    [
-      'compose',
-      '-p',
-      process.env.E2E_PROJECT_NAME ?? 'nexus-vtt-e2e',
-      '-f',
-      'docker/docker-compose.smoke.yml',
-      'exec',
-      '-T',
-      'postgres',
-      'psql',
-      '-U',
-      'nexus_smoke',
-      '-d',
-      'nexus_smoke',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-c',
-      sql,
-    ],
-    { windowsHide: true },
-  );
-}
+import { createTestIdentity } from './support/testIdentity';
 
 test('Studio authors and reloads a session through real persistence', async ({
   context,
@@ -42,35 +11,7 @@ test('Studio authors and reloads a session through real persistence', async ({
   diagnostics,
 }) => {
   test.skip(!hasManagedSmokeStack(), 'Requires npm run test:e2e.');
-  const userId = randomUUID();
-  const sessionId = randomUUID();
-  const session = JSON.stringify({
-    cookie: {
-      originalMaxAge: 3600000,
-      expires: new Date(Date.now() + 3600000).toISOString(),
-      secure: false,
-      httpOnly: true,
-      path: '/',
-      sameSite: 'lax',
-    },
-    passport: { user: userId },
-  });
-  await smokeSql(
-    `INSERT INTO users (id, name, provider) VALUES ('${userId}', 'Studio smoke author', 'google'); INSERT INTO session (sid, sess, expire) VALUES ('${sessionId}', '${session}'::json, NOW() + INTERVAL '1 hour');`,
-  );
-  const signature = createHmac('sha256', 'smoke-session-secret')
-    .update(sessionId)
-    .digest('base64')
-    .replace(/=+$/, '');
-  await context.addCookies([
-    {
-      name: 'connect.sid',
-      value: `s:${sessionId}.${signature}`,
-      url: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:4173',
-      httpOnly: true,
-      sameSite: 'Lax',
-    },
-  ]);
+  const identity = await createTestIdentity(context);
   try {
     const response = await context.request.post('/api/campaigns', {
       data: {
@@ -151,9 +92,7 @@ test('Studio authors and reloads a session through real persistence', async ({
     ).toBeEnabled();
     expect(diagnostics.pageErrors).toEqual([]);
   } finally {
-    await smokeSql(
-      `DELETE FROM session WHERE sid = '${sessionId}'; DELETE FROM users WHERE id = '${userId}';`,
-    );
+    await identity.dispose();
   }
 });
 
@@ -163,35 +102,7 @@ test('Studio toolkit persists compendium items with a holder, inbox notes, and o
   diagnostics,
 }) => {
   test.skip(!hasManagedSmokeStack(), 'Requires npm run test:e2e.');
-  const userId = randomUUID();
-  const sessionId = randomUUID();
-  const session = JSON.stringify({
-    cookie: {
-      originalMaxAge: 3600000,
-      expires: new Date(Date.now() + 3600000).toISOString(),
-      secure: false,
-      httpOnly: true,
-      path: '/',
-      sameSite: 'lax',
-    },
-    passport: { user: userId },
-  });
-  await smokeSql(
-    `INSERT INTO users (id, name, provider) VALUES ('${userId}', 'Studio smoke author', 'google'); INSERT INTO session (sid, sess, expire) VALUES ('${sessionId}', '${session}'::json, NOW() + INTERVAL '1 hour');`,
-  );
-  const signature = createHmac('sha256', 'smoke-session-secret')
-    .update(sessionId)
-    .digest('base64')
-    .replace(/=+$/, '');
-  await context.addCookies([
-    {
-      name: 'connect.sid',
-      value: `s:${sessionId}.${signature}`,
-      url: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:4173',
-      httpOnly: true,
-      sameSite: 'Lax',
-    },
-  ]);
+  const identity = await createTestIdentity(context);
   try {
     const campaignRes = await context.request.post('/api/campaigns', {
       data: {
@@ -296,8 +207,6 @@ test('Studio toolkit persists compendium items with a holder, inbox notes, and o
 
     expect(diagnostics.pageErrors).toEqual([]);
   } finally {
-    await smokeSql(
-      `DELETE FROM session WHERE sid = '${sessionId}'; DELETE FROM users WHERE id = '${userId}';`,
-    );
+    await identity.dispose();
   }
 });

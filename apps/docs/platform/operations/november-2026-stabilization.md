@@ -21,6 +21,23 @@ three container security checks failed.
 | Documentation | The [Forge creator guide](/forge/character-creation), [VTT onboarding](/vtt/features/character-onboarding), and Studio setup reflect the current entry points and persistence model. `npm run test:docs` passes. |
 | Codex evaluation | The synthetic scorer suite passes in Codex CI. The real held-out baseline requires reviewed pages outside the tuning set and predictions from the same frozen version. |
 
+## Verification on the stabilization branch
+
+- `npm run ci:preflight` passed the repository contract checks and workflow lint.
+- `npm run test:docs` passed type-checking and the production site build.
+- `npm run test:codex-eval` passed all 10 synthetic evaluation tests.
+- The Studio authoring tests passed on a fresh managed stack with the shared
+  test identity. The focused Forge browser case passed its accessibility audit,
+  save/reload checks, and class-resource actions.
+- Local Trivy 0.74.0 scans passed for the rebuilt `asset-service`
+  (`2473ae2a8d36`), `doc-api` (`5baeefc1fe1e`), and `doc-websocket`
+  (`b9435649e7a3`) images using the repository's fixed HIGH/CRITICAL rules.
+  The base is Node Alpine 26.13.1, one patch ahead of the proposed
+  [Dependabot bump](https://github.com/joelmale/nexusVTT/pull/433).
+
+See the [stabilization pull request](https://github.com/joelmale/nexusVTT/pull/445)
+for the complete browser run and branch checks.
+
 ## Codex held-out baseline
 
 `goldset@1` has zero verified held-out pages. The scorer stops with
