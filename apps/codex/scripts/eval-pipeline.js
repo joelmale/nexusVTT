@@ -14,6 +14,7 @@
  *   --api URL              doc-api base URL (default http://localhost:3005), like the other eval scripts
  *   --map FILE             JSON {"<sha256>": "<documentId>"} when goldset.json has no documentId
  *   --predictions DIR      score saved predictions (<pageId>.json) instead of calling doc-api
+ *   --goldset-dir DIR      read a separate manifest, labels and thresholds
  *   --save-predictions DIR write the predictions fetched from doc-api, to re-score later
  *   --split tuning|heldout|all   default tuning; held-out pages are only for the final go/no-go
  *   --include-drafts       also score pages whose label is not yet verified
@@ -387,6 +388,7 @@ const toMarkdown = (card) => {
 const parseArgs = (argv) => {
   const options = {
     goldset: null,
+    goldsetDir: GOLDSET_DIR,
     pipeline: 'v2',
     vlm: 'unknown',
     api: DEFAULT_API_BASE,
@@ -402,6 +404,7 @@ const parseArgs = (argv) => {
     const arg = argv[i];
     const next = () => argv[++i];
     if (arg === '--goldset') options.goldset = Number(next());
+    else if (arg === '--goldset-dir') options.goldsetDir = next();
     else if (arg === '--pipeline') options.pipeline = next();
     else if (arg === '--vlm') options.vlm = next();
     else if (arg === '--api') options.api = next();
@@ -482,7 +485,7 @@ const fetchPrediction = async (api, documentId, pageNumber, cache) => {
 
 const main = async () => {
   const options = parseArgs(process.argv.slice(2));
-  const { manifest, labels } = loadGoldset(GOLDSET_DIR, options);
+  const { manifest, labels } = loadGoldset(options.goldsetDir, options);
   if (labels.length === 0) {
     console.error(`[eval-pipeline] No ${options.includeDrafts ? '' : 'verified '}pages in split "${options.split}".`);
     process.exit(1);
@@ -513,7 +516,7 @@ const main = async () => {
   }
 
   const scores = scoreGoldset(pairs);
-  const thresholds = checkThresholds(scores, readJson(path.join(GOLDSET_DIR, 'thresholds.json')));
+  const thresholds = checkThresholds(scores, readJson(path.join(options.goldsetDir, 'thresholds.json')));
   const card = {
     goldset: manifest.version,
     goldsetStatus: manifest.status,

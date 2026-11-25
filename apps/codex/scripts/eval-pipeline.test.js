@@ -22,6 +22,30 @@ const read = (file) => JSON.parse(fs.readFileSync(file, 'utf-8'));
 const label = read(path.join(GOLDSET_DIR, 'pages', 'synthetic-001.json'));
 const prediction = read(path.join(GOLDSET_DIR, 'predictions-example', 'synthetic-001.json'));
 
+function createFixtureGoldset(t) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-goldset-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const labels = [
+    label,
+    { ...label, id: 'synthetic-heldout', heldOut: true },
+    { ...label, id: 'synthetic-draft', status: 'draft' },
+  ];
+  const pages = labels.map((entry) => {
+    const file = `${entry.id}.json`;
+    fs.writeFileSync(path.join(directory, file), JSON.stringify(entry));
+    return { id: entry.id, file };
+  });
+  fs.writeFileSync(
+    path.join(directory, 'goldset.json'),
+    JSON.stringify({ version: 1, status: 'draft', pages }),
+  );
+  fs.copyFileSync(
+    path.join(GOLDSET_DIR, 'thresholds.json'),
+    path.join(directory, 'thresholds.json'),
+  );
+  return directory;
+}
+
 test('the synthetic label matches the label schema shape', () => {
   const schema = read(path.join(GOLDSET_DIR, 'label.schema.json'));
   for (const key of schema.required) assert.ok(key in label, `missing ${key}`);
@@ -100,17 +124,22 @@ test('pearson correlation', () => {
   assert.equal(pearson([1, 2], [1, 2]), null);
 });
 
-test('held-out and draft pages are excluded unless asked for', () => {
-  assert.equal(loadGoldset(GOLDSET_DIR, { goldset: 1, split: 'tuning', includeDrafts: false }).labels.length, 1);
-  assert.equal(loadGoldset(GOLDSET_DIR, { goldset: 1, split: 'heldout', includeDrafts: false }).labels.length, 0);
-  assert.throws(() => loadGoldset(GOLDSET_DIR, { goldset: 2, split: 'all' }), /version 1, not 2/);
+test('held-out and draft pages are excluded unless asked for', (t) => {
+  const directory = createFixtureGoldset(t);
+  const ids = (split, includeDrafts) =>
+    loadGoldset(directory, { goldset: 1, split, includeDrafts }).labels.map((entry) => entry.id);
+  assert.deepEqual(ids('tuning', false), ['synthetic-001']);
+  assert.deepEqual(ids('heldout', false), ['synthetic-heldout']);
+  assert.deepEqual(ids('tuning', true), ['synthetic-001', 'synthetic-draft']);
+  assert.throws(() => loadGoldset(directory, { goldset: 2, split: 'all' }), /version 1, not 2/);
 });
 
-test('CLI scores saved predictions and writes JSON + Markdown scorecards', () => {
-  const out = fs.mkdtempSync(path.join(os.tmpdir(), 'goldset-'));
+test('CLI scores saved predictions and writes JSON + Markdown scorecards', (t) => {
+  const directory = createFixtureGoldset(t);
+  const out = path.join(directory, 'results');
   const result = spawnSync(
     process.execPath,
-    [path.join(__dirname, 'eval-pipeline.js'), '--goldset', '1', '--pipeline', 'v2', '--vlm', 'qwen2.5vl:7b', '--predictions', path.join(GOLDSET_DIR, 'predictions-example'), '--out', out, '--enforce'],
+    [path.join(__dirname, 'eval-pipeline.js'), '--goldset', '1', '--goldset-dir', directory, '--pipeline', 'v2', '--vlm', 'qwen2.5vl:7b', '--predictions', path.join(GOLDSET_DIR, 'predictions-example'), '--out', out, '--enforce'],
     { encoding: 'utf-8' }
   );
   assert.equal(result.status, 1, result.stderr); // --enforce: the example has a wrong-and-unflagged entity

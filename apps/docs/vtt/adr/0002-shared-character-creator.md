@@ -154,11 +154,20 @@ build time, with host-owned persistence. What changed:
   through a recovery hook with revision checks. This restores the intended
   boundary: the package still owns no storage backend. The `Storage` helpers
   remain exported but are unused by hosts and skip some validation.
-- **Rollout.** There is no certification or staged release. The only control is a
-  runtime presentation flag, `__NEXUS_CREATOR_FLAGS__.guidedDefault`; both hosts
-  open the detailed wizard by default.
+- **Rollout.** There is no certification or staged release. The runtime
+  `guidedDefault` flag was removed with the guided flows; both hosts open the one
+  creator (see the 2026-10-30 note below).
 - **Still open.** Real device and assistive-technology acceptance (waived by the
   owner on 2026-10-27, not passed), class certification (every
   `level1Certified` is `false`), a persistent awaiting-DM state in VTT, and the
   defects listed in the
   [engineering guide](/platform/integrations/character-creation#known-defects-and-discrepancies).
+
+## Implementation status note — 2026-10-30
+
+The guided flows (`GuidedCharacterCreator`, `FourScreenNewcomerFlow`,
+`PersonalityWizard`) were retired into one creator. The "recommended picks" lane
+is the class panel on its first step and fills the draft from authored starter
+kits (level 1). `CreationMode` keeps `guided` as a deprecated alias of `full`, so
+saved drafts and hosts that still say it keep working. The `guidedDefault`
+runtime flag and both `creatorCapabilities.ts` files were removed.
