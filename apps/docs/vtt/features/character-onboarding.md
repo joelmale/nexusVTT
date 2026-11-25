@@ -6,20 +6,14 @@ party character supplied by the DM. A character has three separate states:
 accepted it), and **on the map** (a token is linked to it). Saving does not
 imply the other two.
 
-:::note What this guide is based on
-Written 2026-10-27 from the current source (VTT 0.1.0, commit `6d187098`), not
-from a deployed site. Creator instructions live in the
-[character-creation guide](/forge/character-creation). Real-phone and
-screen-reader testing has not been done.
-:::
-
 ## Create before joining
 
 1. Open **Player Setup**. Under **Your Characters**, choose an existing
    character, or open **Character Forge → Open Character Forge** to build one
    inside VTT.
-2. VTT asks **Use 2014 rules** or **Use 2024 rules**, then opens the detailed
-   wizard. Choose **Use guided creation** for the four-screen quick build.
+2. The shared wizard opens with 2024 rules for a new build. See the
+   [character creation guide](/forge/character-creation) for recommended picks,
+   legacy rules, and draft recovery.
 3. After saving, check the selected character and player name. Enter the DM's
    four-character room code, choose **Join As: Player**, and select **Join Game**.
    A spectator can watch without a character.
@@ -72,7 +66,7 @@ views without changing your rules edition or rebuilding the character.
 
 With no owned character, **Choose your character** opens. Select **Play as
 [name]**, or **Create New Character** to open the same creator (including the
-edition question and recovery). Later use **My Hero → Select or Create Your
+draft recovery). Later use **My Hero → Select or Create Your
 Character** or **Settings → Switch Character**. Spectators have no hero tab or
 claim action.
 

@@ -38,15 +38,22 @@ permissions:
 
 jobs:
   test-inventory:
-    name: 'Codex: test inventory'
+    name: 'Codex: test inventory and extraction evaluation'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.source_sha }}
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '26.5.1'
+
       - name: Verify service test inventory
         run: node apps/codex/scripts/check-test-inventory.mjs
+
+      - name: Run extraction evaluation tests
+        run: npm run test:codex-eval
 
   verify-doc-api-unit:
     name: 'doc-api: unit tests and build'

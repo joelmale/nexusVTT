@@ -104,6 +104,12 @@ Scorecards record the version, so only compare scores from the same version.
 
 ## 5. Score a run
 
+The repository's `goldset@1` is a draft with zero verified held-out pages.
+The October tuning scorecard records development results. For a baseline,
+choose new pages outside the tuning set, review their labels, mark them
+`heldOut: true`, and freeze the version before running and archiving predictions.
+Use `--map` to supply document IDs if they are absent from the manifest.
+
 From `apps/codex`:
 
 ```bash
@@ -113,8 +119,8 @@ node scripts/eval-pipeline.js --goldset 1 --pipeline v2 --vlm qwen2.5vl:7b --api
 # re-score saved output later without re-running anything
 node scripts/eval-pipeline.js --goldset 1 --pipeline v2 --vlm qwen2.5vl:7b --predictions eval/runs/qwen2.5vl-7b
 
-# final go/no-go on the held-out pages, failing on any missed threshold
-node scripts/eval-pipeline.js --goldset 1 --pipeline v2 --vlm qwen2.5vl:7b --split heldout --enforce
+# final go/no-go on the held-out pages, with reusable predictions
+node scripts/eval-pipeline.js --goldset 1 --pipeline v2 --vlm qwen2.5vl:7b --split heldout --save-predictions eval/runs/qwen2.5vl-7b-heldout --enforce
 ```
 
 The script writes a JSON and a Markdown scorecard to `eval/results/`. v1 scoring is
