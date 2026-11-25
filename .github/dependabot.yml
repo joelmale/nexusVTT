@@ -132,3 +132,8 @@ updates:
       time: '04:00'
     reviewers:
       - 'JoelN'
+    groups:
+      codeql-action:
+        patterns:
+          - 'github/codeql-action'
+          - 'github/codeql-action/*'
