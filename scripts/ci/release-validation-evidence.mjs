@@ -64,10 +64,11 @@ export async function fetchSuccessfulValidation(
   }
 
   const workflow = encodeURIComponent('ci.yml');
+  // GitHub can omit a completed run when status and head_sha are both set.
+  // Keep the exact SHA query and validate completion in the response.
   const query = new URLSearchParams({
     head_sha: SOURCE_SHA,
     per_page: '100',
-    status: 'completed',
   });
   const response = await fetchImplementation(
     `${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs?${query}`,

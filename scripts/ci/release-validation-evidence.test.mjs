@@ -78,6 +78,20 @@ describe('release validation evidence', () => {
       {
         workflow_runs: [
           {
+            conclusion: null,
+            event: 'push',
+            head_sha: sourceSha,
+            id: 1,
+            status: 'in_progress',
+          },
+        ],
+      },
+      'No successful',
+    ],
+    [
+      {
+        workflow_runs: [
+          {
             conclusion: 'failure',
             event: 'push',
             head_sha: sourceSha,
@@ -99,7 +113,7 @@ describe('release validation evidence', () => {
     },
   );
 
-  test('queries only the CI workflow and exact source SHA', async () => {
+  test('finds an exact-source run even when the API status filter drops it', async () => {
     const fetchImplementation = vi.fn().mockResolvedValue(
       response({
         workflow_runs: [
@@ -119,7 +133,7 @@ describe('release validation evidence', () => {
     const [url, request] = fetchImplementation.mock.calls[0];
     expect(url).toContain('/actions/workflows/ci.yml/runs?');
     expect(url).toContain(`head_sha=${sourceSha}`);
-    expect(url).toContain('status=completed');
+    expect(new URL(url).searchParams.has('status')).toBe(false);
     expect(request.headers.Authorization).toBe('Bearer test-token');
   });
 
