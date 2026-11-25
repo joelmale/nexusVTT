@@ -9,7 +9,6 @@ import {
   useCreatorRecovery,
 } from '@nexus/character-creator';
 import * as database from '../services/dbService';
-import { creatorDefaultMode } from '../services/creatorCapabilities';
 
 const repository = {
   getCreatorDraft: database.getCreatorDraft,
@@ -29,7 +28,7 @@ interface Props {
 export function ForgeCharacterCreator({
   isOpen,
   edition,
-  initialMode = creatorDefaultMode(),
+  initialMode = 'full',
   submitLabel,
   onCancel,
   onComplete,

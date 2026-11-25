@@ -21,6 +21,7 @@ import RulesList from './pages/rules/RulesList'
 import RuleCreate from './pages/rules/RuleCreate'
 import RuleEditor from './pages/rules/RuleEditor'
 import Settings from './pages/Settings'
+import OllamaSettings from './pages/OllamaSettings'
 import { RequirePermission } from './components/common'
 import Layout from './components/Layout'
 import AuthGate from './auth/AuthGate'
@@ -56,6 +57,7 @@ function App() {
               <Route path="/data-quality" element={<RequirePermission action="viewDocuments"><DataQuality /></RequirePermission>} />
               <Route path="/bulk-upload" element={<RequirePermission action="viewDocuments"><BulkUpload /></RequirePermission>} />
               <Route path="/settings" element={<RequirePermission action="manageSettings"><Settings /></RequirePermission>} />
+              <Route path="/settings/ollama" element={<RequirePermission action="manageSettings"><OllamaSettings /></RequirePermission>} />
               <Route path="/reader/:id" element={<RequirePermission action="viewDocuments"><Reader /></RequirePermission>} />
               {/* Rules registry */}
               <Route path="/rules" element={<RequirePermission action="viewRules"><RulesList /></RequirePermission>} />

@@ -6,6 +6,7 @@ import type { ExtractedEntityPayload } from './types'
 const REASON_LABELS: Record<string, string> = {
   schema_invalid: 'The model answered, but not in a shape the pipeline can use.',
   model_repeat_limit: 'The model got stuck repeating itself on this entry, so nothing was extracted. Check the page by hand.',
+  model_timeout: 'The model took too long on this entry, so it was skipped. Use a smaller model or a longer timeout, then reprocess.',
   contains_another_item: 'The description includes the start of another item. Two entries may have been read as one.',
   empty_description: 'No description was extracted for this entry.',
   no_image_crop: 'No image of the stat block was available, so it was read from text only.',

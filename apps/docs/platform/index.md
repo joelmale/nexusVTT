@@ -6,12 +6,13 @@ title: Nexus platform
 
 # Nexus platform documentation
 
-Nexus is a monorepo containing three applications:
+Nexus is a monorepo for tabletop play and campaign preparation:
 
 - **Nexus VTT** provides the multiplayer virtual tabletop.
 - **Nexus Forge** provides local-first character and encounter tooling.
 - **Nexus Codex** provides document ingestion, search, and collaboration
   services.
+- **Campaign Studio** provides DM preparation and session planning backed by VTT.
 
 Use this section for monorepo-wide policy, integration boundaries, and migration
 history. Application-specific behavior belongs in the VTT, Forge, or Codex
@@ -20,6 +21,7 @@ section.
 ## Start here
 
 - [Repository front door](https://github.com/joelmale/nexusVTT)
+- [November stabilization handoff](operations/november-2026-stabilization.md)
 - [Dependency policy](dependency-policy.md)
 - [Object models, database tables, and application data flow](object-models-and-data-flow.md)
 - [NexusCodex integration](integrations/NEXUSCODEX_INTEGRATION.md)

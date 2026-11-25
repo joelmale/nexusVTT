@@ -365,7 +365,6 @@ See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
 ## Contributing Guidelines
 
 - **Feature Development**: Create feature branches from main branch.
-- **Code Review**: All changes require peer review before merging.
 - **Testing**: Include comprehensive tests for all new features.
 - **Documentation**: Update documentation for API changes and new features.
 - **Breaking Changes**: Communicate breaking changes with migration guides.
@@ -423,7 +422,6 @@ See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
 - **Documentation**: Update relevant docs when changing APIs or behavior.
 - **Testing Requirements**: All new features must include unit tests; integration tests required for database/API changes.
 - **Code Review Process**:
-  - Pull requests require at least one approving review before merge
   - Use draft PRs for work-in-progress changes
   - Squash and merge preferred for clean commit history
   - Automated checks must pass before merge
@@ -440,7 +438,6 @@ See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
 - **Documentation**: Update relevant docs when changing APIs or behavior.
 - **Testing Requirements**: All new features must include unit tests; integration tests required for database/API changes.
 - **Code Review Process**:
-  - Pull requests require at least one approving review before merge
   - Use draft PRs for work-in-progress changes
   - Squash and merge preferred for clean commit history
   - Automated checks must pass before merge
@@ -455,7 +452,6 @@ See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
   - Production: Production single Docker server with NFS storage
   - Environment variables managed through Docker Compose or env files
 - **Code Review Process**:
-  - Pull requests require at least one approving review before merge
   - Use draft PRs for work-in-progress changes
   - Squash and merge preferred for clean commit history
   - Automated checks must pass before merge

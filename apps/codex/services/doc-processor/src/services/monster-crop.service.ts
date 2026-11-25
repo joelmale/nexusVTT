@@ -21,7 +21,11 @@ export class MonsterCropService {
   }
 
   /** Like cropRegions, with each crop's pixel box on the rendered page (for the console). */
-  async cropRegionsWithGeometry(pdfBuffer: Buffer, regionsByKey: Map<string, CandidateRegion[]>): Promise<Map<string, CropResult[]>> {
+  async cropRegionsWithGeometry(
+    pdfBuffer: Buffer,
+    regionsByKey: Map<string, CandidateRegion[]>,
+    tuning: CropTuning = {}
+  ): Promise<Map<string, CropResult[]>> {
     const pages = [...new Set([...regionsByKey.values()].flat().map((r) => r.pageNumber))].sort((a, b) => a - b);
     const crops = new Map<string, CropResult[]>();
     if (pages.length === 0) return crops;
@@ -29,7 +33,7 @@ export class MonsterCropService {
     const rendered = new Map<number, Buffer>();
     await pageImageService.renderOcrImages(pdfBuffer, {
       targetPages: pages,
-      dpi: env.EXTRACT_CROP_DPI,
+      dpi: tuning.cropDpi ?? env.EXTRACT_CROP_DPI,
       onPage: async (page) => {
         rendered.set(page.pageNumber, page.buffer);
       },
@@ -39,13 +43,16 @@ export class MonsterCropService {
       const images: CropResult[] = [];
       for (const region of regions) {
         const page = rendered.get(region.pageNumber);
-        if (page) images.push({ pageNumber: region.pageNumber, ...(await cropRegionWithGeometry(page, region.bbox)) });
+        if (page) images.push({ pageNumber: region.pageNumber, ...(await cropRegionWithGeometry(page, region.bbox, tuning)) });
       }
       crops.set(key, images);
     }
     return crops;
   }
 }
+
+/** Saved admin Settings over the EXTRACT_CROP_* environment; absent fields use the environment. */
+export type CropTuning = { cropDpi?: number; cropMaxWidth?: number; cropMaxHeight?: number };
 
 export type CropResult = { pageNumber: number; buffer: Buffer; left: number; top: number; width: number; height: number };
 
@@ -54,7 +61,8 @@ export const cropRegion = async (pagePng: Buffer, bbox: [number, number, number,
 
 export const cropRegionWithGeometry = async (
   pagePng: Buffer,
-  bbox: [number, number, number, number]
+  bbox: [number, number, number, number],
+  tuning: CropTuning = {}
 ): Promise<Omit<CropResult, 'pageNumber'>> => {
   const image = sharp(pagePng);
   const { width = 0, height = 0 } = await image.metadata();
@@ -69,8 +77,8 @@ export const cropRegionWithGeometry = async (
   const bottom = Math.min(height, Math.round(y1 * height));
   const box = { left, top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
   const cropped = image.extract(box).resize({
-    width: env.EXTRACT_CROP_MAX_WIDTH,
-    height: env.EXTRACT_CROP_MAX_HEIGHT,
+    width: tuning.cropMaxWidth ?? env.EXTRACT_CROP_MAX_WIDTH,
+    height: tuning.cropMaxHeight ?? env.EXTRACT_CROP_MAX_HEIGHT,
     fit: 'inside',
     withoutEnlargement: true,
   });

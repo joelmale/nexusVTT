@@ -422,7 +422,11 @@ export const Step4Spells: React.FC<StepProps> = ({
 
   return (
     <div className="space-y-6">
-      <CastingGrantChoices data={data} onChange={updateData} />
+      <CastingGrantChoices
+        data={data}
+        onChange={updateData}
+        omitClassChoices
+      />
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-xl font-bold text-tone-danger">Select Your Spells</h3>

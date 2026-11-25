@@ -1,13 +1,18 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { getSpeciesTraitText } from '../data/speciesTraitText';
 import { featureDescriptions } from '../utils/featureDescriptions';
+import type { Edition } from '../types/dnd';
 
 interface SpeciesTraitModalProps {
   isOpen: boolean;
   onClose: () => void;
   traitName: string;
   speciesName: string;
-  traitDescription?: string;
+  /** Rules differ by edition for many traits (2024 Stonecunning is tremorsense). */
+  edition: Edition;
+  /** The species' parenthetical traits, e.g. "Darkvision (120 ft)", for ranges. */
+  detailedTraits?: readonly string[];
   position?: { x: number; y: number } | null;
 }
 
@@ -16,23 +21,19 @@ const SpeciesTraitModal: React.FC<SpeciesTraitModalProps> = ({
   onClose,
   traitName,
   speciesName,
-  traitDescription,
+  edition,
+  detailedTraits,
   position
 }) => {
   if (!isOpen) return null;
 
-  // Get trait description from centralized feature descriptions
-  const getTraitDescription = (trait: string): string => {
-    if (traitDescription) return traitDescription;
-
-    // Use centralized feature descriptions from JSON
-    const featureDesc = featureDescriptions[trait];
-    if (featureDesc) {
-      return featureDesc.description;
-    }
-
-    return `This species trait provides special abilities or bonuses to ${speciesName} characters.`;
-  };
+  // Subrace traits ("Mask of the Wild") are not in the species table yet, so
+  // fall back to the older feature text, which has rules but no usage tip.
+  const text =
+    getSpeciesTraitText(traitName, edition, detailedTraits) ??
+    (featureDescriptions[traitName]
+      ? { rules: featureDescriptions[traitName].description, tip: '' }
+      : null);
 
   // Calculate modal position
   const getModalStyle = () => {
@@ -88,11 +89,27 @@ const SpeciesTraitModal: React.FC<SpeciesTraitModalProps> = ({
              <span className="text-sm text-tone-info">{speciesName}</span>
            </div>
 
-          <div>
+          {text ? (
+            <>
+              <p className="text-sm text-theme-tertiary leading-relaxed">
+                {text.rules}
+              </p>
+              {text.tip && (
+                <div>
+                  <h4 className="text-sm font-semibold text-theme-primary">
+                    How to use it
+                  </h4>
+                  <p className="text-sm text-theme-tertiary leading-relaxed">
+                    {text.tip}
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
             <p className="text-sm text-theme-tertiary leading-relaxed">
-              {getTraitDescription(traitName)}
+              No description is available for this trait yet.
             </p>
-          </div>
+          )}
          </div>
       </div>
     </div>

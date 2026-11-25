@@ -2,17 +2,10 @@
 
 A single-page, fully responsive React/TypeScript application for creating, managing, and viewing D&D 5e character sheets with **100% client-side storage** using IndexedDB. No backend, no servers, no accounts needed - your data stays on your device!
 
-## Quality Gates
+## Quality gates
 
-| Gate             | Status                                                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Quality Gate     | ![Quality Gate](https://github.com/joelmale/NexusForge/actions/workflows/quality-gate.yml/badge.svg?branch=master) |
-| Test Coverage    | ![Test Coverage](https://codecov.io/gh/joelmale/NexusForge/branch/master/graph/badge.svg)                          |
-| Bundle Size (CI) | ![Bundle Size](https://img.shields.io/badge/bundle%20size-checked%20in%20CI-2ea44f)                                |
-| Security         | ![Security](https://github.com/joelmale/NexusForge/actions/workflows/codeql.yml/badge.svg?branch=master)           |
-| Build & Deploy   | ![Build & Deploy](https://github.com/joelmale/NexusForge/actions/workflows/deploy.yml/badge.svg?branch=master)     |
-| Multi-Platform   | ![Multi-Platform](https://img.shields.io/badge/platforms-amd64%20arm64-blue)                                       |
-| BuildKit         | ![BuildKit](https://img.shields.io/badge/buildkit-enabled-green)                                                   |
+Forge runs in the [Nexus CI pipeline](https://github.com/joelmale/nexusVTT/actions/workflows/ci.yml)
+and ships with the [gateway delivery pipeline](https://github.com/joelmale/nexusVTT/actions/workflows/delivery.yml).
 
 ## Overview
 
@@ -36,16 +29,8 @@ The NexusForge allows users to:
 
 ### D&D 5e Features
 
-- **Dual Edition Support**: Full support for both D&D 5e 2014 (original) and 2024 (revised) rules
-- **2024 PHB Complete**: All 12 Origin backgrounds, 10 core species with lineages, and comprehensive Origin Feat system
-- **Persistent Storage (F1)**: Save, load, and delete multiple characters locally
-- **Character Dashboard (F2)**: View all saved characters with key details
-- **Creation Wizard (F3)**: Step-by-step guided character creation
-  1. Character Details (name, background, alignment)
-  2. Race Selection (with automatic racial bonuses)
-  3. Class Selection (with hit die and proficiencies)
-  4. Ability Scores (Standard Array: 15, 14, 13, 12, 10, 8)
-  5. Personality & Traits
+- **Shared creator**: Forge and VTT use the same step-by-step wizard. New builds start with 2024 rules and legacy builds retain their 2014 edition.
+- **Persistent storage**: Save and manage characters in the browser dashboard.
 - **Rule-Based Calculations (F4)**: Automatic derivation of:
   - Ability modifiers
   - Skill bonuses with proficiency
@@ -66,7 +51,7 @@ The NexusForge allows users to:
 
 | Component    | Technology            | Purpose                            |
 | ------------ | --------------------- | ---------------------------------- |
-| **Frontend** | React 18 + TypeScript | UI components and state management |
+| **Frontend** | React 19 + TypeScript | UI components and state management |
 | **Styling**  | Tailwind CSS          | Responsive, mobile-first design    |
 | **Storage**  | IndexedDB             | Client-side persistent storage     |
 | **Icons**    | Lucide React          | Beautiful, consistent iconography  |
@@ -84,39 +69,17 @@ Works on all modern browsers with IndexedDB support:
 
 ## Getting Started
 
-### Prerequisites
+### Local development
 
-- Node.js 18+ and npm/yarn
-- Modern web browser
-
-### Local Development
-
-1. Clone the repository:
+From the Nexus monorepo root, use the Node version in `.nvmrc` with npm 11.
 
 ```bash
-git clone https://github.com/joelmale/NexusForge.git
-cd NexusForge
+npm ci
+npm run build:workspace-deps -- --workspace nexus-forge
+npm run dev --workspace nexus-forge
 ```
 
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Run the development server:
-
-```bash
-npm run dev
-```
-
-4. Open your browser to `http://localhost:3000`
-
-5. Build for production:
-
-```bash
-npm run build
-```
+Open the URL printed by Vite. For a production build, run `npm run build:forge`.
 
 ### Deployment
 
@@ -135,14 +98,9 @@ Forge no longer ships its own container image. The Nexus VTT gateway image
 
 ### Creating a Character
 
-1. Click **"New Character Wizard"** button
-2. Follow the 5-step wizard:
-   - Enter name, background, and alignment
-   - Choose your race (Human, Dwarf, or Elf)
-   - Choose your class (Fighter, Wizard, or Rogue)
-   - Assign ability scores using Standard Array
-   - Add personality traits, ideals, bonds, and flaws
-3. Click **"Create Character"** to save
+1. Open **New Character**, select the edition, and choose **Character Wizard**.
+2. Work through the shared creator. Apply recommended picks for a level-one class or choose each option yourself.
+3. Choose **Create Character**. See the [character creation guide](../docs/forge/character-creation.md) for legacy rules and draft recovery.
 
 ### Managing Characters
 

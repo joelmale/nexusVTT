@@ -12,10 +12,13 @@ export function CastingGrantChoices({
   data,
   onChange,
   classFreeOnly = false,
+  omitClassChoices = false,
 }: {
   data: CharacterCreationData;
   onChange: (update: Partial<CharacterCreationData>) => void;
   classFreeOnly?: boolean;
+  /** The Class step already shows the class choices; do not repeat them. */
+  omitClassChoices?: boolean;
 }) {
   const grants = resolveCastingGrants(data).filter(
     (grant) => !classFreeOnly || grant.source.resourceId,
@@ -26,7 +29,9 @@ export function CastingGrantChoices({
         {!classFreeOnly && (
           <>
             <OriginGrantChoices data={data} onChange={onChange} />
-            <ClassGrantChoices data={data} onChange={onChange} />
+            {!omitClassChoices && (
+              <ClassGrantChoices data={data} onChange={onChange} />
+            )}
             <FeatProficiencyChoices data={data} onChange={onChange} />
           </>
         )}
@@ -44,7 +49,9 @@ export function CastingGrantChoices({
       {!classFreeOnly && (
         <>
           <OriginGrantChoices data={data} onChange={onChange} />
-          <ClassGrantChoices data={data} onChange={onChange} />
+          {!omitClassChoices && (
+              <ClassGrantChoices data={data} onChange={onChange} />
+            )}
           <FeatProficiencyChoices data={data} onChange={onChange} />
         </>
       )}
