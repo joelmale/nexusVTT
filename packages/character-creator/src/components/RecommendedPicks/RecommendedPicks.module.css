@@ -1,0 +1,64 @@
+/* Same --cc tokens as ChoiceCard, so both themes stay inside the contrast test. */
+.panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  color: var(--cc-on-raised);
+  background-color: var(--cc-raised);
+  border: 1px solid var(--cc-border-strong);
+  border-radius: 0.5rem;
+}
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--cc-muted);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.6rem;
+}
+.why {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  background-color: var(--cc-selected-bg);
+  border: 1px solid var(--cc-selected-border);
+  border-radius: 0.5rem;
+}
+.why p {
+  margin: 0;
+}
+.error {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.apply {
+  justify-self: start;
+  padding: 0.55rem 1.1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--cc-on-raised);
+  background-color: var(--cc-selected-bg);
+  border: 2px solid var(--cc-selected-border);
+  border-radius: 0.5rem;
+}
+.apply:hover:not(:disabled) {
+  background-color: var(--cc-hover);
+}
+.apply:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.apply:focus-visible {
+  outline: 3px solid var(--cc-focus);
+  outline-offset: 2px;
+}

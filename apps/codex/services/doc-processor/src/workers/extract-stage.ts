@@ -9,6 +9,7 @@ import { entityLinkingService } from '../services/entity-linking.service';
 import { layoutClientService } from '../services/layout-client.service';
 import { llmExtractionService } from '../services/llm-extraction.service';
 import { localEndpoint, OllamaEndpoint, resolveOllamaEndpoint } from '../services/ollama-endpoint';
+import type { OllamaOverrides } from '../services/ollama-settings.service';
 import { monsterCropService, type CropResult } from '../services/monster-crop.service';
 import { env } from '../config/env';
 import { Candidate, CandidatePage, detectCandidates } from '../extraction/candidates';
@@ -58,6 +59,12 @@ const searchTextFor = (type: EntityType, entity: ExtractedEntity) => {
 };
 
 /**
+ * One slow crop is kept for review and skipped; this many in a row means
+ * Ollama itself is stuck, and skipping the rest would cost LLM_TIMEOUT_MS each.
+ */
+export const MAX_CONSECUTIVE_TIMEOUTS = 3;
+
+/**
  * v2 extract stage (plan: Extraction). DocumentPage blocks -> candidate
  * detection -> one cached LLM/VLM call per candidate -> zod validation and
  * cross-checks -> StructuredData rows via the entity resolver.
@@ -82,7 +89,8 @@ export async function runExtractStage(
   jobId: string,
   document: ExtractStageDocument,
   hooks: ExtractStageHooks = {},
-  routing: LlmRouting = envLlmRouting()
+  routing: LlmRouting = envLlmRouting(),
+  ollama: OllamaOverrides = {}
 ): Promise<ExtractStageResult> {
   const pages = await prisma.documentPage.findMany({
     where: { documentId: document.id },
@@ -116,9 +124,9 @@ export async function runExtractStage(
 
   // Pick the Ollama endpoint once per stage; a retry re-probes, so a laptop that
   // drops out mid-stage is replaced by the local Ollama on the next attempt.
-  let endpoint = localEndpoint();
+  let endpoint = localEndpoint(ollama);
   if (usesOllama) {
-    const resolved = await resolveOllamaEndpoint();
+    const resolved = await resolveOllamaEndpoint(ollama);
     endpoint = resolved.endpoint;
     await loggingService.logInfo(
       jobId,
@@ -142,7 +150,7 @@ export async function runExtractStage(
   if (document.format === 'pdf' && monsters.length > 0) {
     try {
       const pdf = await s3Service.downloadFile(document.storageKey);
-      crops = await monsterCropService.cropRegionsWithGeometry(pdf, new Map(monsters.map((c) => [c.key, c.regions])));
+      crops = await monsterCropService.cropRegionsWithGeometry(pdf, new Map(monsters.map((c) => [c.key, c.regions])), ollama);
     } catch (error: any) {
       // Text still anchors the extraction; the missing crop is a review reason.
       await loggingService.logWarn(jobId, `Monster crops failed, extracting from text only: ${error.message}`, 'extract');
@@ -156,6 +164,7 @@ export async function runExtractStage(
   let needsReview = 0;
   let cachedCalls = 0;
   let ollamaReady = !(env.OLLAMA_PREFLIGHT && usesOllama);
+  let consecutiveTimeouts = 0;
   const spend = { calls: 0, promptTokens: 0, cacheHitTokens: 0, completionTokens: 0 };
 
   try {
@@ -189,8 +198,26 @@ export async function runExtractStage(
         text: candidate.markdown,
         images,
         endpoint: viaDeepSeek ? deepseek : endpoint,
+        promptVersion: ollama.promptVersion,
       });
       if (outcome.cached) cachedCalls += 1;
+      if (outcome.failureReason === 'model_timeout') {
+        consecutiveTimeouts += 1;
+        const label = `${candidate.type} "${candidate.title}" (p. ${candidate.pageNumber})`;
+        if (consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
+          throw new Error(
+            `${consecutiveTimeouts} candidates in a row timed out after ${Math.round(env.LLM_TIMEOUT_MS / 1000)}s (last: ${label}); ` +
+              `check that ${outcome.model} fits in VRAM, or raise LLM_TIMEOUT_MS`
+          );
+        }
+        await loggingService.logWarn(
+          jobId,
+          `${outcome.model} timed out after ${Math.round(env.LLM_TIMEOUT_MS / 1000)}s on ${label}; kept for review`,
+          'extract'
+        );
+      } else {
+        consecutiveTimeouts = 0;
+      }
       if (outcome.usage) {
         spend.calls += 1;
         spend.promptTokens += outcome.usage.promptTokens;

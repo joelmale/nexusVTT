@@ -61,6 +61,42 @@ describe('resolveOllamaEndpoint', () => {
     expect(reason).toContain('HTTP 503');
   });
 
+  it('lets saved settings override the environment, including the remote and its model', async () => {
+    tags('qwen3-vl:8b');
+    const { endpoint } = await resolveOllamaEndpoint({
+      remoteUrl: 'http://192.168.100.148:11434',
+      remoteModel: 'qwen3-vl:8b',
+      numCtx: 16384,
+      keepAlive: '30m',
+    });
+    expect(endpoint).toEqual({
+      url: 'http://192.168.100.148:11434',
+      model: 'qwen3-vl:8b',
+      where: 'remote',
+      sharesGpu: false,
+      numCtx: 16384,
+      keepAlive: '30m',
+    });
+  });
+
+  it('lets an empty saved remote URL switch an environment remote off', async () => {
+    globalThis.fetch = vi.fn() as any;
+    const { endpoint, reason } = await resolveOllamaEndpoint({ remoteUrl: '' });
+    expect(endpoint.where).toBe('local');
+    expect(reason).toBe('no remote Ollama configured');
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('applies saved local url, model and tuning to the local endpoint only when saved', () => {
+    expect(localEndpoint({ url: 'http://gpu:11434', model: 'm:1', numCtx: 4096 })).toEqual({
+      url: 'http://gpu:11434',
+      model: 'm:1',
+      where: 'local',
+      sharesGpu: true,
+      numCtx: 4096,
+    });
+  });
+
   it('falls back to local when the remote is unreachable', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('connect ETIMEDOUT')) as any;
     const { endpoint, reason } = await resolveOllamaEndpoint();

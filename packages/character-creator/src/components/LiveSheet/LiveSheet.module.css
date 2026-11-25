@@ -34,13 +34,13 @@
   padding: 0.25rem 0.4rem;
   margin: 0 -0.4rem;
 }
-button.section {
-  cursor: pointer;
+.editableSection {
+  position: relative;
 }
-button.section:hover {
+.editableSection:hover {
   border-color: var(--cc-sheet-rule);
 }
-button.section:focus-visible {
+.editableSection:has(.editHint:focus-visible) {
   outline: 2px solid var(--cc-sheet-rule);
   outline-offset: 1px;
 }
@@ -59,15 +59,20 @@ button.section:focus-visible {
   padding-bottom: 0.15rem;
 }
 .editHint {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
   font-family: inherit;
   font-size: 0.65rem;
   letter-spacing: 0.08em;
-  opacity: 0;
-  transition: opacity 0.15s;
+  padding: 0;
+  text-transform: inherit;
 }
-button.section:hover .editHint,
-button.section:focus-visible .editHint {
-  opacity: 1;
+.editHint::after {
+  content: '';
+  position: absolute;
+  inset: 0;
 }
 
 .name {

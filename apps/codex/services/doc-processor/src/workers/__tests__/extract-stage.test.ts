@@ -356,6 +356,32 @@ describe('runExtractStage (v2)', () => {
     expect(db.rows).toHaveLength(3);
   });
 
+  it('keeps a stat block that times out for review and extracts the rest', async () => {
+    globalThis.fetch = vi.fn(async (url: string, init: any) => {
+      if (url.endsWith('/api/generate')) return { ok: true, json: async () => ({}) };
+      const system: string = JSON.parse(init.body).messages[0].content;
+      if (system.includes('stat blocks')) throw new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+      return { ok: true, json: async () => recorded(system.includes('spell') ? 'spell-fireball.json' : 'item-bag-of-holding.json') };
+    }) as any;
+
+    const result = await runExtractStage('job-1', document);
+
+    expect(result.counts).toEqual({ spell: 1, monster: 0, item: 1 });
+    expect(db.rows.find((r) => r.type === 'monster').data.review.reasons).toEqual(['model_timeout']);
+    expect(db.rows).toHaveLength(3);
+  });
+
+  it('fails the stage once every candidate in a row times out, still unloading the VLM', async () => {
+    const generate = vi.fn(async () => ({ ok: true }));
+    globalThis.fetch = vi.fn(async (url: string) => {
+      if (url.endsWith('/api/generate')) return generate();
+      throw new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+    }) as any;
+    await expect(runExtractStage('job-1', document)).rejects.toThrow('3 candidates in a row timed out');
+    expect(generate).toHaveBeenCalledOnce();
+    expect(db.deletes).toBe(0);
+  });
+
   it('fails the stage when Ollama is unreachable, still unloading the VLM', async () => {
     const generate = vi.fn(async () => ({ ok: true }));
     globalThis.fetch = vi.fn(async (url: string) => {

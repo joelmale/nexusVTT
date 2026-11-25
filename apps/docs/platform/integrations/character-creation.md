@@ -230,7 +230,8 @@ that the build is certified.
 `data/supportManifest.ts` lists 13 classes (including Artificer), each with both
 editions, **all `level1Certified: false`**, and every scope from
 `getClassSupportScopes()` has `certified: false`. Artificer creation is
-`blocked-unverified-source`; other classes are `implemented-awaiting-acceptance`.
+`implemented-awaiting-acceptance` like the other classes, but its `sourceStatus` stays
+`unverified-supplemental` (rules text is not bundled and mechanics are unchecked).
 The export name `CERTIFIED_SUPPORT_MANIFEST` is historical — treat it as a
 support inventory. `data/contentProvenance.ts` separates SRD 5.1 / SRD 5.2.1 core
 content from supplemental or unverified sources; unverified sources are rejected
@@ -358,14 +359,11 @@ Report-only; no runtime code was changed by this documentation work.
 
 ## Rollout and rollback
 
-The only rollout control found is a runtime global,
-`globalThis.__NEXUS_CREATOR_FLAGS__.guidedDefault`, read by identical
-`creatorCapabilities.ts` files in Forge and VTT (`apps/*/src/services/creatorCapabilities.ts`).
-Strictly `true` makes guided the starting door; otherwise **full**. Nothing in the
-repository sets it, so both hosts open the full wizard by default. A previously
-saved presentation overrides the flag (`ForgeCharacterCreator.tsx:153`). There is
-no `VITE_` creator variable. The flag changes presentation only; reverting it does
-not alter saved data or calculations. A staged-release and rollback runbook,
+There is no rollout control. The earlier `__NEXUS_CREATOR_FLAGS__.guidedDefault`
+runtime flag and the `creatorCapabilities.ts` files that read it were removed
+when the guided flows were retired into the single creator. `initialMode`
+(`guided` or `full`) is a deprecated alias that opens the same creator, so saved
+drafts that recorded either mode still open. A staged-release and rollback runbook,
 moderated study and recorded pilot **do not exist** — the
 [implementation plan](archive/character-creation-implementation-plan.md) status reflects
 that.

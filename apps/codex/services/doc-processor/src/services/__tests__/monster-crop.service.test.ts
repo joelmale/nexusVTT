@@ -33,4 +33,17 @@ describe('cropRegion', () => {
     expect(width).toBe(1200);
     expect(height).toBe(1600);
   });
+
+  it('uses saved crop limits over the environment', async () => {
+    const page = await sharp({ create: { width: 3000, height: 4000, channels: 3, background: 'white' } }).png().toBuffer();
+    const result = await cropRegionWithGeometry(page, [0, 0, 1, 1], { cropMaxWidth: 1800, cropMaxHeight: 2400 });
+    const { width, height } = await sharp(result.buffer).metadata();
+    expect([width, height]).toEqual([1800, 2400]);
+  });
+
+  it('never enlarges a crop that already fits the saved limits', async () => {
+    const page = await sharp({ create: { width: 1000, height: 2000, channels: 3, background: 'white' } }).png().toBuffer();
+    const { width } = await sharp((await cropRegionWithGeometry(page, [0, 0, 0.5, 0.5], { cropMaxWidth: 8000, cropMaxHeight: 8000 })).buffer).metadata();
+    expect(width).toBeLessThan(600);
+  });
 });

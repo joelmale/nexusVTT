@@ -19,7 +19,6 @@ export interface WizardProps {
   /** Callback fired when draft is discarded (CC-501). */
   onDraftDiscard?: () => void;
   onCancel: () => void;
-  onSwitchToGuided?: () => void;
   /** Show the live character sheet beside the steps. Off by default. */
   showLiveSheet?: boolean;
   /**
@@ -38,6 +37,8 @@ export interface StepProps {
   skipToStep?: (step: number) => void;
   getNextStepLabel?: () => string;
   openTraitModal?: (trait: string, position?: { x: number; y: number }) => void;
+  /** Replaces the draft's recommended answers, keeping the player's own. */
+  applyRecommended?: (draft: CreationDraft) => void;
 }
 
 export interface EquipmentBrowserProps extends StepProps {
