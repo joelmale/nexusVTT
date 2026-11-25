@@ -77,6 +77,7 @@ export const Step3Class: React.FC<StepProps> = ({
 
   // Subclass modal state
   const [showSubclassModal, setShowSubclassModal] = useState(false);
+  const [subclassFocus, setSubclassFocus] = useState<string | undefined>();
 
   const allClasses = loadClasses(data.edition);
   const selectedClass = allClasses.find((c) => c.slug === data.classSlug);
@@ -690,6 +691,7 @@ export const Step3Class: React.FC<StepProps> = ({
                         key={`${subclass.slug}-${index}`}
                         onClick={() => {
                           subclassValidation.onInteract();
+                          setSubclassFocus(subclass.slug);
                           setShowSubclassModal(true);
                         }}
                         className={`p-3 rounded-lg text-left border-2 transition-all ${
@@ -816,6 +818,9 @@ export const Step3Class: React.FC<StepProps> = ({
             setShowSubclassModal(false);
           }}
           characterClass={selectedClass?.name || 'Character'}
+          classSlug={selectedClass.slug}
+          edition={data.edition || '2014'}
+          focusSlug={subclassFocus}
         />
       )}
     </div>

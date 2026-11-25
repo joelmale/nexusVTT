@@ -19,6 +19,7 @@ README with setup instructions, commands, and configuration.
 | **[Nexus VTT](apps/vtt/)**    | `apps/vtt`   | The virtual tabletop — scenes, tokens, dice, fog, initiative, real-time multiplayer  | 5173      |
 | **[NexusForge](apps/forge/)** | `apps/forge` | D&D 5e character generator and sheet manager; 100% client-side, no backend           | 3000      |
 | **[NexusCodex](apps/codex/)** | `apps/codex` | Document library microservice stack — ingestion, search, and real-time collaboration | 3001–3005 |
+| **[Campaign Studio](apps/campaign-studio/)** | `apps/campaign-studio` | Campaign preparation and session planning backed by VTT | 3003 |
 
 Nexus VTT is the primary application; Forge and Codex are consumed by it but
 also run standalone.
@@ -72,7 +73,7 @@ packages/
   character-contracts/    @nexus/character-contracts — shared character schema
   document-contracts/     @nexus/document-contracts — shared document schema
 deploy/homelab/           Production Compose stack (Dockhand)
-  docs/                   Unified Docusaurus documentation application
+apps/docs/                Unified Docusaurus documentation application
 monitoring/               Prometheus, Grafana, and alert rules
 ```
 
@@ -80,29 +81,30 @@ monitoring/               Prometheus, Grafana, and alert rules
 
 ### Prerequisites
 
-- **Node.js 26.5.0** (see `.nvmrc`) and **npm 11+** — required by the VTT.
-  Codex services accept Node 22+, but the repo toolchain targets 26.5.0.
+- Use the **Node.js version in `.nvmrc`** and **npm 11+**.
 - **Docker Desktop** — required for the VTT (PostgreSQL, Redis) and Codex.
-- Forge needs neither: it is fully client-side.
+- Forge is client-side and runs without Docker.
 
 ### Run one app
 
-Each app is self-contained. Pick the one you are working on:
+Install workspace dependencies with `npm ci` from the repository root. Run
+the command for the app you want:
 
 ```bash
-# Virtual tabletop — starts PostgreSQL, Redis, frontend, and backend
-cd apps/vtt && npm install && npm run start:all
+# Virtual tabletop
+npm run build:contracts
+npm run start:all --workspace nexus-vtt
 ```
 
 ```bash
-# Character generator — no backend, no Docker
-cd apps/forge && npm install && npm run dev
+# Character generator
+npm run build:workspace-deps -- --workspace nexus-forge
+npm run dev --workspace nexus-forge
 ```
 
-```bash
-# Document library — full service stack
-cd apps/codex && docker compose up -d
-```
+For the document services, follow the
+[Codex development guide](apps/docs/codex/development-setup.md).
+For campaign prep, follow the [Campaign Studio setup](apps/campaign-studio/README.md).
 
 See each app's README for commands, configuration, and testing:
 [VTT](apps/vtt/README.md) · [Forge](apps/forge/README.md) ·
@@ -126,6 +128,8 @@ list of targets (`dev`, `build`, `test`, `clean`, `health-check`).
 
 Browse the [published Nexus documentation](https://joelmale.github.io/nexusVTT/)
 or start locally at the [documentation application](apps/docs/README.md).
+The [November stabilization handoff](apps/docs/platform/operations/november-2026-stabilization.md)
+records the current work, verification, and open gates.
 
 | Topic        | Entry point                                                                        |
 | ------------ | ---------------------------------------------------------------------------------- |

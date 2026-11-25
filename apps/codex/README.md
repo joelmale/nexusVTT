@@ -173,28 +173,12 @@ NexusCodex is built as a distributed microservices architecture with four micros
 - [Docker Compose](https://docs.docker.com/compose/) 2.0+
 - [Node.js](https://nodejs.org/) 22+ (for local development - required by Vite 7.x)
 
-### Start the Stack
+### Run Codex
 
-```bash
-# Clone the repository
-git clone https://github.com/joelmale/nexusVTT.git
-cd nexusVTT/apps/codex
-
-# Start all services
-docker compose up -d
-
-# Wait ~60 seconds for all services to be healthy
-# Then verify the stack
-./test-stack.sh
-```
-
-**Service URLs:**
-
-- REST API: http://localhost:3000
-- Admin Dashboard: http://localhost:3001
-- WebSocket: ws://localhost:3002/ws
-- MinIO Console: http://localhost:9001 (login: admin/password)
-- **📚 Documentation**: http://localhost:3003 (run `npm run start:docs -- --port 3003` from the repository root)
+Use the [development guide](../docs/codex/development-setup.md) to start the
+document services from the Nexus monorepo. Use the
+[homelab runbook](../docs/codex/operations/nexuscodex-homelab.md) for the
+integrated stack. The examples below use an API on port 3000.
 
 ### Upload Your First Document
 
@@ -713,25 +697,7 @@ ws.send(
 
 ### Local Setup
 
-```bash
-# Install dependencies for each service
-cd services/doc-api && npm install && cd ../..
-cd services/doc-processor && npm install && cd ../..
-cd services/doc-websocket && npm install && cd ../..
-
-# Generate Prisma client
-cd services/doc-api && npm run prisma:generate && cd ../..
-cd services/doc-processor && npm run prisma:generate && cd ../..
-cd services/doc-websocket && npm run prisma:generate && cd ../..
-
-# Start infrastructure (without application services)
-docker compose up -d postgres redis minio
-
-# Run services in development mode (hot reload)
-cd services/doc-api && npm run dev &
-cd services/doc-processor && npm run dev &
-cd services/doc-websocket && npm run dev &
-```
+Follow the [development guide](../docs/codex/development-setup.md) for workspace setup, migrations, and service commands.
 
 ### Ingestion Benchmark
 

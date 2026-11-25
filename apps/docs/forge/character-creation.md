@@ -5,126 +5,42 @@ someone has told you to “make a Fighter,” you already have enough to begin.
 Forge and VTT share one creator; the place you open it decides where the
 finished character is saved.
 
-:::note What this guide is based on
-Written 2026-10-27 from the current source (Forge 1.5.3, VTT 0.1.0, commit
-`6d187098`), not from a deployed site. Your hosted version may be older.
-Labels such as “recommended” describe a suggested starting point. The app
-does not guarantee that every class, level, or option is complete and
-correct, and its accessibility has not been tested on real devices or with
-screen readers. Always review the saved sheet with your DM. Contributors:
-see the [engineering guide](/platform/integrations/character-creation).
-:::
+## Open the creator
 
-## Open the creator and choose a path
+In Forge, open **New Character**, select the rules edition, then choose
+**Character Wizard**. If you opened the dedicated Character Forge page, choose
+**Create a character**. In VTT, use **Create Character** on the dashboard,
+**Open Character Forge** in Player Setup, or **Create** in the in-game
+Characters panel. Both apps open the shared wizard.
 
-In standalone Forge, open **New Character**, choose **Legacy (2014)** or
-**Revised (2024)** (2024 is selected first), then choose a method. Use the
-edition your DM requested.
+The default edition is 2024. Choose **Legacy (2014)** from the Forge dashboard
+or add `?edition=2014` to the dedicated Forge creator or VTT page URL before
+opening the wizard. Existing drafts resume with their saved edition. Follow
+[VTT character onboarding](/vtt/features/character-onboarding) to join a game
+with the finished sheet.
 
-| Forge option | What opens | Use it when |
-| --- | --- | --- |
-| **Personality Wizard** | The four-screen quick build (with an optional longer quiz) | You want a suggested starting point, or you already know your class |
-| **Character Wizard** | The detailed wizard | You want control over background, species, class choices, spells, and equipment |
-| **Manual Entry** | A character-sheet form | You already have a character and want to copy its values |
+## Start with recommended picks or choose each option
 
-In VTT, **Open Character Forge**, **Create Character**, or the in-game
-**Create** button opens the same creator inside VTT. VTT first asks
-**Use 2014 rules** or **Use 2024 rules**, then opens the **detailed wizard**.
-Choose **Use guided creation** at the top of the wizard for the quick build.
-Inside the quick build, **Advanced Mode** switches back to the detailed wizard. Forge offers the same switch buttons in whichever door you open.
-Switching keeps your name, class and the rest of your draft in most cases; if
-you rely on a choice you made on the first quick-build screen (the playstyle
-card or the species list), look at it again after you switch. For
-joining a room, continue to
-[VTT character onboarding](/vtt/features/character-onboarding).
+1. On **Character Level**, set the starting level your DM requested. For a
+   level-one build, select a class under **Start with recommended picks** and
+   apply **Use recommended picks**. A Fighter is a straightforward first build.
+2. Continue through the wizard and review background, species, class choices,
+   abilities, and equipment. The wizard skips screens that do not apply to
+   your character.
+3. For a spellcaster, check cantrips, granted spells, and prepared spells or
+   spellbook choices for your class. The spell picker shows the required counts.
+4. On **Final Details & Personality**, check the name, HP, equipment and
+   remaining choices. Choose **Create Character**, or **Save Character** on the
+   dedicated Forge creator page.
 
-## Make a first Fighter
+You can build each choice yourself by continuing without applying recommended
+picks. For an elf Rogue, choose an Elf species and lineage, check Stealth and
+expertise, and select a bow and ammunition if you want ranged attacks.
 
-In Forge choose **Personality Wizard**. In VTT choose **Use guided creation**.
-
-1. On **How do you want to play?**, choose **Close Combat**, or press the
-   **Fighter** button under the class list. Leave **Desired Species** on
-   **Recommended Match** unless you have a preference.
-2. On **Recommended Character**, read the class, species, background, ability
-   scores, and skills. Ability scores describe strengths such as Strength and
-   Dexterity; a skill proficiency is training in a task. **Customize Stats**
-   and **Customize Skills** open editors.
-3. On the equipment screen, check the weapon and armor list. “Equipped” means an
-   item is marked for use, not merely carried. A playstyle description such as
-   “sword and shield” does not guarantee that exact gear.
-4. On **Name & Finalize**, enter a name or use the dice-icon **Randomize Name** button, choose an
-   alignment (a short roleplaying description), and read **First-Turn Combat
-   Guidance**. Choose **Create Character** and wait for **Saving…**.
-
-The build is a suggestion. Compare the saved sheet with what you chose,
-especially HP, armor class, weapon attacks, and money.
-
-## Make a sneaky elf archer
-
-**Sneak & Skills** recommends a Rogue. **Ranged Archery** recommends a Fighter
-and starts from an Elf unless you choose another species. Neither promises
-every detail of your concept.
-
-* For a quick start, choose **Sneak & Skills**, set **Desired Species** to an
-  Elf option, then open **Customize Skills** and check for Stealth.
-* For full control, use the detailed wizard: choose an Elf species and lineage,
-  the Rogue class, class skills, and expertise (extra training in chosen
-  skills), then pick equipment that includes a bow and its ammunition.
-* Check species, background and class skills for duplicates before saving.
-
-## Make a spellcaster with a starting package
-
-**Arcane Magic** recommends a Wizard and **Divine Support** a Cleric. Other
-casters (Bard, Druid, Sorcerer, Warlock and more) are available from the class
-buttons. The equipment screen shows **Prepared Spells & Cantrips**; a cantrip
-is a spell you can cast repeatedly, and a prepared spell is one you have
-chosen for the day. A Wizard also keeps a spellbook. Open **Swap Spells** to
-change the suggestion.
-
-Use the detailed wizard when you want to choose every spell, subclass, or
-extra granted spell yourself; its spell screen shows the counts you must
-meet. Before play, check the saved spell lists, spell attack bonus, save DC (the
-number a target must meet to resist your spell), and spell slots. Forge's sheet
-and the VTT sheet have [different spell controls](character-sheet.md#spells-and-first-actions).
-The VTT sheet's **Spells** tab and Simple Mode's Spells card share one spellbook
-panel with spell slots and a casting-source selector; it needs an active game
-session, so outside a game track slots yourself.
-
-## Choose everything in the detailed wizard
-
-The detailed wizard has 14 steps, and steps that do not apply to your build are
-skipped. It offers starting levels 1–20, but that does not mean every class and
-level has been independently verified; level one is the best-covered case.
-
-| Screen | What to check |
-| --- | --- |
-| **Character Level** | The starting level your DM agreed |
-| **Basic Identity** (2024: includes background) | Name, alignment, background and, in 2024, its ability increases |
-| **Choose Species** | Species, lineage, and any skill, feat or spell choices |
-| **Choose Class & Subclass** | Class skills and class or subclass choices |
-| **Determine Abilities** | Standard array, point buy, rolled or custom scores; changing method resets assignments |
-| **High-Level Setup / Ability Score Improvements** | Extra choices for higher starting levels |
-| **Fighting Style / Spells / Feats** | A feat is a special character benefit |
-| **Select Languages** | Languages your character knows |
-| **Select Equipment / Customize Equipment** | Package or gold, quantities, and money |
-| **Final Details & Personality** | Personality, HP method, and final creation |
-
-Standard array assigns six fixed numbers; point buy spends a displayed budget.
-Use custom scores or extra equipment only with your DM's agreement. The 2024
-equipment screen offers a background package-or-gold choice; selecting a package
-does not also give you the gold.
-
-Use **Back** to change earlier answers. Dependent choices may be cleared or
-re-checked when you change class, background, species, level, or abilities, and
-the creator does not list everything it changed, so revisit skills, feats,
-spells, languages and equipment afterwards.
-
-## Fast creation for an experienced player
-
-For a level-one build, press your class's button on the first quick-build screen
-and skip the playstyle questions. The longer quiz is behind **Want to take the
-in-depth personality quiz instead?**; it also keeps your work if you switch.
-For exact choices or a higher starting level, use the detailed wizard.
+Use **Back** to change an earlier choice. Changing class, background, species,
+level, or abilities can reset dependent choices. Review skills, feats, spells,
+languages, and equipment after a change. Check the finished sheet with your DM,
+especially for builds above level one.
 
 ## Save, cancel, resume, and retry
 
@@ -161,8 +77,7 @@ also deletes your characters.
 | Save reports an error | Keep the creator open, restore access, and press the button again; the retry reuses the same character, so it will not create a copy. Don't change answers between a failed save and the retry: the retry sends the first build, so edit the saved sheet afterwards instead |
 | You closed the creator mid-build | Reopen it and choose **Resume creation** |
 | Reopening says a draft exists you don't want | Choose **Export recovery copy** if unsure, then **Discard draft and start new** |
-| A 2014 option is missing | Confirm the edition (**Legacy (2014)** in Forge, **Use 2014 rules** in VTT); don't substitute a similar 2024 option |
-| A pick you made on screen 1 of the quick build isn't kept after switching modes | Choose it again, or use the detailed wizard from the start |
+| A 2014 option is missing | Check the saved draft edition or open a fresh build using `?edition=2014` |
 | A character is missing in another browser | Open the browser where you saved it; Forge data is per browser |
 | Escape closes more than you expected | Use the visible **Back**, **Save** or close buttons inside nested editors |
 

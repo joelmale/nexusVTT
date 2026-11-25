@@ -61,26 +61,26 @@ describe('CharacterForgeRoute', () => {
     addCharacter.mockResolvedValue('character-1');
   });
 
-  it('does not offer a rules edition choice and opens guided creation on 2024', () => {
+  it('does not offer a rules edition choice and opens the creator on 2024', () => {
     render(<CharacterForgeRoute />);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/2014/)).not.toBeInTheDocument();
     expect(screen.queryByText('Rules edition')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Guided creation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create a character' }));
 
     const wizard = screen.getByRole('dialog', {
       name: 'Character creation wizard',
     });
     expect(wizard).toHaveAttribute('data-edition', '2024');
-    expect(wizard).toHaveAttribute('data-mode', 'guided');
+    expect(wizard).toHaveAttribute('data-mode', 'full');
   });
 
   it('opens 2014 rules when the edition query parameter asks for them', () => {
     window.history.pushState({}, '', '/?edition=2014');
     try {
       render(<CharacterForgeRoute />);
-      fireEvent.click(screen.getByRole('button', { name: 'Guided creation' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create a character' }));
 
       expect(screen.getByRole('dialog')).toHaveAttribute(
         'data-edition',
@@ -91,36 +91,23 @@ describe('CharacterForgeRoute', () => {
     }
   });
 
-  it('opens the full wizard on the default 2024 rules', () => {
-    render(<CharacterForgeRoute />);
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Full step-by-step wizard' }),
-    );
-
-    const wizard = screen.getByRole('dialog');
-    expect(wizard).toHaveAttribute('data-edition', '2024');
-    expect(wizard).toHaveAttribute('data-mode', 'full');
-    expect(screen.queryByText(/Monster Library/i)).not.toBeInTheDocument();
-  });
-
   it('returns to the choices when the wizard is closed', () => {
     render(<CharacterForgeRoute />);
     fireEvent.click(
-      screen.getByRole('button', { name: 'Full step-by-step wizard' }),
+      screen.getByRole('button', { name: 'Create a character' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Cancel creation' }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Guided creation' }),
+      screen.getByRole('button', { name: 'Create a character' }),
     ).toBeInTheDocument();
   });
 
   it('persists a completed character and offers another creation', async () => {
     render(<CharacterForgeRoute />);
     fireEvent.click(
-      screen.getByRole('button', { name: 'Full step-by-step wizard' }),
+      screen.getByRole('button', { name: 'Create a character' }),
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Complete character' }));
@@ -135,7 +122,7 @@ describe('CharacterForgeRoute', () => {
       screen.getByRole('heading', { name: 'Character Forge' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Guided creation' }),
+      screen.getByRole('button', { name: 'Create a character' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

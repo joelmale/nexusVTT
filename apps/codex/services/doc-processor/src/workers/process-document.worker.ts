@@ -31,6 +31,7 @@ import {
 import { runLayoutStage } from './layout-stage';
 import { runExtractStage } from './extract-stage';
 import { loadLlmRouting } from '../services/llm-settings.service';
+import { loadOllamaOverrides } from '../services/ollama-settings.service';
 import { detectCandidates } from '../extraction/candidates';
 import {
   processingEvents,
@@ -734,6 +735,8 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           // Saved Settings over the environment; a settings problem never fails the stage.
           const { routing, notes } = await loadLlmRouting();
           for (const note of notes) await loggingService.logWarn(jobId, note);
+          const { overrides: ollama, notes: ollamaNotes } = await loadOllamaOverrides();
+          for (const note of ollamaNotes) await loggingService.logWarn(jobId, note);
           const result = await runExtractStage(jobId, document, {
             onCandidates: async (candidates, endpoint) => {
               model = endpoint.model;
@@ -784,7 +787,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
               await processingEvents.emitMany(events);
               await processingEvents.emitTelemetry(documentId, runId, 'extract', readGpu);
             },
-          }, routing);
+          }, routing, ollama);
           await loggingService.logInfo(
             jobId,
             `Extracted ${result.counts.spell} spells, ${result.counts.monster} monsters, ${result.counts.item} items ` +
@@ -804,7 +807,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
               cachedCalls: result.cachedCalls,
               model: result.endpoint.model,
               ollama: result.endpoint.where,
-              promptVersion: env.EXTRACT_PROMPT_VERSION,
+              promptVersion: ollama.promptVersion ?? env.EXTRACT_PROMPT_VERSION,
             },
           });
           await loggingService.logInfo(jobId, 'Stage extract completed');

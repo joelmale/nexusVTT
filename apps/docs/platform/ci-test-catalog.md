@@ -30,6 +30,7 @@ flakes or failure modes**, and **How to reproduce locally**.
 | Control API: validation                | `ci.yml` (`control-api`)               | PR              | Yes    | Stub       |
 | Forge                                  | `ci.yml` (`forge`)                     | PR              | Yes    | Stub       |
 | Codex                                  | `ci.yml` (`codex`)                     | PR              | Yes    | Stub       |
+| Codex extraction evaluation tests      | `codex-ci.yml` (`test-inventory`)      | PR and weekly   | PR only | Yes       |
 | Documentation checks                   | `ci.yml` (`docs`)                      | PR              | Yes    | Stub       |
 | Security validation                    | `ci.yml` (`security`)                  | PR              | Yes    | Stub       |
 | Multiplayer soak and chaos             | `nightly.yml` / `multiplayer-soak.yml` | Weekly          | No     | Stub       |
@@ -58,6 +59,12 @@ Specs in `apps/vtt/tests/e2e/`:
 | `journey.smoke.spec.ts`           | A guest host rolls 3D dice and reconnects after backend downtime; the lobby stays usable while the asset service recovers                                 |
 | `multiplayer.smoke.spec.ts`       | Two participants converge across replicas through reconnects, a restart, and a stale-base conflict; backend `SIGKILL` after a game-state ACK              |
 | `multiplayer-chaos.smoke.spec.ts` | Four clients keep one total order through retries and a replay gap                                                                                        |
+| `character-casting.smoke.spec.ts` | Two clients share spellcasting resources through command retry and reconnect |
+| `creator-host-matrix.smoke.spec.ts` | Forge and VTT resume, save, and reload reference builds from both editions, with automated accessibility checks for the 2024 Fighter |
+| `request-security.smoke.spec.ts` | Browser request protections and credential throttling |
+| `simple-player.smoke.spec.ts` | Phone and tablet journeys for joining, character claims, HP, dice, movement, and reconnect |
+| `studio-authoring.smoke.spec.ts` | Session authoring, publishing and activation, plus persisted items, holders, inbox notes, and pins |
+| `studio-deployment.smoke.spec.ts` | Published maps, handouts, and encounters reach the live VTT |
 
 These are the only CI tests that exercise the real production images, PostgreSQL,
 two replicas, and delta-sync together, so they are the main guard for the
@@ -74,6 +81,15 @@ compare-and-swap writes, version-neutral reconnects, event order).
 - **Artifacts on failure:** `weekly-playwright-smoke-report` (14 days).
 - **Reproduce locally:** `cd apps/vtt && npm run test:e2e` (see
   [Testing Nexus VTT](/vtt/developer/testing)).
+
+## Codex extraction evaluation tests
+
+The reusable Codex workflow checks service test inventory and runs
+`npm run test:codex-eval` on the checked-out source. The affected-target
+catalog routes changes to Codex scripts and labels into this workflow, which
+also runs from weekly validation. Tests use a synthetic fixture and run without
+model, database, or object-store services. CI logs report scorer and CLI
+failures. Run the same command from the repo root.
 
 ## Stubs
 

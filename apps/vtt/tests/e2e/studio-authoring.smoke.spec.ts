@@ -1,39 +1,9 @@
-import { execFile } from 'node:child_process';
-import { createHmac, randomUUID } from 'node:crypto';
-import { promisify } from 'node:util';
+import { randomUUID } from 'node:crypto';
+import { campaignEntrySchema, type CampaignEntry } from '@nexus/game-contracts';
 import { expect, test } from './support/diagnostics';
 import { hasManagedSmokeStack } from './support/stack';
 
-const executeFile = promisify(execFile);
-
-/** Seed only an authenticated test identity in the disposable managed stack. */
-async function smokeSql(sql: string) {
-  if (!hasManagedSmokeStack())
-    throw new Error('Requires the disposable managed smoke stack.');
-  await executeFile(
-    'docker',
-    [
-      'compose',
-      '-p',
-      process.env.E2E_PROJECT_NAME ?? 'nexus-vtt-e2e',
-      '-f',
-      'docker/docker-compose.smoke.yml',
-      'exec',
-      '-T',
-      'postgres',
-      'psql',
-      '-U',
-      'nexus_smoke',
-      '-d',
-      'nexus_smoke',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-c',
-      sql,
-    ],
-    { windowsHide: true },
-  );
-}
+import { createTestIdentity } from './support/testIdentity';
 
 test('Studio authors and reloads a session through real persistence', async ({
   context,
@@ -41,35 +11,7 @@ test('Studio authors and reloads a session through real persistence', async ({
   diagnostics,
 }) => {
   test.skip(!hasManagedSmokeStack(), 'Requires npm run test:e2e.');
-  const userId = randomUUID();
-  const sessionId = randomUUID();
-  const session = JSON.stringify({
-    cookie: {
-      originalMaxAge: 3600000,
-      expires: new Date(Date.now() + 3600000).toISOString(),
-      secure: false,
-      httpOnly: true,
-      path: '/',
-      sameSite: 'lax',
-    },
-    passport: { user: userId },
-  });
-  await smokeSql(
-    `INSERT INTO users (id, name, provider) VALUES ('${userId}', 'Studio smoke author', 'google'); INSERT INTO session (sid, sess, expire) VALUES ('${sessionId}', '${session}'::json, NOW() + INTERVAL '1 hour');`,
-  );
-  const signature = createHmac('sha256', 'smoke-session-secret')
-    .update(sessionId)
-    .digest('base64')
-    .replace(/=+$/, '');
-  await context.addCookies([
-    {
-      name: 'connect.sid',
-      value: `s:${sessionId}.${signature}`,
-      url: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:4173',
-      httpOnly: true,
-      sameSite: 'Lax',
-    },
-  ]);
+  const identity = await createTestIdentity(context);
   try {
     const response = await context.request.post('/api/campaigns', {
       data: {
@@ -150,47 +92,17 @@ test('Studio authors and reloads a session through real persistence', async ({
     ).toBeEnabled();
     expect(diagnostics.pageErrors).toEqual([]);
   } finally {
-    await smokeSql(
-      `DELETE FROM session WHERE sid = '${sessionId}'; DELETE FROM users WHERE id = '${userId}';`,
-    );
+    await identity.dispose();
   }
 });
 
-test('Studio toolkit persists compendium items with holder, hoard loot, inbox notes, and object pins', async ({
+test('Studio toolkit persists compendium items with a holder, inbox notes, and object pins', async ({
   context,
   page,
   diagnostics,
 }) => {
   test.skip(!hasManagedSmokeStack(), 'Requires npm run test:e2e.');
-  const userId = randomUUID();
-  const sessionId = randomUUID();
-  const session = JSON.stringify({
-    cookie: {
-      originalMaxAge: 3600000,
-      expires: new Date(Date.now() + 3600000).toISOString(),
-      secure: false,
-      httpOnly: true,
-      path: '/',
-      sameSite: 'lax',
-    },
-    passport: { user: userId },
-  });
-  await smokeSql(
-    `INSERT INTO users (id, name, provider) VALUES ('${userId}', 'Studio smoke author', 'google'); INSERT INTO session (sid, sess, expire) VALUES ('${sessionId}', '${session}'::json, NOW() + INTERVAL '1 hour');`,
-  );
-  const signature = createHmac('sha256', 'smoke-session-secret')
-    .update(sessionId)
-    .digest('base64')
-    .replace(/=+$/, '');
-  await context.addCookies([
-    {
-      name: 'connect.sid',
-      value: `s:${sessionId}.${signature}`,
-      url: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:4173',
-      httpOnly: true,
-      sameSite: 'Lax',
-    },
-  ]);
+  const identity = await createTestIdentity(context);
   try {
     const campaignRes = await context.request.post('/api/campaigns', {
       data: {
@@ -203,74 +115,98 @@ test('Studio toolkit persists compendium items with holder, hoard loot, inbox no
     expect(campaignRes.status()).toBe(201);
     const campaign: { id: string } = await campaignRes.json();
 
-    // 1. Create NPC holder
-    const npcRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects`, {
-      data: {
-        kind: 'npc',
-        requestId: randomUUID(),
-        data: {
-          name: 'Captain Valen',
-          role: 'Town Guard Captain',
-          ancestry: 'Human',
-          summary: 'Guards the gate',
+    const createEntry = async (
+      kind: CampaignEntry['kind'],
+      title: string,
+      fields: Record<string, unknown>,
+    ): Promise<CampaignEntry> => {
+      const timestamp = new Date().toISOString();
+      const data = campaignEntrySchema.parse({
+        id: randomUUID(),
+        campaignId: campaign.id,
+        revision: 1,
+        schemaVersion: 1,
+        kind,
+        title,
+        visibility: 'dm-only',
+        content: {
+          format: 'lexical',
+          schemaVersion: 1,
+          value: {
+            root: { type: 'root', children: [] },
+            nexusStudio: { v: 1, fields },
+          },
         },
-      },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      const response = await context.request.post(
+        `/api/campaigns/${campaign.id}/prep/objects`,
+        { data: { kind, requestId: randomUUID(), data } },
+      );
+      expect(response.status(), await response.text()).toBe(201);
+      return campaignEntrySchema.parse((await response.json()).data);
+    };
+
+    const npc = await createEntry('npc', 'Captain Valen', {
+      role: 'Town Guard Captain',
+      ancestry: 'Human',
     });
-    expect(npcRes.status()).toBe(201);
-    const npc: { id: string } = await npcRes.json();
 
     // 2. Toggle pin on NPC (CS-64)
-    const pinRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects/${npc.id}/pin`, {
-      data: { pinned: true },
-    });
+    const pinRes = await context.request.post(
+      `/api/campaigns/${campaign.id}/prep/objects/${npc.id}/pin`,
+      {
+        data: { pinned: true },
+      },
+    );
     expect(pinRes.ok()).toBe(true);
 
     // 3. Create compendium item assigned to holder (CS-01, CS-02)
-    const itemRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects`, {
-      data: {
-        kind: 'item',
-        requestId: randomUUID(),
-        data: {
-          name: 'Moonblade',
-          itemType: 'weapon',
-          requiresAttunement: true,
-          holderId: npc.id,
-          holderType: 'npc',
-          valueGp: 5000,
-          rarity: 'legendary',
-        },
-      },
+    const item = await createEntry('item', 'Moonblade', {
+      itemType: 'weapon',
+      requiresAttunement: true,
+      holder: { kind: 'npc', id: npc.id },
+      valueGp: 5000,
+      rarity: 'legendary',
     });
-    expect(itemRes.status()).toBe(201);
 
     // 4. Create inbox note (CS-65)
-    const inboxRes = await context.request.post(`/api/campaigns/${campaign.id}/prep/objects`, {
-      data: {
-        kind: 'inbox-note',
-        requestId: randomUUID(),
-        data: {
-          content: 'Secret rendezvous at the docks at midnight',
-          status: 'unfiled',
-          source: 'quick-capture',
-        },
-      },
-    });
-    expect(inboxRes.status()).toBe(201);
+    const inbox = await createEntry(
+      'inbox-note',
+      'Secret rendezvous at the docks at midnight',
+      {},
+    );
+    const inboxRes = await context.request.get(
+      `/api/campaigns/${campaign.id}/prep/objects?kind=inbox-note`,
+    );
+    expect(inboxRes.status(), await inboxRes.text()).toBe(200);
+    expect((await inboxRes.json()).objects).toContainEqual(
+      expect.objectContaining({ id: inbox.id, title: inbox.title }),
+    );
 
     // 5. Navigate to items section in UI and verify persisted entity with holder
-    await page.goto(`/codex-dm/campaigns/${campaign.id}/items`);
-    await expect(page.getByRole('heading', { level: 2, name: 'Moonblade' })).toBeVisible();
+    await page.goto(`/codex-dm/campaigns/${campaign.id}/items/${item.id}`);
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Moonblade' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Captain Valen', exact: true }),
+    ).toHaveAttribute(
+      'href',
+      `/codex-dm/campaigns/${campaign.id}/npcs/${npc.id}`,
+    );
 
     // 6. Verify pin list reflects pinned NPC
-    const pinsRes = await context.request.get(`/api/campaigns/${campaign.id}/prep/pins`);
+    const pinsRes = await context.request.get(
+      `/api/campaigns/${campaign.id}/prep/pins`,
+    );
     expect(pinsRes.ok()).toBe(true);
     const pins: { pinnedObjectIds: string[] } = await pinsRes.json();
     expect(pins.pinnedObjectIds).toContain(npc.id);
 
     expect(diagnostics.pageErrors).toEqual([]);
   } finally {
-    await smokeSql(
-      `DELETE FROM session WHERE sid = '${sessionId}'; DELETE FROM users WHERE id = '${userId}';`,
-    );
+    await identity.dispose();
   }
 });

@@ -54,7 +54,6 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
   onPresentationChange,
   onDraftChange,
   onCancel,
-  onSwitchToGuided,
   onComplete,
   showLiveSheet = false,
 }) => {
@@ -78,6 +77,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
     skipToStep,
     getNextStepLabel,
     visibleStepIndices,
+    progressStepIndices,
   } = useWizardNavigation(currentStep, setCurrentStep, creationData);
 
   // Get dynamic step titles based on edition
@@ -85,8 +85,11 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
 
   // Announce the position within the steps this character will actually be
   // asked, matching what the progress bar shows.
-  const visibleStepCount = visibleStepIndices.length || stepTitles.length;
-  const stepPosition = Math.max(visibleStepIndices.indexOf(currentStep) + 1, 1);
+  const visibleStepCount = progressStepIndices.length || stepTitles.length;
+  const stepPosition = Math.min(
+    Math.max(progressStepIndices.filter((i) => i <= currentStep).length, 1),
+    visibleStepCount,
+  );
 
   useEffect(() => {
     if (isOpen)
@@ -149,6 +152,12 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
 
   if (!isOpen) return null;
 
+  const selectedSpeciesForTrait = creationData.speciesSlug
+    ? getAllSpecies(creationData.edition).find(
+        (s) => s.slug === creationData.speciesSlug,
+      )
+    : undefined;
+
   const renderStep = () => {
     const commonProps = {
       data: creationData,
@@ -158,6 +167,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
       stepIndex: currentStep,
       getNextStepLabel,
       openTraitModal,
+      applyRecommended: session.replaceRecommended,
     };
 
     // Dynamic Step Rendering based on Edition
@@ -279,17 +289,8 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
             <WizardProgressBar
               currentStep={currentStep}
               stepTitles={stepTitles}
-              visibleStepIndices={visibleStepIndices}
+              visibleStepIndices={progressStepIndices}
             />
-            {onSwitchToGuided && (
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={onSwitchToGuided}
-              >
-                Use guided creation
-              </button>
-            )}
           </div>
 
           {/* Error Display */}
@@ -375,13 +376,9 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
             isOpen={showTraitModal}
             onClose={closeTraitModal}
             traitName={selectedTrait}
-            speciesName={
-              creationData.speciesSlug
-                ? getAllSpecies().find(
-                    (s) => s.slug === creationData.speciesSlug,
-                  )?.name || 'Unknown Species'
-                : 'Unknown Species'
-            }
+            speciesName={selectedSpeciesForTrait?.name || 'Unknown Species'}
+            edition={creationData.edition || '2014'}
+            detailedTraits={selectedSpeciesForTrait?.traits}
             position={modalPosition}
           />
         )}

@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { LLM_BACKENDS, LLM_MODES } from '@nexus/document-contracts';
+import { LLM_BACKENDS, LLM_MODES, OllamaSettingsSchema } from '@nexus/document-contracts';
+import { checkOllama, getOllamaSettingsView, saveOllamaSettings } from '../../services/ollama-settings.service';
 import {
   SettingsKeyMissingError,
   checkDeepSeek,
@@ -39,6 +40,28 @@ const keyBody = z
     updatedBy: z.string().max(128).optional(),
   })
   .strict();
+
+// A field is a value to save, null to clear the override (back to the environment), or absent to leave alone.
+const { shape: ollamaShape } = OllamaSettingsSchema;
+const ollamaBody = z
+  .object({
+    url: ollamaShape.url.nullable(),
+    model: ollamaShape.model.nullable(),
+    remoteUrl: ollamaShape.remoteUrl.nullable(),
+    remoteModel: ollamaShape.remoteModel.nullable(),
+    numCtx: ollamaShape.numCtx.nullable(),
+    keepAlive: ollamaShape.keepAlive.nullable(),
+    cropDpi: ollamaShape.cropDpi.nullable(),
+    cropMaxWidth: ollamaShape.cropMaxWidth.nullable(),
+    cropMaxHeight: ollamaShape.cropMaxHeight.nullable(),
+    promptVersion: ollamaShape.promptVersion.nullable(),
+    /** Stamped by control-api from the session; the audit trail of who last changed it. */
+    updatedBy: z.string().max(128).optional(),
+  })
+  .partial()
+  .strict();
+
+const ollamaTestBody = z.object({ target: z.enum(['local', 'remote']) }).strict();
 
 const invalid = (reply: FastifyReply, error: z.ZodError) =>
   reply.status(400).send({ error: 'Invalid settings', details: error.issues.map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`) });
@@ -97,6 +120,39 @@ export async function adminSettingsRoutes(fastify: FastifyInstance) {
       return reply.send(await checkDeepSeek());
     } catch (error: any) {
       fastify.log.error({ err: { message: error?.message } }, 'DeepSeek check failed');
+      return reply.status(500).send({ error: 'Failed to run the check' });
+    }
+  });
+
+  // Ollama / VLM endpoint overrides. doc-processor reads them at the start of each extract stage.
+  fastify.get('/api/admin/settings/ollama', async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      return reply.send(await getOllamaSettingsView());
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.status(500).send({ error: 'Failed to load settings' });
+    }
+  });
+
+  fastify.put('/api/admin/settings/ollama', async (request: FastifyRequest, reply: FastifyReply) => {
+    const parsed = ollamaBody.safeParse(request.body ?? {});
+    if (!parsed.success) return invalid(reply, parsed.error);
+    try {
+      const { updatedBy, ...patch } = parsed.data;
+      return reply.send(await saveOllamaSettings(patch, updatedBy ?? null));
+    } catch (error: any) {
+      fastify.log.error(error);
+      return reply.status(500).send({ error: 'Failed to save settings' });
+    }
+  });
+
+  fastify.post('/api/admin/settings/ollama/test', async (request: FastifyRequest, reply: FastifyReply) => {
+    const parsed = ollamaTestBody.safeParse(request.body ?? {});
+    if (!parsed.success) return invalid(reply, parsed.error);
+    try {
+      return reply.send(await checkOllama(parsed.data.target));
+    } catch (error: any) {
+      fastify.log.error({ err: { message: error?.message } }, 'Ollama check failed');
       return reply.status(500).send({ error: 'Failed to run the check' });
     }
   });

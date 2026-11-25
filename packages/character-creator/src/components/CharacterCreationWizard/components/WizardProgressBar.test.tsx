@@ -49,6 +49,19 @@ describe('WizardProgressBar', () => {
     expect(screen.getByText('Step 4 of 14')).toBeInTheDocument();
   });
 
+  it('reads a step left out of the count as the step just before it', () => {
+    // Feats (9) is not counted, but the player can still be standing on it.
+    const visible = [0, 1, 2, 3, 4, 5, 6, 8, 10, 11];
+    render(
+      <WizardProgressBar
+        currentStep={9}
+        stepTitles={ALL_TITLES}
+        visibleStepIndices={visible}
+      />,
+    );
+    expect(screen.getByText('Step 8 of 10')).toBeInTheDocument();
+  });
+
   it('never reports a position of zero for an unlisted step', () => {
     render(
       <WizardProgressBar
@@ -57,6 +70,7 @@ describe('WizardProgressBar', () => {
         visibleStepIndices={[0, 1, 2]}
       />,
     );
-    expect(screen.getByText('Step 1 of 3')).toBeInTheDocument();
+    // Past every counted step, so it reads as the last one, never zero.
+    expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
   });
 });
