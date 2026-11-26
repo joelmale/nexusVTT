@@ -6,6 +6,7 @@
  */
 
 import type { Point } from '@/types/drawing';
+import { hexToPixel, pixelToHex } from './hexMath';
 
 // ============================================================================
 // BASIC GEOMETRY
@@ -372,18 +373,27 @@ export function gridSnap(point: Point, gridSize: number): Point {
 }
 
 /**
- * Snap a point to the nearest grid position (grid-type aware)
+ * Find the nearest scene grid anchor for a placement or move.
  */
 export function snapToGrid(
   point: Point,
-  gridSettings: {
+  gridSettings?: {
     type?: 'square' | 'hex';
     size: number;
+    snapToGrid?: boolean;
     offsetX?: number;
     offsetY?: number;
     hexScale?: number;
   },
 ): Point {
+  if (
+    !gridSettings ||
+    gridSettings.snapToGrid === false ||
+    !Number.isFinite(gridSettings.size) ||
+    gridSettings.size <= 0
+  ) {
+    return point;
+  }
   const gridType = gridSettings.type || 'square';
   const gridSize = gridSettings.size;
   const offsetX = gridSettings.offsetX || 0;
@@ -391,10 +401,6 @@ export function snapToGrid(
   const hexScale = gridSettings.hexScale || 1.0;
 
   if (gridType === 'hex') {
-    // Import hex math functions here to avoid circular dependencies
-    // Note: This require is necessary to avoid circular dependency between mathUtils and hexMath
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { pixelToHex, hexToPixel } = require('./hexMath');
     const hexCoord = pixelToHex(point, gridSize, offsetX, offsetY, hexScale);
     return hexToPixel(hexCoord, gridSize, offsetX, offsetY, hexScale);
   } else {

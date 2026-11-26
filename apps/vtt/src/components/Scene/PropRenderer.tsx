@@ -225,6 +225,7 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
     return (
       <>
         <g
+          data-prop-id={placedPropId}
           transform={`translate(${placedProp.x}, ${placedProp.y}) rotate(${placedProp.rotation})`}
           onMouseDown={handleMouseDown}
           onContextMenu={handleContextMenu}

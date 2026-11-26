@@ -22,6 +22,7 @@ import {
   pixelsToFeet,
   calculateDiagonalDistance,
   gridSnap,
+  snapToGrid,
   getAdjacentSquares,
   isWithinRange,
   getPointsInCircle,
@@ -384,5 +385,35 @@ describe('mathUtils', () => {
 
       expect(normalized).toEqual(rect);
     });
+  });
+});
+
+describe('scene grid snapping', () => {
+  it('uses the same offset square anchors on either side of the origin', () => {
+    const grid = { size: 50, offsetX: 15, offsetY: 12 };
+    expect(snapToGrid({ x: 79, y: 76 }, grid)).toEqual({ x: 65, y: 62 });
+    expect(snapToGrid({ x: -42, y: -33 }, grid)).toEqual({ x: -35, y: -38 });
+  });
+
+  it('snaps to shifted, scaled flat-top hex centers', () => {
+    const grid = {
+      type: 'hex' as const,
+      size: 20,
+      offsetX: 15,
+      offsetY: 12,
+      hexScale: 2,
+    };
+    const point = snapToGrid({ x: -48, y: 44 }, grid);
+    expect(point.x).toBe(-45);
+    expect(point.y).toBeCloseTo(12 + 20 * Math.sqrt(3));
+    expect(snapToGrid(point, grid)).toEqual(point);
+  });
+
+  it('preserves precise positions when snapping is disabled or unavailable', () => {
+    const point = { x: -4.25, y: 7.75 };
+    expect(snapToGrid(point, { size: 25, snapToGrid: false })).toBe(point);
+    expect(snapToGrid(point, { size: 0 })).toBe(point);
+    expect(snapToGrid(point, { size: Number.NaN })).toBe(point);
+    expect(snapToGrid(point)).toBe(point);
   });
 });

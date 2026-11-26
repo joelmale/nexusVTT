@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/stores/gameStore';
+import { cameraRef } from '@/utils/cameraRef';
+import { snapToGrid } from '@/utils/mathUtils';
 import { sceneUtils } from '@/utils/sceneUtils';
 import type { Token } from '@/types/token';
 
@@ -127,9 +129,8 @@ export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
       const state = useGameStore.getState();
       const activeSceneId = state.sceneState.activeSceneId;
       const scene = activeSceneId ? state.sceneState.scenes.find(s => s.id === activeSceneId) : undefined;
-      const camera = state.sceneState.camera;
       
-      if (scene && camera) {
+      if (scene) {
         const { user, session } = state;
         
         // Host-offline rejection:
@@ -144,19 +145,10 @@ export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
            return;
         }
         
-        const screenX = e.clientX - rect.left;
-        const screenY = e.clientY - rect.top;
-        
-        const worldPos = sceneUtils.screenToWorld(screenX, screenY, camera, rect.width, rect.height);
-        
-        let finalX = worldPos.x;
-        let finalY = worldPos.y;
-        
-        if (scene.gridSettings?.snapToGrid && scene.gridSettings.size > 0) {
-          const snapped = sceneUtils.snapToGrid(worldPos.x, worldPos.y, scene.gridSettings.size, true);
-          finalX = snapped.x;
-          finalY = snapped.y;
-        }
+        const worldPosition = sceneUtils.clientToWorld(
+          e.clientX, e.clientY, cameraRef.get(), canvasRoot,
+        );
+        const position = snapToGrid(worldPosition, scene.gridSettings);
         
         const roomCode = state.session?.roomCode || '';
         if (payload.category === 'props') {
@@ -164,7 +156,7 @@ export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
           const placedProp = createPlacedProp(
             stripAtlasSourcePrefix(payload.id),
             scene.id,
-            { x: finalX, y: finalY },
+            position,
             user.id,
           );
           state.placeProp(scene.id, placedProp);
@@ -172,7 +164,7 @@ export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
           const { createPlacedToken } = await import('@/types/token');
           const baseToken = await resolveDroppedToken(payload);
           if (baseToken) {
-            const placedToken = createPlacedToken(baseToken, { x: finalX, y: finalY }, scene.id, roomCode, user.id, {
+            const placedToken = createPlacedToken(baseToken, position, scene.id, roomCode, user.id, {
               visibleToPlayers: true,
             });
             state.placeToken(scene.id, placedToken);

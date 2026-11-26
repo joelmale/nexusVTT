@@ -50,15 +50,13 @@ the alternating 5/10-foot rule in `calculateDiagonalDistance`. Hex distance is
 cube distance; if the sampled line crosses any marked difficult-terrain hex,
 the current implementation doubles the whole measured distance.
 
-## Snapping caveat
+## Entity placement and movement
 
-ADR-0002 names `sceneUtils.snapToGrid` as the snapping authority, but the code
-has not fully converged on that rule. The helper handles an un-offset square
-grid. Hex- and offset-aware snapping exists in `mathUtils.snapToGrid` and in a
-few placement call sites. `TokenDropZone` handles both offsets and hexes,
-whereas `useDockToCanvasDrag` calls the simpler `sceneUtils` helper and ignores
-offsets. Treat this as current implementation drift: do not add another
-formula, and prefer consolidating existing callers when changing snapping.
+Token and prop drops, including Atlas drops, and drag completion use the
+same scene grid settings. Square grids snap to intersections with the
+configured offsets. Hex grids snap to cell centers using the configured scale
+and offsets. A scene with snapping disabled keeps precise world coordinates.
+Existing positions stay as saved until the objects are moved.
 
 ## Tests and source map
 
