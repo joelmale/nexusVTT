@@ -1,4 +1,6 @@
-FROM postgres:19.0-alpine
+# The homelab data directory uses PostgreSQL 18. Upgrade the data separately
+# before changing the major version of this base image.
+FROM postgres:18.6-alpine
 
 RUN apk upgrade --no-cache
 
