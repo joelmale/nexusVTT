@@ -1,7 +1,7 @@
 name: nexus-vtt2
 services:
   postgres:
-    image: ${POSTGRES_IMAGE:-ghcr.io/joelmale/nexusvtt/postgres:latest}
+    image: ${POSTGRES_IMAGE:-ghcr.io/joelmale/nexusvtt/postgres@sha256:a86b91a7ab53a0dfd9bedc7ec7c091987cf99ed7977a736251fb85b08d3e8176}
     pull_policy: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nexus}

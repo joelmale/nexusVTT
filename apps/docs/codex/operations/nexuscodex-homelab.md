@@ -122,6 +122,13 @@ memory.
 
 ## Dockhand caution
 
+The homelab PostgreSQL service uses the existing `postgres18` data directory.
+Pin `POSTGRES_IMAGE` to a verified PostgreSQL 18 digest. Plan and test a data
+migration before making a PostgreSQL major upgrade. If a deployment fails with
+`database files are incompatible with server`, restore a compatible image on
+the existing mount. Start PostgreSQL, verify the campaign and durability schema,
+and then start its dependents and check the public health endpoints.
+
 The installed Dockhand API returns raw environment data as
 `{ "content": "..." }`. Any automation updating `/env/raw` must read that
 `content` property, merge by key, and write the complete result. A blind PUT has

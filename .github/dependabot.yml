@@ -123,6 +123,9 @@ updates:
       base-images:
         patterns:
           - '*'
+    ignore:
+      - dependency-name: 'postgres'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: 'github-actions'
     directory: '/'
