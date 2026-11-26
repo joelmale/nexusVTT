@@ -56,6 +56,7 @@ import type { ViewportRect } from './anchoredPanelPosition';
 import { useUIStackStore } from '@/stores/uiStackStore';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
+import type { CanvasMode } from '../GameToolbar';
 import type {
   DrawingStyle,
   SceneCanvasActiveTool,
@@ -64,6 +65,7 @@ import type {
 
 interface SceneCanvasProps {
   scene: Scene;
+  mode?: CanvasMode;
   /**
    * 'simple' is Simple Player Mode: no tools, no token/prop dragging, one
    * finger pans and a tap reports a scene point through `onSceneTap`.
@@ -90,6 +92,7 @@ const FOG_BRUSH_SIZE = 60;
 
 const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
   scene,
+  mode = 'play',
   interactionProfile = 'full',
   onSceneTap,
 }) => {
@@ -195,6 +198,11 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
   const fogViewportRef = useRef<SVGForeignObjectElement>(null);
   const fogLayerRef = useRef<FogLayerHandle>(null);
   const [isPanning, setIsPanning] = useState(false);
+  const [previousMode, setPreviousMode] = useState(mode);
+  if (previousMode !== mode) {
+    setPreviousMode(mode);
+    setIsPanning(false);
+  }
 
   // Imperative pan/zoom engine singleton for this component instance (A3),
   // mirroring useTransientDrag's TransientDragEngine pattern: constructed
@@ -518,6 +526,11 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
     return () => fogGestureEngine.dispose();
   }, [fogGestureEngine]);
 
+  useLayoutEffect(
+    () => () => fogGestureEngine.cancelGesture(),
+    [fogGestureEngine, mode],
+  );
+
   // Fog-reveal gesture (A9): imperative preview during the pointer gesture
   // (rAF-batched, writes the preview <rect>/<polyline> element's attributes
   // directly - no store writes mid-gesture), ONE addFogShape(...) commit on
@@ -746,7 +759,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
       endSingleTouch(false);
       endPinch();
     };
-  }, [isHost, followDM, cameraGestureEngine, isSimpleProfile, emitSceneTap]);
+  }, [isHost, followDM, cameraGestureEngine, isSimpleProfile, emitSceneTap, mode]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -859,6 +872,12 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
     setIsPanning(false);
     cameraGestureEngine.endPan();
   }, [cameraGestureEngine]);
+
+  // Keep the current view if the DM changes modes during a mouse pan.
+  useLayoutEffect(() => {
+    mouseTapRef.current = null;
+    cameraGestureEngine.endPan();
+  }, [cameraGestureEngine, mode]);
 
   // Tokens and props are now obtained from selectors above
 
@@ -1508,6 +1527,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
                   of token A re-renders only token A's component. */}
               <TokenErrorBoundary>
                 <g
+                  key={mode}
                   id="tokens-layer"
                   pointerEvents={isSimpleProfile ? 'none' : undefined}
                 >
@@ -1531,6 +1551,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
               {/* Props layer - same id-list pattern as tokens (A5). */}
               <TokenErrorBoundary>
                 <g
+                  key={mode}
                   id="props-layer"
                   pointerEvents={isSimpleProfile ? 'none' : undefined}
                 >
@@ -1582,7 +1603,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
                   <rect> to the dedicated fog capture rect below instead of
                   double-handling pointer events on the same gesture. */}
               <DrawingTools
-                key={activeTool}
+                key={`${mode}:${activeTool}`}
                 activeTool={
                   activeTool === 'fog-reveal-rect' ||
                   activeTool === 'fog-reveal-brush'
@@ -1656,6 +1677,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
 
               {/* Selection overlay */}
               <SelectionOverlay
+                key={mode}
                 selectedDrawings={selectedObjectIds}
                 sceneId={scene.id}
                 camera={camera}
@@ -1715,7 +1737,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
         )}
 
         {/* Spell element picker — shown when a spell tool is active */}
-        {activeTool && activeTool.startsWith('spell-') && (
+        {mode === 'play' && activeTool.startsWith('spell-') && (
           <div
             style={{
               position: 'absolute',

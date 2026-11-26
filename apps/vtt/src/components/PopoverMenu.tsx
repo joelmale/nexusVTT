@@ -80,6 +80,7 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
     <div className="popover-menu-container">
       {/* Trigger element binds directly via native targets */}
       <button
+        type="button"
         ref={triggerRef}
         popoverTarget={popoverId}
         className={`popover-trigger ${triggerClassName}`}

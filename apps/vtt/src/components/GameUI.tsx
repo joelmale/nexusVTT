@@ -19,7 +19,7 @@ import { HandoutSpotlight } from './simple-player/HandoutSpotlight';
 import { SceneCanvas } from './Scene/SceneCanvas';
 import { ScenePill } from './Scene/ScenePill';
 import { GeneratorOverlay } from './Generator/GeneratorOverlay';
-import { GameToolbar } from './GameToolbar';
+import { GameToolbar, type CanvasMode } from './GameToolbar';
 import { ErrorBoundary } from './ErrorBoundary';
 import { PanelDock } from './PanelDock';
 import { PlayerClusterFloating } from './PlayerClusterFloating';
@@ -66,6 +66,9 @@ export const GameUI: React.FC = () => {
   const roomCode = useServerRoomCode();
 
   const isHost = user.type === 'host';
+  const [hostMode, setHostMode] = useState<CanvasMode>('play');
+  const canvasMode = isHost ? (activeScene ? hostMode : 'design') : 'play';
+  const isDesign = canvasMode === 'design';
   const spotlight = useHandoutFeedStore((state) =>
     state.handouts.find((handout) => handout.id === state.spotlightId),
   );
@@ -88,6 +91,25 @@ export const GameUI: React.FC = () => {
   const activePanels = useUIStackStore((state) => state.activePanels);
   const togglePanel = useUIStackStore((state) => state.togglePanel);
   const selectPanel = useUIStackStore((state) => state.selectPanel);
+  const showSetupPanel = (panel: 'scene' | 'props') => {
+    if (activePanels.includes(panel)) {
+      useUIStackStore.getState().bringToFront(panel);
+    } else {
+      togglePanel(panel);
+    }
+  };
+  const changeCanvasMode = useCallback(
+    (mode: CanvasMode) => {
+      setHostMode(mode);
+      if (
+        mode === 'play' &&
+        useUIStackStore.getState().activePanels.includes('scene')
+      ) {
+        togglePanel('scene');
+      }
+    },
+    [togglePanel],
+  );
 
   // Immersive mode (press F) and the in-app reduced-motion setting. Both
   // mirror a flag onto <html> so CSS can reach portal-mounted chrome too.
@@ -123,7 +145,7 @@ export const GameUI: React.FC = () => {
   const panels = [
     { id: 'atlas' as const, icon: '📚', label: 'Atlas Studio' },
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
-    ...(isHost ? [{ id: 'scene' as const, icon: '🖼', label: 'Scene' }] : []),
+    ...(isDesign ? [{ id: 'scene' as const, icon: '🖼', label: 'Scene' }] : []),
     { id: 'props' as const, icon: '📦', label: 'Props' },
     ...(isHost
       ? [
@@ -248,7 +270,12 @@ export const GameUI: React.FC = () => {
         onSelect={selectPanel}
       />
 
-      <ScenePill scenes={scenes} activeSceneId={activeScene?.id || ''} />
+      <ScenePill
+        scenes={scenes}
+        activeSceneId={activeScene?.id || ''}
+        mode={canvasMode}
+        onModeChange={changeCanvasMode}
+      />
 
       {/* Main Game Canvas */}
       {!isHost && spotlight && (
@@ -260,14 +287,13 @@ export const GameUI: React.FC = () => {
           {/* Scene Content */}
           <div className="scene-content scene-content-relative">
             {activeScene ? (
-              <SceneCanvas scene={activeScene} />
+              <SceneCanvas scene={activeScene} mode={canvasMode} />
             ) : (
               <div className="empty-scene-state">
                 <div className="empty-scene-content">
                   <h3>🎲 Ready to Create Your First Scene</h3>
                   <p>
-                    Use the Scene panel on the right to create and configure
-                    your first scene.
+                    Use Create a scene in the scene controls to start designing.
                   </p>
                 </div>
               </div>
@@ -278,15 +304,21 @@ export const GameUI: React.FC = () => {
           {/* data-chrome lives on .layout-toolbar-inner (GameToolbar's own
               root), not here: this wrapper is purely grid positioning, and
               tagging both would double-fade and leave this one without inert. */}
-          <div className="layout-toolbar">
-            <Suspense
-              fallback={
-                <div className="toolbar-skeleton">Loading toolbar...</div>
-              }
-            >
-              <GameToolbar />
-            </Suspense>
-          </div>
+          {activeScene && (
+            <div className="layout-toolbar">
+              <Suspense
+                fallback={
+                  <div className="toolbar-skeleton">Loading toolbar...</div>
+                }
+              >
+                <GameToolbar
+                  mode={canvasMode}
+                  onEditScene={() => showSetupPanel('scene')}
+                  onOpenProps={() => showSetupPanel('props')}
+                />
+              </Suspense>
+            </div>
+          )}
         </div>
       </ErrorBoundary>
 

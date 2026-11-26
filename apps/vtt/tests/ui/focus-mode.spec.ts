@@ -24,7 +24,10 @@ test('F hides every piece of chrome and F restores it', async ({ page }) => {
   await expect(dock).toBeHidden();
 
   await page.keyboard.press('f');
-  await expect(page.locator('html')).not.toHaveAttribute('data-focus-mode', 'on');
+  await expect(page.locator('html')).not.toHaveAttribute(
+    'data-focus-mode',
+    'on',
+  );
   await expect(dock).toBeVisible();
 });
 
@@ -52,7 +55,9 @@ test('hidden chrome is inert and unreachable by Tab', async ({ page }) => {
   ).toBe(0);
 });
 
-test('reaches portal-mounted chrome, not just the layout container', async ({ page }) => {
+test('reaches portal-mounted chrome, not just the layout container', async ({
+  page,
+}) => {
   // FloatingPanel renders into #portal-root, a SIBLING of #root, so a rule
   // scoped to .game-layout could never hide it.
   await gotoGame(page, { panels: ['chat'] });
@@ -75,6 +80,19 @@ test('the hotkey does not fire while typing', async ({ page }) => {
   await input.click();
   await input.fill('f');
 
-  await expect(page.locator('html')).not.toHaveAttribute('data-focus-mode', 'on');
+  await expect(page.locator('html')).not.toHaveAttribute(
+    'data-focus-mode',
+    'on',
+  );
   await expect(input).toHaveValue('f');
+});
+test('entering focus mode dismisses an open canvas tool popover', async ({
+  page,
+}) => {
+  await gotoGame(page);
+  await page.getByRole('button', { name: 'Spells', exact: true }).click();
+  const popover = page.locator('.game-toolbar [popover]:popover-open');
+  await expect(popover).toBeVisible();
+  await page.keyboard.press('f');
+  await expect(popover).toHaveCount(0);
 });

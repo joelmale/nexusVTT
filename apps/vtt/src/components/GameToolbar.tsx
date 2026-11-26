@@ -1,7 +1,7 @@
 import React, {
   useState,
-  useRef,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useCallback,
 } from 'react';
@@ -12,7 +12,11 @@ import {
   useActiveTool,
 } from '@/stores/gameStore';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
-import { useUIStackStore, useStackZIndex, useFocusMode } from '@/stores/uiStackStore';
+import {
+  useUIStackStore,
+  useStackZIndex,
+  useFocusMode,
+} from '@/stores/uiStackStore';
 import {
   Circle,
   Eraser,
@@ -39,6 +43,16 @@ import { useSceneFog } from '@/stores/scene';
 import { useActiveScene } from '@/stores/gameStore';
 import { getActiveCameraGestureEngine } from '@/utils/cameraGestureEngine';
 import { isGlobalShortcut } from '@/utils/hotkeys';
+import { PopoverMenu } from './PopoverMenu';
+import styles from './GameToolbar.module.css';
+
+export type CanvasMode = 'play' | 'design';
+
+interface GameToolbarProps {
+  mode?: CanvasMode;
+  onEditScene?: () => void;
+  onOpenProps?: () => void;
+}
 
 interface ToolbarItem {
   id: string;
@@ -76,9 +90,14 @@ const NoteIcon: React.FC = () => (
   </svg>
 );
 
-export const GameToolbar: React.FC = () => {
+export const GameToolbar: React.FC<GameToolbarProps> = ({
+  mode = 'play',
+  onEditScene,
+  onOpenProps,
+}) => {
   const activeTool = useActiveTool();
   const isHost = useIsHost();
+  const isDesign = isHost && mode === 'design';
   // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
   // whole store, re-rendering the toolbar on every unrelated set().
   const updateCamera = useGameStore((state) => state.updateCamera);
@@ -91,7 +110,6 @@ export const GameToolbar: React.FC = () => {
   // useActiveScene already does.
   const activeScene = useActiveScene();
   const fog = useSceneFog(activeScene?.id ?? '');
-  const toolbarRef = useRef<HTMLDivElement>(null);
   const [hoveredTool, setHoveredTool] = useState<ToolbarItem | null>(null);
   const [isVertical, setIsVertical] = useState(false);
   const [isNearTop, setIsNearTop] = useState(false);
@@ -105,6 +123,17 @@ export const GameToolbar: React.FC = () => {
   const zIndex = useStackZIndex('gameToolbar');
   const focusMode = useFocusMode();
   const bringToFront = useUIStackStore((state) => state.bringToFront);
+
+  useLayoutEffect(() => {
+    if (!focusMode) return;
+    panelRef.current
+      ?.querySelectorAll<HTMLElement>('[popover]')
+      .forEach((popover) => {
+        if (popover.hidePopover && popover.matches(':popover-open')) {
+          popover.hidePopover();
+        }
+      });
+  }, [focusMode, panelRef]);
 
   const handleZoomIn = useCallback(() => {
     const engine = getActiveCameraGestureEngine();
@@ -336,7 +365,7 @@ export const GameToolbar: React.FC = () => {
               {
                 id: 'fog-clear',
                 icon: <Trash2 size={18} />,
-                label: 'Clear Fog',
+                label: 'Clear Fog Reveals',
                 tooltip: 'Remove all fog reveals on this scene',
                 action: handleClearFog,
               },
@@ -374,6 +403,24 @@ export const GameToolbar: React.FC = () => {
     [camera.zoom, handleZoomOut, handleZoomIn, handleZoomReset],
   );
 
+  const revealTools = useMemo(
+    () => dmFogGroup?.tools.filter((tool) => !tool.action) ?? [],
+    [dmFogGroup],
+  );
+  const availableTools = useMemo(
+    () => [
+      ...toolGroups.slice(0, isDesign ? 3 : 4).flatMap((group) => group.tools),
+      ...(isDesign ? (dmUtilityGroup?.tools ?? []) : []),
+      ...(isDesign ? (dmFogGroup?.tools ?? []) : revealTools),
+    ],
+    [dmFogGroup, dmUtilityGroup, isDesign, revealTools, toolGroups],
+  );
+  const selectedTool = availableTools.find((tool) => tool.id === activeTool);
+
+  useLayoutEffect(() => {
+    if (!selectedTool) setActiveTool('select');
+  }, [selectedTool, setActiveTool]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // isGlobalShortcut also rejects modifier combos: without that check
@@ -382,12 +429,7 @@ export const GameToolbar: React.FC = () => {
       if (!isGlobalShortcut(e)) return;
 
       const key = e.key.toUpperCase();
-      const allTools = [
-        ...toolGroups.flatMap((g) => g.tools),
-        ...(dmUtilityGroup ? dmUtilityGroup.tools : []),
-        ...(dmFogGroup ? dmFogGroup.tools : []),
-      ];
-      const tool = allTools.find(
+      const tool = availableTools.find(
         (t) =>
           t.shortcut &&
           t.shortcut.toUpperCase() === key &&
@@ -406,7 +448,7 @@ export const GameToolbar: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTool, toolGroups, dmUtilityGroup, dmFogGroup]);
+  }, [availableTools, setActiveTool]);
 
   const handleToolMouseEnter = useCallback(
     (tool: ToolbarItem) => {
@@ -418,7 +460,7 @@ export const GameToolbar: React.FC = () => {
     [panelRef],
   );
 
-  const renderToolButton = (tool: ToolbarItem) => {
+  const renderToolButton = (tool: ToolbarItem, showLabel = false) => {
     const isActive =
       activeTool === tool.id || tool.className?.split(' ').includes('active');
     const buttonClassName = [
@@ -439,9 +481,17 @@ export const GameToolbar: React.FC = () => {
         data-id={tool.id}
         type="button"
         className={buttonClassName}
-        onClick={tool.action ? tool.action : () => setActiveTool(tool.id)}
+        onClick={(event) => {
+          if (tool.action) tool.action();
+          else setActiveTool(tool.id);
+          event.currentTarget
+            .closest<HTMLElement>('[popover]')
+            ?.hidePopover?.();
+        }}
         disabled={tool.disabled}
-        aria-pressed={isActive}
+        aria-pressed={
+          !tool.action || tool.id === 'fog-toggle' ? isActive : undefined
+        }
         aria-label={tool.label}
         title={
           tool.tooltip && tool.tooltip !== tool.label
@@ -450,14 +500,30 @@ export const GameToolbar: React.FC = () => {
         }
         onMouseEnter={() => handleToolMouseEnter(tool)}
       >
-        {tool.icon ? (
-          <span className="tool-icon">{tool.icon}</span>
-        ) : (
-          tool.label
+        {tool.icon && (
+          <span className="tool-icon" aria-hidden="true">
+            {tool.icon}
+          </span>
+        )}
+        {(showLabel || !tool.icon) && <span>{tool.label}</span>}
+        {showLabel && tool.shortcut && (
+          <kbd aria-hidden="true">{tool.shortcut}</kbd>
         )}
       </button>
     );
   };
+
+  const renderToolMenu = (label: string, tools: ToolbarItem[]) => (
+    <PopoverMenu
+      trigger={label}
+      triggerClassName={`toolbar-btn ${styles.category}`}
+      contentClassName={styles.menu}
+    >
+      <div className={styles.menuTools} role="group" aria-label={label}>
+        {tools.map((tool) => renderToolButton(tool, true))}
+      </div>
+    </PopoverMenu>
+  );
 
   return (
     <div
@@ -475,8 +541,7 @@ export const GameToolbar: React.FC = () => {
           className={isNearTop ? 'placement-below' : undefined}
         >
           <span>
-            {hoveredTool.tooltip &&
-            hoveredTool.tooltip !== hoveredTool.label
+            {hoveredTool.tooltip && hoveredTool.tooltip !== hoveredTool.label
               ? `${hoveredTool.label}: ${hoveredTool.tooltip}`
               : hoveredTool.label}
           </span>
@@ -487,101 +552,90 @@ export const GameToolbar: React.FC = () => {
       )}
 
       <div
-        ref={toolbarRef}
-        className={`game-toolbar ${isVertical ? 'vertical' : 'horizontal'}`}
+        className={`game-toolbar ${styles.toolbar} ${isVertical ? 'vertical' : 'horizontal'}`}
         role="toolbar"
+        aria-label={isDesign ? 'Design tools' : 'Quick Tools Dock'}
         onMouseLeave={() => setHoveredTool(null)}
         data-collapsed={isCollapsed ? 'true' : undefined}
       >
-        <div
-          className="toolbar-drag-handle"
-          aria-hidden="true"
-          onPointerDown={(e) => {
-            if (isCollapsed) {
-              e.stopPropagation();
-              toggleCollapsed();
-            } else {
-              onPointerDown(e);
-            }
-          }}
-          onClick={(e) => {
-            if (isCollapsed) {
-              e.stopPropagation();
-              toggleCollapsed();
-            }
-          }}
-          title={isCollapsed ? 'Expand Toolbar' : 'Drag Toolbar'}
-        >
-          {isCollapsed ? <Pencil size={18} /> : '⠿'}
-        </div>
+        {isCollapsed ? (
+          <button
+            type="button"
+            className="toolbar-btn"
+            aria-label="Expand Toolbar"
+            onClick={toggleCollapsed}
+          >
+            <Pencil size={18} aria-hidden="true" />
+          </button>
+        ) : (
+          <div
+            className="toolbar-drag-handle"
+            aria-hidden="true"
+            onPointerDown={onPointerDown}
+            title="Drag Toolbar"
+          >
+            ⠿
+          </div>
+        )}
 
         {!isCollapsed && (
           <>
-            {/* Main Tool Groups */}
-            <div className="toolbar-section main-tools">
-              {/* Navigation Tools */}
-              <div className="toolbar-group">
-                {toolGroups[0].tools.map(renderToolButton)}
-              </div>
-
-              <div className="toolbar-group-separator" />
-
-              {/* Drawing Tools */}
-              <div className="toolbar-group">
-                {toolGroups[1].tools.map(renderToolButton)}
-              </div>
-
-              <div className="toolbar-group-separator" />
-
-              {/* Entity & Props Tools */}
-              <div className="toolbar-group">
-                {toolGroups[2].tools.map(renderToolButton)}
-              </div>
+            <div
+              className={styles.segment}
+              role="group"
+              aria-label="Navigation"
+            >
+              {[...toolGroups[0].tools, ...toolGroups[2].tools].map((tool) =>
+                renderToolButton(tool),
+              )}
             </div>
-
-            <div className="toolbar-group-separator" />
-
-            {/* Spell Effects Grid */}
-            <div className="toolbar-section spell-tools">
-              <div className="toolbar-group spell-grid">
-                {toolGroups[3].tools.map(renderToolButton)}
-              </div>
-
-              {/* DM Utility Tools */}
-              {isHost && dmUtilityGroup && (
+            <div className={styles.segment} key={isDesign ? 'design' : 'play'}>
+              {renderToolMenu('Draw', toolGroups[1].tools)}
+              {isDesign ? (
                 <>
-                  <div className="toolbar-group-separator" />
-                  <div className="toolbar-group dm-tools">
-                    {dmUtilityGroup.tools.map(renderToolButton)}
-                  </div>
+                  {onEditScene && (
+                    <button
+                      type="button"
+                      className={'toolbar-btn ' + styles.category}
+                      onClick={onEditScene}
+                    >
+                      Scene Properties
+                    </button>
+                  )}
+                  {onOpenProps && (
+                    <button
+                      type="button"
+                      className={'toolbar-btn ' + styles.category}
+                      onClick={onOpenProps}
+                    >
+                      Props
+                    </button>
+                  )}
+                  {dmUtilityGroup?.tools.map((tool) =>
+                    renderToolButton(tool, true),
+                  )}
+                  {dmFogGroup && renderToolMenu('Fog Setup', dmFogGroup.tools)}
+                </>
+              ) : (
+                <>
+                  {renderToolMenu('Spells', toolGroups[3].tools)}
+                  {revealTools.length > 0 &&
+                    renderToolMenu('Reveal Fog', revealTools)}
                 </>
               )}
-
-              {/* DM Fog Tools (A9 - paintable fog, host-only) */}
-              {isHost && dmFogGroup && (
-                <>
-                  <div className="toolbar-group-separator" />
-                  <div
-                    className="toolbar-group dm-tools"
-                    data-testid="dm-fog-group"
-                  >
-                    {dmFogGroup.tools.map(renderToolButton)}
-                  </div>
-                </>
-              )}
-
-              {/* Zoom Controls - Right Aligned */}
-              <div className="toolbar-group-separator" />
-              <div className="toolbar-group zoom-controls">
-                {cameraControls.map(renderToolButton)}
-              </div>
             </div>
-
-            <div className="toolbar-group-separator" />
+            <div className={styles.segment} role="group" aria-label="Zoom">
+              {cameraControls.map((tool) => renderToolButton(tool))}
+            </div>
+            <output className={styles.activeTool} aria-label="Active tool">
+              {selectedTool?.id.startsWith('spell-') && 'Spell: '}
+              {selectedTool?.label ?? 'Select / Move'}
+            </output>
 
             <button
+              type="button"
               className="toolbar-btn"
-              onClick={() => toggleCollapsed()}
+              onClick={toggleCollapsed}
               title="Minimize Toolbar"
               aria-label="Minimize Toolbar"
             >
@@ -590,6 +644,7 @@ export const GameToolbar: React.FC = () => {
 
             {/* Vertical Toggle */}
             <button
+              type="button"
               className="toolbar-orientation-toggle"
               onClick={() => setIsVertical(!isVertical)}
               title={isVertical ? 'Switch to horizontal' : 'Switch to vertical'}

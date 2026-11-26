@@ -159,6 +159,10 @@ export class FogGestureEngine {
   private handlePointerUp = () => this.endGesture(true);
   private handlePointerCancel = () => this.endGesture(false);
 
+  cancelGesture() {
+    this.endGesture(false);
+  }
+
   private endGesture(commit: boolean) {
     if (!this.active) return;
     this.active = false;

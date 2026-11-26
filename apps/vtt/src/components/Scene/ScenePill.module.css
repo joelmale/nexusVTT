@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  width: 200px;
+  width: min(320px, calc(100vw - var(--spacing-4)));
   padding: var(--spacing-1) var(--spacing-2);
 
   background: var(--surface-primary);
@@ -32,7 +32,6 @@
     box-shadow 0.2s ease;
 }
 
-.container:hover,
 .container.expanded {
   max-height: min(60vh, 460px);
   background: var(--surface-secondary);
@@ -40,7 +39,76 @@
 }
 
 /* Needed so CSS Modules exports this class name for JS toggling */
-.expanded {}
+.expanded {
+}
+
+.design {
+  max-height: 64px;
+}
+
+.modeSwitch {
+  display: inline-flex;
+  gap: var(--spacing-0_5);
+  padding: var(--spacing-0_5);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.modeSwitch button,
+.headerRow .chevron {
+  align-self: center;
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.modeSwitch button:hover,
+.modeSwitch button[aria-pressed='true'],
+.headerRow .chevron:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.modeSwitch button[aria-pressed='true'] {
+  box-shadow: inset 0 -2px var(--color-primary);
+}
+
+.liveScene {
+  flex-shrink: 0;
+  margin-block: var(--spacing-0_5);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.headerRow .addButton {
+  width: auto;
+  white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+  .container {
+    max-height: 58px;
+  }
+
+  .design {
+    max-height: 78px;
+  }
+
+  .modeSwitch button,
+  .headerRow .chevron {
+    min-width: var(--spacing-11);
+    min-height: var(--spacing-11);
+  }
+
+  .headerRow .addButton {
+    min-height: var(--spacing-11);
+  }
+}
 
 /* ── Top Header Row ── */
 .headerRow {
@@ -122,7 +190,6 @@
   user-select: none;
 }
 
-.container:hover .chevron,
 .container.expanded .chevron {
   transform: rotate(180deg);
 }
@@ -138,7 +205,6 @@
   transition: opacity 0.2s ease;
 }
 
-.container:hover .separator,
 .container.expanded .separator {
   opacity: 1;
 }
@@ -158,7 +224,6 @@
   flex: 1 1 auto;
 }
 
-.container:hover .expandedView,
 .container.expanded .expandedView {
   opacity: 1;
   transform: translateY(0);
@@ -254,7 +319,9 @@
   cursor: pointer;
   border-radius: 4px;
   flex-shrink: 0;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .sceneChip:hover .deleteBtn,

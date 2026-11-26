@@ -28,6 +28,7 @@ test('fog paint captures input only while a fog tool is active', async ({
       { ...centre, selector },
     );
   await expect.poll(() => hitLayer('.drawing-tools')).toBe(true);
+  await page.getByRole('button', { name: 'Reveal Fog', exact: true }).click();
   await page.getByRole('button', { name: 'Reveal Rect', exact: true }).click();
   await expect(capture).toBeVisible();
   expect(await hitLayer('.fog-tool-layer')).toBe(true);
