@@ -7,9 +7,9 @@ services:
       POSTGRES_USER: ${REHEARSAL_POSTGRES_USER:-nexus_rehearsal}
       POSTGRES_PASSWORD: ${REHEARSAL_POSTGRES_PASSWORD:-nexus-rehearsal}
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${REHEARSAL_POSTGRES_USER:-nexus_rehearsal}']
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U ${REHEARSAL_POSTGRES_USER:-nexus_rehearsal}']
     volumes: !override
-      - rehearsal-vtt-postgres-data:/var/lib/postgresql/data
+      - rehearsal-vtt-postgres-data:/var/lib/postgresql
     networks: !override [rehearsal-net]
   redis:
     command: redis-server --appendonly yes --requirepass ${REHEARSAL_REDIS_PASSWORD:-nexus-rehearsal}
