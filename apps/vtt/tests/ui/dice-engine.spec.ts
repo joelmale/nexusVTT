@@ -1,4 +1,10 @@
+import {
+  CANVAS_TOKEN_ID,
+  seedCanvasScene,
+  selectedCanvasObjects,
+} from './support/canvasFixture';
 import { test, expect, gotoGame } from './support/gameFixture';
+import { isTopmostAtCentre } from './support/layoutProbes';
 
 /**
  * DiceBox3D used to boot two engines on every page load: the init guard
@@ -47,11 +53,20 @@ test.describe('3D dice engine lifecycle', () => {
     // still leave exactly one canvas, not two competing renderers.
     await expect(page.locator('#dice-box canvas')).toHaveCount(1);
   });
-  test('still rolls dice after the single-init fix', async ({ page }) => {
+  test('rolls dice without intercepting the board or Dice panel', async ({
+    page,
+  }) => {
     const consoleLines: string[] = [];
     page.on('console', (message) => consoleLines.push(message.text()));
 
     await gotoGame(page);
+    await seedCanvasScene(page);
+    await page.getByRole('tablist', { name: 'Panels' }).hover();
+    await page.getByRole('tab', { name: 'Dice', exact: true }).click();
+    const panel = page.getByRole('dialog', { name: 'Dice', exact: true });
+    const token = page.locator(`[data-token-id="${CANVAS_TOKEN_ID}"] image`);
+    await expect(panel).toBeVisible();
+    await expect(token).toBeVisible();
 
     await expect
       .poll(
@@ -105,5 +120,24 @@ test.describe('3D dice engine lifecycle', () => {
         { message: 'the dice never finished rolling', timeout: 30_000 },
       )
       .toBeGreaterThan(0);
+
+    // Confirm both targets are physically inside the dice canvas before
+    // checking hit-testing, so the test fails if an overlay steals input.
+    const diceBox = (await page.locator('#dice-box canvas').boundingBox())!;
+    for (const target of [token, panel]) {
+      const box = (await target.boundingBox())!;
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      expect(x).toBeGreaterThan(diceBox.x);
+      expect(x).toBeLessThan(diceBox.x + diceBox.width);
+      expect(y).toBeGreaterThan(diceBox.y);
+      expect(y).toBeLessThan(diceBox.y + diceBox.height);
+    }
+    expect(await isTopmostAtCentre(panel)).toBe(true);
+    const box = (await token.boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await expect
+      .poll(() => selectedCanvasObjects(page))
+      .toEqual([CANVAS_TOKEN_ID]);
   });
 });

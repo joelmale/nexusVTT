@@ -34,7 +34,7 @@ import { DrawingPropertiesPanel } from './DrawingPropertiesPanel';
 import { SpellOverlayPropertiesPanel } from './SpellOverlayPropertiesPanel';
 import { SpellOverlayPatterns } from './SpellOverlayPatterns';
 import { CanvasInkLayer } from './CanvasInkLayer';
-import { FogLayer } from './FogLayer';
+import { FogLayer, type FogLayerHandle } from './FogLayer';
 import { type ElementType, ELEMENT_THEMES } from '@/types/drawing';
 import { TokenDropZone } from './TokenDropZone';
 import { TokenRenderer } from './TokenRenderer';
@@ -192,6 +192,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
   // Plain DOM element ref for the camera-transformed `<g>` - imperative
   // transform writes during pan/zoom gestures target this directly (A3).
   const sceneContentRef = useRef<SVGGElement>(null);
+  const fogViewportRef = useRef<SVGForeignObjectElement>(null);
+  const fogLayerRef = useRef<FogLayerHandle>(null);
   const [isPanning, setIsPanning] = useState(false);
 
   // Imperative pan/zoom engine singleton for this component instance (A3),
@@ -1120,6 +1122,19 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
           'transform',
           sceneUtils.cameraTransform(liveCamera, svgSize.width, svgSize.height),
         );
+        const fogViewport = fogViewportRef.current;
+        if (fogViewport) {
+          const bounds = sceneUtils.viewportWorldRect(
+            liveCamera,
+            svgSize.width,
+            svgSize.height,
+          );
+          fogViewport.setAttribute('x', String(bounds.x));
+          fogViewport.setAttribute('y', String(bounds.y));
+          fogViewport.setAttribute('width', String(bounds.width));
+          fogViewport.setAttribute('height', String(bounds.height));
+          fogLayerRef.current?.paint(liveCamera);
+        }
       },
       getViewportRect: () => {
         const rect = svgRef.current?.getBoundingClientRect();
@@ -1245,6 +1260,11 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
     camera,
     viewportSize.width,
     viewportSize.height,
+  );
+  const fogViewport = sceneUtils.viewportWorldRect(
+    camera,
+    svgSize.width,
+    svgSize.height,
   );
 
   const getDrawingPropertiesAnchor = useCallback((): ViewportRect | null => {
@@ -1531,29 +1551,25 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
                 </g>
               </TokenErrorBoundary>
 
-              {/* Fog-of-war layer (A9) - Canvas 2D at var(--z-fog) (40),
-                  ABOVE tokens/props, below UI overlays/cursors. Mounted the
-                  same way as CanvasInkLayer: a <foreignObject> sized to the
-                  current viewport-in-world-units, inside the
-                  camera-transformed scene-content group so it never needs
-                  its own camera math beyond what FogLayer does internally.
-                  pointerEvents="none" here - the fog-reveal tools capture
-                  pointer events via the dedicated rect below, not this
-                  layer itself. */}
+              {/* Keep fog above scene objects and below tool previews. Its
+                  world bounds follow each camera frame so the cover stays
+                  fixed to the viewport. The tool rect below captures input. */}
               <foreignObject
-                x={viewportWorldRect.x}
-                y={viewportWorldRect.y}
-                width={viewportWorldRect.width}
-                height={viewportWorldRect.height}
+                ref={fogViewportRef}
+                x={fogViewport.x}
+                y={fogViewport.y}
+                width={fogViewport.width}
+                height={fogViewport.height}
                 pointerEvents="none"
                 style={{ zIndex: 'var(--z-fog)' } as React.CSSProperties}
               >
                 <FogLayer
+                  ref={fogLayerRef}
                   sceneId={scene.id}
                   isHost={isHost}
                   camera={camera}
-                  viewportWidth={viewportSize.width}
-                  viewportHeight={viewportSize.height}
+                  viewportWidth={svgSize.width}
+                  viewportHeight={svgSize.height}
                 />
               </foreignObject>
 

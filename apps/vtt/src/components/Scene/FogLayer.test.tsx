@@ -49,7 +49,7 @@ vi.mock('@/stores/scene', async (importOriginal) => {
 
 import { useGameStore } from '@/stores/gameStore';
 import * as sceneSlices from '@/stores/scene';
-import { FogLayer } from './FogLayer';
+import { FogLayer, type FogLayerHandle } from './FogLayer';
 import { drawingPersistenceService } from '@/services/drawingPersistence';
 
 const getInitialState = () => useGameStore.getState();
@@ -157,9 +157,17 @@ describe('FogLayer (A9)', () => {
   let tokenId: string;
 
   beforeEach(async () => {
-    vi.mocked(drawingPersistenceService.saveScene).mockResolvedValue(
-      undefined,
-    );
+    vi.spyOn(window, 'matchMedia').mockImplementation((media) => ({
+      media,
+      matches: true,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    vi.mocked(drawingPersistenceService.saveScene).mockResolvedValue(undefined);
     const actual =
       await vi.importActual<typeof import('@/stores/scene')>('@/stores/scene');
     vi.mocked(sceneSlices.useSceneFog).mockImplementation(actual.useSceneFog);
@@ -233,9 +241,7 @@ describe('FogLayer (A9)', () => {
       />,
     );
 
-    expect(ctx.fillRect).toHaveBeenCalled();
-    // The conceal fillStyle is set before the (large, oversized) conceal
-    // fillRect call - it's the first fillStyle assignment.
+    expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 800, 600);
     expect(ctx.fillStyleHistory[0]).toBe('rgba(10, 10, 14, 1)');
   });
 
@@ -287,10 +293,81 @@ describe('FogLayer (A9)', () => {
       />,
     );
 
-    // Conceal fillRect (oversized bounds) + one reveal-punch fillRect for
+    // Viewport conceal fillRect + one reveal-punch fillRect for
     // the rect shape's bounding box.
     expect(ctx.fillRect).toHaveBeenCalledTimes(2);
     expect(ctx.fillRect).toHaveBeenLastCalledWith(10, 10, 40, 30);
+  });
+
+  it('covers the viewport and repaints reveals with the supplied live camera', async () => {
+    const ctx = installCanvasContextSpy();
+    await act(async () => {
+      await useGameStore.getState().setFogEnabled(sceneId, true);
+      await useGameStore.getState().addFogShape(sceneId, {
+        id: 'shape-live',
+        kind: 'reveal',
+        shape: 'rect',
+        points: [
+          { x: 10, y: 10 },
+          { x: 50, y: 40 },
+        ],
+        createdAt: Date.now(),
+      });
+    });
+    const ref = React.createRef<FogLayerHandle>();
+    const { getByTestId } = render(
+      <FogLayer
+        ref={ref}
+        sceneId={sceneId}
+        isHost={false}
+        camera={STABLE_CAMERA}
+        viewportWidth={STABLE_VIEWPORT.width}
+        viewportHeight={STABLE_VIEWPORT.height}
+      />,
+    );
+    const canvas = getByTestId('fog-layer-canvas') as HTMLCanvasElement;
+    const setWidth = vi.spyOn(canvas, 'width', 'set');
+    const setHeight = vi.spyOn(canvas, 'height', 'set');
+    ctx.fillRect.mockClear();
+
+    ref.current!.paint({ x: 25_000, y: -10_500, zoom: 0.25 });
+
+    expect(ctx.fillRect).toHaveBeenNthCalledWith(1, 0, 0, 800, 600);
+    expect(ctx.translate).toHaveBeenLastCalledWith(-25_000, 10_500);
+    expect(ctx.scale).toHaveBeenLastCalledWith(0.25, 0.25);
+    expect(setWidth).not.toHaveBeenCalled();
+    expect(setHeight).not.toHaveBeenCalled();
+  });
+
+  it('updates the backing buffer when the display pixel density changes', async () => {
+    const ctx = installCanvasContextSpy();
+    await act(async () => {
+      await useGameStore.getState().setFogEnabled(sceneId, true);
+    });
+    const { getByTestId } = render(
+      <FogLayer
+        sceneId={sceneId}
+        isHost={false}
+        camera={STABLE_CAMERA}
+        viewportWidth={STABLE_VIEWPORT.width}
+        viewportHeight={STABLE_VIEWPORT.height}
+      />,
+    );
+    const media = vi.mocked(window.matchMedia);
+    const query = media.mock.results.at(-1)!.value as MediaQueryList;
+    const [, onChange] = vi.mocked(query.addEventListener).mock.calls[0];
+    const previousDpr = window.devicePixelRatio;
+    try {
+      Object.assign(window, { devicePixelRatio: 2 });
+      if (typeof onChange !== 'function')
+        throw new Error('Missing DPR listener');
+      onChange(new Event('change'));
+      expect(getByTestId('fog-layer-canvas')).toHaveAttribute('width', '1600');
+      expect(ctx.fillRect).toHaveBeenLastCalledWith(0, 0, 1600, 1200);
+      expect(media).toHaveBeenLastCalledWith('(resolution: 2dppx)');
+    } finally {
+      Object.assign(window, { devicePixelRatio: previousDpr });
+    }
   });
 
   it('strokes a brush reveal shape via destination-out compositing', async () => {
@@ -324,6 +401,35 @@ describe('FogLayer (A9)', () => {
 
     expect(ctx.stroke).toHaveBeenCalledTimes(1);
     expect(ctx.lineWidth).toBe(30);
+  });
+
+  it('paints a single brush dab at the default width', async () => {
+    const ctx = installCanvasContextSpy();
+    await act(async () => {
+      await useGameStore.getState().setFogEnabled(sceneId, true);
+      await useGameStore.getState().addFogShape(sceneId, {
+        id: 'single-dab',
+        kind: 'reveal',
+        shape: 'brush',
+        points: [{ x: 4, y: 9 }],
+        createdAt: Date.now(),
+      });
+    });
+
+    render(
+      <FogLayer
+        sceneId={sceneId}
+        isHost={false}
+        camera={STABLE_CAMERA}
+        viewportWidth={STABLE_VIEWPORT.width}
+        viewportHeight={STABLE_VIEWPORT.height}
+      />,
+    );
+
+    expect(ctx.moveTo).toHaveBeenCalledWith(4, 9);
+    expect(ctx.lineTo).toHaveBeenCalledWith(4, 9);
+    expect(ctx.stroke).toHaveBeenCalledOnce();
+    expect(ctx.lineWidth).toBe(40);
   });
 
   it('SUBSCRIPTION NARROWNESS: a fog write on this scene re-renders FogLayer', async () => {

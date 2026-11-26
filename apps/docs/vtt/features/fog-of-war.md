@@ -25,11 +25,12 @@ reveals, and clear all reveals after confirmation. `fogGestureEngine` converts
 pointer input with the live camera and commits one shape at the end of a
 gesture. The SVG preview is transient and is not stored.
 
-`FogLayer` is a Canvas 2D surface embedded above tokens and props. It paints a
-large conceal rectangle, then uses `destination-out` composition to punch out
-the reveals. Players receive an opaque cover; hosts receive a half-opacity
-cover so they can still see concealed content. The canvas is non-interactive;
-the host-only SVG capture layer owns pointer events.
+`FogLayer` is a Canvas 2D surface embedded above tokens and props. It covers the
+viewport, then uses `destination-out` composition to punch out the world-space
+reveals. The cover stays aligned to the viewport while pan, wheel zoom, and
+pinch redraw the reveals with the live camera. Players receive an opaque cover.
+Hosts receive a half-opacity cover so they can still see concealed content.
+The host-only SVG capture layer handles pointer input for drawing reveals.
 
 Fog subscribes only to its scene's fog object. Token and drawing changes do
 not invalidate it. Unlike the committed ink layer, fog redraws when its state,
@@ -58,4 +59,4 @@ game-state transaction.
 - Gesture and renderer: `src/utils/fogGestureEngine.ts`,
   `src/components/Scene/FogLayer.tsx`, `src/components/Scene/SceneCanvas.tsx`
 - Tests: `src/stores/fog.test.ts`,
-  `src/components/Scene/FogLayer.test.tsx`
+  `src/components/Scene/FogLayer.test.tsx`, `tests/ui/canvas-layers.spec.ts`
