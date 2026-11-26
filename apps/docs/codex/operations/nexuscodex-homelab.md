@@ -122,12 +122,21 @@ memory.
 
 ## Dockhand caution
 
-The homelab PostgreSQL service uses the existing `postgres18` data directory.
-Pin `POSTGRES_IMAGE` to a verified PostgreSQL 18 digest. Plan and test a data
-migration before making a PostgreSQL major upgrade. If a deployment fails with
-`database files are incompatible with server`, restore a compatible image on
-the existing mount. Start PostgreSQL, verify the campaign and durability schema,
-and then start its dependents and check the public health endpoints.
+The homelab PostgreSQL service uses a dedicated `postgres19` host directory
+mounted at `/var/lib/postgresql`, with `PGDATA` at
+`/var/lib/postgresql/19/docker`. Pin `POSTGRES_IMAGE` to a verified PostgreSQL 19
+digest. When a major upgrade must preserve data, plan and test a data migration
+before switching the image and mount together. If a deployment fails with
+`database files are incompatible with server`, use an image that matches the
+mounted data directory.
+
+For an empty cluster, start PostgreSQL by itself. The image initializes the VTT
+schema. Verify the campaign room-code and multiplayer durability schema,
+create the configured Codex database, and provision the Control API database
+role and grants per the [control-plane runbook](/platform/control-plane-runbook).
+Start `doc-api` to apply its Prisma migrations, then start the remaining
+dependents and check the public health endpoints. An empty VTT database also
+requires the first-admin bootstrap described in the control-plane runbook.
 
 The installed Dockhand API returns raw environment data as
 `{ "content": "..." }`. Any automation updating `/env/raw` must read that

@@ -1,20 +1,20 @@
 services:
   postgres:
-    image: ghcr.io/joelmale/nexusvtt/postgres:20260917-3754710
+    image: ${POSTGRES_IMAGE:-ghcr.io/joelmale/nexusvtt/postgres@sha256:988a041c0a03283f6280221fc020cffd5be0b9d312580d080edfbb8d9f0d76f2}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nexus}
       POSTGRES_USER: ${POSTGRES_USER:-nexus}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      PGDATA: /var/lib/postgresql/data/pgdata
+      PGDATA: /var/lib/postgresql/19/docker
     volumes:
       # PostgreSQL major versions cannot share a data directory.
-      - /mnt/docker-nas-vol1/nexusvtt/postgres18:/var/lib/postgresql/data
+      - /mnt/docker-nas-vol1/nexusvtt/postgres19:/var/lib/postgresql
     networks:
       - nexus-internal-net
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U ${POSTGRES_USER:-nexus}
+        - pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-nexus}
       interval: 10s
       timeout: 5s
       retries: 5
