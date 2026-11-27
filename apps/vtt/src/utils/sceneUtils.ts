@@ -1,6 +1,7 @@
 // Scene utilities for managing scene data and operations
 import type { Scene } from '@/types/game';
 import { cameraRef } from '@/utils/cameraRef';
+import { snapToGrid } from '@/utils/mathUtils';
 
 /**
  * IndexedDB utility for storing scene images locally
@@ -270,14 +271,7 @@ export const sceneUtils = {
     gridSize: number,
     enabled: boolean = true,
   ): { x: number; y: number } {
-    if (!enabled) {
-      return { x, y };
-    }
-
-    return {
-      x: Math.round(x / gridSize) * gridSize,
-      y: Math.round(y / gridSize) * gridSize,
-    };
+    return snapToGrid({ x, y }, { size: gridSize, snapToGrid: enabled });
   },
 
   /**

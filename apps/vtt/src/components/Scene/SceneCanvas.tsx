@@ -48,6 +48,8 @@ import { createPlacedToken } from '@/types/token';
 import { createPlacedProp } from '@/types/prop';
 import { CameraGestureEngine, isZoomWheelEvent } from '@/utils/cameraGestureEngine';
 import { FogGestureEngine } from '@/utils/fogGestureEngine';
+import { cameraRef } from '@/utils/cameraRef';
+import { snapToGrid } from '@/utils/mathUtils';
 import { sceneUtils } from '@/utils/sceneUtils';
 import { isTap, startTap, trackTap, type TapTracker } from '@/utils/tapGesture';
 import { hitTestDrawings, createHitTestContext } from './inkHitTest';
@@ -993,23 +995,13 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
   // computed client-side during the gesture (no store writes mid-drag).
   const handleTokenMoveEnd = useCallback(
     (tokenId: string, position: { x: number; y: number }) => {
-      let finalPosition = position;
-
-      // Apply grid snapping when drag ends (identical behavior to pre-A2)
-      if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-        finalPosition = {
-          x:
-            Math.round(position.x / safeGridSettings.size) *
-            safeGridSettings.size,
-          y:
-            Math.round(position.y / safeGridSettings.size) *
-            safeGridSettings.size,
-        };
-      }
-
       // Single optimistic update - commits to store and sends versioned
       // token/move WebSocket event exactly once for this gesture.
-      moveTokenOptimistic(scene.id, tokenId, finalPosition);
+      moveTokenOptimistic(
+        scene.id,
+        tokenId,
+        snapToGrid(position, safeGridSettings),
+      );
     },
     [scene.id, safeGridSettings, moveTokenOptimistic],
   );
@@ -1053,31 +1045,23 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
       const prop = findSceneProp(propId);
       if (!prop) return;
 
-      const newX = prop.x + deltaX / camera.zoom;
-      const newY = prop.y + deltaY / camera.zoom;
+      const { zoom } = cameraRef.get();
+      const newX = prop.x + deltaX / zoom;
+      const newY = prop.y + deltaY / zoom;
 
       // Optimistic update - move locally first, then send to server
       movePropOptimistic(scene.id, propId, { x: newX, y: newY });
     },
-    [scene.id, camera.zoom, findSceneProp, movePropOptimistic],
+    [scene.id, findSceneProp, movePropOptimistic],
   );
 
   const handlePropMoveEnd = useCallback(
     (propId: string) => {
-      // Apply grid snapping when drag ends
-      if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-        const prop = findSceneProp(propId);
-        if (!prop) return;
-
-        const snappedX =
-          Math.round(prop.x / safeGridSettings.size) * safeGridSettings.size;
-        const snappedY =
-          Math.round(prop.y / safeGridSettings.size) * safeGridSettings.size;
-
-        // Only update if position changed after snapping
-        if (snappedX !== prop.x || snappedY !== prop.y) {
-          movePropOptimistic(scene.id, propId, { x: snappedX, y: snappedY });
-        }
+      const prop = findSceneProp(propId);
+      if (!prop) return;
+      const position = snapToGrid(prop, safeGridSettings);
+      if (position.x !== prop.x || position.y !== prop.y) {
+        movePropOptimistic(scene.id, propId, position);
       }
     },
     [scene.id, safeGridSettings, findSceneProp, movePropOptimistic],
@@ -1193,28 +1177,16 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
         const scenePoint = sceneUtils.clientToWorld(
           e.clientX,
           e.clientY,
-          camera,
+          cameraRef.get(),
           svgRef.current,
         );
-
-        // Apply grid snapping if enabled
-        let finalX = scenePoint.x;
-        let finalY = scenePoint.y;
-
-        if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-          finalX =
-            Math.round(scenePoint.x / safeGridSettings.size) *
-            safeGridSettings.size;
-          finalY =
-            Math.round(scenePoint.y / safeGridSettings.size) *
-            safeGridSettings.size;
-        }
+        const position = snapToGrid(scenePoint, safeGridSettings);
 
         // Create placed prop with correct arguments
         const placedProp = createPlacedProp(
           prop.id, // propId (string)
           scene.id, // sceneId (string)
-          { x: finalX, y: finalY }, // position (Point)
+          position, // position (Point)
           user.id, // placedBy (string)
         );
 
@@ -1232,13 +1204,13 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
 
         console.log('🎭 Props: Dropped prop:', {
           propName: prop.name,
-          position: { x: finalX, y: finalY },
+          position,
         });
       } catch (error) {
         console.error('❌ Props: Failed to parse dropped prop data:', error);
       }
     },
-    [scene.id, camera, safeGridSettings, placeProp, user.id],
+    [scene.id, safeGridSettings, placeProp, user.id],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -1427,7 +1399,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
 
         <TokenDropZone
           sceneId={scene.id}
-          camera={camera}
           gridSettings={safeGridSettings}
           onTokenDrop={handleTokenDrop}
         >
