@@ -4,11 +4,18 @@ import type { Scene } from '@/types/game';
 import { sceneUtils } from '@/utils/sceneUtils';
 import styles from './ScenePill.module.css';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
-import { useUIStackStore, useStackZIndex, useFocusMode } from '@/stores/uiStackStore';
+import {
+  useUIStackStore,
+  useStackZIndex,
+  useFocusMode,
+} from '@/stores/uiStackStore';
+import type { CanvasMode } from '../GameToolbar';
 
 interface ScenePillProps {
   scenes: Scene[];
   activeSceneId: string;
+  mode: CanvasMode;
+  onModeChange: (mode: CanvasMode) => void;
 }
 
 /**
@@ -26,6 +33,8 @@ interface ScenePillProps {
 export const ScenePill: React.FC<ScenePillProps> = ({
   scenes,
   activeSceneId,
+  mode,
+  onModeChange,
 }) => {
   const isHost = useIsHost();
   const session = useSession();
@@ -67,8 +76,15 @@ export const ScenePill: React.FC<ScenePillProps> = ({
       session?.hostId || 'unknown',
     );
     const newScene = createScene(defaultScene);
+    onModeChange('design');
     setActiveScene(newScene.id);
-  }, [scenes.length, session?.hostId, createScene, setActiveScene]);
+  }, [
+    scenes.length,
+    session?.hostId,
+    createScene,
+    onModeChange,
+    setActiveScene,
+  ]);
 
   const handleDeleteScene = useCallback(
     (sceneId: string, e: React.MouseEvent) => {
@@ -94,10 +110,14 @@ export const ScenePill: React.FC<ScenePillProps> = ({
       ref={panelRef}
       data-chrome
       inert={focusMode || undefined}
-      className={`${styles.container} ${isExpanded ? styles.expanded : ''}`}
+      className={`${styles.container} ${isExpanded ? styles.expanded : ''} ${mode === 'design' && activeScene ? styles.design : ''}`}
       onPointerDownCapture={() => bringToFront('scenePill')}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onPointerEnter={(event) => {
+        if (event.pointerType === 'mouse') handleMouseEnter();
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === 'mouse') handleMouseLeave();
+      }}
       style={{ zIndex }}
       aria-expanded={isExpanded}
       role="region"
@@ -119,22 +139,65 @@ export const ScenePill: React.FC<ScenePillProps> = ({
 
         {/* Compact: active scene name */}
         <div className={styles.compactView}>
-          <span className={styles.icon} aria-hidden="true">🗺️</span>
+          <span className={styles.icon} aria-hidden="true">
+            🗺️
+          </span>
           <span className={styles.sceneName}>
             {activeScene?.name || 'No scene'}
           </span>
         </div>
 
-        <span className={styles.chevron} aria-hidden="true">
-          ▾
-        </span>
+        {activeScene && (
+          <div
+            className={styles.modeSwitch}
+            role="group"
+            aria-label="Canvas mode"
+          >
+            {(['play', 'design'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                className="unstyled"
+                aria-pressed={mode === option}
+                onClick={() => {
+                  if (mode !== option) onModeChange(option);
+                }}
+              >
+                {option === 'play' ? 'Play' : 'Design'}
+              </button>
+            ))}
+          </div>
+        )}
+        {scenes.length === 0 ? (
+          <button
+            type="button"
+            className={styles.addButton}
+            onClick={handleCreateScene}
+          >
+            Create a scene
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={`unstyled ${styles.chevron}`}
+            aria-label="Scenes"
+            aria-expanded={isExpanded}
+            onClick={() => setIsExpanded((expanded) => !expanded)}
+          >
+            ▾
+          </button>
+        )}
       </div>
+
+      {mode === 'design' && activeScene && (
+        <span className={styles.liveScene}>Editing live scene</span>
+      )}
 
       {/* Horizontal divider between header and expanded vertical list */}
       <div className={styles.separator} />
 
       {/* Expanded: vertical scene stack + add button */}
-      <div className={styles.expandedView}>
+      <div className={styles.expandedView} inert={!isExpanded || undefined}>
         <div className={styles.scenesList}>
           {scenes.map((scene) => (
             <button
@@ -149,7 +212,7 @@ export const ScenePill: React.FC<ScenePillProps> = ({
               title={scene.description || scene.name}
             >
               <span className={styles.chipName}>{scene.name}</span>
-              {scenes.length > 1 && (
+              {mode === 'design' && scenes.length > 1 && (
                 <span
                   className={styles.deleteBtn}
                   role="button"
@@ -158,7 +221,10 @@ export const ScenePill: React.FC<ScenePillProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      handleDeleteScene(scene.id, e as unknown as React.MouseEvent);
+                      handleDeleteScene(
+                        scene.id,
+                        e as unknown as React.MouseEvent,
+                      );
                     }
                   }}
                   title="Delete scene"
@@ -172,16 +238,20 @@ export const ScenePill: React.FC<ScenePillProps> = ({
         </div>
 
         {/* Add new scene */}
-        <button
-          type="button"
-          className={styles.addButton}
-          onClick={handleCreateScene}
-          title="Create new scene"
-          aria-label="Create new scene"
-        >
-          <span className={styles.addIcon} aria-hidden="true">+</span>
-          <span>New Scene</span>
-        </button>
+        {mode === 'design' && scenes.length > 0 && (
+          <button
+            type="button"
+            className={styles.addButton}
+            onClick={handleCreateScene}
+            title="Create new scene"
+            aria-label="Create new scene"
+          >
+            <span className={styles.addIcon} aria-hidden="true">
+              +
+            </span>
+            <span>New Scene</span>
+          </button>
+        )}
       </div>
     </div>
   );

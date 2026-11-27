@@ -16,6 +16,7 @@ export interface GameOptions {
   /** localStorage entries written before the app boots. */
   storage?: Record<string, unknown>;
   userType?: 'host' | 'player';
+  uiMode?: 'full' | 'simple';
 }
 
 export const ROOM_CODE = 'TEST';
@@ -24,7 +25,7 @@ export async function gotoGame(
   page: Page,
   options: GameOptions = {},
 ): Promise<void> {
-  const { panels = [], storage = {}, userType = 'host' } = options;
+  const { panels = [], storage = {}, userType = 'host', uiMode } = options;
 
   // Nothing should reach a real backend. Fail loudly rather than hanging on a
   // 15s actionability timeout if something unexpected does.
@@ -53,12 +54,17 @@ export async function gotoGame(
       }
     },
     [
-      { userName: 'UI Test DM', userType, roomCode: ROOM_CODE, activePanels: panels },
+      {
+        userName: 'UI Test DM',
+        userType,
+        roomCode: ROOM_CODE,
+        activePanels: panels,
+      },
       storage,
     ] as const,
   );
 
-  await page.goto(`/lobby/game/${ROOM_CODE}`);
+  await page.goto(`/lobby/game/${ROOM_CODE}${uiMode ? `?mode=${uiMode}` : ''}`);
 
   // The dock is the last chrome to settle, so it is the readiness signal.
   await expect(page.getByRole('tablist', { name: 'Panels' })).toBeVisible();

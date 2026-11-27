@@ -1,0 +1,80 @@
+.toolbar:global(.game-toolbar) {
+  justify-content: center;
+  max-inline-size: calc(100dvw - var(--spacing-4));
+}
+
+.segment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-0_5);
+  border-inline-end: 1px solid var(--border-subtle);
+  padding-inline-end: var(--spacing-1);
+}
+
+.toolbar:global(.vertical) .segment {
+  flex-direction: column;
+  border-inline-end: 0;
+  border-block-end: 1px solid var(--border-subtle);
+  padding-inline-end: 0;
+  padding-block-end: var(--spacing-1);
+}
+
+.toolbar :global(.toolbar-btn).category,
+.segment > :global(.toolbar-btn[data-id='grid-align']),
+.segment > :global(.toolbar-btn.zoom-display) {
+  width: auto;
+  padding-inline: var(--spacing-2);
+  gap: var(--spacing-1);
+  aspect-ratio: auto;
+  white-space: nowrap;
+}
+
+.category::after {
+  content: '▾' / '';
+  color: var(--text-muted);
+}
+
+.category:not([popovertarget])::after {
+  content: none;
+}
+
+.activeTool {
+  padding-inline: var(--spacing-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.menu:global(.popover-inner) {
+  background: var(--surface-primary);
+  border-color: var(--border-primary);
+  box-shadow: var(--shadow-glass-lg);
+}
+
+.menuTools {
+  display: grid;
+  gap: var(--spacing-0_5);
+}
+
+.menuTools > :global(.toolbar-btn) {
+  width: 100%;
+  justify-content: flex-start;
+  gap: var(--spacing-2);
+  padding-inline: var(--spacing-2);
+  aspect-ratio: auto;
+}
+
+.menuTools kbd {
+  margin-inline-start: auto;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+@media (pointer: coarse) {
+  .toolbar:global(.game-toolbar) {
+    --toolbar-button-size: var(--spacing-11);
+  }
+}

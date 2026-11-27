@@ -62,8 +62,15 @@ const seedStore = (userType: 'host' | 'player') => {
   });
 };
 
-const renderPill = () =>
-  render(<ScenePill scenes={scenesFixture()} activeSceneId="s1" />);
+const renderPill = (mode: 'play' | 'design' = 'play', onModeChange = vi.fn()) =>
+  render(
+    <ScenePill
+      scenes={scenesFixture()}
+      activeSceneId="s1"
+      mode={mode}
+      onModeChange={onModeChange}
+    />,
+  );
 
 describe('ScenePill (hover-expanding scene dock)', () => {
   beforeEach(() => {
@@ -104,10 +111,10 @@ describe('ScenePill (hover-expanding scene dock)', () => {
     const { getByRole } = renderPill();
     const region = getByRole('region', { name: 'Scene Manager' });
 
-    fireEvent.mouseEnter(region);
+    fireEvent.pointerOver(region, { pointerType: 'mouse' });
     expect(region.getAttribute('aria-expanded')).toBe('true');
 
-    fireEvent.mouseLeave(region);
+    fireEvent.pointerOut(region, { pointerType: 'mouse' });
     expect(region.getAttribute('aria-expanded')).toBe('true'); // grace period
     act(() => {
       vi.advanceTimersByTime(450);
@@ -118,7 +125,9 @@ describe('ScenePill (hover-expanding scene dock)', () => {
   it('switches the active scene when a chip is clicked', () => {
     seedStore('host');
     const { getByRole, getByTitle } = renderPill();
-    fireEvent.mouseEnter(getByRole('region', { name: 'Scene Manager' }));
+    fireEvent.pointerOver(getByRole('region', { name: 'Scene Manager' }), {
+      pointerType: 'mouse',
+    });
 
     fireEvent.click(getByTitle('The Dungeon'));
     expect(useGameStore.getState().sceneState.activeSceneId).toBe('s2');
@@ -126,8 +135,10 @@ describe('ScenePill (hover-expanding scene dock)', () => {
 
   it('creates and activates a new scene via the + button', () => {
     seedStore('host');
-    const { getByRole } = renderPill();
-    fireEvent.mouseEnter(getByRole('region', { name: 'Scene Manager' }));
+    const { getByRole } = renderPill('design');
+    fireEvent.pointerOver(getByRole('region', { name: 'Scene Manager' }), {
+      pointerType: 'mouse',
+    });
 
     fireEvent.click(getByRole('button', { name: 'Create new scene' }));
 
@@ -137,5 +148,41 @@ describe('ScenePill (hover-expanding scene dock)', () => {
     const created = scenes.find((s) => s.id !== 's1' && s.id !== 's2');
     expect(created).toBeTruthy();
     expect(activeSceneId).toBe(created!.id);
+  });
+
+  it('requests Design from the collapsed Play pill without switching scenes', () => {
+    seedStore('host');
+    const onModeChange = vi.fn();
+    const { getByRole, queryByRole } = renderPill('play', onModeChange);
+    expect(getByRole('button', { name: 'Play' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(queryByRole('button', { name: 'Create new scene' })).toBeNull();
+    fireEvent.click(getByRole('button', { name: 'Design' }));
+    expect(onModeChange).toHaveBeenCalledExactlyOnceWith('design');
+    expect(useGameStore.getState().sceneState.activeSceneId).toBe('s1');
+  });
+
+  it('creates the first scene and enters Design from the collapsed pill', () => {
+    seedStore('host');
+    useGameStore.setState((state) => {
+      state.sceneState.scenes = [];
+      state.sceneState.activeSceneId = null;
+    });
+    const onModeChange = vi.fn();
+    const { getByRole } = render(
+      <ScenePill
+        scenes={[]}
+        activeSceneId=""
+        mode="design"
+        onModeChange={onModeChange}
+      />,
+    );
+    fireEvent.click(getByRole('button', { name: 'Create a scene' }));
+    const { scenes, activeSceneId } = useGameStore.getState().sceneState;
+    expect(onModeChange).toHaveBeenCalledExactlyOnceWith('design');
+    expect(scenes).toHaveLength(1);
+    expect(activeSceneId).toBe(scenes[0].id);
   });
 });

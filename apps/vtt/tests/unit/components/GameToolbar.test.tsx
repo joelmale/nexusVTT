@@ -76,12 +76,12 @@ describe('GameToolbar', () => {
   it('should show current host tools while hiding legacy mask controls', () => {
     (useActiveTool as vi.Mock).mockReturnValue('select');
     (useIsHost as vi.Mock).mockReturnValue(true);
-    render(<GameToolbar />);
+    render(<GameToolbar mode="design" />);
 
     expect(
       screen.getByRole('button', { name: 'Grid Alignment' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Fog: Off' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Fog: Off')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Create Mask' }),
     ).not.toBeInTheDocument();
@@ -95,12 +95,16 @@ describe('GameToolbar', () => {
     (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
-    const createMaskButton = screen.queryByRole('button', { name: 'Create Mask' });
+    const createMaskButton = screen.queryByRole('button', {
+      name: 'Create Mask',
+    });
     expect(createMaskButton).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Grid Alignment' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Fog: Off' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Fog: Off' }),
+    ).not.toBeInTheDocument();
   });
 
   it('should call updateCamera when zoom buttons are clicked', () => {
@@ -127,7 +131,9 @@ describe('GameToolbar', () => {
     render(<GameToolbar />);
 
     // Navigation tools
-    expect(screen.getByRole('button', { name: 'Select / Move' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Select / Move' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pan' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Measure' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ping' })).toBeInTheDocument();
@@ -141,21 +147,16 @@ describe('GameToolbar', () => {
     (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
-    // Drawing tools
-    expect(screen.getByRole('button', { name: 'Draw' })).toBeInTheDocument();
-    // 'Line' appears in both drawing tools and spell tools
-    expect(screen.getAllByRole('button', { name: 'Line' })).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Rectangle' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Circle' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Cone / AOE' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Erase' })).toBeInTheDocument();
-
-    // Spell tools (all 6 in a single group)
-    expect(screen.getByRole('button', { name: 'Sphere' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Ring' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Cone' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Cube' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Wedge' })).toBeInTheDocument();
+    const draw = screen.getByRole('button', { name: 'Draw', exact: true });
+    const spells = screen.getByRole('button', { name: 'Spells', exact: true });
+    const drawingOptions = document.getElementById(
+      draw.getAttribute('popovertarget')!,
+    );
+    const spellOptions = document.getElementById(
+      spells.getAttribute('popovertarget')!,
+    );
+    expect(drawingOptions).toContainElement(screen.getByLabelText('Rectangle'));
+    expect(spellOptions).toContainElement(screen.getByLabelText('Sphere'));
   });
 
   it('should show the tooltip info banner on button hover and hide on mouse leave', () => {
@@ -178,4 +179,3 @@ describe('GameToolbar', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 });
-

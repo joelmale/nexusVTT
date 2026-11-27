@@ -80,6 +80,16 @@ async function submitActiveSceneName(page: Page, name: string): Promise<void> {
   await input.press('Enter');
 }
 
+async function openSceneProperties(page: Page): Promise<void> {
+  await page
+    .getByRole('group', { name: 'Canvas mode' })
+    .getByRole('button', { name: 'Design', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Scene Properties', exact: true })
+    .click();
+}
+
 async function editActiveSceneName(page: Page, name: string): Promise<void> {
   await submitActiveSceneName(page, name);
   await expect(activeScene(page)).toHaveAttribute('data-scene-name', name);
@@ -348,6 +358,8 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     const sceneManager = hostPage.getByRole('region', {
       name: 'Scene Manager',
     });
+    const canvasMode = sceneManager.getByRole('group', { name: 'Canvas mode' });
+    await canvasMode.getByRole('button', { name: 'Design', exact: true }).click();
     await sceneManager.hover();
     await sceneManager
       .getByRole('button', { name: 'Create new scene' })
@@ -360,6 +372,7 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
       'data-scene-name',
       'Scene 2',
     );
+    await canvasMode.getByRole('button', { name: 'Play', exact: true }).click();
     await sceneManager.hover();
     await sceneManager.locator('button').filter({ hasText: 'Scene 1' }).click();
     await expect(activeScene(playerPage)).toHaveAttribute(
@@ -425,7 +438,7 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
       hostSockets,
       'game-state-ack',
     ).length;
-    await openPanel(hostPage, 'Scene');
+    await openSceneProperties(hostPage);
     await editActiveSceneName(hostPage, durableCrashSceneName);
     await expect
       .poll(() => messagesOfType(hostSockets, 'game-state-ack').length)
@@ -434,7 +447,10 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
       'data-scene-name',
       durableCrashSceneName,
     );
-    await closePanel(hostPage, 'Scene');
+    await hostPage
+      .getByRole('group', { name: 'Canvas mode' })
+      .getByRole('button', { name: 'Play', exact: true })
+      .click();
 
     const hostSocketCountBeforeRestart = hostSockets.socketUrls.length;
     const hostClosedSocketsBeforePrimaryRestart = hostSockets.closedSocketCount;
@@ -565,14 +581,14 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     ).toBeVisible();
     await closePanel(hostPage, 'Lobby');
 
-    await openPanel(hostPage, 'Scene');
+    await openSceneProperties(hostPage);
     const hostAckCount = messagesOfType(hostSockets, 'game-state-ack').length;
     await editActiveSceneName(hostPage, 'Host Chain Baseline');
     await expect
       .poll(() => messagesOfType(hostSockets, 'game-state-ack').length)
       .toBeGreaterThan(hostAckCount);
 
-    await openPanel(playerPage, 'Scene');
+    await openSceneProperties(playerPage);
     await editSceneNameAfterResync(
       playerPage,
       hostPage,

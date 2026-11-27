@@ -20,8 +20,10 @@ and still renders through `DrawingRenderer`.
 
 ## Host workflow and rendering
 
-The Fog toolbar is host-only. It can toggle fog, draw rectangular or freehand
-reveals, and clear all reveals after confirmation. `fogGestureEngine` converts
+During Play, the DM can open **Reveal Fog** from Quick Tools Dock and choose a
+rectangle or brush. To enable fog for the scene or clear all reveals after
+confirmation, switch to **Design** and open **Fog Setup**. Edits to the live
+scene sync to connected players in either mode. `fogGestureEngine` converts
 pointer input with the live camera and commits one shape at the end of a
 gesture. The SVG preview is transient and is not stored.
 
