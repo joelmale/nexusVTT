@@ -1,4 +1,5 @@
 import type { SceneState } from '../../src/types/game';
+import { favoriteOrListedPanel } from '../support/panelDock';
 import { expect, gotoGame, test } from './support/gameFixture';
 
 type Position = { x: number; y: number };
@@ -96,10 +97,7 @@ for (const { type, anchor, destination } of grids) {
           .toEqual([0, 0, moves]);
       };
 
-      await page.getByRole('tablist', { name: 'Panels' }).hover();
-      await page
-        .getByRole('tab', { name: 'Atlas Studio', exact: true })
-        .click();
+      await (await favoriteOrListedPanel(page, 'Atlas Studio')).click();
       const atlas = page.getByRole('dialog', {
         name: 'Atlas Studio',
         exact: true,

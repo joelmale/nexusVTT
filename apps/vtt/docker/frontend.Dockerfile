@@ -169,9 +169,12 @@ FROM nginx:alpine AS production
 # APK_REFRESH keys the apk layers to the calendar week (CI passes it), so a
 # cached "apk upgrade" layer cannot keep shipping packages that have since been
 # fixed. Docker keys layers on the command text, not on the Alpine repository.
+# The libxml2 minimum refreshes cached layers from before the Alpine fixes
+# and allows newer patched versions.
 ARG APK_REFRESH=unset
 RUN echo "apk refresh: $APK_REFRESH" && \
     apk upgrade --no-cache && \
+    apk add --no-cache 'libxml2>=2.13.9-r5' && \
     apk del nginx-module-image-filter libgd tiff
 
 COPY apps/vtt/docker/nginx.conf /etc/nginx/nginx.conf
