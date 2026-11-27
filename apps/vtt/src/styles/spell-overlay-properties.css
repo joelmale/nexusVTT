@@ -53,6 +53,11 @@
   gap: 8px;
 }
 
+.spell-overlay-properties-panel .panel-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .spell-overlay-properties-panel .close-btn {
   width: 28px;
   height: 28px;
@@ -71,6 +76,12 @@
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.9);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+.spell-overlay-properties-panel .delete-btn:hover,
+.spell-overlay-properties-panel .delete-btn:focus-visible {
+  color: var(--color-error);
+  border-color: var(--color-error);
 }
 
 /* Panel Content */

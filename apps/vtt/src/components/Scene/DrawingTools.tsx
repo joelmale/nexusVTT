@@ -62,6 +62,7 @@ interface DrawingToolsProps {
   selectedObjectIds: string[];
   setSelection: (ids: string[]) => void;
   clearSelection: () => void;
+  onDrawingMouseDown?: (drawingId: string, event: React.MouseEvent) => void;
   /** A5: token/prop arrays are self-subscribed via scene slices now. */
   sceneId: string;
   spellElementType: ElementType;
@@ -78,6 +79,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
   selectedObjectIds,
   setSelection,
   clearSelection,
+  onDrawingMouseDown,
   sceneId,
   spellElementType,
   spellGridSnap,
@@ -467,7 +469,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
   // Handle mouse down for all tools
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || (activeTool === 'select' && e.altKey)) return;
 
       // Disable snap for smooth drawing - only snap if Ctrl/Cmd key is held
       const shouldSnap = e.ctrlKey || e.metaKey;
@@ -496,14 +498,25 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
         [key: string]: (event: React.MouseEvent) => void;
       } = {
         select: (event) => {
-          const drawingsAtPoint = getDrawingsAtPoint(point, 25);
-          const tokensAtPoint = getTokensAtPoint(point, 5);
-          const propsAtPoint = getPropsAtPoint(point, 5);
+          // Selection modifiers should not snap the pointer away from the object.
+          const selectionPoint = dragPoint(event);
+          const drawingsAtPoint = getDrawingsAtPoint(
+            selectionPoint,
+            8 / cameraRef.get().zoom,
+          );
+          const tokensAtPoint = getTokensAtPoint(selectionPoint, 5);
+          const propsAtPoint = getPropsAtPoint(selectionPoint, 5);
           const isMultiSelectModifier =
             event.shiftKey || event.metaKey || event.ctrlKey;
 
+          const drawingId = drawingsAtPoint.at(-1);
+          if (drawingId && onDrawingMouseDown) {
+            onDrawingMouseDown(drawingId, event);
+            return;
+          }
+
           const objectToSelect =
-            drawingsAtPoint[0] || tokensAtPoint[0] || propsAtPoint[0];
+            drawingId || tokensAtPoint[0] || propsAtPoint[0];
           const tokenId = tokensAtPoint[0];
           const propId = propsAtPoint[0];
 
@@ -543,10 +556,10 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
             // Clicking on empty space
             if (event.shiftKey) {
               // Start selection box
-              setSelectionBox({ start: point, end: point });
+              setSelectionBox({ start: selectionPoint, end: selectionPoint });
               setIsDrawing(true);
-              setStartPoint(point);
-              setCurrentPoint(point);
+              setStartPoint(selectionPoint);
+              setCurrentPoint(selectionPoint);
             } else {
               // Clear all selections
               clearSelection();
@@ -902,6 +915,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     [
       activeTool,
       clientToScene,
+      dragPoint,
+      onDrawingMouseDown,
       startEntityDrag,
       isHost,
       selectedObjectIds,
@@ -1306,6 +1321,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               'spell-triangle',
             ];
             if (shapeTools.includes(activeTool)) {
+              setSelection([drawing.id]);
               useGameStore.getState().setActiveTool('select');
             }
           } else {
@@ -1400,6 +1416,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
 
           createAndSyncDrawing(drawing);
           setPolygonPoints([]);
+          setSelection([drawing.id]);
           useGameStore.getState().setActiveTool('select');
           e.preventDefault();
         }
@@ -1411,6 +1428,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       drawingStyle,
       user.id,
       createAndSyncDrawing,
+      setSelection,
       roomCode,
     ],
   );

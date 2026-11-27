@@ -54,6 +54,15 @@ passes that reference directly to SVG instead of resolving it through
 to another browser or reliably reloadable. Asset-service URLs and embedded
 data URLs have different portability and payload-size trade-offs.
 
+## Drawings and spell effects
+
+Finishing a shape selects it and shows its resize handles. With **Select / Move**
+active, drag the shape itself to move it or drag a handle to resize it. The
+canvas previews the change as you drag and saves it when you release.
+
+To remove a spell effect, select it and click the trash icon in **Spell Effect
+Properties**.
+
 ## Persistence and realtime
 
 Scene create, update, and delete paths save locally through

@@ -64,21 +64,9 @@ export function toleranceForZoom(zoom: number): number {
   return BASE_TOLERANCE_PX / safeZoom;
 }
 
-interface CacheEntry {
-  path: Path2D;
-  updatedAt: number;
-  strokeWidth: number;
-}
-
-/**
- * Shared Path2D cache keyed by drawing id, invalidated by `updatedAt`.
- * A module-level singleton is fine: drawings are globally unique ids across
- * scenes, and stale entries for deleted drawings are harmless (small, GC'd
- * with the module - could add pruning if this ever becomes a real budget
- * concern, but drawing counts per session are small, matching CanvasInkLayer's
- * own no-eviction cache).
- */
-const pathCache = new Map<string, CacheEntry>();
+// Committed drawings and live previews are immutable. Cache paths by object so
+// previews for one drawing ID can coexist with its committed geometry.
+let pathCache = new WeakMap<HitTestableDrawing, Path2D>();
 
 function buildPath(drawing: HitTestableDrawing): Path2D {
   const path = new Path2D();
@@ -116,22 +104,17 @@ function buildPath(drawing: HitTestableDrawing): Path2D {
 
 /** Returns (building if necessary) the cached Path2D for a drawing. */
 export function getCachedPath(drawing: HitTestableDrawing): Path2D {
-  const existing = pathCache.get(drawing.id);
-  if (existing && existing.updatedAt === drawing.updatedAt) {
-    return existing.path;
-  }
+  const existing = pathCache.get(drawing);
+  if (existing) return existing;
+
   const path = buildPath(drawing);
-  pathCache.set(drawing.id, {
-    path,
-    updatedAt: drawing.updatedAt,
-    strokeWidth: drawing.style.strokeWidth,
-  });
+  pathCache.set(drawing, path);
   return path;
 }
 
 /** Test-only: clears the module-level cache (avoids cross-test leakage). */
 export function __clearHitTestCache(): void {
-  pathCache.clear();
+  pathCache = new WeakMap();
 }
 
 /** Shapes that are filled (isPointInPath) vs. stroked-only (isPointInStroke). */

@@ -1,30 +1,17 @@
 import React from 'react';
-import { render } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Child layers are irrelevant to input routing; stub them so the canvas can
-// mount in jsdom without canvas/asset dependencies.
+// Keep drawing controls mounted while stubbing asset and bitmap layers.
 vi.mock('@/components/Scene/SceneGrid', () => ({ SceneGrid: () => null }));
 vi.mock('@/components/Scene/SceneBackground', () => ({
   SceneBackground: () => null,
 }));
-vi.mock('@/components/Scene/DrawingTools', () => ({
-  DrawingTools: () => null,
-}));
 vi.mock('@/components/Scene/RemoteCursors', () => ({
   RemoteCursors: () => null,
 }));
-vi.mock('@/components/Scene/DrawingRenderer', () => ({
-  DrawingRenderer: () => null,
-}));
-vi.mock('@/components/Scene/SelectionOverlay', () => ({
-  SelectionOverlay: () => null,
-}));
 vi.mock('@/components/Scene/DrawingPropertiesPanel', () => ({
   DrawingPropertiesPanel: () => null,
-}));
-vi.mock('@/components/Scene/SpellOverlayPropertiesPanel', () => ({
-  SpellOverlayPropertiesPanel: () => null,
 }));
 vi.mock('@/components/Scene/SpellOverlayPatterns', () => ({
   SpellOverlayPatterns: () => null,
@@ -56,6 +43,9 @@ vi.mock('@/services/websocket', () => ({
     sendEvent: vi.fn(),
   },
 }));
+vi.mock('@/services/drawingPersistence', () => ({
+  drawingPersistenceService: { saveScene: vi.fn(async () => undefined) },
+}));
 vi.mock('@/services/tokenAssets', () => ({
   tokenAssetManager: {
     initialize: vi.fn().mockResolvedValue(undefined),
@@ -71,7 +61,10 @@ vi.mock('@/services/propAssets', () => ({
 }));
 
 import { SceneCanvas } from '@/components/Scene/SceneCanvas';
+import { webSocketService } from '@/services/websocket';
 import { useGameStore } from '@/stores/gameStore';
+import { defaultDrawingStyle, ELEMENT_THEMES } from '@/types/drawing';
+import type { SpellRingDrawing } from '@/types/drawing';
 import { sceneUtils } from '@/utils/sceneUtils';
 import type { Scene } from '@/types/game';
 
@@ -101,6 +94,14 @@ function getSvg(container: HTMLElement): SVGSVGElement {
   const svg = container.querySelector('[data-role="scene-canvas-root"]');
   if (!svg) throw new Error('scene canvas root not rendered');
   return svg as SVGSVGElement;
+}
+
+function getDrawingToolSurface(container: HTMLElement): SVGRectElement {
+  const surface = container.querySelector<SVGRectElement>(
+    '.drawing-tools > rect',
+  );
+  if (!surface) throw new Error('drawing tools are inactive');
+  return surface;
 }
 
 describe('SceneCanvas interactionProfile', () => {
@@ -238,5 +239,150 @@ describe('SceneCanvas interactionProfile', () => {
       new MouseEvent('mouseup', { bubbles: true, clientX: 150, clientY: 50 }),
     );
     expect(onSceneTap).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('SceneCanvas drawing edits', () => {
+  const initialState = useGameStore.getState();
+  let scene: Scene;
+  let spell: SpellRingDrawing;
+  let portal: HTMLDivElement;
+
+  beforeEach(() => {
+    portal = document.createElement('div');
+    portal.id = 'portal-root';
+    document.body.append(portal);
+    scene = makeScene();
+    spell = {
+      type: 'spell-ring',
+      id: 'spell-ring',
+      roomCode: scene.roomCode,
+      layer: 'effects',
+      createdAt: 1,
+      updatedAt: 1,
+      createdBy: 'host1',
+      center: { x: 100, y: 100 },
+      outerRadius: 40,
+      innerRadius: 20,
+      style: {
+        ...defaultDrawingStyle,
+        ...ELEMENT_THEMES.arcane,
+        elementType: 'arcane',
+        gridSnap: false,
+      },
+    };
+    scene.drawings = [spell];
+    useGameStore.setState((state) => {
+      state.user.id = 'host1';
+      state.user.type = 'host';
+      state.sceneState.scenes = [scene];
+      state.sceneState.activeSceneId = scene.id;
+      state.sceneState.activeTool = 'select';
+      state.sceneState.selectedObjectIds = [];
+      state.sceneState.camera = { x: 0, y: 0, zoom: 2 };
+    });
+  });
+
+  afterEach(() => {
+    portal.remove();
+    useGameStore.setState(initialState, true);
+  });
+
+  async function renderCanvas() {
+    const view = render(<SceneCanvas scene={scene} />);
+    await act(async () => {});
+    return view.container;
+  }
+
+  it('starts moving an unselected spell ring on its first drag and commits once', async () => {
+    const container = await renderCanvas();
+    const surface = getDrawingToolSurface(container);
+    fireEvent.mouseDown(surface, { clientX: 260, clientY: 200 });
+    fireEvent.mouseMove(surface, { clientX: 280, clientY: 220 });
+    fireEvent.mouseMove(surface, { clientX: 300, clientY: 240 });
+
+    expect(useGameStore.getState().sceneState.selectedObjectIds).toEqual([
+      spell.id,
+    ]);
+    expect(webSocketService.sendEvent).not.toHaveBeenCalled();
+    expect(
+      container.querySelector('.selection-handle')?.getAttribute('x'),
+    ).toBe('157.5');
+    fireEvent.mouseUp(surface, { clientX: 300, clientY: 240 });
+
+    expect(
+      useGameStore.getState().sceneState.scenes[0].drawings[0],
+    ).toMatchObject({
+      center: { x: 120, y: 120 },
+    });
+    expect(webSocketService.sendEvent).toHaveBeenCalledExactlyOnceWith({
+      type: 'drawing/update',
+      data: {
+        sceneId: scene.id,
+        drawingId: spell.id,
+        updates: { center: { x: 120, y: 120 } },
+      },
+    });
+  });
+
+  it('resizes a spell ring via its radial handle and keeps its center and proportions', async () => {
+    const container = await renderCanvas();
+    fireEvent.mouseDown(getDrawingToolSurface(container), {
+      clientX: 260,
+      clientY: 200,
+    });
+    fireEvent.mouseUp(window, { clientX: 260, clientY: 200 });
+    const handle = container.querySelector('.selection-handle')!;
+    fireEvent.mouseDown(handle, { clientX: 280, clientY: 200 });
+    fireEvent.mouseMove(window, { clientX: 320, clientY: 200 });
+    fireEvent.mouseUp(window, { clientX: 320, clientY: 200 });
+
+    expect(
+      useGameStore.getState().sceneState.scenes[0].drawings[0],
+    ).toMatchObject({
+      center: spell.center,
+      outerRadius: 60,
+      innerRadius: 30,
+    });
+    const panel = screen.getByRole('dialog', {
+      name: 'Spell effect properties',
+    });
+    expect(within(panel).getByText('6 ft')).toBeInTheDocument();
+  });
+
+  it('shows resize handles immediately after drawing a rectangle', async () => {
+    useGameStore.getState().setActiveTool('rectangle');
+    const container = await renderCanvas();
+    const surface = getDrawingToolSurface(container);
+    fireEvent.mouseDown(surface, { clientX: 20, clientY: 40 });
+    fireEvent.mouseMove(surface, { clientX: 100, clientY: 140 });
+    fireEvent.mouseUp(surface, { clientX: 100, clientY: 140 });
+
+    expect(useGameStore.getState().sceneState.activeTool).toBe('select');
+    expect(container.querySelectorAll('.selection-handle')).toHaveLength(4);
+  });
+
+  it('removes a spell from the scene and closes its properties', async () => {
+    const container = await renderCanvas();
+    fireEvent.mouseDown(getDrawingToolSurface(container), {
+      clientX: 260,
+      clientY: 200,
+    });
+    fireEvent.mouseUp(window, { clientX: 260, clientY: 200 });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Delete spell effect' }),
+    );
+
+    expect(useGameStore.getState().sceneState.scenes[0].drawings).toEqual([]);
+    expect(useGameStore.getState().sceneState.selectedObjectIds).toEqual([]);
+    expect(
+      screen.queryByRole('dialog', { name: 'Spell effect properties' }),
+    ).toBeNull();
+    await vi.waitFor(() =>
+      expect(webSocketService.sendEvent).toHaveBeenCalledWith({
+        type: 'drawing/delete',
+        data: { sceneId: scene.id, drawingId: spell.id },
+      }),
+    );
   });
 });

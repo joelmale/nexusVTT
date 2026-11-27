@@ -1,14 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { useVisibleDrawingsSlice } from '@/stores/scene';
 import { getCachedPath, isHitTestable } from './inkHitTest';
 import type { Camera } from '@/types/game';
 import type { Drawing } from '@/types/drawing';
+import type { DrawingPreview } from './drawingTransforms';
 
 interface CanvasInkLayerProps {
   sceneId: string;
   camera: Camera;
   viewportWidth: number;
   viewportHeight: number;
+  preview?: DrawingPreview;
 }
 
 /**
@@ -32,9 +34,15 @@ export const CanvasInkLayer: React.FC<CanvasInkLayerProps> = ({
   camera,
   viewportWidth,
   viewportHeight,
+  preview,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewRef = useRef(preview);
   const drawings = useVisibleDrawingsSlice(sceneId);
+
+  useLayoutEffect(() => {
+    previewRef.current = preview;
+  }, [preview]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -66,7 +74,8 @@ export const CanvasInkLayer: React.FC<CanvasInkLayerProps> = ({
       ctx.scale(camera.zoom, camera.zoom);
       ctx.translate(-camera.x, -camera.y);
 
-      for (const drawing of drawings as Drawing[]) {
+      for (const committed of drawings as Drawing[]) {
+        const drawing = previewRef.current?.get(committed.id) ?? committed;
         if (!isHitTestable(drawing)) continue;
         paintDrawing(ctx, drawing);
       }

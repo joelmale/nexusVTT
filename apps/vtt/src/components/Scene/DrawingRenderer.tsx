@@ -3,6 +3,7 @@ import { useSceneDrawingsSlice } from '@/stores/scene';
 import type { Drawing, BaseDrawing } from '@/types/drawing';
 import { ELEMENT_THEMES } from '@/types/drawing';
 import type { Camera } from '@/types/game';
+import type { DrawingPreview } from './drawingTransforms';
 
 interface DrawingRendererProps {
   sceneId: string;
@@ -10,7 +11,8 @@ interface DrawingRendererProps {
   isHost: boolean;
   activeTool?: string;
   selectedObjectIds?: string[];
-  onDrawingClick?: (drawingId: string, event: React.MouseEvent) => void;
+  onDrawingMouseDown?: (drawingId: string, event: React.MouseEvent) => void;
+  preview?: DrawingPreview;
 }
 
 const PingDrawing: React.FC<{
@@ -96,7 +98,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
   isHost,
   activeTool = '',
   selectedObjectIds = [],
-  onDrawingClick,
+  onDrawingMouseDown,
+  preview,
 }) => {
   const drawings = useSceneDrawingsSlice(sceneId);
 
@@ -116,20 +119,17 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
     const isSelected = selectedObjectIds.includes(drawing.id);
 
     // Make drawings interactive only during select tool
-    const isInteractive = activeTool === 'select' && !!onDrawingClick;
+    const isInteractive = activeTool === 'select' && !!onDrawingMouseDown;
 
-    const handleClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (onDrawingClick) {
-        onDrawingClick(drawing.id, e);
-      }
+    const handleMouseDown = (e: React.MouseEvent) => {
+      onDrawingMouseDown?.(drawing.id, e);
     };
 
     const handleContextMenu = (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (onDrawingClick) {
-        onDrawingClick(drawing.id, e);
+      if (onDrawingMouseDown) {
+        onDrawingMouseDown(drawing.id, e);
       }
     };
 
@@ -142,7 +142,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
       className: `drawing drawing-${drawing.type} ${drawing.layer}${isSelected ? ' selected' : ''}`,
       'data-drawing-id': drawing.id,
       'data-created-by': drawing.createdBy,
-      onClick: isInteractive ? handleClick : undefined,
+      onMouseDown: isInteractive ? handleMouseDown : undefined,
       onContextMenu: isInteractive ? handleContextMenu : undefined,
       style: {
         pointerEvents: isInteractive ? ('auto' as const) : ('none' as const),
@@ -157,10 +157,16 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
       // path). Their invisible-but-clickable SVG
       // twin is gone too; clicks on these 5 types are resolved by
       // inkHitTest.ts + SceneCanvas's handleMouseDown, not by an onClick
-      // handler on an SVG element. `isInteractive`/`handleClick`/
-      // `onDrawingClick` above remain for every OTHER drawing type below
+      // handler on an SVG element. `isInteractive`/`handleMouseDown`/
+      // `onDrawingMouseDown` above remain for every OTHER drawing type below
       // (spell overlays, AoE shapes, cone, text, ping), which are still
-      // plain SVG and still use native element clicks.
+      // plain SVG and still use native element hit targets.
+      case 'pencil':
+      case 'line':
+      case 'rectangle':
+      case 'circle':
+      case 'polygon':
+        return null;
 
       case 'cone':
         return renderCone(drawing, commonProps);
@@ -206,6 +212,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
               fontSize={12 / camera.zoom}
               textAnchor="middle"
               dominantBaseline="central"
+              pointerEvents="none"
             >
               {drawing.height}ft
             </text>
@@ -228,9 +235,11 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
             strokeWidth={0.5 / camera.zoom}
             textAnchor="middle"
             dominantBaseline="middle"
-            pointerEvents="all"
             className={commonProps.className}
+            onMouseDown={commonProps.onMouseDown}
+            onContextMenu={commonProps.onContextMenu}
             style={{
+              ...commonProps.style,
               paintOrder: 'stroke fill',
             }}
           >
@@ -279,7 +288,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
               stroke={style.strokeColor}
               strokeWidth={strokeWidth}
               className={commonProps.className}
-              onClick={commonProps.onClick}
+              onMouseDown={commonProps.onMouseDown}
               style={commonProps.style}
             />
             {/* Texture overlay */}
@@ -371,7 +380,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
               stroke={style.strokeColor}
               strokeWidth={strokeWidth}
               className={commonProps.className}
-              onClick={commonProps.onClick}
+              onMouseDown={commonProps.onMouseDown}
               style={commonProps.style}
             />
             <path
@@ -459,7 +468,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
               stroke={style.strokeColor}
               strokeWidth={strokeWidth}
               className={commonProps.className}
-              onClick={commonProps.onClick}
+              onMouseDown={commonProps.onMouseDown}
               style={commonProps.style}
             />
             <path
@@ -548,7 +557,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
               stroke={style.strokeColor}
               strokeWidth={strokeWidth}
               className={commonProps.className}
-              onClick={commonProps.onClick}
+              onMouseDown={commonProps.onMouseDown}
               style={commonProps.style}
             />
             <path
@@ -636,7 +645,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
               stroke={style.strokeColor}
               strokeWidth={strokeWidth}
               className={commonProps.className}
-              onClick={commonProps.onClick}
+              onMouseDown={commonProps.onMouseDown}
               style={commonProps.style}
             />
             <rect
@@ -728,7 +737,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
               stroke={style.strokeColor}
               strokeWidth={strokeWidth}
               className={commonProps.className}
-              onClick={commonProps.onClick}
+              onMouseDown={commonProps.onMouseDown}
               style={commonProps.style}
             />
             <path
@@ -981,27 +990,29 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
       <g className="background-drawings">
         {visibleDrawings
           .filter((d) => d.layer === 'background')
-          .map(renderDrawing)}
+          .map((drawing) => renderDrawing(preview?.get(drawing.id) ?? drawing))}
       </g>
 
       <g className="effects-drawings">
         {visibleDrawings
           .filter((d) => d.layer === 'effects')
-          .map(renderDrawing)}
+          .map((drawing) => renderDrawing(preview?.get(drawing.id) ?? drawing))}
       </g>
 
       {isHost && (
         <g className="dm-only-drawings" opacity="0.7">
           {visibleDrawings
             .filter((d) => d.layer === 'dm-only')
-            .map(renderDrawing)}
+            .map((drawing) =>
+              renderDrawing(preview?.get(drawing.id) ?? drawing),
+            )}
         </g>
       )}
 
       <g className="overlay-drawings">
         {visibleDrawings
           .filter((d) => d.layer === 'overlay')
-          .map(renderDrawing)}
+          .map((drawing) => renderDrawing(preview?.get(drawing.id) ?? drawing))}
       </g>
     </g>
   );

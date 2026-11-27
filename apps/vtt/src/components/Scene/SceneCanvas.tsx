@@ -54,13 +54,18 @@ import { sceneUtils } from '@/utils/sceneUtils';
 import { isTap, startTap, trackTap, type TapTracker } from '@/utils/tapGesture';
 import { hitTestDrawings, createHitTestContext } from './inkHitTest';
 import { getDrawingsBounds } from './drawingBounds';
+import { canEditDrawing } from './drawingHitTesting';
+import { moveDrawing, type DrawingTransform } from './drawingTransforms';
+import { useDrawingGesture } from './useDrawingGesture';
 import type { ViewportRect } from './anchoredPanelPosition';
 import { useUIStackStore } from '@/stores/uiStackStore';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type { CanvasMode } from '../GameToolbar';
 import type {
+  Drawing,
   DrawingStyle,
+  Point,
   SceneCanvasActiveTool,
   SpellOverlayDrawing,
 } from '@/types/drawing';
@@ -194,6 +199,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
     [gridSettingsSlice],
   );
   const svgRef = useRef<SVGSVGElement>(null);
+  const { start: startDrawingGesture, preview: drawingPreview } =
+    useDrawingGesture(scene.id, svgRef, activeTool === 'select', mode);
   // Plain DOM element ref for the camera-transformed `<g>` - imperative
   // transform writes during pan/zoom gestures target this directly (A3).
   const sceneContentRef = useRef<SVGGElement>(null);
@@ -243,10 +250,20 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
   const [spellGridSnap, setSpellGridSnap] = useState(true);
 
   const drawings = useSceneDrawings(scene.id);
+  const editableDrawings = useMemo(
+    () =>
+      drawings.filter((drawing) =>
+        canEditDrawing(drawing, { isHost, userId: user.id }),
+      ),
+    [drawings, isHost, user.id],
+  );
 
   const selectedDrawingObjects = useMemo(
-    () => drawings.filter((drawing) => selectedObjectIds.includes(drawing.id)),
-    [selectedObjectIds, drawings],
+    () =>
+      editableDrawings.filter((drawing) =>
+        selectedObjectIds.includes(drawing.id),
+      ),
+    [selectedObjectIds, editableDrawings],
   );
 
   const selectedDrawingIds = useMemo(
@@ -761,7 +778,66 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
       endSingleTouch(false);
       endPinch();
     };
-  }, [isHost, followDM, cameraGestureEngine, isSimpleProfile, emitSceneTap, mode]);
+  }, [
+    isHost,
+    followDM,
+    cameraGestureEngine,
+    isSimpleProfile,
+    emitSceneTap,
+    mode,
+  ]);
+
+  const handleDrawingMouseDown = useCallback(
+    (drawingId: string, event: React.MouseEvent) => {
+      if (event.altKey || (event.button !== 0 && event.type !== 'contextmenu'))
+        return;
+      const drawing = editableDrawings.find(({ id }) => id === drawingId);
+      if (!drawing) return;
+
+      event.stopPropagation();
+      bringToFront('objectProperties');
+      const isSelected = selectedObjectIds.includes(drawingId);
+      if (event.shiftKey || event.metaKey || event.ctrlKey) {
+        setSelection(
+          isSelected
+            ? selectedObjectIds.filter((id) => id !== drawingId)
+            : [...selectedObjectIds, drawingId],
+        );
+        return;
+      }
+
+      if (!isSelected || event.type === 'contextmenu')
+        setSelection([drawingId]);
+      if (event.type === 'contextmenu') return;
+      startDrawingGesture(
+        event,
+        isSelected ? selectedDrawingObjects : [drawing],
+        (original, delta) => moveDrawing(original, delta.x, delta.y),
+      );
+    },
+    [
+      editableDrawings,
+      selectedObjectIds,
+      selectedDrawingObjects,
+      setSelection,
+      bringToFront,
+      startDrawingGesture,
+    ],
+  );
+
+  const handleResizeStart = useCallback(
+    (
+      event: React.MouseEvent,
+      drawing: Drawing,
+      point: Point,
+      transform: DrawingTransform,
+    ) => {
+      startDrawingGesture(event, [drawing], (_, delta) =>
+        transform({ x: point.x + delta.x, y: point.y + delta.y }),
+      );
+    },
+    [startDrawingGesture],
+  );
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -798,22 +874,13 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
             viewportSize.height,
           );
           const hitId = hitTestDrawings(
-            drawings,
+            editableDrawings,
             worldPoint,
             camera.zoom,
             inkHitTestCtx,
           );
           if (hitId) {
-            bringToFront('objectProperties');
-            if (e.shiftKey || e.metaKey || e.ctrlKey) {
-              if (selectedObjectIds.includes(hitId)) {
-                setSelection(selectedObjectIds.filter((id) => id !== hitId));
-              } else {
-                setSelection([...selectedObjectIds, hitId]);
-              }
-            } else {
-              setSelection([hitId]);
-            }
+            handleDrawingMouseDown(hitId, e);
             return;
           }
 
@@ -838,11 +905,9 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
       cameraGestureEngine,
       camera,
       viewportSize,
-      drawings,
-      selectedObjectIds,
-      setSelection,
+      editableDrawings,
+      handleDrawingMouseDown,
       inkHitTestCtx,
-      bringToFront,
       isSimpleProfile,
     ],
   );
@@ -906,23 +971,9 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
     [selectedSpellOverlay, scene.id, updateDrawing],
   );
 
-  const handleDrawingClick = useCallback(
-    (drawingId: string, event: React.MouseEvent) => {
-      bringToFront('objectProperties');
-      if (event.shiftKey || event.metaKey || event.ctrlKey) {
-        // Multi-select: toggle this drawing in selection
-        if (selectedObjectIds.includes(drawingId)) {
-          setSelection(selectedObjectIds.filter((id) => id !== drawingId));
-        } else {
-          setSelection([...selectedObjectIds, drawingId]);
-        }
-      } else {
-        // Single select: select only this drawing
-        setSelection([drawingId]);
-      }
-    },
-    [bringToFront, selectedObjectIds, setSelection],
-  );
+  const handleDeleteSpellOverlay = useCallback(() => {
+    if (selectedSpellOverlay) deleteDrawing(scene.id, selectedSpellOverlay.id);
+  }, [deleteDrawing, scene.id, selectedSpellOverlay]);
 
   // Token handlers
   const handleTokenDrop = useCallback(
@@ -1258,7 +1309,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
     svgSize.height,
   );
 
-  const getDrawingPropertiesAnchor = useCallback((): ViewportRect | null => {
+  const drawingPropertiesAnchor = useMemo((): ViewportRect | null => {
     const bounds = getDrawingsBounds(selectedDrawingObjects);
     if (!bounds) return null;
 
@@ -1290,8 +1341,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
     svgViewportOffset.x,
     svgViewportOffset.y,
   ]);
-
-  const drawingPropertiesAnchor = getDrawingPropertiesAnchor();
 
   // Calculate toolbar position for selected prop
   const getPropToolbarPosition = useCallback(() => {
@@ -1368,8 +1417,10 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
         {/* Spell Overlay Properties Panel */}
         {selectedSpellOverlay && drawingPropertiesAnchor && (
           <SpellOverlayPropertiesPanel
+            key={selectedSpellOverlay.id}
             drawing={selectedSpellOverlay}
             onUpdate={handleUpdateSpellOverlay}
+            onDelete={handleDeleteSpellOverlay}
             onClose={handleClosePropertiesPanel}
             gridSize={safeGridSettings.size}
             anchor={drawingPropertiesAnchor}
@@ -1479,6 +1530,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
                   camera={camera}
                   viewportWidth={viewportSize.width}
                   viewportHeight={viewportSize.height}
+                  preview={drawingPreview}
                 />
               </foreignObject>
 
@@ -1490,7 +1542,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
                 isHost={isHost}
                 activeTool={activeTool}
                 selectedObjectIds={selectedObjectIds}
-                onDrawingClick={handleDrawingClick}
+                onDrawingMouseDown={handleDrawingMouseDown}
+                preview={drawingPreview}
               />
 
               {/* Tokens layer - iterate the STABLE id list (A5); each
@@ -1589,6 +1642,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
                 selectedObjectIds={selectedObjectIds}
                 setSelection={setSelection}
                 clearSelection={clearSelection}
+                onDrawingMouseDown={handleDrawingMouseDown}
                 sceneId={scene.id}
                 spellElementType={spellElementType}
                 spellGridSnap={spellGridSnap}
@@ -1647,13 +1701,20 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
                 )}
 
               {/* Selection overlay */}
-              <SelectionOverlay
-                key={mode}
-                selectedDrawings={selectedObjectIds}
-                sceneId={scene.id}
-                camera={camera}
-                onClearSelection={clearSelection}
-              />
+              {activeTool === 'select' && selectedDrawingObjects.length > 0 && (
+                <SelectionOverlay
+                  drawings={
+                    drawingPreview
+                      ? selectedDrawingObjects.map(
+                          (drawing) =>
+                            drawingPreview.get(drawing.id) ?? drawing,
+                        )
+                      : selectedDrawingObjects
+                  }
+                  zoom={camera.zoom}
+                  onResizeStart={handleResizeStart}
+                />
+              )}
 
               {/* Content layers will be added here (tokens, etc.) */}
             </g>

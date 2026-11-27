@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, RotateCw, Eye, EyeOff, Sparkles } from 'lucide-react';
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import { ELEMENT_THEMES, ElementType } from '@/types/drawing';
 import type {
   SpellOverlayDrawing,
@@ -18,6 +19,7 @@ type SpellOverlayUpdate = {
 interface SpellOverlayPropertiesPanelProps {
   drawing: SpellOverlayDrawing;
   onUpdate: (updates: SpellOverlayUpdate) => void;
+  onDelete: () => void;
   onClose: () => void;
   gridSize: number;
   anchor: ViewportRect;
@@ -25,7 +27,7 @@ interface SpellOverlayPropertiesPanelProps {
 
 export const SpellOverlayPropertiesPanel: React.FC<
   SpellOverlayPropertiesPanelProps
-> = ({ drawing, onUpdate, onClose, gridSize, anchor }) => {
+> = ({ drawing, onUpdate, onDelete, onClose, gridSize, anchor }) => {
   const elementType = drawing.style.elementType;
 
   const [spellName, setSpellName] = useState(drawing.style.spellName ?? '');
@@ -156,13 +158,25 @@ export const SpellOverlayPropertiesPanel: React.FC<
       <div className="spell-overlay-properties-panel">
         <div className="panel-header">
           <h3>Spell Effect Properties</h3>
-          <button
-            className="close-btn"
-            onClick={onClose}
-            aria-label="Close properties"
-          >
-            <X size={18} />
-          </button>
+          <div className="panel-header-actions">
+            <button
+              type="button"
+              className="close-btn delete-btn"
+              onClick={onDelete}
+              aria-label="Delete spell effect"
+              title="Delete spell effect"
+            >
+              <Trash2 size={16} />
+            </button>
+            <button
+              type="button"
+              className="close-btn"
+              onClick={onClose}
+              aria-label="Close properties"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="panel-content">

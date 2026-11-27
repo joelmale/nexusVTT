@@ -11,6 +11,19 @@ interface DrawingAccess {
   userId: string;
 }
 
+export function canEditDrawing(
+  drawing: Drawing,
+  access: DrawingAccess,
+): boolean {
+  return (
+    access.isHost ||
+    (drawing.createdBy === access.userId &&
+      drawing.layer !== 'dm-only' &&
+      !drawing.style.dmNotesOnly &&
+      drawing.style.visibleToPlayers !== false)
+  );
+}
+
 interface Bounds {
   minX: number;
   maxX: number;
@@ -60,25 +73,45 @@ function drawingContainsPoint(
 ): boolean {
   switch (drawing.type) {
     case 'line':
-      return isPointNearLine(point, drawing.start, drawing.end, radius);
+      return isPointNearLine(
+        point,
+        drawing.start,
+        drawing.end,
+        radius + drawing.style.strokeWidth / 2,
+      );
     case 'rectangle':
       return isPointInRectangle(
         point,
         {
-          x: drawing.x,
-          y: drawing.y,
-          width: drawing.width,
-          height: drawing.height,
+          x: Math.min(drawing.x, drawing.x + drawing.width),
+          y: Math.min(drawing.y, drawing.y + drawing.height),
+          width: Math.abs(drawing.width),
+          height: Math.abs(drawing.height),
         },
         radius,
       );
     case 'circle':
+    case 'aoe-sphere':
+    case 'aoe-cylinder':
     case 'spell-circle':
       return isPointInCircle(point, drawing.center, drawing.radius + radius);
-    case 'pencil':
-      return drawing.points.some((candidate) =>
-        isPointInCircle(point, candidate, radius),
+    case 'pencil': {
+      const [first] = drawing.points;
+      return (
+        !!first &&
+        (isPointInCircle(point, first, radius) ||
+          drawing.points.some(
+            (candidate, index) =>
+              index > 0 &&
+              isPointNearLine(
+                point,
+                drawing.points[index - 1],
+                candidate,
+                radius,
+              ),
+          ))
       );
+    }
     case 'polygon':
       return (
         isPointInPolygon(point, drawing.points) ||
@@ -95,7 +128,7 @@ function drawingContainsPoint(
 
       const clickAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
       const angleDiff = Math.abs(
-        ((clickAngle - drawing.direction + 180) % 360) - 180,
+        ((((clickAngle - drawing.direction + 180) % 360) + 360) % 360) - 180,
       );
       const tolerance = drawing.type === 'cone' ? 30 : 5;
       return angleDiff <= drawing.angle / 2 + tolerance;
@@ -110,14 +143,17 @@ function drawingContainsPoint(
       return inOuter && !isPointInCircle(point, drawing.center, innerRadius);
     }
     case 'spell-line':
+    case 'aoe-line':
       return isPointNearLine(
         point,
         drawing.start,
         drawing.end,
         drawing.width / 2 + radius,
       );
-    case 'spell-square': {
-      const rotation = drawing.rotation || 0;
+    case 'spell-square':
+    case 'aoe-cube': {
+      const rotation =
+        drawing.type === 'spell-square' ? (drawing.rotation ?? 0) : 0;
       const adjustedPoint =
         rotation === 0 ? point : rotatePoint(point, drawing.origin, -rotation);
       const halfSize = drawing.size / 2;
@@ -178,7 +214,7 @@ export function getDrawingIdsAtPoint(
   return drawings
     .filter(
       (drawing) =>
-        (access.isHost || drawing.createdBy === access.userId) &&
+        canEditDrawing(drawing, access) &&
         drawingContainsPoint(drawing, point, radius),
     )
     .map((drawing) => drawing.id);

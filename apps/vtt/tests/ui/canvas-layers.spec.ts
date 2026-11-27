@@ -6,6 +6,60 @@ import {
 } from './support/canvasFixture';
 import { expect, gotoGame, test } from './support/gameFixture';
 
+test('draw, move, resize, and delete a spell effect', async ({ page }) => {
+  await gotoGame(page);
+  const dock = page.getByRole('toolbar', { name: 'Quick Tools Dock' });
+  await dock.getByRole('button', { name: 'Spells', exact: true }).click();
+  await dock.getByRole('button', { name: 'Sphere', exact: true }).click();
+
+  const surface = (await page
+    .locator('[data-role="scene-canvas-root"]')
+    .boundingBox())!;
+  const x = surface.x + surface.width * 0.35;
+  const y = surface.y + surface.height * 0.48;
+  const drag = async (
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+  ) => {
+    await page.mouse.move(fromX, fromY);
+    await page.mouse.down();
+    await page.mouse.move(toX, toY, { steps: 5 });
+    await page.mouse.up();
+  };
+  await drag(x, y, x + 75, y);
+
+  const panel = page.getByRole('dialog', { name: 'Spell effect properties' });
+  const circle = page.locator('circle.drawing-spell-circle');
+  const handle = page.locator('.selection-handle').first();
+  await expect(panel).toBeVisible();
+  await expect(handle).toBeVisible();
+
+  // Deselect, then start moving directly on the spell surface.
+  await panel.getByRole('button', { name: 'Close properties' }).click();
+  const box = (await circle.boundingBox())!;
+  const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const startX = Number(await circle.getAttribute('cx'));
+  await drag(center.x, center.y, center.x + 40, center.y + 30);
+  await expect
+    .poll(async () => Number(await circle.getAttribute('cx')))
+    .toBeGreaterThan(startX);
+
+  const radius = Number(await circle.getAttribute('r'));
+  const grip = (await handle.boundingBox())!;
+  const gripX = grip.x + grip.width / 2;
+  const gripY = grip.y + grip.height / 2;
+  await drag(gripX, gripY, gripX + 40, gripY);
+  await expect
+    .poll(async () => Number(await circle.getAttribute('r')))
+    .toBeGreaterThan(radius);
+
+  await panel.getByRole('button', { name: 'Delete spell effect' }).click();
+  await expect(circle).toHaveCount(0);
+  await expect(panel).toHaveCount(0);
+});
+
 test('fog paint captures input only while a fog tool is active', async ({
   page,
 }) => {
