@@ -131,3 +131,11 @@ can override both the layered component sheets and the deliberately unlayered `c
   column; adding one is a rule in `panel-layouts.css`, not a code change.
 - Compact is unavailable on touch devices. If touch support becomes a goal, that needs a
   touch-sized layout of its own rather than relaxing the guard.
+
+## Panels Dock selector
+
+In **Settings → Display → Panels Dock**, choose **Favorites Bar**, **Panel
+Switcher**, or **Open Panels Rail**. The choice is saved in the browser and
+can be changed during a session while windows are open. The Favorites Bar
+starts with Initiative, Chat, and Dice and prioritizes panels from the last
+applied workspace.

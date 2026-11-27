@@ -10,6 +10,8 @@ interface PopoverMenuProps {
   triggerClassName?: string;
   /** Optional custom class for the inner content container */
   contentClassName?: string;
+  /** Focus this descendant when the popover opens. */
+  focusOnOpen?: string;
 }
 
 /**
@@ -21,7 +23,8 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
   trigger,
   children,
   triggerClassName = '',
-  contentClassName = ''
+  contentClassName = '',
+  focusOnOpen,
 }) => {
   const popoverId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -69,12 +72,13 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
       const toggleEvent = event as Event & { newState?: string };
       if (toggleEvent.newState === 'open') {
         positionPopover();
+        if (focusOnOpen) popoverEl.querySelector<HTMLElement>(focusOnOpen)?.focus();
       }
     };
 
     popoverEl.addEventListener('toggle', handleToggle);
     return () => popoverEl.removeEventListener('toggle', handleToggle);
-  }, []);
+  }, [focusOnOpen]);
 
   return (
     <div className="popover-menu-container">

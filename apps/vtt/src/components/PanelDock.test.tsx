@@ -1,163 +1,136 @@
-import React from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { useGameStore } from '@/stores/gameStore';
+import { useLayoutWorkspaceStore } from '@/stores/layoutWorkspaceStore';
+import { useUIStackStore } from '@/stores/uiStackStore';
+import type { PanelDockLayout } from '@/types/game';
+
 import { PanelDock } from './PanelDock';
 
-// Hover-dock redesign (Joel, 2026-07-07): ConnectionStatus moved out of
-// PanelDock into PlayerClusterFloating, so this suite no longer stubs or
-// asserts it — the dock now owns only the panel tab buttons.
-
-afterEach(() => {
-  cleanup();
-  localStorage.clear();
-});
-
 const panels = [
-  { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
-  { id: 'scene' as const, icon: '🖼', label: 'Scene' },
-  { id: 'dice' as const, icon: '🎲', label: 'Dice' },
+  { id: 'initiative', icon: '⏱', label: 'Initiative' },
+  { id: 'chat', icon: '💬', label: 'Chat' },
+  { id: 'dice', icon: '🎲', label: 'Dice' },
+  { id: 'characters', icon: '👥', label: 'Characters' },
+  { id: 'settings', icon: '⚙️', label: 'Settings' },
 ];
 
+const settings = useGameStore.getState().settings;
+const workspaceState = useLayoutWorkspaceStore.getState();
+const stackState = useUIStackStore.getState();
+
+function renderDock(layout?: PanelDockLayout, activePanels = ['chat', 'dice']) {
+  useGameStore.setState({ settings: { ...settings, panelDockLayout: layout } });
+  useUIStackStore.setState({ panelStack: activePanels, activePanels });
+  const onSelect = vi.fn();
+  const onClose = vi.fn();
+  render(
+    <PanelDock
+      panels={panels}
+      activePanels={activePanels}
+      onSelect={onSelect}
+      onClose={onClose}
+    />,
+  );
+  return { onSelect, onClose };
+}
+
+beforeEach(() => localStorage.clear());
+afterEach(() => {
+  cleanup();
+  useGameStore.setState({ settings });
+  useLayoutWorkspaceStore.setState(workspaceState);
+  useUIStackStore.setState(stackState);
+});
+
 describe('PanelDock', () => {
-  it('renders one tab button per panel', () => {
-    render(
-      <PanelDock
-        panels={panels}
-        activePanels={['tokens']}
-        onSelect={() => {}}
-      />,
+  it('defaults to three visible favorites with an All panels launcher', () => {
+    const { onSelect } = renderDock();
+    const favorites = within(
+      screen.getByRole('group', { name: 'Favorite panels' }),
     );
-
-    for (const panel of panels) {
-      expect(screen.getByRole('tab', { name: panel.label })).not.toBeNull();
-    }
-  });
-
-  it('sets aria-pressed/aria-selected only on the active+open panel', () => {
-    render(
-      <PanelDock
-        panels={panels}
-        activePanels={['scene']}
-        onSelect={() => {}}
-      />,
+    expect(favorites.getAllByRole('button')).toHaveLength(3);
+    expect(favorites.getByRole('button', { name: 'Chat' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
-
-    const sceneTab = screen.getByRole('tab', { name: 'Scene' });
-    const tokensTab = screen.getByRole('tab', { name: 'Tokens' });
-
-    expect(sceneTab.getAttribute('aria-pressed')).toBe('true');
-    expect(sceneTab.getAttribute('aria-selected')).toBe('true');
-    expect(tokensTab.getAttribute('aria-pressed')).toBe('false');
-    expect(tokensTab.getAttribute('aria-selected')).toBe('false');
-  });
-
-  it('does not mark any panel active when the FloatingPanel is closed', () => {
-    render(
-      <PanelDock
-        panels={panels}
-        activePanels={[]}
-        onSelect={() => {}}
-      />,
+    expect(favorites.getByRole('button', { name: 'Dice' })).toHaveAttribute(
+      'data-topmost',
+      'true',
     );
-
-    const sceneTab = screen.getByRole('tab', { name: 'Scene' });
-    expect(sceneTab.getAttribute('aria-pressed')).toBe('false');
-  });
-
-  it('calls onSelect with the panel id when clicked', () => {
-    const onSelect = vi.fn();
-    render(
-      <PanelDock
-        panels={panels}
-        activePanels={['tokens']}
-        onSelect={onSelect}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Dice' }));
-    expect(onSelect).toHaveBeenCalledWith('dice');
-  });
-
-  it('moves roving tabindex focus with ArrowRight/ArrowLeft', () => {
-    render(
-      <PanelDock
-        panels={panels}
-        activePanels={['tokens']}
-        onSelect={() => {}}
-      />,
-    );
-
-    const tokensTab = screen.getByRole('tab', { name: 'Tokens' });
-    const sceneTab = screen.getByRole('tab', { name: 'Scene' });
-    const diceTab = screen.getByRole('tab', { name: 'Dice' });
-
-    // Initial roving target is the active panel.
-    expect(tokensTab.getAttribute('tabindex')).toBe('0');
-    expect(sceneTab.getAttribute('tabindex')).toBe('-1');
-
-    tokensTab.focus();
-    fireEvent.keyDown(tokensTab, { key: 'ArrowRight' });
-    expect(document.activeElement).toBe(sceneTab);
-    expect(sceneTab.getAttribute('tabindex')).toBe('0');
-    expect(tokensTab.getAttribute('tabindex')).toBe('-1');
-
-    fireEvent.keyDown(sceneTab, { key: 'ArrowLeft' });
-    expect(document.activeElement).toBe(tokensTab);
-
-    // Wraps around at the ends.
-    fireEvent.keyDown(tokensTab, { key: 'ArrowLeft' });
-    expect(document.activeElement).toBe(diceTab);
-
-    fireEvent.keyDown(diceTab, { key: 'End' });
-    expect(document.activeElement).toBe(diceTab);
-
-    fireEvent.keyDown(diceTab, { key: 'Home' });
-    expect(document.activeElement).toBe(tokensTab);
-  });
-
-  it('pins the dock open via the pin button, independent of hover', () => {
-    render(
-      <PanelDock
-        panels={panels}
-        activePanels={['tokens']}
-        onSelect={() => {}}
-      />,
-    );
-
-    const dock = screen.getByRole('tablist', { name: 'Panels' });
-    const pinButton = screen.getByRole('button', { name: 'Pin panel dock open' });
-
-    expect(dock.getAttribute('aria-expanded')).toBe('false');
-    expect(pinButton.getAttribute('aria-pressed')).toBe('false');
-
-    fireEvent.click(pinButton);
-
-    expect(dock.getAttribute('aria-expanded')).toBe('true');
-    expect(pinButton.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(favorites.getByRole('button', { name: 'Initiative' }));
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith('initiative');
     expect(
-      screen.getByRole('button', { name: 'Unpin panel dock' }),
-    ).not.toBeNull();
-    expect(localStorage.getItem('nexus-ui-panelDock-pinned')).toBe('true');
-
-    // Un-pinning drops back to hover-only behavior.
-    fireEvent.click(screen.getByRole('button', { name: 'Unpin panel dock' }));
-    expect(dock.getAttribute('aria-expanded')).toBe('false');
-    expect(localStorage.getItem('nexus-ui-panelDock-pinned')).toBe('false');
+      screen.getByRole('button', { name: 'All panels' }),
+    ).toBeInTheDocument();
   });
 
-  it('restores the pinned state from localStorage on mount', () => {
-    localStorage.setItem('nexus-ui-panelDock-pinned', 'true');
-
-    render(
-      <PanelDock
-        panels={panels}
-        activePanels={['tokens']}
-        onSelect={() => {}}
-      />,
+  it('prioritizes available panels from the applied workspace', () => {
+    const workspace = workspaceState.saveWorkspace('Exploration');
+    useLayoutWorkspaceStore.setState({
+      workspaces: [{ ...workspace, activePanels: ['characters', 'scene'] }],
+      lastAppliedId: workspace.id,
+    });
+    renderDock('favorites');
+    const favorites = within(
+      screen.getByRole('group', { name: 'Favorite panels' }),
     );
-
     expect(
-      screen.getByRole('tablist', { name: 'Panels' }).getAttribute('aria-expanded'),
-    ).toBe('true');
+      favorites.getAllByRole('button').map((button) => button.textContent),
+    ).toEqual(['Characters', 'Initiative', 'Chat']);
+  });
+
+  it('puts open panels first in the switcher and searches case-insensitively', () => {
+    const { onSelect } = renderDock('switcher');
+    const picker = within(
+      screen.getByRole('group', { name: 'Panel Switcher', hidden: true }),
+    );
+    expect(
+      picker.getAllByRole('button', { hidden: true })[0],
+    ).toHaveTextContent('Chat');
+    const search = picker.getByLabelText('Find a panel');
+    fireEvent.change(search, { target: { value: ' unknown ' } });
+    expect(picker.getByText('No matching panels')).toBeInTheDocument();
+    fireEvent.submit(search.closest('form')!);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    fireEvent.change(search, { target: { value: '  CHAR  ' } });
+    expect(picker.getAllByRole('button', { hidden: true })).toHaveLength(1);
+    fireEvent.submit(search.closest('form')!);
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith('characters');
+    expect(search).toHaveValue('');
+  });
+
+  it('focuses a rail window and closes it only with its close button', () => {
+    const { onSelect, onClose } = renderDock('rail');
+    const windows = within(screen.getByRole('group', { name: 'Open windows' }));
+    expect(windows.getByRole('button', { name: 'Dice' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    fireEvent.click(windows.getByRole('button', { name: 'Chat' }));
+    expect(windows.getByRole('button', { name: 'Chat' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+    fireEvent.click(windows.getByRole('button', { name: 'Close Chat' }));
+    expect(onClose).toHaveBeenCalledExactlyOnceWith('chat');
+    expect(windows.getByRole('button', { name: 'Dice' })).toHaveFocus();
+  });
+
+  it('offers the panel launcher when no windows are open', () => {
+    renderDock('rail', []);
+    expect(screen.getByText('No open panels')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add panel' }),
+    ).toBeInTheDocument();
   });
 });

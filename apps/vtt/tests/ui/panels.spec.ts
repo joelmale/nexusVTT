@@ -1,3 +1,4 @@
+import { favoriteOrListedPanel } from '../support/panelDock';
 import { test, expect, gotoGame } from './support/gameFixture';
 import {
   isTopmostAtCentre,
@@ -11,8 +12,7 @@ import {
  */
 
 async function openPanel(page: import('@playwright/test').Page, name: string) {
-  await page.getByRole('tablist', { name: 'Panels' }).hover();
-  await page.getByRole('tab', { name, exact: true }).click();
+  await (await favoriteOrListedPanel(page, name)).click();
   await expect(page.getByRole('dialog', { name, exact: true })).toBeVisible();
 }
 
@@ -22,8 +22,12 @@ async function openPanel(page: import('@playwright/test').Page, name: string) {
  * fixed offset from either panel, which breaks whenever a panel's width changes.
  */
 async function overlapPoint(page: import('@playwright/test').Page) {
-  const chatBox = await page.getByRole('dialog', { name: 'Chat', exact: true }).boundingBox();
-  const diceBox = await page.getByRole('dialog', { name: 'Dice', exact: true }).boundingBox();
+  const chatBox = await page
+    .getByRole('dialog', { name: 'Chat', exact: true })
+    .boundingBox();
+  const diceBox = await page
+    .getByRole('dialog', { name: 'Dice', exact: true })
+    .boundingBox();
   expect(chatBox).not.toBeNull();
   expect(diceBox).not.toBeNull();
   return {
@@ -38,11 +42,17 @@ test('opens several panels at once', async ({ page }) => {
   await openPanel(page, 'Chat');
   await openPanel(page, 'Dice');
 
-  await expect(page.getByRole('dialog', { name: 'Chat', exact: true })).toBeVisible();
-  await expect(page.getByRole('dialog', { name: 'Dice', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('dialog', { name: 'Chat', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('dialog', { name: 'Dice', exact: true }),
+  ).toBeVisible();
 });
 
-test('cascades panels so they do not stack at identical coordinates', async ({ page }) => {
+test('cascades panels so they do not stack at identical coordinates', async ({
+  page,
+}) => {
   await gotoGame(page);
 
   await openPanel(page, 'Chat');
@@ -57,7 +67,9 @@ test('cascades panels so they do not stack at identical coordinates', async ({ p
   ).not.toBe(transforms.Dice);
 });
 
-test('the most recently opened panel is the top hit-test target', async ({ page }) => {
+test('the most recently opened panel is the top hit-test target', async ({
+  page,
+}) => {
   await gotoGame(page);
 
   await openPanel(page, 'Chat');
@@ -89,7 +101,9 @@ test('clicking a buried panel raises it above the others', async ({ page }) => {
   expect(await panelAtPoint(page, overlap.x, overlap.y)).toBe('Chat');
 });
 
-test('clicking the body of a buried panel raises it above the others', async ({ page }) => {
+test('clicking the body of a buried panel raises it above the others', async ({
+  page,
+}) => {
   await gotoGame(page);
 
   await openPanel(page, 'Chat');
@@ -114,7 +128,9 @@ test('clicking the body of a buried panel raises it above the others', async ({ 
   expect(await panelAtPoint(page, overlap.x, overlap.y)).toBe('Chat');
 });
 
-test('clicking the dock tab of an already-open buried panel brings it to the front without closing it', async ({ page }) => {
+test('clicking the dock tab of an already-open buried panel brings it to the front without closing it', async ({
+  page,
+}) => {
   await gotoGame(page);
 
   await openPanel(page, 'Chat');
@@ -126,11 +142,13 @@ test('clicking the dock tab of an already-open buried panel brings it to the fro
   expect(await panelAtPoint(page, overlap.x, overlap.y)).toBe('Dice');
 
   // Click Chat in the dock
-  await page.getByRole('tablist', { name: 'Panels' }).hover();
-  await page.getByRole('tab', { name: 'Chat', exact: true }).click();
+
+  await (await favoriteOrListedPanel(page, 'Chat')).click();
 
   // Chat should STILL be open!
-  await expect(page.getByRole('dialog', { name: 'Chat', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('dialog', { name: 'Chat', exact: true }),
+  ).toBeVisible();
 
   // And Chat should now be on top in the overlap region!
   expect(await panelAtPoint(page, overlap.x, overlap.y)).toBe('Chat');
@@ -144,8 +162,12 @@ test('Escape closes only the topmost panel', async ({ page }) => {
 
   await page.keyboard.press('Escape');
 
-  await expect(page.getByRole('dialog', { name: 'Dice', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('dialog', { name: 'Chat', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('dialog', { name: 'Dice', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('dialog', { name: 'Chat', exact: true }),
+  ).toBeVisible();
 });
 
 test('the workspace menu is not clipped by the dock', async ({ page }) => {
@@ -154,7 +176,6 @@ test('the workspace menu is not clipped by the dock', async ({ page }) => {
   // nowhere. Only a real layout engine catches this.
   await gotoGame(page);
 
-  await page.getByRole('tablist', { name: 'Panels' }).hover();
   await page.getByRole('button', { name: 'Layout workspaces' }).click();
 
   const menu = page.getByRole('menu', { name: 'Layout workspaces' });
@@ -162,7 +183,9 @@ test('the workspace menu is not clipped by the dock', async ({ page }) => {
   expect(await isTopmostAtCentre(menu)).toBe(true);
 });
 
-test('the player cluster panel is laid out horizontally without overflowing elements', async ({ page }) => {
+test('the player cluster panel is laid out horizontally without overflowing elements', async ({
+  page,
+}) => {
   await gotoGame(page);
 
   const cluster = page.locator('.player-cluster-floating');
@@ -182,7 +205,8 @@ test('the player cluster panel is laid out horizontally without overflowing elem
     const btnBox = await buttons.nth(i).boundingBox();
     expect(btnBox).not.toBeNull();
     expect(btnBox!.x).toBeGreaterThanOrEqual(clusterBox!.x);
-    expect(btnBox!.x + btnBox!.width).toBeLessThanOrEqual(clusterBox!.x + clusterBox!.width + 2);
+    expect(btnBox!.x + btnBox!.width).toBeLessThanOrEqual(
+      clusterBox!.x + clusterBox!.width + 2,
+    );
   }
 });
-

@@ -1,3 +1,4 @@
+import { favoriteOrListedPanel, panelsDock } from '../../support/panelDock';
 import { expect, type Page, type WebSocket } from '@playwright/test';
 
 export interface HostSession {
@@ -32,7 +33,7 @@ export async function createGuestHostSession(page: Page): Promise<HostSession> {
   const webSocket = await webSocketPromise;
 
   await expect(page).toHaveURL(/\/lobby\/game\/[A-Z0-9]{4}$/);
-  await expect(page.getByRole('tablist', { name: 'Panels' })).toBeVisible();
+  await expect(panelsDock(page)).toBeVisible();
 
   const roomCode = new URL(page.url()).pathname.split('/').at(-1);
   if (!roomCode) throw new Error('Room code missing from game URL.');
@@ -59,49 +60,25 @@ export async function createGuestPlayerSession(
   const webSocket = await webSocketPromise;
 
   await expect(page).toHaveURL(new RegExp(`/lobby/game/${roomCode}$`));
-  await expect(page.getByRole('tablist', { name: 'Panels' })).toBeVisible();
+  await expect(panelsDock(page)).toBeVisible();
 
   return { roomCode, webSocket };
 }
 
-/**
- * Open `name` if it is not already open.
- *
- * Idempotent: panels are independently toggleable now, so clicking the tab of
- * an already-open panel would close it.
- *
- * Panels overlap by design, so a panel opened earlier can cover one opened
- * later and intercept its clicks. Use `closePanel` to put away a panel the
- * test has finished with, rather than closing and re-opening the target to
- * raise it - cycling panels through mount/unmount crashes the renderer.
- */
+/** Open the panel when it is closed. */
 export async function openPanel(page: Page, name: string): Promise<void> {
-  const panelDock = page.getByRole('tablist', { name: 'Panels' });
-  await panelDock.hover();
-
-  const tab = page.getByRole('tab', { name, exact: true });
-  await expect(tab).toBeVisible();
-
-  const isPressed =
-    (await tab.getAttribute('aria-pressed')) === 'true' ||
-    (await tab.getAttribute('aria-selected')) === 'true';
-  if (!isPressed) {
-    await tab.click();
-  }
+  if (await page.getByRole('dialog', { name, exact: true }).count()) return;
+  await (await favoriteOrListedPanel(page, name)).click();
 }
 
-/** Close `name` if it is open, so it stops covering other panels. */
+/** Close the panel whether it is in front or behind another window. */
 export async function closePanel(page: Page, name: string): Promise<void> {
-  const panelDock = page.getByRole('tablist', { name: 'Panels' });
-  await panelDock.hover();
+  const dialog = page.getByRole('dialog', { name, exact: true });
+  if (!(await dialog.count())) return;
 
-  const tab = page.getByRole('tab', { name, exact: true });
-  await expect(tab).toBeVisible();
-
-  const isPressed =
-    (await tab.getAttribute('aria-pressed')) === 'true' ||
-    (await tab.getAttribute('aria-selected')) === 'true';
-  if (isPressed) {
-    await tab.click();
+  const panel = await favoriteOrListedPanel(page, name);
+  if ((await panel.getAttribute('data-topmost')) !== 'true') {
+    await panel.click();
   }
+  await (await favoriteOrListedPanel(page, name)).click();
 }

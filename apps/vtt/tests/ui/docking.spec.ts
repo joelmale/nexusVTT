@@ -1,3 +1,4 @@
+import { favoriteOrListedPanel } from '../support/panelDock';
 import { test, expect, gotoGame } from './support/gameFixture';
 import { canvasRect, gameLayoutGrid } from './support/layoutProbes';
 
@@ -8,8 +9,7 @@ import { canvasRect, gameLayoutGrid } from './support/layoutProbes';
  */
 
 async function openPanel(page: import('@playwright/test').Page, name: string) {
-  await page.getByRole('tablist', { name: 'Panels' }).hover();
-  await page.getByRole('tab', { name, exact: true }).click();
+  await (await favoriteOrListedPanel(page, name)).click();
   await expect(page.getByRole('dialog', { name, exact: true })).toBeVisible();
 }
 
@@ -21,7 +21,9 @@ test('an undocked layout reserves no space', async ({ page }) => {
   expect(grid.columns).toMatch(/^0px .* 0px$/);
 });
 
-test('a panel docked to an edge opens a grid track and shrinks the canvas', async ({ page }) => {
+test('a panel docked to an edge opens a grid track and shrinks the canvas', async ({
+  page,
+}) => {
   await gotoGame(page);
   const before = await canvasRect(page);
   expect(before).not.toBeNull();
@@ -53,7 +55,9 @@ test('a panel docked to an edge opens a grid track and shrinks the canvas', asyn
   ).toHaveCount(1);
 });
 
-test('cursor-anchored zoom still anchors correctly with a dock offset', async ({ page }) => {
+test('cursor-anchored zoom still anchors correctly with a dock offset', async ({
+  page,
+}) => {
   // The specific risk called out for item 7: if the canvas reflow does not
   // feed back into the gesture engine's viewport rect, zoom keeps anchoring on
   // pre-dock dimensions and the point under the cursor drifts.
@@ -91,14 +95,21 @@ test('cursor-anchored zoom still anchors correctly with a dock offset', async ({
     const before = worldAt();
     svg.dispatchEvent(
       new WheelEvent('wheel', {
-        deltaY: -300, ctrlKey: true, clientX: cx, clientY: cy,
-        bubbles: true, cancelable: true,
+        deltaY: -300,
+        ctrlKey: true,
+        clientX: cx,
+        clientY: cy,
+        bubbles: true,
+        cancelable: true,
       }),
     );
     await new Promise((r2) => setTimeout(r2, 300));
     const after = worldAt();
     if (!before || !after) return null;
-    return { dx: Math.abs(after.x - before.x), dy: Math.abs(after.y - before.y) };
+    return {
+      dx: Math.abs(after.x - before.x),
+      dy: Math.abs(after.y - before.y),
+    };
   });
 
   expect(drift).not.toBeNull();
@@ -106,7 +117,9 @@ test('cursor-anchored zoom still anchors correctly with a dock offset', async ({
   expect(drift!.dy).toBeLessThan(1);
 });
 
-test('undocking releases the track and restores the canvas', async ({ page }) => {
+test('undocking releases the track and restores the canvas', async ({
+  page,
+}) => {
   await gotoGame(page);
   const before = await canvasRect(page);
 

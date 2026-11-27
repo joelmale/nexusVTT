@@ -1,235 +1,318 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Pin from 'lucide-react/dist/esm/icons/pin';
-import PinOff from 'lucide-react/dist/esm/icons/pin-off';
-import { Tooltip } from './Tooltip';
-import styles from './PanelDock.module.css';
-import { WorkspaceMenu } from './WorkspaceMenu';
-import { Icon } from './Common/Icon';
+import React, { useLayoutEffect, useState } from 'react';
+import Grip from 'lucide-react/dist/esm/icons/grip';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import Search from 'lucide-react/dist/esm/icons/search';
+import X from 'lucide-react/dist/esm/icons/x';
 
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
+import { useGameStore } from '@/stores/gameStore';
+import { useLayoutWorkspaceStore } from '@/stores/layoutWorkspaceStore';
 import {
-  useUIStackStore,
-  useStackZIndex,
-  useFocusMode,
   topmostPanel,
+  useFocusMode,
+  useStackZIndex,
+  useUIStackStore,
+  type PanelId,
 } from '@/stores/uiStackStore';
+import { resolvePanelDockLayout } from '@/types/layout';
+import type { PanelDockLayout } from '@/types/game';
 
-export interface PanelDockPanel<T extends string = string> {
-  id: T;
+import { Icon } from './Common/Icon';
+import styles from './PanelDock.module.css';
+import { PopoverMenu } from './PopoverMenu';
+import { WorkspaceMenu } from './WorkspaceMenu';
+
+export interface PanelDockPanel {
+  id: PanelId;
   icon: string;
   label: string;
 }
 
-interface PanelDockProps<T extends string = string> {
-  panels: PanelDockPanel<T>[];
-  /** Array of currently open panel IDs. */
-  activePanels: T[];
-  onSelect: (panel: T) => void;
+interface PanelDockProps {
+  panels: PanelDockPanel[];
+  openObjectPanels?: PanelDockPanel[];
+  activePanels: PanelId[];
+  onClose: (panel: PanelId) => void;
+  onSelect: (panel: PanelId) => void;
 }
 
-/** Shares the nexus-ui- prefix so "Reset UI Layout" also un-pins the dock. */
-const PINNED_STORAGE_KEY = 'nexus-ui-panelDock-pinned';
+const DEFAULT_FAVORITES = ['initiative', 'chat', 'dice'];
 
-const loadPinned = (): boolean => {
-  try {
-    return localStorage.getItem(PINNED_STORAGE_KEY) === 'true';
-  } catch {
-    return false;
-  }
-};
+export function PanelDock(props: PanelDockProps): React.JSX.Element {
+  const layout = useGameStore((state) =>
+    resolvePanelDockLayout(state.settings.panelDockLayout),
+  );
+  return (
+    <PanelDockLauncher
+      key={layout === 'rail' ? 'rail' : 'bar'}
+      layout={layout}
+      {...props}
+    />
+  );
+}
 
-/**
- * Top-right floating panel selector dock.
- *
- * Expands on hover to reveal the full icon row, or permanently when pinned
- * via the pin icon. Click icons to toggle floating panels on/off.
- */
-export function PanelDock<T extends string = string>({
+function PanelDockLauncher({
+  layout,
   panels,
+  openObjectPanels = [],
   activePanels,
+  onClose,
   onSelect,
-}: PanelDockProps<T>) {
-  const [isHoverExpanded, setIsHoverExpanded] = useState(false);
-  const [isPinned, setIsPinned] = useState(loadPinned);
-  const isExpanded = isHoverExpanded || isPinned;
-  const hoverTimeoutRef = useRef<number | undefined>(undefined);
-  const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const [focusedId, setFocusedId] = useState<T>(panels[0]?.id);
-
-  const togglePinned = useCallback(() => {
-    setIsPinned((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(PINNED_STORAGE_KEY, String(next));
-      } catch {
-        // Ignore quota errors
-      }
-      return next;
-    });
-  }, []);
-
+}: PanelDockProps & { layout: PanelDockLayout }): React.JSX.Element {
+  const isRail = layout === 'rail';
+  const dockId = isRail ? 'panelDockRail' : 'panelDock';
+  const workspace = useLayoutWorkspaceStore((state) =>
+    state.workspaces.find((preset) => preset.id === state.lastAppliedId),
+  );
+  const stack = useUIStackStore((state) => state.panelStack);
+  const bringToFront = useUIStackStore((state) => state.bringToFront);
+  const focusMode = useFocusMode();
+  const zIndex = useStackZIndex(dockId);
+  // Standard windows open on the right. Keep the persistent rail reachable
+  // on the opposite edge and remember its position independently of the bar.
+  const [defaultPosition] = useState(() =>
+    isRail ? { x: 20, y: 84 } : { x: window.innerWidth - 20, y: 20 },
+  );
   const { onPointerDown, panelRef } = useDraggablePanel({
-    id: 'panelDock',
-    defaultPosition: { x: window.innerWidth - 300, y: 16 },
-    resizeAnchor: 'right',
+    id: dockId,
+    defaultPosition,
+    resizeAnchor: isRail ? 'left' : 'right',
+  });
+  const [query, setQuery] = useState('');
+
+  const panelsById = new Map(
+    [...panels, ...openObjectPanels].map((panel) => [panel.id, panel]),
+  );
+  const openPanels = activePanels.flatMap((id) => {
+    const panel = panelsById.get(id);
+    return panel ? [panel] : [];
+  });
+  const topmostId = topmostPanel(
+    stack,
+    openPanels.map(({ id }) => id),
+  );
+  const favoritePanels = [
+    ...new Set([...(workspace?.activePanels ?? []), ...DEFAULT_FAVORITES]),
+  ]
+    .flatMap((id) => {
+      const panel = panels.find((candidate) => candidate.id === id);
+      return panel ? [panel] : [];
+    })
+    .slice(0, 3);
+  const orderedPanels =
+    layout === 'switcher'
+      ? [
+          ...openPanels,
+          ...panels.filter(({ id }) => !activePanels.includes(id)),
+        ]
+      : panels;
+  const matches = orderedPanels.filter(({ id, label }) => {
+    if (layout === 'rail') return !activePanels.includes(id);
+    return (
+      layout !== 'switcher' ||
+      label.toLowerCase().includes(query.trim().toLowerCase())
+    );
   });
 
-  const zIndex = useStackZIndex('panelDock');
-  const focusMode = useFocusMode();
-  const bringToFront = useUIStackStore((state) => state.bringToFront);
-  const panelStack = useUIStackStore((state) => state.panelStack);
-  const activePanelsList = useUIStackStore((state) => state.activePanels);
-  const topmostId = topmostPanel(panelStack, activePanelsList);
+  useLayoutEffect(() => {
+    if (focusMode)
+      panelRef.current
+        ?.querySelector<HTMLElement>('[popover]:popover-open')
+        ?.hidePopover();
+  }, [focusMode, panelRef]);
 
-  // ── Hover expand / collapse ──
-  const handleMouseEnter = useCallback(() => {
-    window.clearTimeout(hoverTimeoutRef.current);
-    setIsHoverExpanded(true);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    hoverTimeoutRef.current = window.setTimeout(() => {
-      setIsHoverExpanded(false);
-    }, 400);
-  }, []);
-
-  useEffect(() => {
-    return () => window.clearTimeout(hoverTimeoutRef.current);
-  }, []);
-
-  // ── Roving tabindex ──
-  const focusButton = (id: T) => {
-    const el = buttonRefs.current.get(id);
-    el?.focus();
-    setFocusedId(id);
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent, index: number) => {
-    let nextIndex: number;
-
-    switch (event.key) {
-      case 'ArrowRight':
-      case 'ArrowDown':
-        nextIndex = (index + 1) % panels.length;
-        break;
-      case 'ArrowLeft':
-      case 'ArrowUp':
-        nextIndex = (index - 1 + panels.length) % panels.length;
-        break;
-      case 'Home':
-        nextIndex = 0;
-        break;
-      case 'End':
-        nextIndex = panels.length - 1;
-        break;
-      default:
-        return;
+  function activate(panel: PanelDockPanel): void {
+    if (layout !== 'favorites' && activePanels.includes(panel.id)) {
+      bringToFront(panel.id);
+    } else {
+      onSelect(panel.id);
     }
+  }
 
-    event.preventDefault();
-    focusButton(panels[nextIndex].id);
-  };
+  function choosePanel(panel: PanelDockPanel, target: HTMLElement): void {
+    const popover = target.closest<HTMLElement>('[popover]');
+    popover?.hidePopover?.();
+    setQuery('');
+    activate(panel);
+  }
+
+  function renderPanelButton(
+    panel: PanelDockPanel,
+    inPicker = false,
+  ): React.JSX.Element {
+    const isOpen = activePanels.includes(panel.id);
+    const inFront = topmostId === panel.id;
+    return (
+      <button
+        key={panel.id}
+        type="button"
+        className={`unstyled ${styles.panelButton}`}
+        aria-pressed={layout === 'favorites' ? isOpen : undefined}
+        aria-current={layout !== 'favorites' && inFront ? 'true' : undefined}
+        data-open={isOpen || undefined}
+        data-topmost={inFront || undefined}
+        onClick={(event) => {
+          if (inPicker) choosePanel(panel, event.currentTarget);
+          else activate(panel);
+        }}
+      >
+        <span className={styles.icon} aria-hidden="true">
+          <Icon
+            id={panel.id.startsWith('panel:') ? panel.id : `panel:${panel.id}`}
+            fallback={panel.icon}
+            size={18}
+          />
+        </span>
+        <span className={styles.panelLabel}>{panel.label}</span>
+        {isOpen && (inPicker || layout === 'rail') && (
+          <span className={styles.windowState} aria-hidden="true">
+            {inFront ? 'In front' : 'Open'}
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  const pickerLabel = {
+    favorites: 'All panels',
+    switcher: 'Panels',
+    rail: 'Add panel',
+  }[layout];
+  const picker = (
+    <PopoverMenu
+      key={layout}
+      trigger={
+        <>
+          {layout === 'switcher' && <Search size={16} aria-hidden="true" />}
+          {layout === 'rail' && <Plus size={16} aria-hidden="true" />}
+          {pickerLabel}
+        </>
+      }
+      triggerClassName={`unstyled ${styles.panelButton}`}
+      contentClassName={styles.picker}
+      focusOnOpen={layout === 'switcher' ? 'input' : 'button'}
+    >
+      <div
+        role="group"
+        aria-label={layout === 'switcher' ? 'Panel Switcher' : pickerLabel}
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape') return;
+          // Search inputs consume Escape to clear their value. Dismiss the
+          // launcher here and keep the window stack's Escape handler idle.
+          event.preventDefault();
+          event.stopPropagation();
+          event.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover();
+        }}
+      >
+        {layout === 'switcher' && (
+          <form
+            className={styles.search}
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (matches[0]) choosePanel(matches[0], event.currentTarget);
+            }}
+          >
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Find a panel"
+              placeholder="Find a panel"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </form>
+        )}
+        <div
+          className={layout === 'switcher' ? styles.results : styles.directory}
+        >
+          {matches.map((panel) => renderPanelButton(panel, true))}
+          {matches.length === 0 && (
+            <p className={styles.empty} role="status">
+              {layout === 'rail'
+                ? 'All available panels are open'
+                : 'No matching panels'}
+            </p>
+          )}
+        </div>
+      </div>
+    </PopoverMenu>
+  );
 
   return (
     <div
       ref={panelRef}
       data-chrome
+      data-layout={layout}
       inert={focusMode || undefined}
-      className={`${styles.dock} ${isExpanded ? styles.expanded : ''}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onPointerDownCapture={() => bringToFront('panelDock')}
+      className={styles.dock}
+      onPointerDownCapture={() => bringToFront(dockId)}
       style={{ zIndex }}
-      role="tablist"
+      role="group"
       aria-label="Panels"
-      aria-expanded={isExpanded}
     >
-      {/* Drag handle */}
-      <div
-        className={styles.dragHandle}
-        aria-hidden="true"
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          onPointerDown(e);
-        }}
-        title="Drag Panel Dock"
-      >
-        ⠿
-      </div>
-
-      {/* Compact view: label + pin toggle */}
-      <div className={styles.compactView}>
-        <span className={styles.label}>
-          📋 Panels
-        </span>
-        <button
-          type="button"
-          className={styles.pinButton}
-          data-pinned={isPinned ? 'true' : undefined}
-          aria-pressed={isPinned}
-          aria-label={isPinned ? 'Unpin panel dock' : 'Pin panel dock open'}
-          title={isPinned ? 'Unpin panel dock' : 'Keep panel dock expanded'}
-          onClick={(e) => {
-            e.stopPropagation();
-            togglePinned();
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
+      <div className={styles.header}>
+        <div
+          className={styles.dragHandle}
+          aria-hidden="true"
+          onPointerDown={onPointerDown}
+          title="Drag Panel Dock"
         >
-          {isPinned ? (
-            <PinOff size={14} aria-hidden="true" />
-          ) : (
-            <Pin size={14} aria-hidden="true" />
-          )}
-        </button>
-      </div>
-
-      {/* Separator */}
-      <div className={styles.separator} />
-
-      {/* Expanded: icon buttons */}
-      <div className={styles.expandedView}>
-        {panels.map((panel, index) => {
-          const isActive = activePanels.includes(panel.id);
-          const isRovingTarget = panel.id === focusedId;
-
-          return (
-            <Tooltip key={panel.id} text={panel.label}>
-              <button
-                ref={(el) => {
-                  if (el) buttonRefs.current.set(panel.id, el);
-                  else buttonRefs.current.delete(panel.id);
-                }}
-                type="button"
-                role="tab"
-                className={styles.iconButton}
-                data-active={isActive ? 'true' : undefined}
-                data-topmost={isActive && panel.id === topmostId ? 'true' : undefined}
-                aria-pressed={isActive}
-                aria-selected={isActive}
-                aria-label={panel.label}
-                tabIndex={isRovingTarget ? 0 : -1}
-                onClick={() => {
-                  setFocusedId(panel.id);
-                  onSelect(panel.id);
-                }}
-                onFocus={() => setFocusedId(panel.id)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-              >
-                <span className={styles.icon} aria-hidden="true">
-                  <Icon
-                    id={panel.id.startsWith('panel:') ? panel.id : `panel:${panel.id}`}
-                    fallback={panel.icon}
-                    size={28}
-                  />
-                </span>
-              </button>
-            </Tooltip>
-          );
-        })}
-
-        {/* Layout workspaces live with the panel controls, not in Settings. */}
+          <Grip size={16} />
+        </div>
+        {layout === 'favorites' && (
+          <div
+            className={styles.favorites}
+            role="group"
+            aria-label="Favorite panels"
+          >
+            {favoritePanels.map((panel) => renderPanelButton(panel))}
+          </div>
+        )}
+        {layout === 'rail' ? (
+          <span className={styles.heading}>Open panels</span>
+        ) : (
+          picker
+        )}
         <WorkspaceMenu />
       </div>
+      {layout === 'rail' && (
+        <>
+          <div
+            className={styles.openPanels}
+            role="group"
+            aria-label="Open windows"
+          >
+            {openPanels.map((panel) => (
+              <div className={styles.windowRow} key={panel.id}>
+                {renderPanelButton(panel)}
+                <button
+                  type="button"
+                  className={`unstyled ${styles.closeButton}`}
+                  aria-label={`Close ${panel.label}`}
+                  onClick={(event) => {
+                    const row = event.currentTarget.parentElement;
+                    const nextRow =
+                      row?.nextElementSibling ?? row?.previousElementSibling;
+                    const next =
+                      nextRow?.querySelector<HTMLButtonElement>('button') ??
+                      panelRef.current?.querySelector<HTMLButtonElement>(
+                        'button[popovertarget]',
+                      );
+                    next?.focus();
+                    onClose(panel.id);
+                  }}
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+            {openPanels.length === 0 && (
+              <p className={styles.empty}>No open panels</p>
+            )}
+          </div>
+          {picker}
+        </>
+      )}
     </div>
   );
 }

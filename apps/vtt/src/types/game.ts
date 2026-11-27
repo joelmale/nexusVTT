@@ -160,6 +160,7 @@ export interface ColorScheme {
  * - `widescreen` - wider dock tracks and panels, multi-column panel content.
  */
 export type PanelLayout = 'original' | 'compact' | 'widescreen';
+export type PanelDockLayout = 'favorites' | 'switcher' | 'rail';
 
 export type FontSize = 'xs' | 'small' | 'medium' | 'large' | 'xl';
 
@@ -173,6 +174,7 @@ export interface UserSettings {
   fontSize: FontSize;
   /** Canvas panel density/layout. See hooks/usePanelLayout.ts. */
   panelLayout: PanelLayout;
+  panelDockLayout?: PanelDockLayout;
 
   // Audio Settings
   enableSounds: boolean;

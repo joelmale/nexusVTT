@@ -1,244 +1,200 @@
-/*
- * PanelDock — CSS Module.
- * Top-right floating panel selector that expands on hover to reveal icons.
- * Mirrors the ScenePill interaction: compact pill → hover → full icon row.
- */
-
 .dock {
   position: fixed;
-  top: 0;
-  left: 0;
-
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-1_5);
-  padding: var(--spacing-1) var(--spacing-2);
-
-  background: var(--surface-primary);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-glass-lg);
-
-  /* Smooth expansion */
-  max-width: 200px;
-  /* Visible so the round icon buttons can overhang the dock's edges; the
-     hidden expanded row is opacity 0 and non-interactive while collapsed. */
-  overflow: visible;
-  transition:
-    max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity var(--transition-base),
-    background-color 0.2s ease;
-}
-
-.dock:hover,
-.dock.expanded {
-  max-width: 900px;
-  background: var(--surface-secondary);
-}
-
-/* Needed for CSS Modules export */
-.expanded {}
-
-/* ── Drag Handle ── */
-.dragHandle {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  min-height: 32px;
-  margin: calc(-1 * var(--spacing-1)) 0;
-  margin-left: calc(-1 * var(--spacing-2));
+  inset: 0 auto auto 0;
+  box-sizing: border-box;
+  max-inline-size: calc(100dvw - var(--spacing-10));
   padding: var(--spacing-1);
+  background: var(--surface-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass-lg);
+  color: var(--text-primary);
+}
 
+.header,
+.favorites,
+.windowRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.header {
+  flex-wrap: wrap;
+}
+.favorites {
+  flex-wrap: wrap;
+}
+
+.dragHandle {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  min-inline-size: var(--spacing-7);
   color: var(--text-muted);
-  font-size: 10px;
-  line-height: 1;
-  opacity: 0.5;
   cursor: grab;
   touch-action: none;
-  -webkit-user-select: none;
   user-select: none;
-  pointer-events: auto;
-  position: relative;
-  z-index: 10;
-  transition: opacity 0.15s ease;
 }
 
 .dragHandle:active {
   cursor: grabbing;
 }
 
-.dock:hover .dragHandle,
-.dock.expanded .dragHandle {
-  opacity: 1;
-}
-
-/* ── Compact View ── */
-.compactView {
-  display: flex;
+button.panelButton,
+button.closeButton {
+  display: inline-flex;
   align-items: center;
   gap: var(--spacing-1_5);
-  flex-shrink: 0;
-  white-space: nowrap;
-  min-width: 0;
-}
-
-.label {
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* ── Pin Toggle ── */
-.pinButton {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  margin-left: calc(-1 * var(--spacing-1));
-
+  min-block-size: var(--spacing-9);
+  padding: var(--spacing-1) var(--spacing-2);
   background: transparent;
-  border: none;
-  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: start;
   cursor: pointer;
-
-  color: var(--text-muted);
-  opacity: 0.6;
-  transition:
-    opacity 0.15s ease,
-    color 0.15s ease,
-    background-color 0.15s ease;
 }
 
-.pinButton:hover {
-  opacity: 1;
-  color: var(--text-primary);
+.panelButton:hover,
+.closeButton:hover,
+.panelButton[aria-expanded='true'] {
   background: var(--surface-hover);
 }
 
-.pinButton[data-pinned='true'] {
-  opacity: 1;
-  color: var(--color-primary);
-}
-
-.pinButton:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* ── Separator ── */
-.separator {
-  width: 1px;
-  height: 20px;
-  background: var(--border-primary);
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.dock:hover .separator,
-.dock.expanded .separator {
-  opacity: 1;
-}
-
-/* ── Expanded View ── */
-.expandedView {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-1);
-  opacity: 0;
-  transform: translateX(8px);
-  pointer-events: none;
-  transition:
-    opacity 0.25s ease-out 0.1s,
-    transform 0.25s ease-out 0.1s;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.dock:hover .expandedView,
-.dock.expanded .expandedView {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-}
-
-/* ── Icon Buttons ── */
-.iconButton {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /* Round "bubble" buttons that stand slightly proud of the dock: the large
-     size is cancelled out by the negative block margin, so the dock stays
-     slim while each button overhangs its top and bottom edges. */
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  margin-block: -10px;
-
+.panelButton[data-open='true'] {
   background: var(--surface-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-full);
-  box-shadow: var(--shadow-glass-lg);
-  cursor: pointer;
-
-  font-size: var(--text-lg);
-  line-height: 1;
-  color: var(--text-primary);
-
-  transition:
-    transform var(--transition-base),
-    background-color var(--transition-base);
+}
+.panelButton[data-topmost='true'] {
+  border-color: var(--color-primary);
 }
 
-.iconButton:hover {
-  background: var(--surface-hover);
-  transform: scale(1.08);
-}
-
-.iconButton[data-active='true'] {
-  background: var(--surface-hover);
-  box-shadow: inset 0 0 0 2px var(--color-primary);
-  opacity: 0.85;
-}
-
-.iconButton[data-topmost='true'] {
-  background: var(--surface-hover);
-  box-shadow: inset 0 0 0 2px var(--color-primary), 0 0 8px var(--color-primary-transparent, rgba(99, 102, 241, 0.4));
-  opacity: 1;
-}
-
-.iconButton:focus-visible {
+.panelButton:focus-visible,
+.closeButton:focus-visible,
+.search input:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
+  inline-size: var(--spacing-5);
+  flex: 0 0 var(--spacing-5);
 }
 
+.panelLabel {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
 
-/* ── Accessibility ── */
-@media (prefers-reduced-motion: reduce) {
-  .dock,
-  .iconButton {
-    transition: none;
+.windowState {
+  margin-inline-start: auto;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.dock[data-layout='rail'] {
+  display: grid;
+  gap: var(--spacing-1);
+  inline-size: min(17rem, calc(100dvw - var(--spacing-10)));
+}
+
+.heading {
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.openPanels {
+  display: grid;
+  gap: var(--spacing-1);
+  max-block-size: min(44dvh, 22rem);
+  overflow-y: auto;
+}
+
+.windowRow .panelButton {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+button.closeButton {
+  justify-content: center;
+  min-inline-size: var(--spacing-9);
+  padding: 0;
+  color: var(--text-secondary);
+}
+
+.picker:global(.popover-inner) {
+  box-sizing: border-box;
+  inline-size: min(22rem, calc(100dvw - var(--spacing-4)));
+  max-block-size: calc(100dvh - var(--spacing-10));
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--spacing-2);
+  background: var(--surface-primary);
+  border-color: var(--border-primary);
+  box-shadow: var(--shadow-glass-lg);
+}
+
+.directory,
+.results {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.directory {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.directory .windowState {
+  white-space: normal;
+  text-align: end;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding-inline-start: var(--spacing-2);
+  margin-block-end: var(--spacing-2);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.search input {
+  min-block-size: var(--spacing-9);
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: var(--spacing-1) var(--spacing-2);
+  background: transparent;
+  color: inherit;
+  border: 0;
+  border-radius: inherit;
+  font: inherit;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  margin: var(--spacing-1) var(--spacing-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+@media (pointer: coarse) {
+  button.panelButton,
+  button.closeButton {
+    min-block-size: var(--spacing-11);
+    min-inline-size: var(--spacing-11);
   }
 
-  .dock[data-idle='true'] {
-    opacity: 1;
+  .search input {
+    min-block-size: var(--spacing-11);
+    font-size: var(--text-base);
   }
 }

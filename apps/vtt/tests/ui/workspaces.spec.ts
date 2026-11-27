@@ -1,3 +1,4 @@
+import { favoriteOrListedPanel } from '../support/panelDock';
 import { test, expect, gotoGame } from './support/gameFixture';
 
 /**
@@ -9,9 +10,10 @@ import { test, expect, gotoGame } from './support/gameFixture';
  */
 
 async function openWorkspaceMenu(page: import('@playwright/test').Page) {
-  await page.getByRole('tablist', { name: 'Panels' }).hover();
   await page.getByRole('button', { name: 'Layout workspaces' }).click();
-  await expect(page.getByRole('menu', { name: 'Layout workspaces' })).toBeVisible();
+  await expect(
+    page.getByRole('menu', { name: 'Layout workspaces' }),
+  ).toBeVisible();
 }
 
 /**
@@ -26,8 +28,7 @@ async function openWorkspaceMenu(page: import('@playwright/test').Page) {
 const SETTLE_MS = 250;
 
 async function openPanel(page: import('@playwright/test').Page, name: string) {
-  await page.getByRole('tablist', { name: 'Panels' }).hover();
-  await page.getByRole('tab', { name, exact: true }).click();
+  await (await favoriteOrListedPanel(page, name)).click();
   await expect(page.getByRole('dialog', { name, exact: true })).toBeVisible();
   await page.waitForTimeout(SETTLE_MS);
 }
@@ -53,17 +54,23 @@ test('restores the open panel set', async ({ page }) => {
   await page.keyboard.press('Escape');
 
   // Drift: close Chat, open Dice instead.
-  await page.getByRole('tablist', { name: 'Panels' }).hover();
-  await page.getByRole('tab', { name: 'Chat', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Chat', exact: true })).toHaveCount(0);
+
+  await (await favoriteOrListedPanel(page, 'Chat')).click();
+  await expect(
+    page.getByRole('dialog', { name: 'Chat', exact: true }),
+  ).toHaveCount(0);
   await page.waitForTimeout(SETTLE_MS);
   await openPanel(page, 'Dice');
 
   await openWorkspaceMenu(page);
   await page.getByRole('menuitem', { name: 'Combat' }).click();
 
-  await expect(page.getByRole('dialog', { name: 'Chat', exact: true })).toBeVisible();
-  await expect(page.getByRole('dialog', { name: 'Dice', exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole('dialog', { name: 'Chat', exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('dialog', { name: 'Dice', exact: true }),
+  ).toHaveCount(0);
 });
 
 test('deleting a workspace removes it from the list', async ({ page }) => {

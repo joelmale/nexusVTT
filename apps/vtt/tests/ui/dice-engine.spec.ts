@@ -1,3 +1,4 @@
+import { favoriteOrListedPanel } from '../support/panelDock';
 import {
   CANVAS_TOKEN_ID,
   seedCanvasScene,
@@ -61,8 +62,8 @@ test.describe('3D dice engine lifecycle', () => {
 
     await gotoGame(page);
     await seedCanvasScene(page);
-    await page.getByRole('tablist', { name: 'Panels' }).hover();
-    await page.getByRole('tab', { name: 'Dice', exact: true }).click();
+
+    await (await favoriteOrListedPanel(page, 'Dice')).click();
     const panel = page.getByRole('dialog', { name: 'Dice', exact: true });
     const token = page.locator(`[data-token-id="${CANVAS_TOKEN_ID}"] image`);
     await expect(panel).toBeVisible();

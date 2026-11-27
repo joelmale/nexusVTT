@@ -12,6 +12,7 @@ import {
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 import { RefreshIcon, SaveIcon } from './Icons';
 import type { ColorScheme, UserSettings } from '@/types/game';
+import { PANEL_DOCK_LAYOUTS, resolvePanelDockLayout } from '@/types/layout';
 
 /**
  * @file Settings.tsx
@@ -395,7 +396,32 @@ export const Settings: React.FC = () => {
             >
               <option value="original">Original</option>
               <option value="compact">Compact (tighter, smaller text)</option>
-              <option value="widescreen">Widescreen (wider, multi-column)</option>
+              <option value="widescreen">
+                Widescreen (wider, multi-column)
+              </option>
+            </select>
+          </SettingItem>
+
+          <SettingItem
+            label="Panels Dock"
+            description="Choose how you open and switch between windows on the full canvas"
+          >
+            <select
+              aria-label="Panels Dock"
+              value={resolvePanelDockLayout(settings.panelDockLayout)}
+              onChange={(e) =>
+                handleSettingChange(
+                  'panelDockLayout',
+                  resolvePanelDockLayout(e.target.value),
+                )
+              }
+              className="setting-select"
+            >
+              {Object.entries(PANEL_DOCK_LAYOUTS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
           </SettingItem>
 

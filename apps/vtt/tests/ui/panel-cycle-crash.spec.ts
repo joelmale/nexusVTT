@@ -1,3 +1,4 @@
+import { favoriteOrListedPanel } from '../support/panelDock';
 import { test, expect, gotoGame } from './support/gameFixture';
 
 /**
@@ -27,10 +28,6 @@ import { test, expect, gotoGame } from './support/gameFixture';
 
 const CYCLES = 20;
 
-async function openDock(page: import('@playwright/test').Page) {
-  await page.getByRole('tablist', { name: 'Panels' }).hover();
-}
-
 test.describe('panel open/close cycling', () => {
   // A renderer death usually surfaces as "Target crashed" on whatever action
   // ran next, which reads like an ordinary locator failure. Watch every test so
@@ -54,17 +51,17 @@ test.describe('panel open/close cycling', () => {
   test('survives 20 open/close cycles of a single panel', async ({ page }) => {
     await gotoGame(page);
 
-    const tab = page.getByRole('tab', { name: 'Dice', exact: true });
     const panel = page.getByRole('dialog', { name: 'Dice', exact: true });
 
     let completed = 0;
     for (let i = 0; i < CYCLES; i += 1) {
-      await openDock(page);
-      await tab.click();
-      await expect(panel, `panel should be open on cycle ${i + 1}`).toBeVisible();
+      await (await favoriteOrListedPanel(page, 'Dice')).click();
+      await expect(
+        panel,
+        `panel should be open on cycle ${i + 1}`,
+      ).toBeVisible();
 
-      await openDock(page);
-      await tab.click();
+      await (await favoriteOrListedPanel(page, 'Dice')).click();
       await expect(
         panel,
         `panel should be closed on cycle ${i + 1}`,
@@ -73,15 +70,13 @@ test.describe('panel open/close cycling', () => {
     }
 
     // Still responsive: the renderer is alive and the store is coherent.
-    await openDock(page);
-    await expect(tab).toBeVisible();
+    await expect(await favoriteOrListedPanel(page, 'Dice')).toBeVisible();
 
     // Guards against a vacuous pass: if the dock ever stops being reachable the
     // loop can exit without exercising anything, and "no crash" would then mean
     // "no test".
     expect(completed, 'cycles actually exercised').toBe(CYCLES);
   });
-
 
   test('survives cycling several different panels', async ({ page }) => {
     await gotoGame(page);
@@ -91,24 +86,17 @@ test.describe('panel open/close cycling', () => {
     let completed = 0;
     for (let round = 0; round < 5; round += 1) {
       for (const name of names) {
-        const tab = page.getByRole('tab', { name, exact: true });
-        await openDock(page);
-        await tab.click();
+        await (await favoriteOrListedPanel(page, name)).click();
         await expect(
           page.getByRole('dialog', { name, exact: true }),
           `${name} open, round ${round + 1}`,
         ).toBeVisible();
 
-        await openDock(page);
-        await tab.click();
+        await (await favoriteOrListedPanel(page, name)).click();
         completed += 1;
       }
     }
-
-    await openDock(page);
-    await expect(
-      page.getByRole('tab', { name: 'Dice', exact: true }),
-    ).toBeVisible();
+    await expect(await favoriteOrListedPanel(page, 'Dice')).toBeVisible();
     expect(completed, 'panel cycles actually exercised').toBe(5 * names.length);
   });
 
@@ -117,18 +105,15 @@ test.describe('panel open/close cycling', () => {
     // leak that would explain an out-of-memory renderer crash.
     await gotoGame(page);
 
-    const tab = page.getByRole('tab', { name: 'Chat', exact: true });
     const countNodes = () =>
       page.evaluate(() => document.getElementsByTagName('*').length);
 
     const cycle = async () => {
-      await openDock(page);
-      await tab.click();
+      await (await favoriteOrListedPanel(page, 'Chat')).click();
       await expect(
         page.getByRole('dialog', { name: 'Chat', exact: true }),
       ).toBeVisible();
-      await openDock(page);
-      await tab.click();
+      await (await favoriteOrListedPanel(page, 'Chat')).click();
       await expect(
         page.getByRole('dialog', { name: 'Chat', exact: true }),
       ).toHaveCount(0);

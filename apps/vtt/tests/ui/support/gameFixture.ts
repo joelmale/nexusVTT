@@ -67,7 +67,9 @@ export async function gotoGame(
   await page.goto(`/lobby/game/${ROOM_CODE}${uiMode ? `?mode=${uiMode}` : ''}`);
 
   // The dock is the last chrome to settle, so it is the readiness signal.
-  await expect(page.getByRole('tablist', { name: 'Panels' })).toBeVisible();
+  await expect(
+    page.getByRole('group', { name: 'Panels', exact: true }),
+  ).toBeVisible();
 }
 
 export { test, expect };

@@ -77,7 +77,9 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
 
   await page.reload();
   await expect(page).toHaveURL(new RegExp(`/lobby/game/${roomCode}$`));
-  await expect(page.getByRole('tablist', { name: 'Panels' })).toBeVisible();
+  await expect(
+    page.getByRole('group', { name: 'Panels', exact: true }),
+  ).toBeVisible();
 
   const confirmedReconnectionsBeforeRestart = connectionLogs.filter((entry) =>
     entry.includes('Session reconnected:'),

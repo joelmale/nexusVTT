@@ -1,5 +1,15 @@
 import type { DockZone, PanelId } from '@/stores/uiStackStore';
-import type { PanelLayout } from '@/types/game';
+import type { PanelDockLayout, PanelLayout } from '@/types/game';
+
+export const PANEL_DOCK_LAYOUTS = {
+  favorites: 'Favorites Bar',
+  switcher: 'Panel Switcher',
+  rail: 'Open Panels Rail',
+} satisfies Record<PanelDockLayout, string>;
+
+export function resolvePanelDockLayout(value: unknown): PanelDockLayout {
+  return value === 'switcher' || value === 'rail' ? value : 'favorites';
+}
 
 /**
  * Bump when the shape of a stored workspace changes.

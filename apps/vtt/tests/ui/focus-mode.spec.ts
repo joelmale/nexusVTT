@@ -14,7 +14,7 @@ test('F hides every piece of chrome and F restores it', async ({ page }) => {
   // The dock is always-present chrome, so it is a stable probe. (Some other
   // chrome roots - the Atlas dock panel - are legitimately hidden when closed,
   // so `[data-chrome]` in general is not.)
-  const dock = page.getByRole('tablist', { name: 'Panels' });
+  const dock = page.getByRole('group', { name: 'Panels', exact: true });
   await expect(dock).toBeVisible();
 
   await page.locator('.layout-scene').click({ position: { x: 400, y: 400 } });

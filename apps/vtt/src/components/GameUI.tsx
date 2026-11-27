@@ -26,7 +26,11 @@ import { PlayerClusterFloating } from './PlayerClusterFloating';
 import { FloatingPanel } from './FloatingPanel';
 import ConnectionStatus from './ConnectionStatus';
 import { applyColorScheme } from '@/utils/colorSchemes';
-import { useUIStackStore, DOCK_ZONES } from '@/stores/uiStackStore';
+import {
+  useUIStackStore,
+  DOCK_ZONES,
+  type PanelId,
+} from '@/stores/uiStackStore';
 import { useFocusModeController } from '@/hooks/useFocusMode';
 import { useReducedMotionSync } from '@/hooks/useReducedMotion';
 import { usePanelLayoutSync } from '@/hooks/usePanelLayout';
@@ -49,6 +53,14 @@ const DiceBox3D = React.lazy(() =>
     default: module.DiceBox3D,
   })),
 );
+
+function resolveObjectPanel(panelId: PanelId) {
+  const link = panelRegistry.getLink(panelId) || parseObjectPanelId(panelId);
+  const definition = link && panelRegistry.getDefinition(link.kind);
+  return link && definition
+    ? { link, definition, title: link.title || definition.title(link) }
+    : null;
+}
 
 export const GameUI: React.FC = () => {
   const activeScene = useActiveScene();
@@ -167,6 +179,11 @@ export const GameUI: React.FC = () => {
     { id: 'settings' as const, icon: '⚙️', label: 'Settings' },
     { id: 'iconStudio' as const, icon: '🎨', label: 'Icon Studio' },
   ];
+  const openObjectPanels = activePanels.flatMap((id) => {
+    if (panels.some((panel) => panel.id === id)) return [];
+    const objectPanel = resolveObjectPanel(id);
+    return objectPanel ? [{ id, icon: '📄', label: objectPanel.title }] : [];
+  });
 
   // Show waiting screen only for players when no scene exists
   if (!activeScene && !isHost) {
@@ -266,8 +283,13 @@ export const GameUI: React.FC = () => {
 
       <PanelDock
         panels={panels}
+        openObjectPanels={openObjectPanels}
         activePanels={activePanels}
         onSelect={selectPanel}
+        onClose={(id) => {
+          if (parseObjectPanelId(id)) panelRegistry.close(id);
+          else togglePanel(id);
+        }}
       />
 
       <ScenePill
@@ -327,36 +349,31 @@ export const GameUI: React.FC = () => {
         // Generator is handled via overlay, skip rendering its floating panel
         if (panelId === 'generator') return null;
 
-        const objectLink =
-          panelRegistry.getLink(panelId) || parseObjectPanelId(panelId);
-        if (objectLink) {
-          const def = panelRegistry.getDefinition(objectLink.kind);
-          if (def) {
-            const Component = def.component;
-            const title = objectLink.title || def.title(objectLink);
-            return (
-              <FloatingPanel
-                key={panelId}
-                panelId={panelId}
-                isOpen={true}
-                onClose={() => panelRegistry.close(panelId)}
-                label={title}
+        const objectPanel = resolveObjectPanel(panelId);
+        if (objectPanel) {
+          const { link, definition, title } = objectPanel;
+          const Component = definition.component;
+          return (
+            <FloatingPanel
+              key={panelId}
+              panelId={panelId}
+              isOpen={true}
+              onClose={() => panelRegistry.close(panelId)}
+              label={title}
+            >
+              <Suspense
+                fallback={
+                  <div className="panel-skeleton">Loading object...</div>
+                }
               >
-                <Suspense
-                  fallback={
-                    <div className="panel-skeleton">Loading object...</div>
-                  }
-                >
-                  <Component
-                    link={objectLink}
-                    onClose={() => panelRegistry.close(panelId)}
-                    isPopout={false}
-                  />
-                </Suspense>
-              </FloatingPanel>
-            );
-          }
-          return null;
+                <Component
+                  link={link}
+                  onClose={() => panelRegistry.close(panelId)}
+                  isPopout={false}
+                />
+              </Suspense>
+            </FloatingPanel>
+          );
         }
 
         const panelConfig = panels.find((p) => p.id === panelId);
