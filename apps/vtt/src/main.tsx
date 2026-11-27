@@ -135,6 +135,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               }
             />
 
+            <Route
+              path="/campaign-home"
+              element={
+                <Suspense
+                  fallback={<LoadingScreen message="Loading Campaign Home…" />}
+                >
+                  <Dashboard view="campaign-home" />
+                </Suspense>
+              }
+            />
+
             {/* Admin panel (development only) */}
             {process.env.NODE_ENV === 'development' && (
               <Route

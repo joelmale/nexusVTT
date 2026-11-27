@@ -17,13 +17,9 @@ export async function createGuestHostSession(page: Page): Promise<HostSession> {
 
   // The heading also exists in the no-JavaScript loading skeleton. Waiting for
   // the form proves that React bootstrapped before the journey proceeds.
-  await page.getByLabel('Enter Your Name').fill(`Smoke DM ${Date.now()}`);
-  const dungeonMasterRole = page.getByRole('radio', {
-    name: /Dungeon Master/,
-  });
-  await page.getByText('Dungeon Master', { exact: true }).click();
-  await expect(dungeonMasterRole).toBeChecked();
-  await page.getByRole('button', { name: /Create Game$/ }).click();
+  await page.getByRole('button', { name: 'Host a game' }).click();
+  await page.getByLabel('Host display name').fill(`Smoke DM ${Date.now()}`);
+  await page.getByRole('button', { name: /^Create game$/ }).click();
 
   await expect(page).toHaveURL(/\/lobby\/dm-setup$/);
   await page.getByLabel('Game Name').fill(`Resilience Smoke ${Date.now()}`);
@@ -49,14 +45,11 @@ export async function createGuestPlayerSession(
   await page.goto('/lobby');
   await expect(page.getByRole('heading', { name: 'Nexus VTT' })).toBeVisible();
 
-  await page.getByLabel('Enter Your Name').fill(playerName);
-  const playerRole = page.getByRole('radio', { name: /Player/ });
-  await page.getByText('Player', { exact: true }).click();
-  await expect(playerRole).toBeChecked();
-  await page.getByPlaceholder('Room Code').fill(roomCode);
+  await page.getByLabel('Display name', { exact: true }).fill(playerName);
+  await page.getByLabel('Room code').fill(roomCode);
 
   const webSocketPromise = page.waitForEvent('websocket');
-  await page.getByRole('button', { name: /Quick Join/ }).click();
+  await page.getByRole('button', { name: /^Join game$/ }).click();
   const webSocket = await webSocketPromise;
 
   await expect(page).toHaveURL(new RegExp(`/lobby/game/${roomCode}$`));

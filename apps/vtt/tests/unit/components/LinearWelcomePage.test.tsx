@@ -1,13 +1,26 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render as renderWithOptions,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LinearWelcomePage } from '@/components/LinearWelcomePage';
+import { MemoryRouter } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 
 const mockNavigate = vi.hoisted(() => vi.fn());
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-router-dom')>()),
   useNavigate: () => mockNavigate,
 }));
+
+function render(element: React.ReactElement, path = '/lobby') {
+  return renderWithOptions(
+    <MemoryRouter initialEntries={[path]}>{element}</MemoryRouter>,
+  );
+}
 
 vi.mock('@/stores/gameStore', () => ({
   useGameStore: vi.fn(),
@@ -68,7 +81,8 @@ function mockStore(state: MockState) {
   const impl = ((selector?: (s: MockState) => unknown) =>
     selector ? selector(state) : state) as unknown as typeof useGameStore;
   vi.mocked(useGameStore).mockImplementation(impl);
-  (useGameStore as unknown as { getState: () => MockState }).getState = () => state;
+  (useGameStore as unknown as { getState: () => MockState }).getState = () =>
+    state;
 }
 
 const mockFetch = vi.fn();
@@ -77,7 +91,7 @@ describe('LinearWelcomePage', () => {
   beforeEach(() => {
     global.fetch = mockFetch as unknown as typeof fetch;
     mockFetch.mockReset();
-    mockFetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     devToolsEnabledRef.value = false;
     devModeRef.value = false;
     mockQuickStart.start.mockReset();
@@ -91,13 +105,18 @@ describe('LinearWelcomePage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the role selection with no role chosen by default', () => {
+  it('offers room code and display name as soon as the lobby loads', () => {
     mockStore(defaultState());
     render(<LinearWelcomePage />);
-    expect(screen.getByText('Nexus VTT')).toBeInTheDocument();
-    expect(screen.getByText('Player')).toBeInTheDocument();
-    expect(screen.getByText('Dungeon Master')).toBeInTheDocument();
-    expect(screen.queryByText('🗝️ Have a room code?')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Join a game' })).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Room code' })).toBeVisible();
+    expect(
+      screen.getByRole('textbox', { name: 'Display name', exact: true }),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Host a game' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
   });
 
   it('features Campaign Studio and the focused Character Forge', () => {
@@ -124,28 +143,34 @@ describe('LinearWelcomePage', () => {
     ).toBeInTheDocument();
   });
 
-  it('reveals the quick-join form when the player role is selected', () => {
+  it('supports a direct link to the host form from Campaign Home', () => {
     mockStore(defaultState());
-    render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Player'));
-    expect(screen.getByText('🗝️ Have a room code?')).toBeInTheDocument();
-    expect(screen.getByText('Character Setup')).toBeInTheDocument();
+    render(<LinearWelcomePage />, '/lobby?mode=host');
+    expect(
+      screen.getByRole('textbox', { name: 'Host display name' }),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Host a game' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
   });
 
   it('reveals the campaign action when the DM role is selected', () => {
     mockStore(defaultState());
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Dungeon Master'));
-    expect(screen.getByText('Create Game')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Host a game' }));
+    expect(screen.getByText('Create game')).toBeInTheDocument();
   });
 
   it('rejects quick join with an empty name', () => {
     mockStore(defaultState());
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Player'));
-    const roomInput = screen.getByPlaceholderText('Room Code');
+
+    const roomInput = screen.getByRole('textbox', { name: 'Room code' });
     fireEvent.change(roomInput, { target: { value: 'ABCD' } });
-    const quickJoinButton = screen.getByRole('button', { name: /Quick Join/i });
+    const quickJoinButton = screen.getByRole('button', {
+      name: /^Join game$/i,
+    });
     expect(quickJoinButton).toBeDisabled();
   });
 
@@ -157,14 +182,14 @@ describe('LinearWelcomePage', () => {
       json: async () => ({ id: 'guest-1', name: 'Aria' }),
     });
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Player'));
+
     fireEvent.change(screen.getByPlaceholderText('Your adventurer name'), {
       target: { value: 'Aria' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Room Code'), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Room code' }), {
       target: { value: 'abcd' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Quick Join/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Join game$/i }));
 
     await waitFor(() => expect(joinRoomWithCode).toHaveBeenCalledWith('ABCD'));
     expect(mockFetch).toHaveBeenCalledWith(
@@ -178,16 +203,20 @@ describe('LinearWelcomePage', () => {
 
   it('shows an error when quick join guest creation fails', async () => {
     mockStore(defaultState());
-    mockFetch.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    });
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Player'));
+
     fireEvent.change(screen.getByPlaceholderText('Your adventurer name'), {
       target: { value: 'Aria' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Room Code'), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Room code' }), {
       target: { value: 'ABCD' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Quick Join/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Join game$/i }));
 
     expect(
       await screen.findByText('Failed to create guest user'),
@@ -204,14 +233,14 @@ describe('LinearWelcomePage', () => {
       }),
     );
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Player'));
+
     fireEvent.change(screen.getByPlaceholderText('Your adventurer name'), {
       target: { value: 'Bram' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Room Code'), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Room code' }), {
       target: { value: 'wxyz' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Quick Join/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Join game$/i }));
 
     await waitFor(() => expect(joinRoomWithCode).toHaveBeenCalledWith('WXYZ'));
     expect(mockFetch).not.toHaveBeenCalledWith(
@@ -228,11 +257,11 @@ describe('LinearWelcomePage', () => {
       json: async () => ({ id: 'guest-2', name: 'Finn' }),
     });
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Player'));
+
     fireEvent.change(screen.getByPlaceholderText('Your adventurer name'), {
       target: { value: 'Finn' },
     });
-    fireEvent.click(screen.getByText('Character Setup'));
+    fireEvent.click(screen.getByText('Character setup'));
 
     await waitFor(() =>
       expect(setUser).toHaveBeenCalledWith(
@@ -248,16 +277,19 @@ describe('LinearWelcomePage', () => {
     mockStore(defaultState({ isAuthenticated: true, user: { name: 'DM' } }));
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     const { container } = render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Dungeon Master'));
-    fireEvent.change(screen.getByPlaceholderText('Your adventurer name'), {
-      target: { value: 'DM' },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Host a game' }));
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Host display name' }),
+      {
+        target: { value: 'DM' },
+      },
+    );
     await screen.findByText(/No campaigns yet/);
     // The "Create Game" button is disabled while a campaign is unselected
     // (see the `disabled` expression in LinearWelcomePage), so this submits
     // the form directly -- e.g. pressing Enter in the name field -- to reach
     // handleDMSetup's own redundant validation instead of the disabled button.
-    fireEvent.submit(container.querySelector('form.form-section')!);
+    fireEvent.submit(container.querySelector('#host-game-form')!);
     expect(
       await screen.findByText('Please select a campaign or create a new one'),
     ).toBeInTheDocument();
@@ -271,11 +303,14 @@ describe('LinearWelcomePage', () => {
       json: async () => ({ id: 'guest-3', name: 'Hostly' }),
     });
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Dungeon Master'));
-    fireEvent.change(screen.getByPlaceholderText('Your adventurer name'), {
-      target: { value: 'Hostly' },
-    });
-    fireEvent.click(screen.getByText('Create Game'));
+    fireEvent.click(screen.getByRole('button', { name: 'Host a game' }));
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Host display name' }),
+      {
+        target: { value: 'Hostly' },
+      },
+    );
+    fireEvent.click(screen.getByText('Create game'));
 
     await waitFor(() =>
       expect(setUser).toHaveBeenCalledWith(
@@ -283,7 +318,9 @@ describe('LinearWelcomePage', () => {
       ),
     );
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('/lobby/dm-setup'),
+      expect(mockNavigate).toHaveBeenCalledWith('/lobby/dm-setup', {
+        state: null,
+      }),
     );
   });
 
@@ -299,20 +336,28 @@ describe('LinearWelcomePage', () => {
       return Promise.resolve({ ok: true, json: async () => [] });
     });
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Dungeon Master'));
+    fireEvent.click(screen.getByRole('button', { name: 'Host a game' }));
     expect(await screen.findByText('Curse of Strahd')).toBeInTheDocument();
   });
 
   it('shows a load error when fetching campaigns fails', async () => {
     mockStore(defaultState({ isAuthenticated: true, user: { name: 'DM' } }));
-    mockFetch.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    });
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Dungeon Master'));
-    expect(await screen.findByText('Failed to load campaigns')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Host a game' }));
+    expect(
+      await screen.findByText('Failed to load campaigns'),
+    ).toBeInTheDocument();
   });
 
   it('populates the character dropdown for an authenticated player', async () => {
-    mockStore(defaultState({ isAuthenticated: true, user: { name: 'Reader' } }));
+    mockStore(
+      defaultState({ isAuthenticated: true, user: { name: 'Reader' } }),
+    );
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('/api/characters')) {
         return Promise.resolve({
@@ -325,11 +370,11 @@ describe('LinearWelcomePage', () => {
       return Promise.resolve({ ok: true, json: async () => [] });
     });
     render(<LinearWelcomePage />);
-    fireEvent.click(screen.getByText('Player', { selector: 'h3' }));
+
     expect(await screen.findByText('Elowen (Ranger)')).toBeInTheDocument();
   });
 
-  it('signs in with local credentials and navigates to the dashboard', async () => {
+  it('signs in with local credentials and navigates to Campaign Home', async () => {
     const login = vi.fn();
     mockStore(defaultState({ login }));
     mockFetch.mockResolvedValue({
@@ -348,7 +393,9 @@ describe('LinearWelcomePage', () => {
     // declarative invoker button opens it (jsdom itself has no Popover API,
     // so it never actually hides the content) -- query by DOM structure
     // instead of role to reach the real submit button.
-    fireEvent.click(container.querySelector('.account-form button.action-btn')!);
+    fireEvent.click(
+      container.querySelector('.account-form button.action-btn')!,
+    );
 
     await waitFor(() =>
       expect(login).toHaveBeenCalledWith(
@@ -359,7 +406,9 @@ describe('LinearWelcomePage', () => {
       '/auth/login',
       expect.objectContaining({ method: 'POST' }),
     );
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'));
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith('/campaign-home'),
+    );
   });
 
   it('shows a server-provided error message when sign-in fails', async () => {
@@ -376,7 +425,9 @@ describe('LinearWelcomePage', () => {
     fireEvent.change(screen.getByPlaceholderText('Enter your password'), {
       target: { value: 'wrong' },
     });
-    fireEvent.click(container.querySelector('.account-form button.action-btn')!);
+    fireEvent.click(
+      container.querySelector('.account-form button.action-btn')!,
+    );
 
     expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
   });
@@ -391,7 +442,9 @@ describe('LinearWelcomePage', () => {
     fireEvent.change(screen.getByPlaceholderText('Enter your password'), {
       target: { value: 'x' },
     });
-    fireEvent.click(container.querySelector('.account-form button.action-btn')!);
+    fireEvent.click(
+      container.querySelector('.account-form button.action-btn')!,
+    );
 
     expect(
       await screen.findByText(/Unable to reach the server/),
@@ -402,14 +455,22 @@ describe('LinearWelcomePage', () => {
     mockStore(defaultState());
     render(<LinearWelcomePage />);
     fireEvent.click(screen.getByText("Don't have an account? Create one"));
-    expect(screen.getByText('Create Account', { selector: 'button' })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Your name in Nexus')).toBeInTheDocument();
+    expect(
+      screen.getByText('Create Account', { selector: 'button' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Your name in Nexus'),
+    ).toBeInTheDocument();
   });
 
   it('shows account actions and logs out an authenticated user', async () => {
     const logout = vi.fn().mockResolvedValue(undefined);
     mockStore(
-      defaultState({ isAuthenticated: true, user: { name: 'Signed Player' }, logout }),
+      defaultState({
+        isAuthenticated: true,
+        user: { name: 'Signed Player' },
+        logout,
+      }),
     );
     render(<LinearWelcomePage />);
     fireEvent.click(screen.getByText('Log out'));
@@ -436,7 +497,9 @@ describe('LinearWelcomePage', () => {
       devToolsEnabledRef.value = false;
       mockStore(defaultState());
       render(<LinearWelcomePage />);
-      expect(screen.queryByText('⚡ Development Tools')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('⚡ Development Tools'),
+      ).not.toBeInTheDocument();
     });
 
     it('exposes Quick DM and Quick Player but no admin entry points in dev mode', () => {

@@ -1,0 +1,240 @@
+.page {
+  min-height: 100dvh;
+  overflow: auto;
+  background: var(--slate-900);
+  color: var(--slate-50);
+  font-family: var(--font-sans);
+}
+
+.header,
+.entry,
+.footer {
+  width: min(100% - 3rem, 76rem);
+  margin-inline: auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.5rem;
+}
+
+.brand,
+.headerActions,
+.build {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand {
+  margin: 0;
+  white-space: nowrap;
+  font-size: var(--text-xl);
+}
+
+.headerActions a,
+.textLink,
+.card a {
+  color: var(--amber-200);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.main {
+  position: relative;
+  isolation: isolate;
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  z-index: -2;
+}
+
+.main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, var(--slate-900), transparent 68%),
+    linear-gradient(0deg, var(--slate-900), transparent 36%);
+}
+
+.entry {
+  min-height: min(70rem, calc(100dvh - 4.5rem));
+  padding-block: clamp(2.5rem, 8vh, 6rem);
+  display: grid;
+  grid-template-columns: minmax(0, 28rem) minmax(0, 22rem);
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.card {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--slate-600);
+  border-radius: var(--radius-2xl);
+  background: var(--slate-900);
+  box-shadow: var(--shadow-xl);
+}
+
+.card h2 {
+  margin: 0;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: var(--font-semibold);
+  font-size: clamp(1.65rem, 4vw, 2.5rem);
+  line-height: 1.1;
+}
+
+.card p {
+  margin: 0.7rem 0 1rem;
+  color: var(--slate-300);
+}
+
+.card form,
+.returning {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.card form[hidden] {
+  display: none;
+}
+
+.card input:not([type='radio']),
+.card select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--slate-600);
+  border-radius: var(--radius-lg);
+  background: var(--slate-800);
+  color: var(--slate-50);
+  color-scheme: dark;
+}
+
+.card input::placeholder {
+  color: var(--slate-400);
+}
+
+.card label,
+.options summary {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+.options summary {
+  padding-block: 0.6rem;
+  cursor: pointer;
+}
+
+.options fieldset {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.options fieldset label {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.primary,
+.secondary {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-semibold);
+}
+
+.primary {
+  background: var(--amber-300);
+  color: var(--slate-900);
+}
+
+.secondary {
+  border: 1px solid var(--slate-500);
+  background: var(--slate-800);
+  color: var(--slate-50);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--amber-200);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--slate-700);
+}
+
+.card button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.returning {
+  align-self: end;
+}
+
+.returning h2 {
+  font-size: var(--text-xl);
+}
+
+.textLink {
+  min-height: 2.75rem;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.card .error {
+  color: var(--red-300);
+}
+
+.footer {
+  padding-block: 1rem 2rem;
+}
+
+.build {
+  justify-content: flex-end;
+  color: var(--slate-300);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 700px) {
+  .header,
+  .entry,
+  .footer {
+    width: calc(100% - 2rem);
+  }
+
+  .headerActions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .art,
+  .main::before {
+    height: 14rem;
+  }
+
+  .main::before {
+    background: linear-gradient(0deg, var(--slate-900), transparent 75%);
+  }
+
+  .entry {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    padding-block: 12rem 1.5rem;
+    gap: 1rem;
+  }
+}

@@ -146,8 +146,8 @@ export function createAuthRouter({
           const redirectUrl =
             process.env.FRONTEND_URL ||
             (process.env.NODE_ENV === 'production'
-              ? '/dashboard'
-              : 'http://localhost:5173/dashboard');
+              ? '/campaign-home'
+              : 'http://localhost:5173/campaign-home');
 
           res.redirect(redirectUrl);
         });
@@ -164,8 +164,8 @@ export function createAuthRouter({
       const redirectUrl =
         process.env.FRONTEND_URL ||
         (process.env.NODE_ENV === 'production'
-          ? '/dashboard'
-          : 'http://localhost:5173/dashboard');
+          ? '/campaign-home'
+          : 'http://localhost:5173/campaign-home');
       res.redirect(redirectUrl);
     },
   );

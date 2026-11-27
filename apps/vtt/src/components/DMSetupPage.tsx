@@ -8,7 +8,7 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import type { GameConfig } from '@/types/game';
 
@@ -18,6 +18,9 @@ export const DMSetupPage: React.FC = () => {
   const user = useGameStore((state) => state.user);
   const createGameRoom = useGameStore((state) => state.createGameRoom);
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const campaignId =
+    typeof state?.campaignId === 'string' ? state.campaignId : undefined;
   const [gameConfig, setGameConfig] = useState<GameConfig>({
     name: '',
     description: '',
@@ -41,10 +44,14 @@ export const DMSetupPage: React.FC = () => {
       // The title/description also name the auto-created quick-start campaign.
       const roomCode = await createGameRoom({
         ...gameConfig,
-        campaignDraft: {
-          name: gameConfig.name.trim(),
-          description: gameConfig.description.trim() || undefined,
-        },
+        ...(campaignId
+          ? { campaignId }
+          : {
+              campaignDraft: {
+                name: gameConfig.name.trim(),
+                description: gameConfig.description.trim() || undefined,
+              },
+            }),
       });
       navigate(`/lobby/game/${roomCode}`);
     } catch (err) {
@@ -145,7 +152,6 @@ export const DMSetupPage: React.FC = () => {
                     disabled={loading}
                   />
                 </div>
-
               </div>
 
               <div className="input-group">

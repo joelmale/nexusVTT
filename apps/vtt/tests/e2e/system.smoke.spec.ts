@@ -94,7 +94,7 @@ test('the warmed production shell reloads while offline', async ({
 }) => {
   await page.goto('/lobby');
   await expect(page.getByRole('heading', { name: 'Nexus VTT' })).toBeVisible();
-  await expect(page.getByLabel('Enter Your Name')).toBeVisible();
+  await expect(page.getByLabel('Display name', { exact: true })).toBeVisible();
 
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;

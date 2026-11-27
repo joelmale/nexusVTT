@@ -1,14 +1,5 @@
-/**
- * Linear Welcome Page Component
- *
- * Simple welcome page with:
- * - Name input
- * - Player role with optional room code
- * - DM role for game creation
- */
-
-import React, { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useId, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CompanionLaunches } from '@/components/CompanionLaunches';
 import { useGameStore } from '@/stores/gameStore';
 import { useQuickStart } from '@/hooks/useQuickStart';
@@ -16,6 +7,7 @@ import { PopoverMenu } from './PopoverMenu';
 import { AboutModal, AboutTriggerButton } from './AboutModal';
 import { useShallow } from 'zustand/react/shallow';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
+import styles from './LinearWelcomePage.module.css';
 import { isDevMode } from '@/utils/devMode';
 import { useDevToolsEnabled } from '@/utils/devToolsFlag';
 import {
@@ -53,36 +45,13 @@ export const LinearWelcomePage: React.FC = () => {
   const quickStartDev = useQuickStart();
   // Server-reported: whether the /api/dev/* seeding routes actually exist.
   const devToolsEnabled = useDevToolsEnabled();
-  // Uncontrolled inputs — avoids re-rendering the entire page on every keystroke.
-  // We only track a cheap boolean so submit buttons can stay disabled when empty.
-  const playerNameRef = useRef<HTMLInputElement>(null);
-  const roomCodeRef = useRef<HTMLInputElement>(null);
-  const [playerNameEmpty, setPlayerNameEmpty] = useState(true);
-  const [roomCodeEmpty, setRoomCodeEmpty] = useState(true);
-  const playerName = { trim: () => playerNameRef.current?.value.trim() ?? '' };
-  const roomCode = { trim: () => roomCodeRef.current?.value.trim() ?? '' };
-  const handlePlayerNameChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const empty = !e.target.value.trim();
-      if (empty !== playerNameEmpty) setPlayerNameEmpty(empty);
-    },
-    [playerNameEmpty],
+  const [searchParams] = useSearchParams();
+  const [hosting, setHosting] = useState(
+    () => searchParams.get('mode') === 'host',
   );
-  const handleRoomCodeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const empty = !e.target.value.trim();
-      if (empty !== roomCodeEmpty) setRoomCodeEmpty(empty);
-    },
-    [roomCodeEmpty],
-  );
-  const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(
-    null,
-  );
-
-  // Preload styles based on user intent
-  const handleRoleSelection = (role: 'player' | 'dm') => {
-    setSelectedRole(role);
-  };
+  const [playerName, setPlayerName] = useState('');
+  const [roomCode, setRoomCode] = useState('');
+  const accountPopoverId = useId();
   const [quickJoinMode, setQuickJoinMode] = useState<'player' | 'spectator'>(
     'player',
   );
@@ -91,6 +60,7 @@ export const LinearWelcomePage: React.FC = () => {
   );
   const [quickJoinTokenFileName, setQuickJoinTokenFileName] = useState('');
   const [error, setError] = useState('');
+  const [hostError, setHostError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Campaign selection state
@@ -182,11 +152,11 @@ export const LinearWelcomePage: React.FC = () => {
   }, [session?.roomCode, navigate, isOAuthRedirect]);
 
   /**
-   * Fetch user's campaigns when DM role is selected and user is authenticated
+   * Fetch saved campaigns when a signed-in user opens the host form
    */
   React.useEffect(() => {
     const fetchCampaigns = async () => {
-      if (selectedRole !== 'dm' || !isAuthenticated) {
+      if (!hosting || !isAuthenticated) {
         return;
       }
 
@@ -202,21 +172,21 @@ export const LinearWelcomePage: React.FC = () => {
         setCampaigns(data);
       } catch (err) {
         console.error('Failed to fetch campaigns:', err);
-        setError('Failed to load campaigns');
+        setHostError('Failed to load campaigns');
       } finally {
         setCampaignsLoading(false);
       }
     };
 
     fetchCampaigns();
-  }, [selectedRole, isAuthenticated]);
+  }, [hosting, isAuthenticated]);
 
   /**
-   * Fetch user's characters when Player role is selected and user is authenticated
+   * Fetch saved characters for signed-in users
    */
   React.useEffect(() => {
     const fetchCharacters = async () => {
-      if (selectedRole !== 'player' || !isAuthenticated) {
+      if (!isAuthenticated) {
         return;
       }
 
@@ -239,7 +209,7 @@ export const LinearWelcomePage: React.FC = () => {
     };
 
     fetchCharacters();
-  }, [selectedRole, isAuthenticated]);
+  }, [isAuthenticated]);
 
   /**
    * Handles player setup - creates guest user if not authenticated
@@ -336,7 +306,7 @@ export const LinearWelcomePage: React.FC = () => {
           ? 'Account created. You are signed in.'
           : 'Signed in successfully.',
       );
-      navigate('/dashboard');
+      navigate('/campaign-home');
     } catch (err) {
       console.error('Local auth failed:', err);
       setAuthError(
@@ -444,7 +414,7 @@ export const LinearWelcomePage: React.FC = () => {
    */
   const handleDMSetup = async () => {
     if (!playerName.trim()) {
-      setError('Please enter your name');
+      setHostError('Please enter your name');
       return;
     }
 
@@ -452,12 +422,12 @@ export const LinearWelcomePage: React.FC = () => {
 
     // Check if authenticated user has selected a campaign
     if (isAuthenticated && !selectedCampaign) {
-      setError('Please select a campaign or create a new one');
+      setHostError('Please select a campaign or create a new one');
       return;
     }
 
     setLoading(true);
-    setError('');
+    setHostError('');
 
     try {
       // Create guest user if not authenticated
@@ -483,49 +453,35 @@ export const LinearWelcomePage: React.FC = () => {
         setUser({ name: playerName.trim(), type: 'host' });
       }
 
-      navigate('/lobby/dm-setup');
+      navigate('/lobby/dm-setup', {
+        state: isAuthenticated ? { campaignId: selectedCampaign } : null,
+      });
     } catch (err) {
       console.error('Failed to create game:', err);
-      setError('Failed to set up game. Please try again.');
+      setHostError('Failed to set up game. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="welcome-page">
-      <div className="welcome-background">
-        <img
-          src={DnDTeamBackground}
-          alt="D&D Adventure Party"
-          fetchPriority="high"
-          decoding="async"
-        />
-        <div className="background-overlay"></div>
-        <div className="background-particles" aria-hidden="true">
-          {Array.from({ length: 15 }, (_, i) => (
-            <div key={i} className="particle"></div>
-          ))}
-        </div>
-      </div>
-
-      <div className="welcome-content">
-        <div className="welcome-panel glass-panel">
-          <div className="lobby-footer-bar">
-            <div
-              className="build-badge"
-              aria-label="Build version"
-              onClick={() => setShowAboutModal(true)}
-              style={{ cursor: 'pointer' }}
-              title="Click to view system information and release notes"
-            >
-              Build {buildVersion}
-            </div>
-            <AboutTriggerButton onClick={() => setShowAboutModal(true)} />
-          </div>
-          {/* Account Menu - Upper Right */}
-          <div className="account-menu">
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <h1 className={styles.brand}>
+          <img
+            src={`${import.meta.env.BASE_URL}nexus-icon.svg`}
+            alt=""
+            width="36"
+            height="36"
+          />
+          Nexus VTT
+        </h1>
+        <div className={styles.headerActions}>
+          {isAuthenticated && <Link to="/campaign-home">Campaign Home</Link>}
+          <div>
             <PopoverMenu
+              id={accountPopoverId}
+              focusOnOpen={isAuthenticated ? undefined : '#account-email'}
               trigger={
                 <span className="account-trigger">
                   <span className="account-avatar">
@@ -568,9 +524,9 @@ export const LinearWelcomePage: React.FC = () => {
                   <div className="account-menu-actions">
                     <button
                       className="account-option wide"
-                      onClick={() => navigate('/dashboard')}
+                      onClick={() => navigate('/campaign-home')}
                     >
-                      <span className="option-text">Go to dashboard</span>
+                      <span className="option-text">Campaign Home</span>
                     </button>
                     <button
                       className="account-option wide"
@@ -703,396 +659,316 @@ export const LinearWelcomePage: React.FC = () => {
               </div>
             </PopoverMenu>
           </div>
+        </div>
+      </header>
 
-          {/* Brand Logo - Upper Left */}
-          <div className="brand-logo-left">
-            <span className="brand-logo-icon">🎲</span>
-          </div>
-
-          {/* Brand Section */}
-          <div className="brand-section">
-            <div className="brand-logo">
-              <h1 className="brand-title">Nexus VTT</h1>
+      <main className={styles.main}>
+        <img
+          className={styles.art}
+          src={DnDTeamBackground}
+          alt=""
+          fetchPriority="high"
+          decoding="async"
+        />
+        <div className={styles.entry}>
+          <section className={styles.card} aria-labelledby="join-heading">
+            <h2 id="join-heading">Join a game</h2>
+            <p>Enter the four-character room code from your GM.</p>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleQuickJoin();
+              }}
+            >
+              <label htmlFor="room-code">Room code</label>
+              <input
+                id="room-code"
+                value={roomCode}
+                onChange={(event) =>
+                  setRoomCode(event.target.value.toUpperCase())
+                }
+                maxLength={4}
+                placeholder="ABCD"
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                disabled={loading}
+              />
+              <label htmlFor="adventurer-name">Display name</label>
+              <input
+                id="adventurer-name"
+                value={playerName}
+                onChange={(event) => setPlayerName(event.target.value)}
+                placeholder="Your adventurer name"
+                autoComplete="nickname"
+                disabled={loading}
+              />
+              <details className={styles.options}>
+                <summary>Join options</summary>
+                <fieldset>
+                  <legend>Join as</legend>
+                  <label>
+                    <input
+                      type="radio"
+                      name="join-mode"
+                      checked={quickJoinMode === 'player'}
+                      disabled={loading}
+                      onChange={() => setQuickJoinMode('player')}
+                    />
+                    Player
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="join-mode"
+                      checked={quickJoinMode === 'spectator'}
+                      disabled={loading}
+                      onChange={() => setQuickJoinMode('spectator')}
+                    />
+                    Spectator
+                  </label>
+                </fieldset>
+                {quickJoinMode === 'player' && (
+                  <>
+                    <label htmlFor="quick-join-token-upload">
+                      Token image (optional)
+                    </label>
+                    <input
+                      id="quick-join-token-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleQuickJoinTokenUpload}
+                      disabled={loading}
+                    />
+                    {quickJoinTokenImage && (
+                      <div className="quick-join-token-preview">
+                        <img src={quickJoinTokenImage} alt="Token preview" />
+                        <span>{quickJoinTokenFileName}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </details>
+              <button
+                className={`unstyled ${styles.primary}`}
+                type="submit"
+                disabled={
+                  !playerName.trim() || roomCode.trim().length !== 4 || loading
+                }
+              >
+                Join game
+              </button>
+              {isAuthenticated && (
+                <div>
+                  <label htmlFor="character-select">
+                    Character for setup (optional)
+                  </label>
+                  <select
+                    id="character-select"
+                    value={selectedCharacter}
+                    onChange={(event) =>
+                      setSelectedCharacter(event.target.value)
+                    }
+                    disabled={loading || charactersLoading}
+                  >
+                    <option value="">
+                      {charactersLoading
+                        ? 'Loading characters…'
+                        : 'New character'}
+                    </option>
+                    {characters.map((character) => (
+                      <option key={character.id} value={character.id}>
+                        {character.name}
+                        {character.data?.class
+                          ? ` (${character.data.class})`
+                          : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <button
+                className={`unstyled ${styles.secondary}`}
+                type="button"
+                onClick={() => void handlePlayerSetup()}
+                disabled={!playerName.trim() || loading}
+              >
+                Character setup
+              </button>
+            </form>
+            <div aria-live="polite">
+              {error && <p className={styles.error}>{error}</p>}
             </div>
-            <p className="brand-tagline">Your gateway to epic adventures</p>
-          </div>
+          </section>
 
-          <div aria-live="polite" aria-atomic="true">
-            {error && (
-              <div className="error-message glass-panel error">
-                <span className="error-icon">⚠️</span>
-                {error}
-              </div>
-            )}
-          </div>
-
-          {/* Name Input */}
-          <form
-            className="form-section"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (selectedRole === 'player') handleQuickJoin();
-              else if (selectedRole === 'dm') handleDMSetup();
-            }}
+          <section
+            className={`${styles.card} ${styles.returning}`}
+            aria-labelledby="host-heading"
           >
-            <div className="input-group">
-              <label htmlFor="adventurerName">Enter Your Name</label>
-              <div className="glass-input-wrapper">
-                <span className="input-icon">👤</span>
-                <input
-                  id="adventurerName"
-                  type="text"
-                  ref={playerNameRef}
-                  defaultValue=""
-                  onChange={handlePlayerNameChange}
-                  placeholder="Your adventurer name"
-                  className="glass-input"
-                  disabled={loading}
-                  aria-describedby="adventurerName-hint"
-                />
-              </div>
-              <span id="adventurerName-hint" className="input-hint">
-                Your display name for this session — no account needed to play.
-              </span>
+            <h2 id="host-heading">Host or open a saved table</h2>
+            <button
+              className={`unstyled ${styles.secondary}`}
+              type="button"
+              aria-expanded={hosting}
+              aria-controls="host-game-form"
+              onClick={() => {
+                setHosting(!hosting);
+                setHostError('');
+              }}
+              disabled={loading}
+            >
+              Host a game
+            </button>
+            <form
+              id="host-game-form"
+              hidden={!hosting}
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleDMSetup();
+              }}
+            >
+              <label htmlFor="host-display-name">Host display name</label>
+              <input
+                id="host-display-name"
+                value={playerName}
+                onChange={(event) => setPlayerName(event.target.value)}
+                autoComplete="nickname"
+                disabled={loading}
+              />
+              {isAuthenticated && (
+                <>
+                  <label htmlFor="campaign-select">Select campaign</label>
+                  <select
+                    id="campaign-select"
+                    value={selectedCampaign}
+                    onChange={(event) =>
+                      setSelectedCampaign(event.target.value)
+                    }
+                    disabled={loading || campaignsLoading}
+                  >
+                    <option value="">
+                      {campaignsLoading
+                        ? 'Loading campaigns…'
+                        : 'Select a campaign'}
+                    </option>
+                    {campaigns.map((campaign) => (
+                      <option key={campaign.id} value={campaign.id}>
+                        {campaign.name}
+                      </option>
+                    ))}
+                  </select>
+                  {!campaignsLoading && campaigns.length === 0 && (
+                    <p>
+                      No campaigns yet.{' '}
+                      <Link to="/campaign-home">
+                        Create one in Campaign Home.
+                      </Link>
+                    </p>
+                  )}
+                </>
+              )}
+              <button
+                type="submit"
+                className={`unstyled ${styles.primary}`}
+                disabled={
+                  !playerName.trim() ||
+                  loading ||
+                  (isAuthenticated && !selectedCampaign)
+                }
+              >
+                Create game
+              </button>
+            </form>
+            {isAuthenticated ? (
+              <Link className={styles.textLink} to="/campaign-home">
+                Find your saved tables
+              </Link>
+            ) : (
+              <button
+                className={`unstyled ${styles.textLink}`}
+                type="button"
+                popoverTarget={accountPopoverId}
+                popoverTargetAction="show"
+              >
+                Sign in to find your saved tables
+              </button>
+            )}
+            <div aria-live="polite">
+              {hostError && <p className={styles.error}>{hostError}</p>}
             </div>
+          </section>
+        </div>
+      </main>
 
-            {/* Role Selection */}
-            <fieldset className="role-selection">
-              <legend>Choose Your Adventure</legend>
-              <div className="role-cards">
-                {/* Player Options */}
-                <div className="role-card-group">
-                  <label
-                    className={`role-card glass-panel ${selectedRole === 'player' ? 'selected' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="role"
-                      value="player"
-                      checked={selectedRole === 'player'}
-                      onChange={() => handleRoleSelection('player')}
-                      className="sr-only"
-                    />
-                    <div className="role-icon">⚔️</div>
-                    <div className="role-info">
-                      <h3>Player</h3>
-                      <p>Join adventures as a hero</p>
-                    </div>
-                    <div className="selection-indicator">
-                      {selectedRole === 'player' && <span>✓</span>}
-                    </div>
-                  </label>
-
-                  {/* Player Action Buttons */}
-                  {selectedRole === 'player' && (
-                    <div className="player-actions">
-                      {/* Quick Join — primary path for invited players */}
-                      <div className="quick-join-section">
-                        <h4 className="quick-join-heading">
-                          🗝️ Have a room code?
-                        </h4>
-                        <div className="quick-join-form">
-                          <div className="quick-join-controls">
-                            <div className="quick-join-mode">
-                              <button
-                                type="button"
-                                className={`glass-button ${quickJoinMode === 'player' ? 'primary' : 'secondary'}`}
-                                onClick={() => setQuickJoinMode('player')}
-                              >
-                                🎮 Player
-                              </button>
-                              <button
-                                type="button"
-                                className={`glass-button ${quickJoinMode === 'spectator' ? 'primary' : 'secondary'}`}
-                                onClick={() => setQuickJoinMode('spectator')}
-                              >
-                                👁️ Spectator
-                              </button>
-                            </div>
-                            {quickJoinMode === 'player' && (
-                              <div className="quick-join-token">
-                                <label htmlFor="quick-join-token-upload">
-                                  Token image (optional)
-                                </label>
-                                <input
-                                  id="quick-join-token-upload"
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleQuickJoinTokenUpload}
-                                  disabled={loading}
-                                />
-                                <small>
-                                  We’ll create a default token with your name if
-                                  you skip this.
-                                </small>
-                                {quickJoinTokenImage && (
-                                  <div className="quick-join-token-preview">
-                                    <img
-                                      src={quickJoinTokenImage}
-                                      alt="Token preview"
-                                    />
-                                    <span>{quickJoinTokenFileName}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="quick-join-row">
-                            <div className="glass-input-wrapper room-input">
-                              <span className="input-icon">🗝️</span>
-                              <input
-                                type="text"
-                                ref={roomCodeRef}
-                                defaultValue=""
-                                onChange={handleRoomCodeChange}
-                                placeholder="Room Code"
-                                maxLength={4}
-                                className="glass-input room-code-input"
-                                disabled={loading}
-                              />
-                            </div>
-                            <button
-                              type="submit"
-                              disabled={
-                                playerNameEmpty || roomCodeEmpty || loading
-                              }
-                              className="action-btn glass-button primary"
-                            >
-                              {loading ? (
-                                <>
-                                  <span className="loading-spinner"></span>
-                                  Joining...
-                                </>
-                              ) : (
-                                <>
-                                  <span>🚀</span>
-                                  Quick Join
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="divider-small">
-                        <span>or start fresh</span>
-                      </div>
-
-                      {/* Character Selection for Authenticated Users */}
-                      {isAuthenticated && (
-                        <div className="campaign-selection">
-                          <label
-                            htmlFor="character-select"
-                            className="campaign-label"
-                          >
-                            Select Character (Optional)
-                          </label>
-                          {charactersLoading ? (
-                            <div className="loading-state">
-                              <span className="loading-spinner"></span>
-                              Loading characters...
-                            </div>
-                          ) : characters.length > 0 ? (
-                            <select
-                              id="character-select"
-                              value={selectedCharacter}
-                              onChange={(e) =>
-                                setSelectedCharacter(e.target.value)
-                              }
-                              className="glass-input campaign-dropdown"
-                              disabled={loading}
-                            >
-                              <option value="">
-                                -- Select a character or create new --
-                              </option>
-                              {characters.map((character) => (
-                                <option key={character.id} value={character.id}>
-                                  {character.name}
-                                  {character.data?.class
-                                    ? ` (${character.data.class})`
-                                    : ''}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <p className="no-campaigns-hint">
-                              No saved characters yet. You can create one from
-                              the{' '}
-                              <a href="/dashboard" className="dashboard-link">
-                                dashboard
-                              </a>{' '}
-                              or continue as a new character.
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={handlePlayerSetup}
-                        disabled={playerNameEmpty || loading}
-                        className="action-btn glass-button primary"
-                      >
-                        <span>🎭</span>
-                        Character Setup
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* DM Options */}
-                <div className="role-card-group">
-                  <label
-                    className={`role-card glass-panel ${selectedRole === 'dm' ? 'selected' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="role"
-                      value="dm"
-                      checked={selectedRole === 'dm'}
-                      onChange={() => handleRoleSelection('dm')}
-                      className="sr-only"
-                    />
-                    <div className="role-icon">👑</div>
-                    <div className="role-info">
-                      <h3>Dungeon Master</h3>
-                      <p>Guide the story and control the world</p>
-                    </div>
-                    <div className="selection-indicator">
-                      {selectedRole === 'dm' && <span>✓</span>}
-                    </div>
-                  </label>
-
-                  {/* DM Action Button */}
-                  {selectedRole === 'dm' && (
-                    <div className="dm-actions">
-                      {/* Campaign Selection for Authenticated Users */}
-                      {isAuthenticated && (
-                        <div className="campaign-selection">
-                          <label
-                            htmlFor="campaign-select"
-                            className="campaign-label"
-                          >
-                            Select Campaign
-                          </label>
-                          {campaignsLoading ? (
-                            <div className="loading-state">
-                              <span className="loading-spinner"></span>
-                              Loading campaigns...
-                            </div>
-                          ) : campaigns.length > 0 ? (
-                            <select
-                              id="campaign-select"
-                              value={selectedCampaign}
-                              onChange={(e) =>
-                                setSelectedCampaign(e.target.value)
-                              }
-                              className="glass-input campaign-dropdown"
-                              disabled={loading}
-                            >
-                              <option value="">-- Select a campaign --</option>
-                              {campaigns.map((campaign) => (
-                                <option key={campaign.id} value={campaign.id}>
-                                  {campaign.name}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <p className="no-campaigns-hint">
-                              No campaigns yet. Create one from the{' '}
-                              <a href="/dashboard" className="dashboard-link">
-                                dashboard
-                              </a>
-                              .
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      <button
-                        type="submit"
-                        disabled={
-                          playerNameEmpty ||
-                          loading ||
-                          (isAuthenticated && !selectedCampaign)
-                        }
-                        className="action-btn glass-button primary"
-                      >
-                        <span>🎲</span>
-                        Create Game
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </fieldset>
-
-            <CompanionLaunches
-              campaignStudioUrl={campaignStudioUrl}
-              characterForgeUrl={characterForgeUrl}
-            />
-          </form>
-
-          {/* Development Tools.
+      <footer className={styles.footer}>
+        <CompanionLaunches
+          campaignStudioUrl={campaignStudioUrl}
+          characterForgeUrl={characterForgeUrl}
+        />
+        {/* Development Tools.
               Shown in a local dev build (isDevMode), or wherever the backend
               reports DEV_MODE on -- the latter is what makes the block visible
               on a deployed server, where a production bundle has isDevMode()
               false and VITE_DEV_MODE baked in at build time. */}
-          {(isDevMode() || devToolsEnabled) && (
-            <div className="dev-tools">
-              <hr className="dev-divider" />
-              <h4 className="dev-title">⚡ Development Tools</h4>
-              <div className="dev-buttons">
-                {/* Quick Start calls /api/dev/*, so it appears only when the
+        {(isDevMode() || devToolsEnabled) && (
+          <div className="dev-tools">
+            <hr className="dev-divider" />
+            <h4 className="dev-title">⚡ Development Tools</h4>
+            <div className="dev-buttons">
+              {/* Quick Start calls /api/dev/*, so it appears only when the
                     backend confirms those routes are registered. The buttons
                     beside it are client-only and need no such check. */}
-                {devToolsEnabled && (
-                  <button
-                    onClick={() => void quickStartDev.start()}
-                    disabled={quickStartDev.isSeeding}
-                    className="dev-btn glass-button primary small"
-                    title="Seed a campaign, character, room, scene and token, then jump straight to the canvas"
-                  >
-                    {quickStartDev.isSeeding
-                      ? `⏳ ${quickStartDev.phase ?? 'starting'}...`
-                      : '⚡ Quick Start'}
-                  </button>
-                )}
+              {devToolsEnabled && (
                 <button
-                  onClick={() => dev_quickDM()}
-                  className="dev-btn glass-button secondary small"
-                  title="Start as DM in offline mode - prepare game, then go online"
+                  onClick={() => void quickStartDev.start()}
+                  disabled={quickStartDev.isSeeding}
+                  className="dev-btn glass-button primary small"
+                  title="Seed a campaign, character, room, scene and token, then jump straight to the canvas"
                 >
-                  🎮 Quick DM
+                  {quickStartDev.isSeeding
+                    ? `⏳ ${quickStartDev.phase ?? 'starting'}...`
+                    : '⚡ Quick Start'}
                 </button>
-                <button
-                  onClick={() => dev_quickPlayer()}
-                  className="dev-btn glass-button secondary small"
-                  title="Create test character and go to offline game"
-                >
-                  👤 Quick Player
-                </button>
-                <a
-                  href={generatorsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="dev-btn glass-button secondary small"
-                  title="Open Map Generators in a new tab"
-                >
-                  🗺️ Generators
-                </a>
-              </div>
-              {quickStartDev.error && (
-                <div className="error-message glass-panel error" role="alert">
-                  <span className="error-icon">⚠️</span>
-                  {quickStartDev.error}
-                </div>
               )}
+              <button
+                onClick={() => dev_quickDM()}
+                className="dev-btn glass-button secondary small"
+                title="Start as DM in offline mode - prepare game, then go online"
+              >
+                🎮 Quick DM
+              </button>
+              <button
+                onClick={() => dev_quickPlayer()}
+                className="dev-btn glass-button secondary small"
+                title="Create test character and go to offline game"
+              >
+                👤 Quick Player
+              </button>
+              <a
+                href={generatorsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="dev-btn glass-button secondary small"
+                title="Open Map Generators in a new tab"
+              >
+                🗺️ Generators
+              </a>
             </div>
-          )}
+            {quickStartDev.error && (
+              <div className="error-message glass-panel error" role="alert">
+                <span className="error-icon">⚠️</span>
+                {quickStartDev.error}
+              </div>
+            )}
+          </div>
+        )}
+        <div className={styles.build}>
+          <button type="button" onClick={() => setShowAboutModal(true)}>
+            Build {buildVersion}
+          </button>
+          <AboutTriggerButton onClick={() => setShowAboutModal(true)} />
         </div>
-      </div>
-
+      </footer>
       <AboutModal
         isOpen={showAboutModal}
         onClose={() => setShowAboutModal(false)}

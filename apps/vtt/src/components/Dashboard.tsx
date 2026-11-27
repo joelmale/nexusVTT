@@ -16,6 +16,7 @@ import {
 import type { GameConfig, PlayerCharacter } from '@/types/game';
 
 // Import our new Atomic components
+import { CampaignHome } from './campaign-home';
 import { DashboardLayout } from './Dashboard/templates/DashboardLayout';
 import type {
   CharacterRecord as LayoutCharacter,
@@ -57,7 +58,7 @@ const readNumber = (...candidates: unknown[]): number | undefined => {
   for (const c of candidates) {
     if (typeof c === 'number' && Number.isFinite(c)) return c;
     if (c && typeof c === 'object') {
-      const inner = (c as { value?: unknown; total?: unknown });
+      const inner = c as { value?: unknown; total?: unknown };
       const n = inner.value ?? inner.total;
       if (typeof n === 'number' && Number.isFinite(n)) return n;
     }
@@ -84,8 +85,7 @@ const deriveStats = (data: HeroData): CharacterStats | undefined => {
     return data.stats as CharacterStats;
   }
   const abilities = data.abilities as
-    | Record<string, { score?: number }>
-    | undefined;
+    Record<string, { score?: number }> | undefined;
   if (!abilities) return undefined;
   const out: Partial<CharacterStats> = {};
   for (const [abbr, statKey] of Object.entries(ABILITY_TO_STAT)) {
@@ -150,7 +150,9 @@ interface JoinModalState {
   roomCode?: string;
 }
 
-export const Dashboard: React.FC = () => {
+export const Dashboard: React.FC<{ view?: 'dashboard' | 'campaign-home' }> = ({
+  view = 'dashboard',
+}) => {
   const navigate = useNavigate();
   // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
   // whole store.
@@ -164,6 +166,7 @@ export const Dashboard: React.FC = () => {
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [seeding, setSeeding] = useState(false);
   // Both seeding and clear-all call /api/dev/*, so they are hidden unless the
   // backend reports those routes registered.
@@ -185,9 +188,12 @@ export const Dashboard: React.FC = () => {
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadFailed(false);
       const res = await fetch('/api/dashboard', { credentials: 'include' });
-      if (res.ok) setSummary((await res.json()) as DashboardSummary);
+      if (!res.ok) throw new Error('Dashboard request failed');
+      setSummary((await res.json()) as DashboardSummary);
     } catch (err) {
+      setLoadFailed(true);
       console.error('Failed to load dashboard data:', err);
     } finally {
       setLoading(false);
@@ -222,6 +228,10 @@ export const Dashboard: React.FC = () => {
   const handleJoinWithCode = async (roomCode: string) => {
     if ((summary?.heroes.length ?? 0) > 0) {
       setJoinModal({ roomCode });
+      return;
+    }
+    if (view === 'campaign-home') {
+      await handleModalJoin(roomCode, null);
       return;
     }
     try {
@@ -432,33 +442,47 @@ export const Dashboard: React.FC = () => {
 
   return (
     <>
-      <DashboardLayout
-        userName={user.name || 'Traveler'}
-        runs={runs}
-        joined={joined}
-        heroes={heroes}
-        lastTable={summary?.lastTable}
-        loading={loading}
-        onBack={() => navigate('/lobby')}
-        onCreateCharacter={handleCreateCharacter}
-        onJoinGame={() => setJoinModal({})}
-        onJoinWithCode={(code) => void handleJoinWithCode(code)}
-        onClearAll={devToolsEnabled ? handleClearAll : undefined}
-        onSeedData={devToolsEnabled ? handleSeedData : undefined}
-        seeding={seeding}
-        onOpenTable={handleOpenTable}
-        onEditTable={setRenamingTable}
-        onDeleteTable={handleDeleteCampaign}
-        onOpenCampaignStudio={() =>
-          window.location.assign(getCampaignStudioUrl())
-        }
-        onCreateCampaign={handleCreateCampaign}
-        onPlayAs={handlePlayAs}
-        onOpenCharacterForge={() =>
-          window.location.assign(getCharacterForgeUrl())
-        }
-        onDeleteHero={handleDeleteCharacter}
-      />
+      {view === 'campaign-home' ? (
+        <CampaignHome
+          userName={user.displayName || user.name || 'Traveler'}
+          tables={[...runs, ...joined]}
+          lastTable={summary?.lastTable}
+          loading={loading}
+          loadFailed={loadFailed}
+          onRetry={() => void fetchDashboardData()}
+          onJoin={handleJoinWithCode}
+          onOpenTable={handleOpenTable}
+          onCreateCampaign={handleCreateCampaign}
+        />
+      ) : (
+        <DashboardLayout
+          userName={user.name || 'Traveler'}
+          runs={runs}
+          joined={joined}
+          heroes={heroes}
+          lastTable={summary?.lastTable}
+          loading={loading}
+          onBack={() => navigate('/lobby')}
+          onCreateCharacter={handleCreateCharacter}
+          onJoinGame={() => setJoinModal({})}
+          onJoinWithCode={(code) => void handleJoinWithCode(code)}
+          onClearAll={devToolsEnabled ? handleClearAll : undefined}
+          onSeedData={devToolsEnabled ? handleSeedData : undefined}
+          seeding={seeding}
+          onOpenTable={handleOpenTable}
+          onEditTable={setRenamingTable}
+          onDeleteTable={handleDeleteCampaign}
+          onOpenCampaignStudio={() =>
+            window.location.assign(getCampaignStudioUrl())
+          }
+          onCreateCampaign={handleCreateCampaign}
+          onPlayAs={handlePlayAs}
+          onOpenCharacterForge={() =>
+            window.location.assign(getCharacterForgeUrl())
+          }
+          onDeleteHero={handleDeleteCharacter}
+        />
+      )}
 
       {/* Character creation wizard portal hook output */}
       {LauncherComponent}

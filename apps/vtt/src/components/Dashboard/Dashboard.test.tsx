@@ -194,6 +194,52 @@ const renderDashboard = () =>
     </MemoryRouter>,
   );
 
+describe('Campaign Home', () => {
+  it('offers Dashboard in the table of contents and resumes the last table', async () => {
+    mockFetch(fullSummary);
+    createGameRoom.mockResolvedValueOnce('ABCD');
+    render(
+      <MemoryRouter initialEntries={['/campaign-home']}>
+        <Dashboard view="campaign-home" />
+      </MemoryRouter>,
+    );
+
+    const nav = screen.getByRole('navigation', {
+      name: 'Campaign Home table of contents',
+    });
+    expect(
+      within(nav).getByRole('link', { name: 'Dashboard' }),
+    ).toHaveAttribute('href', '/dashboard');
+    expect(
+      within(nav).getByRole('link', { name: 'Host a game' }),
+    ).toHaveAttribute('href', '/lobby?mode=host');
+    expect(screen.getByRole('heading', { name: 'My tables' })).toBeVisible();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Resume' }));
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith('/lobby/game/ABCD'),
+    );
+  });
+
+  it('opens hero selection for a room code entered from Campaign Home', async () => {
+    mockFetch(fullSummary);
+    render(
+      <MemoryRouter initialEntries={['/campaign-home']}>
+        <Dashboard view="campaign-home" />
+      </MemoryRouter>,
+    );
+    await screen.findByRole('button', { name: 'Resume' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Room code' }), {
+      target: { value: 'abcd' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Join game' }));
+    expect(await screen.findByRole('dialog')).toBeVisible();
+    expect(
+      within(screen.getByRole('dialog')).getByText('Who is joining table ABCD?'),
+    ).toBeVisible();
+  });
+});
+
 const cardFor = (name: string): HTMLElement => {
   const card = screen
     .getByRole('heading', { name, level: 3 })

@@ -60,19 +60,16 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
   const themeOption = page.getByRole('button', { name: 'Bronze', exact: true });
   await expect(themeOption).toBeVisible();
   await themeOption.click();
-  await expect(themeButton).toHaveAttribute(
-    'title',
-    'Dice Theme: Bronze',
-  );
+  await expect(themeButton).toHaveAttribute('title', 'Dice Theme: Bronze');
   expect(
     await page.evaluate(() => localStorage.getItem('nexus_dice_theme')),
   ).toBe('bronze');
 
-  await page
-    .getByPlaceholder('2d8 + 1d6 + 3')
-    .fill('1d20+2');
+  await page.getByPlaceholder('2d8 + 1d6 + 3').fill('1d20+2');
   await page.getByRole('button', { name: 'Roll Pool' }).click();
-  await expect(page.getByTestId('dice-log-entry').first()).toContainText('1d20+2');
+  await expect(page.getByTestId('dice-log-entry').first()).toContainText(
+    '1d20+2',
+  );
   expect(diceAssetFailures).toEqual([]);
 
   await page.reload();
@@ -121,9 +118,7 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
   }
 
   await openPanel(page, 'Dice');
-  await page
-    .getByPlaceholder('2d8 + 1d6 + 3')
-    .fill('1d6');
+  await page.getByPlaceholder('2d8 + 1d6 + 3').fill('1d6');
   await page.getByRole('button', { name: 'Roll Pool' }).click();
   await expect(page.getByTestId('dice-log-entry').first()).toContainText('1d6');
   expect(diagnostics.pageErrors).toEqual([]);
@@ -165,14 +160,10 @@ test('the lobby remains usable while the asset service recovers', async ({
       })
       .toBe(false);
 
-    await page.getByLabel('Enter Your Name').fill('Degraded Mode Tester');
-    const dungeonMasterRole = page.getByRole('radio', {
-      name: /Dungeon Master/,
-    });
-    await page.getByText('Dungeon Master', { exact: true }).click();
-    await expect(dungeonMasterRole).toBeChecked();
+    await page.getByRole('button', { name: 'Host a game' }).click();
+    await page.getByLabel('Host display name').fill('Degraded Mode Tester');
     await expect(
-      page.getByRole('button', { name: /Create Game$/ }),
+      page.getByRole('button', { name: /^Create game$/ }),
     ).toBeEnabled();
 
     await startSmokeService('asset-service');

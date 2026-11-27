@@ -22,9 +22,9 @@ Before you begin, ensure you have the following installed:
 
 2.  **Install Dependencies**
 
-````bash
-cd apps/vtt
-npm install
+    `ash
+    cd apps/vtt
+    npm install
     ```
 
 3.  **Configure Environment**
@@ -52,15 +52,18 @@ npm install
 
 Once the application is running, you can open your browser to the frontend URL (typically `http://localhost:5173`) and start using the application.
 
-### Creating a Game
+### Creating a game
 
-1. Enter your name in the lobby.
-2. Click "Host Game".
-3. Share the generated room code with your players.
+1. Open **Host a game** in the lobby and enter your host display name.
+2. Select a saved campaign if you are signed in, then choose **Create game**.
+3. Finish setting up the room and share its code with your players.
 
-### Joining a Game
+### Joining a game
 
-1. Enter your name in the lobby.
-2. Enter the room code from your DM.
-3. Click "Join Game".
-````
+1. Enter the four-character room code and your display name in the lobby.
+2. Open **Join options** if you want to spectate or upload a token image.
+3. Choose **Join game**.
+
+### Returning to a saved table
+
+Sign in to open Campaign Home at `/campaign-home`. Use **My tables** to resume your most recent table or open another saved table. The table of contents also includes a **Dashboard** link for managing your campaigns and characters.

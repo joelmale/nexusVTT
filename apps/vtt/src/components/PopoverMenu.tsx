@@ -2,6 +2,8 @@ import React, { useId, useRef, useEffect } from 'react';
 import './PopoverMenu.css';
 
 interface PopoverMenuProps {
+  /** ID for an additional native popover trigger. */
+  id?: string;
   /** The clickable node that triggers the popover menu */
   trigger: React.ReactNode;
   /** Content rendered inside the overlay dropdown container */
@@ -20,13 +22,15 @@ interface PopoverMenuProps {
  * Built for NexusVTT following senior engineering standards.
  */
 export const PopoverMenu: React.FC<PopoverMenuProps> = ({
+  id,
   trigger,
   children,
   triggerClassName = '',
   contentClassName = '',
   focusOnOpen,
 }) => {
-  const popoverId = useId();
+  const generatedId = useId();
+  const popoverId = id ?? generatedId;
   const triggerRef = useRef<HTMLButtonElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -72,7 +76,8 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
       const toggleEvent = event as Event & { newState?: string };
       if (toggleEvent.newState === 'open') {
         positionPopover();
-        if (focusOnOpen) popoverEl.querySelector<HTMLElement>(focusOnOpen)?.focus();
+        if (focusOnOpen)
+          popoverEl.querySelector<HTMLElement>(focusOnOpen)?.focus();
       }
     };
 
@@ -100,9 +105,7 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
         popover="auto"
         className="popover-content"
       >
-        <div className={`popover-inner ${contentClassName}`}>
-          {children}
-        </div>
+        <div className={`popover-inner ${contentClassName}`}>{children}</div>
       </div>
     </div>
   );
