@@ -247,7 +247,7 @@ describe('CharacterEditForm behavior', () => {
     },
   );
 
-  it('keeps proficiency fields read-only in manual entry', async () => {
+  it('lets manual entry choose skill proficiencies and keeps class saves read-only', async () => {
     render(
       <CharacterEditForm
         isCreating
@@ -262,7 +262,7 @@ describe('CharacterEditForm behavior', () => {
     ).toHaveTextContent('10');
     expect(
       screen.getByRole('checkbox', { name: 'Perception proficiency' }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     expect(
       screen.getByRole('checkbox', { name: 'WIS saving throw proficiency' }),
     ).toBeDisabled();

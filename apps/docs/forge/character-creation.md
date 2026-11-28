@@ -19,6 +19,18 @@ opening the wizard. Existing drafts resume with their saved edition. Follow
 [VTT character onboarding](/vtt/features/character-onboarding) to join a game
 with the finished sheet.
 
+## Enter a character manually in Forge
+
+Choose **Manual Entry** under **New Character**. Enter your character's level,
+class, species, background, ability scores, HP, skill proficiencies, languages,
+and coins. The preview shows class saving throws for the selected edition and
+unarmored AC of 10 plus the Dexterity modifier. A new sheet starts with full
+class hit dice for its level and an empty inventory. Use **Character Wizard**
+when you want starting equipment and spell choices.
+
+Select **Save Character** to save the sheet to this browser. A failed save keeps
+the form open for retry.
+
 ## Start with recommended picks or choose each option
 
 1. On **Character Level**, set the starting level your DM requested. For a

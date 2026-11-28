@@ -25,6 +25,58 @@ interface ExistingCharacterEdit {
   spellcasting: Character['spellcasting'];
 }
 
+function forgeSkillKey(name: string): SkillName {
+  return (
+    name === 'Sleight of Hand' ? 'SleightOfHand' : name.replace(/ /g, '')
+  ) as SkillName;
+}
+
+interface ManualCharacterStats {
+  abilities: Character['abilities'];
+  skills: Character['skills'];
+  skillPreview: ExistingCharacterEdit['skillPreview'];
+  armorClass: number;
+  initiative: number;
+}
+
+export function deriveManualCharacterStats(
+  scores: Record<AbilityName, number>,
+  proficiencyBonus: number,
+  skillProficiencies: Partial<Record<string, boolean>> = {},
+): ManualCharacterStats {
+  const abilities = Object.fromEntries(
+    ABILITY_KEYS.map((ability) => [
+      ability,
+      {
+        score: scores[ability],
+        modifier: calculateAbilityModifier(scores[ability]),
+      },
+    ]),
+  ) as Character['abilities'];
+  const skillPreview = new Map(
+    STANDARD_SKILLS.map(({ name, ability }) => {
+      const proficient = skillProficiencies[name] ?? false;
+      const modifier =
+        abilities[ability].modifier + (proficient ? proficiencyBonus : 0);
+      return [name, { proficient, expertise: false, modifier }] as const;
+    }),
+  );
+  const skills = Object.fromEntries(
+    Array.from(skillPreview, ([name, { proficient, modifier }]) => [
+      forgeSkillKey(name),
+      { proficient, value: modifier },
+    ]),
+  ) as Character['skills'];
+
+  return {
+    abilities,
+    skills,
+    skillPreview,
+    armorClass: 10 + abilities.DEX.modifier,
+    initiative: abilities.DEX.modifier,
+  };
+}
+
 export function deriveExistingCharacterEdit(
   character: Character,
   scores: Record<AbilityName, number>,
@@ -81,10 +133,8 @@ export function deriveExistingCharacterEdit(
 
       if (hadExpertise && !expertise) removedExpertise.add(name);
       if (abilityDelta !== 0 || proficient !== wasProficient) {
-        const key = (saved?.key ??
-          (name === 'Sleight of Hand'
-            ? 'SleightOfHand'
-            : name.replace(/ /g, ''))) as SkillName;
+        const key =
+          (saved?.key as SkillName | undefined) ?? forgeSkillKey(name);
         skills[key] = {
           ...saved?.skill,
           value: modifier,

@@ -3,15 +3,15 @@ import { Save, X, AlertCircle } from 'lucide-react';
 import {
   ABILITY_KEYS,
   STANDARD_SKILLS,
-  calculateAbilityModifier,
   calculateProficiencyBonus,
 } from '@nexus/character-contracts';
 
 import type { Character } from '../types/dnd';
 import { loadClasses, loadSpecies, BACKGROUNDS } from '../services/dataService';
+import { generateUUID } from '../services/diceService';
 import {
-  buildCompleteSpellcasting,
   deriveExistingCharacterEdit,
+  deriveManualCharacterStats,
 } from '../utils/characterEditUtils';
 import { getSavingThrowProficiencies } from '../utils/savingThrows';
 
@@ -62,15 +62,7 @@ interface FormData {
   languages: string[];
 
   // Equipment & Inventory
-  equipment: Array<{ name: string; quantity: number }>;
   currency: { cp: number; sp: number; gp: number; pp: number };
-
-  // Spells (simplified for now)
-  spellcasting?: {
-    ability: 'INT' | 'WIS' | 'CHA';
-    cantripsKnown: string[];
-    spellsKnown: string[];
-  };
 
   // Features & Traits
   featuresAndTraits: {
@@ -112,34 +104,29 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
       : undefined;
     const proficiencyBonus =
       character?.proficiencyBonus ?? calculateProficiencyBonus(formData.level);
+    const stats =
+      edited ??
+      deriveManualCharacterStats(
+        formData.abilities,
+        proficiencyBonus,
+        formData.skillProficiencies,
+      );
     const abilityModifiers = Object.fromEntries(
       ABILITY_NAMES.map((ability) => [
         ability,
-        edited?.abilities[ability].modifier ??
-          calculateAbilityModifier(formData.abilities[ability]),
+        stats.abilities[ability].modifier,
       ]),
     );
-    const skills =
-      edited?.skillPreview ??
-      new Map(
-        STANDARD_SKILLS.map(({ name, ability }) => [
-          name,
-          {
-            proficient: false,
-            expertise: false,
-            modifier: abilityModifiers[ability],
-          },
-        ]),
-      );
 
     return {
       edited,
+      stats,
       proficiencyBonus,
       abilityModifiers,
       proficientSaves: getSavingThrowProficiencies(character ?? formData),
-      skills,
-      initiative: edited?.initiative ?? abilityModifiers.DEX,
-      ac: edited?.armorClass ?? 10 + abilityModifiers.DEX,
+      skills: stats.skillPreview,
+      initiative: stats.initiative,
+      ac: stats.armorClass,
     };
   }, [character, formData]);
 
@@ -189,16 +176,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
 
           languages: character?.languages || [],
 
-          equipment: [], // TODO: Get from character inventory
           currency: character.currency || { cp: 0, sp: 0, gp: 0, pp: 0 },
-
-          spellcasting: character.spellcasting
-            ? {
-                ability: character.spellcasting.ability,
-                cantripsKnown: character.spellcasting.cantripsKnown,
-                spellsKnown: character.spellcasting.spellsKnown || [],
-              }
-            : undefined,
 
           featuresAndTraits: structuredClone(character.featuresAndTraits),
         });
@@ -227,7 +205,6 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
 
           languages: [],
 
-          equipment: [],
           currency: { cp: 0, sp: 0, gp: 0, pp: 0 },
 
           featuresAndTraits: {
@@ -281,7 +258,12 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
     // Basic required fields
     if (!formData?.name.trim()) newErrors.name = 'Character name is required';
     if (!formData?.species) newErrors.species = 'Species selection is required';
-    if (!formData?.class) newErrors.class = 'Class selection is required';
+    if (
+      !formData?.class ||
+      (!character && !classes.some(({ name }) => name === formData.class))
+    ) {
+      newErrors.class = 'Class selection is required';
+    }
     if (!formData?.background)
       newErrors.background = 'Background selection is required';
 
@@ -351,7 +333,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
       }
 
       // Check for class-specific requirements
-      if (formData.class) {
+      if (character && formData.class) {
         const selectedClass = classes.find((c) => c.name === formData.class);
         if (selectedClass) {
           // Check if character meets basic class requirements
@@ -384,21 +366,47 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
 
   const handleSave = () => {
     if (!formData || !derivedStats || isSaving || !validateForm()) return;
-    const edited = derivedStats.edited;
+    const { edited, stats, proficiencyBonus } = derivedStats;
+    if (!character) {
+      const selectedClass = classes.find(({ name }) => name === formData.class);
+      if (!selectedClass) return;
 
-    const spellcasting = character
-      ? edited?.spellcasting
-      : buildCompleteSpellcasting(formData.spellcasting, {
-          class: formData.class,
-          level: formData.level,
-          abilities: formData.abilities,
-          proficiencyBonus: formData.proficiencyBonus,
-        });
+      onSave({
+        id: generateUUID(),
+        name: formData.name.trim(),
+        species: formData.species,
+        class: selectedClass.slug,
+        classSlug: selectedClass.slug,
+        level: formData.level,
+        alignment: formData.alignment,
+        background: formData.background,
+        edition: formData.edition,
+        abilities: stats.abilities,
+        hitPoints: formData.hitPoints,
+        maxHitPoints: formData.maxHitPoints,
+        armorClass: stats.armorClass,
+        initiative: stats.initiative,
+        speed: formData.speed,
+        proficiencyBonus,
+        hitDice: {
+          current: formData.level,
+          max: formData.level,
+          dieType: selectedClass.hit_die,
+        },
+        skills: stats.skills,
+        inspiration: false,
+        languages: [...new Set(formData.languages.filter(Boolean))],
+        inventory: [],
+        currency: formData.currency,
+        featuresAndTraits: formData.featuresAndTraits,
+        subclass: null,
+      });
+      return;
+    }
 
-    // Convert only explicitly edited fields; preserve inventory and play state.
-    const characterData: Character = {
+    if (!edited) return;
+    onSave({
       ...character,
-      id: character?.id ?? `manual_${Date.now()}`,
       name: formData.name,
       species: formData.species,
       class: formData.class,
@@ -406,92 +414,25 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
       alignment: formData.alignment,
       background: formData.background,
       edition: formData.edition,
-
-      abilities: edited?.abilities ?? {
-        STR: {
-          score: formData.abilities.STR,
-          modifier: calculateAbilityModifier(formData.abilities.STR),
-        },
-        DEX: {
-          score: formData.abilities.DEX,
-          modifier: calculateAbilityModifier(formData.abilities.DEX),
-        },
-        CON: {
-          score: formData.abilities.CON,
-          modifier: calculateAbilityModifier(formData.abilities.CON),
-        },
-        INT: {
-          score: formData.abilities.INT,
-          modifier: calculateAbilityModifier(formData.abilities.INT),
-        },
-        WIS: {
-          score: formData.abilities.WIS,
-          modifier: calculateAbilityModifier(formData.abilities.WIS),
-        },
-        CHA: {
-          score: formData.abilities.CHA,
-          modifier: calculateAbilityModifier(formData.abilities.CHA),
-        },
-      },
-
+      abilities: edited.abilities,
       hitPoints: formData.hitPoints,
       maxHitPoints: formData.maxHitPoints,
-      armorClass: edited?.armorClass ?? formData.armorClass,
-      initiative: edited?.initiative ?? formData.initiative,
+      armorClass: edited.armorClass,
+      initiative: edited.initiative,
       speed: formData.speed,
       proficiencyBonus: formData.proficiencyBonus,
-
-      hitDice: character?.hitDice || {
-        current: formData.level,
-        max: formData.level,
-        dieType: 8,
-      },
-
-      skills: edited?.skills ?? {
-        Acrobatics: { value: 0, proficient: false },
-        AnimalHandling: { value: 0, proficient: false },
-        Arcana: { value: 0, proficient: false },
-        Athletics: { value: 0, proficient: false },
-        Deception: { value: 0, proficient: false },
-        History: { value: 0, proficient: false },
-        Insight: { value: 0, proficient: false },
-        Intimidation: { value: 0, proficient: false },
-        Investigation: { value: 0, proficient: false },
-        Medicine: { value: 0, proficient: false },
-        Nature: { value: 0, proficient: false },
-        Perception: { value: 0, proficient: false },
-        Performance: { value: 0, proficient: false },
-        Persuasion: { value: 0, proficient: false },
-        Religion: { value: 0, proficient: false },
-        SleightOfHand: { value: 0, proficient: false },
-        Stealth: { value: 0, proficient: false },
-        Survival: { value: 0, proficient: false },
-      },
-
-      inspiration: character?.inspiration || false,
-
-      // TODO: Properly populate these from form data
-      languages: character?.languages ?? [],
-      inventory: character?.inventory ?? [],
+      skills: edited.skills,
+      inspiration: character.inspiration || false,
+      languages: character.languages ?? [],
+      inventory: character.inventory ?? [],
       currency: formData.currency,
-
-      spellcasting,
-
+      spellcasting: edited.spellcasting,
       featuresAndTraits: formData.featuresAndTraits,
-
-      // TODO: Add other required fields
-      subclass: character?.subclass || null,
-      divineOrder: character?.divineOrder,
-      primalOrder: character?.primalOrder,
-      pactBoon: character?.pactBoon,
-      expertiseSkills: character ? edited?.expertiseSkills : [],
-      selectedFightingStyle: character?.selectedFightingStyle,
-      selectedFeats: character?.selectedFeats || [],
-      srdFeatures: character?.srdFeatures,
-      resources: character?.resources || [],
-    };
-
-    onSave(characterData);
+      subclass: character.subclass || null,
+      expertiseSkills: edited.expertiseSkills,
+      selectedFeats: character.selectedFeats || [],
+      resources: character.resources || [],
+    });
   };
 
   if (!formData) {
@@ -609,6 +550,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                 </label>
                 <select
                   value={formData.species}
+                  aria-label="Species"
                   onChange={(e) => updateFormData({ species: e.target.value })}
                   className={`w-full px-3 py-2 bg-theme-tertiary border rounded text-white ${
                     errors.species ? 'border-red-500' : 'border-theme-primary'
@@ -663,6 +605,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                 </label>
                 <select
                   value={formData.background}
+                  aria-label="Background"
                   onChange={(e) =>
                     updateFormData({ background: e.target.value })
                   }
@@ -793,7 +736,6 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                         type="checkbox"
                         aria-label={`${skill} proficiency`}
                         checked={stats?.proficient ?? false}
-                        disabled={!character}
                         onChange={(event) =>
                           updateFormData({
                             skillProficiencies: {
@@ -1176,6 +1118,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                 <div key={index} className="flex items-center gap-2">
                   <select
                     value={formData.languages?.[index] || ''}
+                    aria-label={`Language ${index + 1}`}
                     onChange={(e) => {
                       const newLanguages = [...(formData.languages || [])];
                       newLanguages[index] = e.target.value;
@@ -1258,6 +1201,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                       type="number"
                       min="0"
                       value={formData.currency[currency]}
+                      aria-label={`${currency.toUpperCase()} currency`}
                       onChange={(e) =>
                         updateFormData({
                           currency: {
@@ -1279,7 +1223,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                 Equipment
               </h4>
               <div className="text-sm text-theme-muted">
-                Equipment management will be implemented in the next phase
+                Add or change equipment on the saved character sheet.
               </div>
             </div>
           </div>
