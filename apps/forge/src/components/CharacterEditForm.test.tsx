@@ -115,7 +115,7 @@ describe('CharacterEditForm behavior', () => {
       name: 'Animal Handling proficiency',
     });
     expect(proficiency).toBeChecked();
-    expect(proficiency).toBeDisabled();
+    expect(proficiency).toBeEnabled();
     const perception = within(
       screen.getByRole('group', { name: 'Perception' }),
     );
@@ -132,6 +132,40 @@ describe('CharacterEditForm behavior', () => {
     fireEvent.click(sheetRoll);
     expect(onDiceRoll).toHaveBeenCalledWith(
       expect.objectContaining({ modifier: 7 }),
+    );
+  });
+
+  it('replaces a stored custom AC only when equipment recalculation is selected', async () => {
+    const draft = getRecommendation({
+      classSlug: 'fighter',
+      edition: '2024',
+    }).draft;
+    const character = calculateCharacterStats(draftToCreationData(draft));
+    character.equippedArmor = 'chain-mail';
+    character.equippedWeapons = ['shield'];
+    character.armorClass = 21;
+    const save = vi.fn();
+    render(
+      <CharacterEditForm
+        character={character}
+        onSave={save}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    const ac = await screen.findByRole('group', { name: 'Armor Class' });
+    expect(ac).toHaveTextContent('21');
+    const recalculate = screen.getByRole('checkbox', {
+      name: 'Recalculate AC from equipment',
+    });
+    fireEvent.click(recalculate);
+    expect(ac).toHaveTextContent('18');
+    fireEvent.click(recalculate);
+    expect(ac).toHaveTextContent('21');
+    fireEvent.click(recalculate);
+    fireEvent.click(screen.getByRole('button', { name: 'Save Character' }));
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ armorClass: 18 }),
     );
   });
 

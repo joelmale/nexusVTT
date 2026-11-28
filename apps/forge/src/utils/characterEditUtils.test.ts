@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildCompleteSpellcasting } from './characterEditUtils';
+import { draftToCreationData } from '@nexus/character-creator/adapters/draftAdapter';
+import { getRecommendation } from '@nexus/character-creator/services/recommendationService';
+import { calculateCharacterStats } from '@nexus/character-creator/utils/characterCreationUtils';
+import {
+  buildCompleteSpellcasting,
+  deriveExistingCharacterEdit,
+} from './characterEditUtils';
 
 const abilities = { STR: 10, DEX: 10, CON: 10, INT: 16, WIS: 14, CHA: 8 };
 const form = {
@@ -13,6 +19,62 @@ const data = (cls: string, level = 3, extra = {}) => ({
   abilities,
   proficiencyBonus: 2,
   ...extra,
+});
+
+describe('deriveExistingCharacterEdit', () => {
+  it.each([
+    { armor: undefined, shields: [], before: 11, after: 14 },
+    { armor: 'leather-armor', shields: [], before: 12, after: 15 },
+    { armor: 'scale-mail', shields: [], before: 15, after: 16 },
+    { armor: 'chain-mail', shields: [], before: 16, after: 16 },
+    { armor: 'scale-mail', shields: ['shield'], before: 17, after: 18 },
+  ])(
+    'updates equipment AC from $before to $after with $armor and $shields',
+    ({ armor, shields, before, after }) => {
+      const draft = getRecommendation({
+        classSlug: 'fighter',
+        edition: '2024',
+      }).draft;
+      const character = calculateCharacterStats(draftToCreationData(draft));
+      character.equippedArmor = armor;
+      character.equippedWeapons = shields;
+      character.abilities.DEX = { score: 12, modifier: 1 };
+      character.armorClass = before;
+      const result = deriveExistingCharacterEdit(character, {
+        ...abilities,
+        DEX: 18,
+      });
+      expect(result.hasCustomArmorClass).toBe(false);
+      expect(result.armorClass).toBe(after);
+      expect(character.armorClass).toBe(before);
+    },
+  );
+
+  it('keeps a custom AC unless explicitly recalculated and updates casting numbers without spending resources', () => {
+    const draft = getRecommendation({
+      classSlug: 'wizard',
+      edition: '2014',
+    }).draft;
+    const character = calculateCharacterStats(draftToCreationData(draft));
+    character.equippedArmor = undefined;
+    character.equippedWeapons = [];
+    character.armorClass = 19;
+    character.abilities.INT = { score: 16, modifier: 3 };
+    const spellcasting = character.spellcasting!;
+    spellcasting.usedSpellSlots = [0, 1];
+    const next = { ...abilities, DEX: 18, INT: 18 };
+    const result = deriveExistingCharacterEdit(character, next);
+    expect(result.hasCustomArmorClass).toBe(true);
+    expect(result.armorClass).toBe(19);
+    expect(
+      deriveExistingCharacterEdit(character, next, {}, true).armorClass,
+    ).toBe(14);
+    expect(result.spellcasting).toEqual({
+      ...spellcasting,
+      spellAttackBonus: spellcasting.spellAttackBonus + 1,
+      spellSaveDC: spellcasting.spellSaveDC + 1,
+    });
+  });
 });
 
 describe('buildCompleteSpellcasting', () => {

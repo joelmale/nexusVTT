@@ -59,6 +59,7 @@ import {
   deleteCharacter,
   updateCharacter,
 } from './services/dbService';
+import { recalculateAC } from './utils/armorClass';
 import { applyCharacterRest } from './utils/resourceUtils';
 import { APP_VERSION } from './version';
 // REFACTORED: Language utilities moved to languageUtils.ts for the wizard
@@ -835,42 +836,6 @@ const App: React.FC = () => {
   }, []);
 
   // Equipment management handlers
-  const recalculateAC = useCallback((character: Character): number => {
-    let armorClass = 10 + character.abilities.DEX.modifier; // Default unarmored
-
-    if (character.equippedArmor) {
-      const armor = EQUIPMENT_DATABASE.find(
-        (eq) => eq.slug === character.equippedArmor,
-      );
-      if (armor?.armor_class) {
-        if (armor.armor_category === 'Light') {
-          armorClass =
-            armor.armor_class.base + character.abilities.DEX.modifier;
-        } else if (armor.armor_category === 'Medium') {
-          const dexBonus = Math.min(
-            character.abilities.DEX.modifier,
-            armor.armor_class.max_bonus || 2,
-          );
-          armorClass = armor.armor_class.base + dexBonus;
-        } else if (armor.armor_category === 'Heavy') {
-          armorClass = armor.armor_class.base;
-        }
-      }
-    }
-
-    // Add shield bonus if equipped
-    if (
-      character.equippedWeapons?.some((slug) => {
-        const item = EQUIPMENT_DATABASE.find((eq) => eq.slug === slug);
-        return item?.armor_category === 'Shield';
-      })
-    ) {
-      armorClass += 2;
-    }
-
-    return armorClass;
-  }, []);
-
   const handleEquipArmor = useCallback(
     async (characterId: string, armorSlug: string) => {
       const character = characters.find((c) => c.id === characterId);
@@ -915,7 +880,7 @@ const App: React.FC = () => {
         // Error equipping armor
       }
     },
-    [characters, recalculateAC],
+    [characters],
   );
 
   const handleEquipWeapon = useCallback(
@@ -990,7 +955,7 @@ const App: React.FC = () => {
         // Error unequipping item
       }
     },
-    [characters, recalculateAC],
+    [characters],
   );
 
   const handleAddItem = useCallback(
@@ -1093,7 +1058,7 @@ const App: React.FC = () => {
         // Error removing item
       }
     },
-    [characters, recalculateAC],
+    [characters],
   );
 
   const handleCantripSelected = useCallback(

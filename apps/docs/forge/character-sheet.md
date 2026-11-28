@@ -114,8 +114,11 @@ as authoritative.
 
 Available section controls can update items, HP, coins, and other values.
 Open **Edit character details** in the sheet header to edit general details.
-The editor displays the saved armor class and skill modifiers. Skill and
-saving-throw proficiency indicators are read-only.
+Ability score and skill proficiency changes update the preview and the saved
+modifiers. Removing a skill proficiency also removes its expertise. The editor
+keeps a saved armor class that differs from the equipment calculation unless
+you select **Recalculate AC from equipment**. Saving-throw proficiency is
+read-only. Use the sheet's level-up controls for progression.
 There is no reliable “resume creation” or automatic rules-conversion flow
 for an existing sheet. If a required correction has no reachable control,
 retain an export and report the missing control instead of assuming the

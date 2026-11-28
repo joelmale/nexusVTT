@@ -34,7 +34,10 @@ import {
 } from '../types/dnd';
 import { updateCharacter } from '../services/dbService'; // Added this import
 import { migrateSpellSelectionToCharacter } from '../utils/spellUtils';
+import { recalculateAC } from '../utils/armorClass';
 import { log } from '../utils/logger';
+
+export { recalculateAC } from '../utils/armorClass';
 
 // Helper to check if a class is a spellcaster
 export const isSpellcaster = (
@@ -317,41 +320,6 @@ export const calculateCharacterStats = (
  */
 export const refreshCharacterResources = (character: Character): Character => {
   return reconcileCharacterResources(character);
-};
-
-export const recalculateAC = (character: Character): number => {
-  let armorClass = 10 + character.abilities.DEX.modifier; // Default unarmored
-
-  if (character.equippedArmor) {
-    const armor = loadEquipment().find(
-      (eq) => eq.slug === character.equippedArmor,
-    );
-    if (armor?.armor_class) {
-      if (armor.armor_category === 'Light') {
-        armorClass = armor.armor_class.base + character.abilities.DEX.modifier;
-      } else if (armor.armor_category === 'Medium') {
-        const dexBonus = Math.min(
-          character.abilities.DEX.modifier,
-          armor.armor_class.max_bonus || 2,
-        );
-        armorClass = armor.armor_class.base + dexBonus;
-      } else if (armor.armor_category === 'Heavy') {
-        armorClass = armor.armor_class.base;
-      }
-    }
-  }
-
-  // Add shield bonus if equipped
-  if (
-    character.equippedWeapons?.some((slug) => {
-      const item = loadEquipment().find((eq) => eq.slug === slug);
-      return item?.armor_category === 'Shield';
-    })
-  ) {
-    armorClass += 2;
-  }
-
-  return armorClass;
 };
 
 export const toggleInspiration = async (
