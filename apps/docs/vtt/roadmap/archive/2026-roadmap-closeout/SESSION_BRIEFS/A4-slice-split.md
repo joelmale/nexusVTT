@@ -12,7 +12,7 @@ compatibility wrappers — **no consuming component changes in this packet**.
 
 ## Ground truth (verified @ e29131b, 2026-07-02)
 
-- `src/stores/gameStore.ts` (~97KB): slices = user, session, diceRolls, activeTab, **sceneState**, settings, chat, voice, connection, isRecovering, entityVersions. Zustand 5.0.14 + Immer middleware.
+- `src/stores/gameStore.ts` (~97KB): slices include user, session, diceRolls, activeTab, **sceneState**, settings, chat, connection, isRecovering, and entityVersions. Zustand 5.0.14 + Immer middleware.
 - sceneState contains: `scenes[]` (each with `placedTokens[]`, `placedProps[]`, drawings, grid settings, background), `activeSceneId`, `camera`, `activeTool`, plus selection state.
 - Public selector hooks to preserve as wrappers (grep `export const use` in gameStore.ts): `useCamera, useActiveScene, useSceneState, useScenes, useSceneDrawings, useVisibleDrawings, usePlacedTokens, usePlacedProps, useActiveTool, useFollowDM, useSelectedPlacedToken, useSelectedPlacedProp` (+ ~10 non-scene hooks untouched).
 - Token storage becomes keyed: `tokens: Record<id, PlacedToken>` + `tokenOrder: string[]` (O(1) updates, stable render order). Same for props.

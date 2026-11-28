@@ -944,15 +944,6 @@ Simple but effective:
 - No database persistence (ephemeral)
 - Types support: 'text', 'dm-announcement', 'whisper', 'system'
 
-### Voice State (Stub)
-
-Voice infrastructure in place but not implemented:
-
-- VoiceState interface defined
-- Voice channel types defined
-- Ready for WebRTC integration
-- No active voice communication yet
-
 ---
 
 ## 9. Developer Conventions
@@ -1081,7 +1072,7 @@ Located alongside implementation:
      `src/stores/scene/` (background, camera, drawings, fog, grid, props,
      tokens); `gameStore` composes them rather than owning them
    - Action bodies are **already extracted** into slice factories under
-     `src/stores/game/` (auth, characters, chat, dev, settings, voice, plus
+     `src/stores/game/` (auth, characters, chat, dev, settings, plus
      `types.ts` and `initialState.ts`). These are slices of the SAME store,
      not separate stores: only the action bodies moved, so state stays in one
      object and `getState()` semantics are unchanged. `game/types.ts` exists
@@ -1144,11 +1135,10 @@ Located alongside implementation:
 
 1. **Finish splitting gameStore** — scene slices are done; chat and connection
    state are the remaining candidates
-2. **WebRTC voice integration** (infrastructure in place)
-3. **Offline-first with local app** (service worker ready)
-4. **Real-time collaboration cursors** (RemoteCursors can show more detail)
-5. **Asset caching strategy** (SW + IndexedDB)
-6. **Performance monitoring** (connection quality metrics started)
+2. **Offline-first with local app** (service worker ready)
+3. **Real-time collaboration cursors** (RemoteCursors can show more detail)
+4. **Asset caching strategy** (SW + IndexedDB)
+5. **Performance monitoring** (connection quality metrics started)
 
 ---
 

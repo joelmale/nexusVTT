@@ -27,7 +27,6 @@ import type {
   PlacedToken,
   PlacedProp,
   ChatMessage,
-  VoiceChannel,
   ConnectionState,
 } from '@/types/game';
 import type { FogShape } from '@/types/fog';
@@ -259,16 +258,6 @@ export interface GameStore extends GameState {
   setTyping: (isTyping: boolean) => void;
   clearChat: () => void;
   markChatAsRead: () => void;
-
-  // Voice Actions
-  createVoiceChannel: (name: string) => VoiceChannel;
-  joinVoiceChannel: (channelId: string) => Promise<void>;
-  leaveVoiceChannel: () => void;
-  toggleMute: () => void;
-  toggleDeafen: () => void;
-  setAudioDevices: (devices: MediaDeviceInfo[]) => void;
-  selectAudioInput: (deviceId: string) => void;
-  selectAudioOutput: (deviceId: string) => void;
 
   // Connection Actions
   updateConnectionState: (updates: Partial<ConnectionState>) => void;
