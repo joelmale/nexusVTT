@@ -73,7 +73,7 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: `npm run dev -- --port ${UI_PORT} --strictPort`,
+        command: `npm run dev -- --mode ui-test --port ${UI_PORT} --strictPort`,
         url: uiBaseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

@@ -27,14 +27,9 @@ export async function gotoGame(
 ): Promise<void> {
   const { panels = [], storage = {}, userType = 'host', uiMode } = options;
 
-  // Nothing should reach a real backend. Fail loudly rather than hanging on a
-  // 15s actionability timeout if something unexpected does.
-  await page.route('**/api/**', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({}),
-    }),
+  await page.route('**/api/**', (route) => route.fulfill({ json: {} }));
+  await page.route('**/auth/me', (route) =>
+    route.fulfill({ status: 401, json: { error: 'Not authenticated' } }),
   );
 
   await page.addInitScript(
@@ -70,6 +65,25 @@ export async function gotoGame(
   await expect(
     page.getByRole('group', { name: 'Panels', exact: true }),
   ).toBeVisible();
+
+  const weights = ['400', '600', '700'];
+  const loadedWeights = await page.evaluate(async (expectedWeights) => {
+    const loaded = await Promise.all(
+      expectedWeights.map(async (weight) => {
+        const faces = await document.fonts
+          .load(`${weight} 16px Inter`, 'Layout')
+          .catch(() => []);
+        return faces.some(
+          (face) => face.status === 'loaded' && face.weight === weight,
+        )
+          ? weight
+          : null;
+      }),
+    );
+    await document.fonts.ready;
+    return loaded;
+  }, weights);
+  expect(loadedWeights, 'Inter font weights loaded in Chromium').toEqual(weights);
 }
 
 export { test, expect };
