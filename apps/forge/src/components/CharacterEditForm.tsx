@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Save, X, AlertCircle } from 'lucide-react';
-import { Character } from '../types/dnd';
+import {
+  ABILITY_KEYS,
+  STANDARD_SKILLS,
+  calculateAbilityModifier,
+  calculateProficiencyBonus,
+} from '@nexus/character-contracts';
+import { normalizeSkillKey } from '@nexus/character-creator/adapters/nexusCharacter';
+
+import type { Character } from '../types/dnd';
 import { loadClasses, loadSpecies, BACKGROUNDS } from '../services/dataService';
 import { buildCompleteSpellcasting } from '../utils/characterEditUtils';
-import { calculateAbilityModifier, ABILITY_KEYS } from '@nexus/character-contracts';
+import { getSavingThrowProficiencies } from '../utils/savingThrows';
 
 interface CharacterEditFormProps {
   character?: Character; // If provided, we're editing; if not, we're creating
@@ -41,15 +49,6 @@ interface FormData {
   speed: number;
   proficiencyBonus: number;
 
-  // Skills (proficiencies)
-  skills: Record<
-    string,
-    { proficient: boolean; expertise: boolean; modifier: number }
-  >;
-
-  // Saving Throws
-  savingThrows: Record<string, boolean>; // true if proficient
-
   // Class-specific selections
   num_instrument_choices?: number;
   selectedMusicalInstruments: string[];
@@ -82,53 +81,6 @@ interface FormData {
 }
 
 const ABILITY_NAMES = ABILITY_KEYS;
-const SKILL_NAMES = [
-  'Acrobatics',
-  'Animal Handling',
-  'Arcana',
-  'Athletics',
-  'Deception',
-  'History',
-  'Insight',
-  'Intimidation',
-  'Investigation',
-  'Medicine',
-  'Nature',
-  'Perception',
-  'Performance',
-  'Persuasion',
-  'Religion',
-  'Sleight of Hand',
-  'Stealth',
-  'Survival',
-];
-
-// Map skills to their governing abilities
-const SKILL_TO_ABILITY: Record<string, string> = {
-  Acrobatics: 'DEX',
-  'Animal Handling': 'WIS',
-  Arcana: 'INT',
-  Athletics: 'STR',
-  Deception: 'CHA',
-  History: 'INT',
-  Insight: 'WIS',
-  Intimidation: 'CHA',
-  Investigation: 'INT',
-  Medicine: 'WIS',
-  Nature: 'INT',
-  Perception: 'WIS',
-  Performance: 'CHA',
-  Persuasion: 'CHA',
-  Religion: 'INT',
-  'Sleight of Hand': 'DEX',
-  Stealth: 'DEX',
-  Survival: 'WIS',
-};
-
-const getAbilityForSkill = (skill: string): string => {
-  return SKILL_TO_ABILITY[skill] || 'STR';
-};
-
 export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
   character,
   onSave,
@@ -144,7 +96,8 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
   const derivedStats = useMemo(() => {
     if (!formData) return null;
 
-    const proficiencyBonus = Math.floor((formData.level - 1) / 4) + 2;
+    const proficiencyBonus =
+      character?.proficiencyBonus ?? calculateProficiencyBonus(formData.level);
 
     // Calculate ability modifiers
     const abilityModifiers = {
@@ -156,61 +109,42 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
       CHA: calculateAbilityModifier(formData.abilities.CHA),
     };
 
-    // Calculate saving throws (base modifier + proficiency if proficient)
-    const savingThrows = {
-      STR:
-        abilityModifiers.STR +
-        (formData.savingThrows.STR ? proficiencyBonus : 0),
-      DEX:
-        abilityModifiers.DEX +
-        (formData.savingThrows.DEX ? proficiencyBonus : 0),
-      CON:
-        abilityModifiers.CON +
-        (formData.savingThrows.CON ? proficiencyBonus : 0),
-      INT:
-        abilityModifiers.INT +
-        (formData.savingThrows.INT ? proficiencyBonus : 0),
-      WIS:
-        abilityModifiers.WIS +
-        (formData.savingThrows.WIS ? proficiencyBonus : 0),
-      CHA:
-        abilityModifiers.CHA +
-        (formData.savingThrows.CHA ? proficiencyBonus : 0),
-    };
-
-    // Calculate skill modifiers (base modifier + proficiency if proficient)
-    const skillModifiers: Record<string, number> = {};
-    SKILL_NAMES.forEach((skill) => {
-      const abilityKey = getAbilityForSkill(skill);
-      const baseModifier =
-        abilityModifiers[abilityKey as keyof typeof abilityModifiers];
-      const proficient = formData.skills[skill]?.proficient || false;
-      const expertise = formData.skills[skill]?.expertise || false;
-
-      if (expertise) {
-        skillModifiers[skill] = baseModifier + proficiencyBonus * 2;
-      } else if (proficient) {
-        skillModifiers[skill] = baseModifier + proficiencyBonus;
-      } else {
-        skillModifiers[skill] = baseModifier;
-      }
-    });
-
-    // Calculate initiative (DEX modifier)
-    const initiative = abilityModifiers.DEX;
-
-    // Calculate AC (base 10 + DEX modifier + any armor/shields - simplified for now)
-    const ac = 10 + abilityModifiers.DEX; // TODO: Add armor calculations
+    const proficientSaves = getSavingThrowProficiencies(character ?? formData);
+    const savedSkills = new Map(
+      Object.entries(character?.skills ?? {}).map(([key, skill]) => [
+        normalizeSkillKey(key),
+        skill,
+      ]),
+    );
+    const expertiseSkills = new Set(
+      character?.expertiseSkills?.map(normalizeSkillKey),
+    );
+    const skills = new Map(
+      STANDARD_SKILLS.map(({ name, ability }) => {
+        const saved = savedSkills.get(name);
+        const expertise = Boolean(
+          saved?.expertise || expertiseSkills.has(name),
+        );
+        const proficient = expertise || Boolean(saved?.proficient);
+        const base =
+          character?.abilities[ability].modifier ?? abilityModifiers[ability];
+        // The sheet rolls the saved modifier, including any custom bonuses.
+        const modifier =
+          saved?.value ??
+          base + (expertise ? 2 : proficient ? 1 : 0) * proficiencyBonus;
+        return [name, { proficient, expertise, modifier }] as const;
+      }),
+    );
 
     return {
       proficiencyBonus,
       abilityModifiers,
-      savingThrows,
-      skillModifiers,
-      initiative,
-      ac,
+      proficientSaves,
+      skills,
+      initiative: abilityModifiers.DEX,
+      ac: character ? formData.armorClass : 10 + abilityModifiers.DEX,
     };
-  }, [formData]);
+  }, [character, formData]);
 
   // Load available options
   const classes = useMemo(
@@ -252,30 +186,6 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
           speed: character.speed || 30,
           proficiencyBonus: character.proficiencyBonus,
 
-          skills: SKILL_NAMES.reduce(
-            (acc, skill) => {
-              acc[skill] = {
-                proficient: false, // TODO: Get from character data
-                expertise: false,
-                modifier: 0, // TODO: Calculate based on ability + proficiency
-              };
-              return acc;
-            },
-            {} as Record<
-              string,
-              { proficient: boolean; expertise: boolean; modifier: number }
-            >,
-          ),
-
-          savingThrows: {
-            STR: false, // TODO: Get from character data
-            DEX: false,
-            CON: false,
-            INT: false,
-            WIS: false,
-            CHA: false,
-          },
-
           num_instrument_choices: 0, // Will be set based on class
           selectedMusicalInstruments:
             character?.featuresAndTraits.musicalInstrumentProficiencies || [],
@@ -314,26 +224,6 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
           initiative: 0,
           speed: 30,
           proficiencyBonus: 2,
-
-          skills: SKILL_NAMES.reduce(
-            (acc, skill) => {
-              acc[skill] = { proficient: false, expertise: false, modifier: 0 };
-              return acc;
-            },
-            {} as Record<
-              string,
-              { proficient: boolean; expertise: boolean; modifier: number }
-            >,
-          ),
-
-          savingThrows: {
-            STR: false,
-            DEX: false,
-            CON: false,
-            INT: false,
-            WIS: false,
-            CHA: false,
-          },
 
           num_instrument_choices: 0,
           selectedMusicalInstruments: [],
@@ -868,42 +758,38 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
               Skills
             </h3>
             <div className="space-y-2">
-              {SKILL_NAMES.map((skill) => (
-                <div key={skill} className="flex items-center justify-between">
-                  <span className="text-sm">{skill}</span>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`w-16 px-2 py-1 bg-theme-tertiary border border-theme-primary rounded text-white text-center ${
-                        (derivedStats?.skillModifiers[skill] || 0) >= 0
-                          ? 'text-green-400'
-                          : 'text-red-400'
-                      }`}
-                    >
-                      {(() => {
-                        const modifier =
-                          derivedStats?.skillModifiers[skill] || 0;
-                        return (modifier >= 0 ? '+' : '') + modifier;
-                      })()}
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={formData.skills[skill]?.proficient || false}
-                      onChange={(e) => {
-                        updateFormData({
-                          skills: {
-                            ...formData.skills,
-                            [skill]: {
-                              ...formData.skills[skill],
-                              proficient: e.target.checked,
-                            },
-                          },
-                        });
-                      }}
-                      className="w-4 h-4"
-                    />
+              {STANDARD_SKILLS.map(({ name: skill }) => {
+                const stats = derivedStats?.skills.get(skill);
+                const modifier = stats?.modifier ?? 0;
+                return (
+                  <div
+                    key={skill}
+                    role="group"
+                    aria-label={skill}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-sm">{skill}</span>
+                    <div className="flex items-center gap-2">
+                      {stats?.expertise && (
+                        <span className="text-sm">Expertise</span>
+                      )}
+                      <span
+                        className={`w-16 px-2 py-1 bg-theme-tertiary border border-theme-primary rounded text-center ${modifier >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                      >
+                        {modifier >= 0 ? '+' : ''}
+                        {modifier}
+                      </span>
+                      <input
+                        type="checkbox"
+                        aria-label={`${skill} proficiency`}
+                        checked={stats?.proficient ?? false}
+                        disabled
+                        className="w-4 h-4"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -965,12 +851,9 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                   <label className="block text-sm font-medium text-theme-muted mb-1">
                     Armor Class
                   </label>
-                  <div className="flex">
-                    <span className="flex-1 px-3 py-2 bg-theme-disabled border border-theme-primary rounded-l text-white text-center font-bold">
-                      {derivedStats?.ac || 10}
-                    </span>
-                    <span className="px-3 py-2 bg-theme-tertiary border-t border-r border-b border-theme-primary rounded-r text-theme-muted text-sm flex items-center">
-                      (10 + DEX)
+                  <div role="group" aria-label="Armor Class" className="flex">
+                    <span className="flex-1 px-3 py-2 bg-theme-disabled border border-theme-primary rounded text-white text-center font-bold">
+                      {derivedStats?.ac ?? 10}
                     </span>
                   </div>
                 </div>
@@ -1010,17 +893,14 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                   <label className="block text-sm font-medium text-theme-muted mb-1">
                     Passive Perception
                   </label>
-                  <div className="flex">
+                  <div
+                    role="group"
+                    aria-label="Passive Perception"
+                    className="flex"
+                  >
                     <span className="flex-1 px-3 py-2 bg-theme-disabled border border-theme-primary rounded text-white text-center font-bold">
-                      {(() => {
-                        const wisMod = derivedStats?.abilityModifiers.WIS || 0;
-                        const perceptionProf =
-                          formData.skills['Perception']?.proficient || false;
-                        const profBonus = derivedStats?.proficiencyBonus || 2;
-                        const passive =
-                          10 + wisMod + (perceptionProf ? profBonus : 0);
-                        return passive;
-                      })()}
+                      {10 +
+                        (derivedStats?.skills.get('Perception')?.modifier ?? 0)}
                     </span>
                   </div>
                 </div>
@@ -1034,50 +914,42 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
               Saving Throws
             </h3>
             <div className="grid grid-cols-2 gap-3">
-              {ABILITY_NAMES.map((ability) => (
-                <div
-                  key={ability}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-sm">{ability}</span>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`w-16 px-2 py-1 bg-theme-tertiary border border-theme-primary rounded text-white text-center ${
-                        (derivedStats?.savingThrows[
-                          ability as keyof typeof derivedStats.savingThrows
-                        ] || 0) >= 0
-                          ? 'text-green-400'
-                          : 'text-red-400'
-                      }`}
-                    >
-                      {(() => {
-                        const save =
-                          derivedStats?.savingThrows[
-                            ability as keyof typeof derivedStats.savingThrows
-                          ] || 0;
-                        return (save >= 0 ? '+' : '') + save;
-                      })()}
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={
-                        formData.savingThrows[
-                          ability as keyof typeof formData.savingThrows
-                        ] || false
-                      }
-                      onChange={(e) => {
-                        updateFormData({
-                          savingThrows: {
-                            ...formData.savingThrows,
-                            [ability]: e.target.checked,
-                          },
-                        });
-                      }}
-                      className="w-4 h-4"
-                    />
+              {ABILITY_NAMES.map((ability) => {
+                const proficient =
+                  derivedStats?.proficientSaves.includes(ability) ?? false;
+                const base =
+                  character?.abilities[ability].modifier ??
+                  derivedStats?.abilityModifiers[ability] ??
+                  0;
+                const modifier =
+                  base +
+                  (proficient ? (derivedStats?.proficiencyBonus ?? 0) : 0);
+                return (
+                  <div
+                    key={ability}
+                    role="group"
+                    aria-label={`${ability} saving throw`}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-sm">{ability}</span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-16 px-2 py-1 bg-theme-tertiary border border-theme-primary rounded text-center ${modifier >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                      >
+                        {modifier >= 0 ? '+' : ''}
+                        {modifier}
+                      </span>
+                      <input
+                        type="checkbox"
+                        aria-label={`${ability} saving throw proficiency`}
+                        checked={proficient}
+                        disabled
+                        className="w-4 h-4"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

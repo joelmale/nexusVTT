@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Character, AbilityName } from '../../types/dnd';
 import { createSavingThrowRoll, createAdvantageRoll, createDisadvantageRoll, DiceRoll } from '../../services/diceService';
 import { formatModifier } from '../../utils/formatters';
-import { loadClasses } from '../../services/dataService';
+import { getSavingThrowProficiencies } from '../../utils/savingThrows';
 import type { LayoutMode } from './AbilityScores';
 
 interface SavingThrowsProps {
@@ -36,10 +36,7 @@ export const SavingThrows: React.FC<SavingThrowsProps> = ({
     CHA: 'normal',
   });
 
-  // Load class data to get saving throw proficiencies
-  const CLASSES_DATABASE = loadClasses();
-  const classData = CLASSES_DATABASE.find(c => c.slug === character.class);
-  const savingThrowProficiencies = classData?.save_throws || [];
+  const savingThrowProficiencies = getSavingThrowProficiencies(character);
 
   const hasGnomishCunning = character.featuresAndTraits?.speciesTraits?.includes('Gnomish Cunning');
 

@@ -1,10 +1,12 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { draftToCreationData } from '@nexus/character-creator/adapters/draftAdapter';
 import { getRecommendation } from '@nexus/character-creator/services/recommendationService';
 import { calculateCharacterStats } from '@nexus/character-creator/utils/characterCreationUtils';
 import { CharacterEditForm } from './CharacterEditForm';
+import { OfficialSkillsList } from './CharacterSheet/OfficialSkillsList';
+import { SavingThrows } from './CharacterSheet/SavingThrows';
 
 describe('CharacterEditForm behavior', () => {
   it('preserves a Wizard spellbook, preparations, inventory and spent resources when renaming', async () => {
@@ -14,6 +16,8 @@ describe('CharacterEditForm behavior', () => {
     }).draft;
     const character = calculateCharacterStats(draftToCreationData(draft));
     character.name = 'Before';
+    character.armorClass = 18;
+    character.equippedArmor = 'chain-mail';
     character.hitPoints = 0;
     character.resources = [
       {
@@ -55,6 +59,8 @@ describe('CharacterEditForm behavior', () => {
       'inventory',
       'resources',
       'currency',
+      'armorClass',
+      'equippedArmor',
       'hitPoints',
       'hitDice',
       'skills',
@@ -62,5 +68,169 @@ describe('CharacterEditForm behavior', () => {
       expect(result[key]).toEqual(original[key]);
     }
     expect(character).toEqual(original);
+  });
+
+  it('shows stored AC and skill values, including legacy skill keys and expertise', async () => {
+    const draft = getRecommendation({
+      classSlug: 'fighter',
+      edition: '2024',
+    }).draft;
+    const character = calculateCharacterStats(draftToCreationData(draft));
+    character.armorClass = 18;
+    character.equippedArmor = 'chain-mail';
+    character.skills = {
+      ...character.skills,
+      AnimalHandling: { value: 7, proficient: true },
+      Perception: { value: 6, proficient: true, expertise: true },
+      Stealth: { value: 0, proficient: false },
+    };
+    character.expertiseSkills = ['Animal Handling', 'Thieves’ Tools'];
+    const onDiceRoll = vi.fn();
+
+    render(
+      <>
+        <CharacterEditForm
+          character={character}
+          onSave={vi.fn()}
+          onCancel={vi.fn()}
+        />
+        <OfficialSkillsList
+          character={character}
+          onDiceRoll={onDiceRoll}
+          setRollResult={vi.fn()}
+        />
+      </>,
+    );
+
+    expect(
+      await screen.findByRole('group', { name: 'Armor Class' }),
+    ).toHaveTextContent('18');
+    expect(screen.queryByText('(10 + DEX)')).not.toBeInTheDocument();
+    const animalHandling = within(
+      screen.getByRole('group', { name: 'Animal Handling' }),
+    );
+    expect(animalHandling.getByText('+7')).toBeVisible();
+    expect(animalHandling.getByText('Expertise')).toBeVisible();
+    const proficiency = animalHandling.getByRole('checkbox', {
+      name: 'Animal Handling proficiency',
+    });
+    expect(proficiency).toBeChecked();
+    expect(proficiency).toBeDisabled();
+    const perception = within(
+      screen.getByRole('group', { name: 'Perception' }),
+    );
+    expect(perception.getByText('Expertise')).toBeVisible();
+    expect(perception.getByText('+6')).toBeVisible();
+    expect(
+      screen.getByRole('group', { name: 'Passive Perception' }),
+    ).toHaveTextContent('16');
+    const stealth = within(screen.getByRole('group', { name: 'Stealth' }));
+    expect(stealth.getByText('+0')).toBeVisible();
+    expect(stealth.getByRole('checkbox')).not.toBeChecked();
+    const sheetRoll = screen.getByRole('button', { name: /^Animal Handling/ });
+    expect(sheetRoll).toHaveTextContent('+7');
+    fireEvent.click(sheetRoll);
+    expect(onDiceRoll).toHaveBeenCalledWith(
+      expect.objectContaining({ modifier: 7 }),
+    );
+  });
+
+  it.each([
+    {
+      edition: '2014',
+      classSlug: 'unknown-slug',
+      className: 'Rogue',
+      charismaProficient: false,
+      dexterityProficient: true,
+    },
+    {
+      edition: '2024',
+      classSlug: 'rogue',
+      className: 'Fighter',
+      charismaProficient: true,
+      dexterityProficient: true,
+    },
+    {
+      edition: '2024',
+      classSlug: undefined,
+      className: 'Unknown class',
+      charismaProficient: false,
+      dexterityProficient: false,
+    },
+  ] as const)(
+    'uses the same $edition class saves in the editor, sheet, and rolls ($className)',
+    async ({
+      edition,
+      classSlug,
+      className,
+      charismaProficient,
+      dexterityProficient,
+    }) => {
+      const draft = getRecommendation({ classSlug: 'rogue', edition }).draft;
+      const character = calculateCharacterStats(draftToCreationData(draft));
+      character.class = className;
+      character.classSlug = classSlug;
+      character.level = 15;
+      character.proficiencyBonus = 5;
+      character.abilities.CHA = { score: 12, modifier: 1 };
+      const onDiceRoll = vi.fn();
+
+      render(
+        <>
+          <CharacterEditForm
+            character={character}
+            onSave={vi.fn()}
+            onCancel={vi.fn()}
+          />
+          <SavingThrows
+            character={character}
+            onDiceRoll={onDiceRoll}
+            setRollResult={vi.fn()}
+          />
+        </>,
+      );
+
+      const save = within(
+        await screen.findByRole('group', { name: 'CHA saving throw' }),
+      );
+      const proficiency = save.getByRole('checkbox', {
+        name: 'CHA saving throw proficiency',
+      });
+      expect(proficiency).toBeDisabled();
+      expect(proficiency).toHaveProperty('checked', charismaProficient);
+      expect(
+        screen.getByRole('checkbox', { name: 'DEX saving throw proficiency' }),
+      ).toHaveProperty('checked', dexterityProficient);
+      const modifier = charismaProficient ? '+6' : '+1';
+      expect(save.getByText(modifier)).toBeVisible();
+      const roll = screen.getByRole('button', {
+        name: new RegExp(`^CHA.*\\${modifier}$`),
+      });
+      fireEvent.click(roll);
+      expect(onDiceRoll).toHaveBeenCalledWith(
+        expect.objectContaining({ notation: `1d20${modifier}` }),
+      );
+    },
+  );
+
+  it('keeps proficiency fields read-only in manual entry', async () => {
+    render(
+      <CharacterEditForm
+        isCreating
+        edition="2014"
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('group', { name: 'Armor Class' }),
+    ).toHaveTextContent('10');
+    expect(
+      screen.getByRole('checkbox', { name: 'Perception proficiency' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('checkbox', { name: 'WIS saving throw proficiency' }),
+    ).toBeDisabled();
   });
 });
