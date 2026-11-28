@@ -224,7 +224,7 @@ for SLOs, alerts, OpenTelemetry export, load profiles, and the staging runbook.
 - **Database connection** — verify Docker is running
 - **Build errors** — check TypeScript configuration
 - **Database issues** — check logs with `npm run db:logs`
-- **CSS and layout** — see [CSS_TROUBLESHOOTING.md](../../CSS_TROUBLESHOOTING.md)
+- **CSS and layout** — see [CSS ownership and initiative tracker troubleshooting](src/styles/README.md)
 
 ## Documentation
 

@@ -41,3 +41,16 @@ regardless of specificity, so that is the only position from which
 `panel-layouts.css` can override both the layered component sheets and
 `chat.css`. Moving either into a layer silently disables the Widescreen
 reflow.
+
+## Troubleshoot initiative tracker styles
+
+Open the tracker and inspect an initiative card in browser DevTools. In the
+Styles and Computed panels, find the rule that supplies the value you see.
+Use the linked source location to trace the component styles back to
+[InitiativeTracker.module.css](../components/InitiativeTracker.module.css).
+
+If the expected rule is overridden, check selector specificity and cascade
+layers. If a rule uses a custom property, check its computed value on the
+card and which theme or panel layout supplies it. If the browser appears to
+be serving an older build, reload with the DevTools cache disabled and
+inspect the loaded CSS in the Network panel.
