@@ -65,91 +65,24 @@ NexusCodex is a document library microservice for a Virtual Tabletop (VTT) syste
 
 ## Common Commands
 
-### Start All Services
+### Local development
+
+Follow the [Codex development setup](../docs/codex/development-setup.md) for
+the root install, backing services, Prisma clients, migrations, and workspace
+start commands. Use the [homelab runbook](../docs/codex/operations/nexuscodex-homelab.md)
+for integrated deployment, logs, and health checks.
+
+Run these commands from the monorepo root.
 
 ```bash
-# Build and start all services (postgres, redis, minio, all microservices)
-docker compose up --build
-
-# Start in background
-docker compose up -d
-
-# View logs
-docker compose logs -f [service-name]
+npm run build:codex
+npm run test:codex
+npm run test:codex-eval
+npm run test:codex:integration
 ```
 
-### Stop Services
-
-```bash
-docker compose down
-
-# Stop and remove volumes (clean slate)
-docker compose down -v
-```
-
-### Database Management (Prisma)
-
-```bash
-cd services/doc-api  # or doc-processor or doc-websocket
-
-# Generate Prisma client after schema changes
-npm run prisma:generate
-
-# Push schema changes to database (dev only, no migrations)
-npm run prisma:push
-
-# Open Prisma Studio (GUI for database)
-npm run prisma:studio
-
-# Create migration (for production-ready schema changes)
-npm run prisma:migrate
-```
-
-### Development
-
-```bash
-cd services/[service-name]
-
-# Install dependencies
-npm install
-
-# Run in watch mode (hot reload with tsx for backend services)
-npm run dev
-
-# For admin-ui, uses Vite dev server
-cd services/admin-ui && npm run dev
-
-# Build TypeScript (backend services)
-npm run build
-
-# Build admin-ui for production
-cd services/admin-ui && npm run build
-
-# Start production build
-npm start
-```
-
-### Testing
-
-```bash
-# Quick smoke test (health checks for all services)
-./test-stack.sh
-
-# Run unit tests
-cd services/doc-api && npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run with coverage
-npm run test:coverage
-
-# Integration tests
-npm run test:integration
-
-# Full test suite (all services)
-./run-tests.sh all
-```
+The integration suite requires disposable backing services. For Prisma schema
+changes, use the development database and the commands in the setup guide.
 
 ### Data Import & SRD Content
 
@@ -231,17 +164,17 @@ After importing SRD content, you can add your own non-SRD content:
 3. Use the same `Document` + `StructuredData` structure
 4. Tag with custom tags to distinguish from SRD
 
-**Example: Import Spells Only**
+**Example: Import spells into a configured development environment**
 ```bash
 # Preview spell import
-docker compose exec doc-api npm run import:5e-srd -- --types spells --dry-run
+npm run import:5e-srd --workspace nexus-codex-doc-api -- --types spells --dry-run
 
 # Import spells to database
-docker compose exec doc-api npm run import:5e-srd -- --types spells
+npm run import:5e-srd --workspace nexus-codex-doc-api -- --types spells
 ```
 
 **Troubleshooting:**
-- ⚠️ **Must run inside Docker container** - Uses env vars (DATABASE_URL, S3_*, etc.)
+- Configure the API workspace environment and backing services before running the importer.
 - ⚠️ **Requires git** - Clones repository during import (or use `--repo-path` for pre-cloned repo)
 - ⚠️ **First run takes time** - Cloning repo and indexing 2000+ entries (5-10 minutes)
 - ⚠️ **Subsequent runs faster** - Only updates changed entries
@@ -334,21 +267,10 @@ updates:
 
 #### Base Image Updates
 
-Update Node.js and other base images regularly:
-
-```bash
-# Pull latest Node.js 22 alpine image
-docker pull node:22-alpine
-
-# Pull latest PostgreSQL 16
-docker pull postgres:16-alpine
-
-# Pull latest Redis 7
-docker pull redis:7-alpine
-
-# Rebuild all services with updated base images
-docker compose build --no-cache
-```
+Update base image pins in the owning Dockerfiles and verify the workspace
+build contracts with `npm run check:docker-build-contracts` from the monorepo
+root. Follow the [release policy](../../dev-docs/git-release-policy.md) to
+build and promote release images.
 
 #### Vulnerability Scanning
 
@@ -414,32 +336,22 @@ Before deploying updates:
 - [ ] Run `npm audit` on all services
 - [ ] Update `package.json` dependencies
 - [ ] Run `npm test` on all services
-- [ ] Test integration with `./test-stack.sh`
+- [ ] Run `npm run test:codex:integration` with disposable backing services
 - [ ] Update Docker base images
 - [ ] Scan Docker images for vulnerabilities
-- [ ] Test full stack with `docker compose up --build`
+- [ ] Verify the deployed stack using the [homelab validation steps](../docs/codex/operations/nexuscodex-homelab.md#validation)
 - [ ] Review CHANGELOG/release notes for breaking changes
 - [ ] Update documentation if APIs change
 - [ ] Create git tag for stable release
 
 ### Rollback Strategy
 
-If updates cause issues:
-
-```bash
-# Rollback to previous package versions
-git checkout HEAD~1 -- services/*/package*.json
-cd services/[service-name] && npm install
-
-# Rollback Docker images
-docker compose down
-git checkout HEAD~1 -- services/*/Dockerfile
-docker compose up --build
-
-# Rollback database migrations (Prisma)
-cd services/doc-api
-npx prisma migrate resolve --rolled-back <migration-name>
-```
+Use the [release policy](../../dev-docs/git-release-policy.md) to identify
+the last known good image. For a homelab rollout, apply the selected image
+through the [homelab runbook](../docs/codex/operations/nexuscodex-homelab.md)
+and repeat its health checks. Before rolling back an image, verify that it
+can run against the schema already deployed. Handle failed migrations
+through the owning service’s migration procedure.
 
 ### Version Pinning vs. Ranges
 
@@ -552,8 +464,8 @@ Each service requires a `.env` file (see `README.md` for full templates). Key va
 ## Testing Strategy
 
 - **Unit tests**: Test individual services, functions, and utilities
-- **Integration tests**: Test API endpoints with real database (uses `docker-compose.test.yml`)
-- **Smoke tests**: `test-stack.sh` validates all services are running and healthy
+- **Integration tests**: Run `npm run test:codex:integration` with disposable backing services.
+- **Smoke tests**: Follow the [homelab validation steps](../docs/codex/operations/nexuscodex-homelab.md#validation).
 - **Manual testing**: Use curl commands from `README.md` or Postman
 
 Unit tests are located in `__tests__` directories within each service's `src` folder.
@@ -763,7 +675,7 @@ S3_FORCE_PATH_STYLE=false  # GCS uses virtual-hosted-style URLs
 
 **No code changes required** - the existing AWS SDK works with GCS out of the box.
 
-See [DEPLOYMENT_GCP.md](../DEPLOYMENT_GCP.md) for step-by-step deployment instructions.
+See the [Codex deployment guide](../docs/codex/deployment.md#google-cloud-platform-deployment) for the GCP deployment overview.
 
 ## File Structure Highlights
 
@@ -816,11 +728,11 @@ services/
 
 ## Troubleshooting
 
-**Database connection errors**: Ensure `docker compose up` has fully started postgres (check `docker compose logs postgres`)
+**Database connection errors**: Verify that the PostgreSQL instance in the service configuration is running and reachable.
 
 **Prisma client not found**: Run `npm run prisma:generate` in the service directory
 
-**S3 upload failures**: Verify MinIO is running (`docker compose ps minio`) and credentials match `.env`
+**S3 upload failures**: Verify that the configured S3-compatible store is reachable and the service credentials match.
 
 **Search returns nothing**: Confirm migrations were applied with `prisma migrate deploy` (triggers, GIN indexes and `pg_trgm` come only from SQL migrations), then check `/api/admin/validation/search-index`
 
@@ -928,5 +840,5 @@ The admin interface implementation has **Phases 1-7 complete** with the followin
 - `services/doc-api/prisma/schema.prisma`: Complete data models (includes contentHash and TagMetadata)
 - `services/admin-ui/src/main.tsx`: Admin UI entry point
 - `services/admin-ui/src/pages/Health.tsx`: Health monitoring dashboard UI
-- `test-stack.sh`: Quick health check script
+- [Homelab validation](../docs/codex/operations/nexuscodex-homelab.md#validation): Service health checks
 - `README.md`: Comprehensive API documentation and examples

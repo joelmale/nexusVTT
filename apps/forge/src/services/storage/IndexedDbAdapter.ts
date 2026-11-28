@@ -320,11 +320,13 @@ export class IndexedDbAdapter implements IStorageService {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([STORE_NAME], 'readwrite');
-      const objectStore = transaction.objectStore(STORE_NAME);
-      const request = objectStore.put(character);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = () =>
+        reject(
+          transaction.error ??
+            new DOMException('Character update was aborted.', 'AbortError'),
+        );
+      transaction.objectStore(STORE_NAME).put(character);
     });
   }
 

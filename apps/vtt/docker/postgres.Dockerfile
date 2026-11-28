@@ -2,7 +2,11 @@
 # version changes with the homelab storage and bootstrap steps.
 FROM postgres:19.0-alpine
 
-RUN apk upgrade --no-cache
+# Security CI and Delivery pass a weekly value to refresh the APK build layer.
+ARG APK_REFRESH=unset
+RUN echo "apk refresh: $APK_REFRESH" && \
+    apk upgrade --no-cache && \
+    apk add --no-cache 'libxml2>=2.13.9-r5'
 
 # The upstream image ships /usr/local/bin/gosu built with an old Go toolchain,
 # which Trivy flags for stdlib CVEs. Replace it with Alpine's rebuilt package;

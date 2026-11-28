@@ -113,8 +113,12 @@ as authoritative.
 ## Editing an existing character
 
 Available section controls can update items, HP, coins, and other values.
-The repository also contains a manual character editor with an edition
-field, but the current sheet layouts do not expose a working route to it.
+Open **Edit character details** in the sheet header to edit general details.
+Ability score and skill proficiency changes update the preview and the saved
+modifiers. Removing a skill proficiency also removes its expertise. The editor
+keeps a saved armor class that differs from the equipment calculation unless
+you select **Recalculate AC from equipment**. Saving-throw proficiency is
+read-only. Use the sheet's level-up controls for progression.
 There is no reliable “resume creation” or automatic rules-conversion flow
 for an existing sheet. If a required correction has no reachable control,
 retain an export and report the missing control instead of assuming the
@@ -145,7 +149,7 @@ transfer; see [VTT onboarding](/vtt/features/character-onboarding).
 | No weapon attack is available | Confirm the weapon is carried and equipped |
 | An attack or spell modifier looks wrong | Compare abilities, proficiency, equipped items, and edition with your DM; use the agreed dice expression while tracking the defect |
 | A spell list is empty after creation | Compare it with your intended choices; review the creation handoff limitation before rebuilding |
-| General edit action is absent | Use supported section controls; retain a JSON backup and report the unavailable manual editor |
+| A value is read-only in the general editor | Use its sheet section controls where available |
 | A character is absent after changing browser | Return to the original browser/profile or import a saved backup |
 | Touch or keyboard navigation blocks progress | Try a larger screen or another layout and report the device, layout, and control name |
 

@@ -236,17 +236,6 @@ export const initialState: GameState & {
     unreadCount: 0,
   },
 
-  // Voice State
-  voice: {
-    channels: [],
-    activeChannelId: null,
-    isMuted: false,
-    isDeafened: false,
-    audioDevices: [],
-    selectedInputDevice: null,
-    selectedOutputDevice: null,
-  },
-
   // Connection State
   connection: {
     isConnected: false,

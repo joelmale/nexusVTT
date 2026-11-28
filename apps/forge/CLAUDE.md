@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-NexusForge is a **100% client-side** D&D 5e character creation and management application built with React 18, TypeScript, and Vite. All character data is stored in IndexedDB with no backend or server required.
+NexusForge is a **100% client-side** D&D 5e character creation and management application built with React 19, TypeScript, and Vite. All character data is stored in IndexedDB with no backend or server required.
 
 **Key Constraints:**
 - All data must remain client-side - no external API calls for character data
@@ -14,10 +14,13 @@ NexusForge is a **100% client-side** D&D 5e character creation and management ap
 
 ## Development Commands
 
+Start with the [Forge quick start](README.md#local-development). Run the commands
+below from `apps/forge` after installing and preparing the workspace.
+
 ### Essential Commands
 ```bash
-npm run dev          # Start dev server on http://localhost:3000
-npm run build        # TypeScript compile + Vite production build
+npm run dev          # Start Vite and open the URL it prints
+npm run build        # Vite production build
 npm run preview      # Preview production build locally
 npm run lint         # Run ESLint on all TypeScript files
 npm test             # Run Vitest test suite

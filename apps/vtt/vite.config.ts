@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -11,6 +14,7 @@ export default defineConfig(({ command, mode }) => {
   // Load env variables
   const isDev = command === 'serve';
   const isAnalyze = mode === 'analyze';
+  const isUiTestServer = isDev && mode === 'ui-test';
   return {
     base: '/',
     plugins: [
@@ -254,7 +258,22 @@ export default defineConfig(({ command, mode }) => {
     server: {
       port: parseInt(process.env.PORT || '5173'),
       host: true,
-      open: true,
+      open: !isUiTestServer,
+      ...(isUiTestServer && {
+        fs: {
+          allow: [
+            fileURLToPath(new URL('.', import.meta.url)),
+            path.join(
+              path.dirname(
+                createRequire(import.meta.url).resolve(
+                  '@fontsource/inter/package.json',
+                ),
+              ),
+              'files',
+            ),
+          ],
+        },
+      }),
       proxy: {
         '/api': {
           target: process.env.VITE_API_PROXY_URL || 'http://localhost:5001',

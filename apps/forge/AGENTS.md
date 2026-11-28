@@ -18,6 +18,10 @@
 
 ## Build, Test, and Development Commands
 
+Follow the [Forge quick start](README.md#local-development) to install dependencies
+and build shared packages from the monorepo root. Run the commands below from
+`apps/forge` after setup.
+
 ```bash
 npm run dev        # Start Vite dev server
 npm run build      # Production bundle (use build:dev for faster debug bundle)
@@ -25,14 +29,11 @@ npm run preview    # Preview the production build locally
 npm run lint       # ESLint over TS/TSX
 npm test           # Vitest unit/UI tests (jsdom)
 npm run test:ui    # Vitest UI runner
-npm run size-limit # Bundle size guard
 ```
-
-Docker helpers: `npm run docker:build`, `docker:run`, `docker:logs`, `docker:restart`, `docker:stop`.
 
 ## Coding Style & Naming Conventions
 
-- TypeScript + React 18 with Vite; prefer functional components and hooks.
+- TypeScript + React 19 with Vite; prefer functional components and hooks.
 - ESLint (typescript-eslint, react-hooks, react-refresh) enforces quality: no console in prod code, exhaustive deps required, unused vars flagged unless prefixed with `_`.
 - Formatting follows the existing style (2-space indent, no mandatory semicolons). Use PascalCase for components/files, camelCase for utilities, SCREAMING_SNAKE_CASE for constants. Hooks must start with `use...`; tests mirror source path with `.test.ts`/`.test.tsx`.
 

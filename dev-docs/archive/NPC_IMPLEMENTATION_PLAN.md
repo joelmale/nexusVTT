@@ -1,5 +1,8 @@
 # NPC Tab Implementation Plan
 
+This historical plan records the completed Forge NPC tab implementation.
+For current setup and usage, see the [Forge README](../../apps/forge/README.md).
+
 ## Overview
 Implement an NPC tab for the NexusForge app that allows DMs to generate and manage simple NPC character sheets. Unlike the prepopulated monster library, this tab focuses on user-generated NPCs with random generation and full customization capabilities.
 

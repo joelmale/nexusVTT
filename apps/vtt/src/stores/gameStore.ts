@@ -43,7 +43,6 @@ import { createCharactersSlice } from '@/stores/game/charactersSlice';
 import { createDevSlice } from '@/stores/game/devSlice';
 import { createSettingsSlice } from '@/stores/game/settingsSlice';
 import { createChatSlice } from '@/stores/game/chatSlice';
-import { createVoiceSlice } from '@/stores/game/voiceSlice';
 
 
 /**
@@ -2277,9 +2276,6 @@ export const useGameStore = create<GameStore>()(
 
       // Chat Actions — extracted to src/stores/game/chatSlice.ts
       ...createChatSlice(set, get),
-
-      // Voice Actions — extracted to src/stores/game/voiceSlice.ts
-      ...createVoiceSlice(set),
 
       // Connection Actions
       updateConnectionState: (updates) => {

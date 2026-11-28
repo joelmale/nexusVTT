@@ -26,6 +26,9 @@ Each player should:
 3. Join with the room code from the host.
 4. Confirm they can see the same room state as the host.
 
+Use the in-game chat panel for text messages. For live conversation, your group
+can use an external chat app of its choice.
+
 ## Create A Simple Scene
 
 1. Open the scene or map tools.

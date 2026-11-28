@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { Character } from '../types/dnd';
 import { CharacterEditForm } from './CharacterEditForm';
@@ -17,7 +17,30 @@ export const CharacterEditModal: React.FC<CharacterEditModalProps> = ({
   onSave,
 }) => {
   const [error, setError] = useState<string>();
+  const [isSaving, setIsSaving] = useState(false);
+  const saveInProgress = useRef(false);
   if (!isOpen) return null;
+
+  const saveCharacter = async (updatedCharacter: Character): Promise<void> => {
+    if (saveInProgress.current) return;
+    saveInProgress.current = true;
+    setIsSaving(true);
+    setError(undefined);
+    try {
+      await onSave(updatedCharacter);
+    } catch (caught: unknown) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Character could not be saved. Your edits are still open.',
+      );
+      return;
+    } finally {
+      saveInProgress.current = false;
+      setIsSaving(false);
+    }
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -29,6 +52,8 @@ export const CharacterEditModal: React.FC<CharacterEditModalProps> = ({
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close character editor"
+            disabled={isSaving}
             className="p-2 hover:bg-theme-secondary rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-theme-muted hover:text-white" />
@@ -40,18 +65,8 @@ export const CharacterEditModal: React.FC<CharacterEditModalProps> = ({
           {error && <p role="alert">{error}</p>}
           <CharacterEditForm
             character={character}
-            onSave={(updatedCharacter) => {
-              setError(undefined);
-              void Promise.resolve(onSave(updatedCharacter))
-                .then(onClose)
-                .catch((caught: unknown) => {
-                  setError(
-                    caught instanceof Error
-                      ? caught.message
-                      : 'Character could not be saved. Your edits are still open.',
-                  );
-                });
-            }}
+            isSaving={isSaving}
+            onSave={saveCharacter}
             onCancel={onClose}
             isCreating={false}
           />

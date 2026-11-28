@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Character, Encounter, NPC, UserMonster } from '../../types/dnd';
 import type { SpellbookEntry } from './IStorageService';
 import { IndexedDbAdapter } from './IndexedDbAdapter';
@@ -54,6 +54,29 @@ describe('IndexedDbAdapter characters', () => {
     const [loaded] = await storage.getAllCharacters();
     expect(loaded.edition).toBe('2014');
     expect(loaded).toMatchObject({ id: 'legacy', hitPoints: 7 });
+  });
+
+  it('rejects an update if the transaction aborts after the write request succeeds', async () => {
+    await storage.addCharacter(character('a'));
+    const put = IDBObjectStore.prototype.put;
+    const spy = vi
+      .spyOn(IDBObjectStore.prototype, 'put')
+      .mockImplementationOnce(function (this: IDBObjectStore, ...args) {
+        const request = put.apply(this, args);
+        request.addEventListener('success', () => this.transaction.abort(), {
+          once: true,
+        });
+        return request;
+      });
+
+    try {
+      await expect(
+        storage.updateCharacter(character('a', { name: 'Unsaved' })),
+      ).rejects.toMatchObject({ name: 'AbortError' });
+      expect((await storage.getAllCharacters())[0].name).toBe('Hero a');
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

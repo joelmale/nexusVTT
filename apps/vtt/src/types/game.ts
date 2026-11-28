@@ -127,9 +127,6 @@ export interface GameState {
   // Chat
   chat: ChatState;
 
-  // Voice
-  voice: VoiceState;
-
   // Connection Quality
   connection: ConnectionState;
 
@@ -701,24 +698,6 @@ export interface ChatUserTypingEvent extends GameEvent {
   };
 }
 
-// Voice Chat Types
-export interface VoiceChannel {
-  id: string;
-  name: string;
-  participants: string[]; // User IDs
-  isActive: boolean;
-}
-
-export interface VoiceState {
-  channels: VoiceChannel[];
-  activeChannelId: string | null;
-  isMuted: boolean;
-  isDeafened: boolean;
-  audioDevices: MediaDeviceInfo[];
-  selectedInputDevice: string | null;
-  selectedOutputDevice: string | null;
-}
-
 export interface ConnectionState {
   isConnected: boolean;
   quality: 'excellent' | 'good' | 'poor' | 'critical' | 'disconnected';
@@ -726,32 +705,6 @@ export interface ConnectionState {
   packetLoss: number;
   lastUpdate: number;
   reconnectAttempts: number;
-}
-
-// Voice Chat Events
-export interface VoiceChannelJoinEvent extends GameEvent {
-  type: 'voice/join';
-  data: {
-    channelId: string;
-    userId: string;
-  };
-}
-
-export interface VoiceChannelLeaveEvent extends GameEvent {
-  type: 'voice/leave';
-  data: {
-    channelId: string;
-    userId: string;
-  };
-}
-
-export interface VoiceStateUpdateEvent extends GameEvent {
-  type: 'voice/state';
-  data: {
-    userId: string;
-    isMuted: boolean;
-    isDeafened: boolean;
-  };
 }
 
 export interface UpdateConfirmedEvent extends GameEvent {

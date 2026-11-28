@@ -819,8 +819,8 @@ asset and storage ownership is settled.
 
 ### S4.5 Product decisions
 
-Decide whether to complete or hide the sounds panel, spell tab, voice/WebRTC
-actions, and development-only administration sections.
+Decide whether to complete or hide the sounds panel, spell tab, and
+development-only administration sections.
 
 ## 12. Verification strategy
 

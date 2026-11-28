@@ -1,14 +1,25 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Save, X, AlertCircle } from 'lucide-react';
-import { Character } from '../types/dnd';
+import {
+  ABILITY_KEYS,
+  STANDARD_SKILLS,
+  calculateProficiencyBonus,
+} from '@nexus/character-contracts';
+
+import type { Character } from '../types/dnd';
 import { loadClasses, loadSpecies, BACKGROUNDS } from '../services/dataService';
-import { buildCompleteSpellcasting } from '../utils/characterEditUtils';
-import { calculateAbilityModifier, ABILITY_KEYS } from '@nexus/character-contracts';
+import { generateUUID } from '../services/diceService';
+import {
+  deriveExistingCharacterEdit,
+  deriveManualCharacterStats,
+} from '../utils/characterEditUtils';
+import { getSavingThrowProficiencies } from '../utils/savingThrows';
 
 interface CharacterEditFormProps {
   character?: Character; // If provided, we're editing; if not, we're creating
   onSave: (character: Character) => void;
   onCancel: () => void;
+  isSaving?: boolean;
   isCreating?: boolean;
   edition?: '2014' | '2024'; // Edition to use for new characters
 }
@@ -40,15 +51,8 @@ interface FormData {
   initiative: number;
   speed: number;
   proficiencyBonus: number;
-
-  // Skills (proficiencies)
-  skills: Record<
-    string,
-    { proficient: boolean; expertise: boolean; modifier: number }
-  >;
-
-  // Saving Throws
-  savingThrows: Record<string, boolean>; // true if proficient
+  skillProficiencies?: Partial<Record<string, boolean>>;
+  useEquipmentArmorClass?: boolean;
 
   // Class-specific selections
   num_instrument_choices?: number;
@@ -58,15 +62,7 @@ interface FormData {
   languages: string[];
 
   // Equipment & Inventory
-  equipment: Array<{ name: string; quantity: number }>;
   currency: { cp: number; sp: number; gp: number; pp: number };
-
-  // Spells (simplified for now)
-  spellcasting?: {
-    ability: 'INT' | 'WIS' | 'CHA';
-    cantripsKnown: string[];
-    spellsKnown: string[];
-  };
 
   // Features & Traits
   featuresAndTraits: {
@@ -82,57 +78,11 @@ interface FormData {
 }
 
 const ABILITY_NAMES = ABILITY_KEYS;
-const SKILL_NAMES = [
-  'Acrobatics',
-  'Animal Handling',
-  'Arcana',
-  'Athletics',
-  'Deception',
-  'History',
-  'Insight',
-  'Intimidation',
-  'Investigation',
-  'Medicine',
-  'Nature',
-  'Perception',
-  'Performance',
-  'Persuasion',
-  'Religion',
-  'Sleight of Hand',
-  'Stealth',
-  'Survival',
-];
-
-// Map skills to their governing abilities
-const SKILL_TO_ABILITY: Record<string, string> = {
-  Acrobatics: 'DEX',
-  'Animal Handling': 'WIS',
-  Arcana: 'INT',
-  Athletics: 'STR',
-  Deception: 'CHA',
-  History: 'INT',
-  Insight: 'WIS',
-  Intimidation: 'CHA',
-  Investigation: 'INT',
-  Medicine: 'WIS',
-  Nature: 'INT',
-  Perception: 'WIS',
-  Performance: 'CHA',
-  Persuasion: 'CHA',
-  Religion: 'INT',
-  'Sleight of Hand': 'DEX',
-  Stealth: 'DEX',
-  Survival: 'WIS',
-};
-
-const getAbilityForSkill = (skill: string): string => {
-  return SKILL_TO_ABILITY[skill] || 'STR';
-};
-
 export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
   character,
   onSave,
   onCancel,
+  isSaving = false,
   isCreating = false,
   edition = '2024',
 }) => {
@@ -144,73 +94,41 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
   const derivedStats = useMemo(() => {
     if (!formData) return null;
 
-    const proficiencyBonus = Math.floor((formData.level - 1) / 4) + 2;
-
-    // Calculate ability modifiers
-    const abilityModifiers = {
-      STR: calculateAbilityModifier(formData.abilities.STR),
-      DEX: calculateAbilityModifier(formData.abilities.DEX),
-      CON: calculateAbilityModifier(formData.abilities.CON),
-      INT: calculateAbilityModifier(formData.abilities.INT),
-      WIS: calculateAbilityModifier(formData.abilities.WIS),
-      CHA: calculateAbilityModifier(formData.abilities.CHA),
-    };
-
-    // Calculate saving throws (base modifier + proficiency if proficient)
-    const savingThrows = {
-      STR:
-        abilityModifiers.STR +
-        (formData.savingThrows.STR ? proficiencyBonus : 0),
-      DEX:
-        abilityModifiers.DEX +
-        (formData.savingThrows.DEX ? proficiencyBonus : 0),
-      CON:
-        abilityModifiers.CON +
-        (formData.savingThrows.CON ? proficiencyBonus : 0),
-      INT:
-        abilityModifiers.INT +
-        (formData.savingThrows.INT ? proficiencyBonus : 0),
-      WIS:
-        abilityModifiers.WIS +
-        (formData.savingThrows.WIS ? proficiencyBonus : 0),
-      CHA:
-        abilityModifiers.CHA +
-        (formData.savingThrows.CHA ? proficiencyBonus : 0),
-    };
-
-    // Calculate skill modifiers (base modifier + proficiency if proficient)
-    const skillModifiers: Record<string, number> = {};
-    SKILL_NAMES.forEach((skill) => {
-      const abilityKey = getAbilityForSkill(skill);
-      const baseModifier =
-        abilityModifiers[abilityKey as keyof typeof abilityModifiers];
-      const proficient = formData.skills[skill]?.proficient || false;
-      const expertise = formData.skills[skill]?.expertise || false;
-
-      if (expertise) {
-        skillModifiers[skill] = baseModifier + proficiencyBonus * 2;
-      } else if (proficient) {
-        skillModifiers[skill] = baseModifier + proficiencyBonus;
-      } else {
-        skillModifiers[skill] = baseModifier;
-      }
-    });
-
-    // Calculate initiative (DEX modifier)
-    const initiative = abilityModifiers.DEX;
-
-    // Calculate AC (base 10 + DEX modifier + any armor/shields - simplified for now)
-    const ac = 10 + abilityModifiers.DEX; // TODO: Add armor calculations
+    const edited = character
+      ? deriveExistingCharacterEdit(
+          character,
+          formData.abilities,
+          formData.skillProficiencies,
+          formData.useEquipmentArmorClass,
+        )
+      : undefined;
+    const proficiencyBonus =
+      character?.proficiencyBonus ?? calculateProficiencyBonus(formData.level);
+    const stats =
+      edited ??
+      deriveManualCharacterStats(
+        formData.abilities,
+        proficiencyBonus,
+        formData.skillProficiencies,
+      );
+    const abilityModifiers = Object.fromEntries(
+      ABILITY_NAMES.map((ability) => [
+        ability,
+        stats.abilities[ability].modifier,
+      ]),
+    );
 
     return {
+      edited,
+      stats,
       proficiencyBonus,
       abilityModifiers,
-      savingThrows,
-      skillModifiers,
-      initiative,
-      ac,
+      proficientSaves: getSavingThrowProficiencies(character ?? formData),
+      skills: stats.skillPreview,
+      initiative: stats.initiative,
+      ac: stats.armorClass,
     };
-  }, [formData]);
+  }, [character, formData]);
 
   // Load available options
   const classes = useMemo(
@@ -252,46 +170,13 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
           speed: character.speed || 30,
           proficiencyBonus: character.proficiencyBonus,
 
-          skills: SKILL_NAMES.reduce(
-            (acc, skill) => {
-              acc[skill] = {
-                proficient: false, // TODO: Get from character data
-                expertise: false,
-                modifier: 0, // TODO: Calculate based on ability + proficiency
-              };
-              return acc;
-            },
-            {} as Record<
-              string,
-              { proficient: boolean; expertise: boolean; modifier: number }
-            >,
-          ),
-
-          savingThrows: {
-            STR: false, // TODO: Get from character data
-            DEX: false,
-            CON: false,
-            INT: false,
-            WIS: false,
-            CHA: false,
-          },
-
           num_instrument_choices: 0, // Will be set based on class
           selectedMusicalInstruments:
             character?.featuresAndTraits.musicalInstrumentProficiencies || [],
 
           languages: character?.languages || [],
 
-          equipment: [], // TODO: Get from character inventory
           currency: character.currency || { cp: 0, sp: 0, gp: 0, pp: 0 },
-
-          spellcasting: character.spellcasting
-            ? {
-                ability: character.spellcasting.ability,
-                cantripsKnown: character.spellcasting.cantripsKnown,
-                spellsKnown: character.spellcasting.spellsKnown || [],
-              }
-            : undefined,
 
           featuresAndTraits: structuredClone(character.featuresAndTraits),
         });
@@ -315,32 +200,11 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
           speed: 30,
           proficiencyBonus: 2,
 
-          skills: SKILL_NAMES.reduce(
-            (acc, skill) => {
-              acc[skill] = { proficient: false, expertise: false, modifier: 0 };
-              return acc;
-            },
-            {} as Record<
-              string,
-              { proficient: boolean; expertise: boolean; modifier: number }
-            >,
-          ),
-
-          savingThrows: {
-            STR: false,
-            DEX: false,
-            CON: false,
-            INT: false,
-            WIS: false,
-            CHA: false,
-          },
-
           num_instrument_choices: 0,
           selectedMusicalInstruments: [],
 
           languages: [],
 
-          equipment: [],
           currency: { cp: 0, sp: 0, gp: 0, pp: 0 },
 
           featuresAndTraits: {
@@ -394,7 +258,12 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
     // Basic required fields
     if (!formData?.name.trim()) newErrors.name = 'Character name is required';
     if (!formData?.species) newErrors.species = 'Species selection is required';
-    if (!formData?.class) newErrors.class = 'Class selection is required';
+    if (
+      !formData?.class ||
+      (!character && !classes.some(({ name }) => name === formData.class))
+    ) {
+      newErrors.class = 'Class selection is required';
+    }
     if (!formData?.background)
       newErrors.background = 'Background selection is required';
 
@@ -464,7 +333,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
       }
 
       // Check for class-specific requirements
-      if (formData.class) {
+      if (character && formData.class) {
         const selectedClass = classes.find((c) => c.name === formData.class);
         if (selectedClass) {
           // Check if character meets basic class requirements
@@ -496,23 +365,48 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
   };
 
   const handleSave = () => {
-    if (!formData || !validateForm()) return;
+    if (!formData || !derivedStats || isSaving || !validateForm()) return;
+    const { edited, stats, proficiencyBonus } = derivedStats;
+    if (!character) {
+      const selectedClass = classes.find(({ name }) => name === formData.class);
+      if (!selectedClass) return;
 
-    // This sheet has no spell selection editor. Preserve its complete casting
-    // state, including a Wizard's book, daily preparations and spent resources.
-    const preservedSpellcasting =
-      character?.spellcasting ??
-      buildCompleteSpellcasting(formData.spellcasting, {
-        class: formData.class,
+      onSave({
+        id: generateUUID(),
+        name: formData.name.trim(),
+        species: formData.species,
+        class: selectedClass.slug,
+        classSlug: selectedClass.slug,
         level: formData.level,
-        abilities: formData.abilities,
-        proficiencyBonus: formData.proficiencyBonus,
+        alignment: formData.alignment,
+        background: formData.background,
+        edition: formData.edition,
+        abilities: stats.abilities,
+        hitPoints: formData.hitPoints,
+        maxHitPoints: formData.maxHitPoints,
+        armorClass: stats.armorClass,
+        initiative: stats.initiative,
+        speed: formData.speed,
+        proficiencyBonus,
+        hitDice: {
+          current: formData.level,
+          max: formData.level,
+          dieType: selectedClass.hit_die,
+        },
+        skills: stats.skills,
+        inspiration: false,
+        languages: [...new Set(formData.languages.filter(Boolean))],
+        inventory: [],
+        currency: formData.currency,
+        featuresAndTraits: formData.featuresAndTraits,
+        subclass: null,
       });
+      return;
+    }
 
-    // Convert only explicitly edited fields; preserve inventory and play state.
-    const characterData: Character = {
+    if (!edited) return;
+    onSave({
       ...character,
-      id: character?.id || `manual_${Date.now()}`,
       name: formData.name,
       species: formData.species,
       class: formData.class,
@@ -520,92 +414,25 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
       alignment: formData.alignment,
       background: formData.background,
       edition: formData.edition,
-
-      abilities: {
-        STR: {
-          score: formData.abilities.STR,
-          modifier: calculateAbilityModifier(formData.abilities.STR),
-        },
-        DEX: {
-          score: formData.abilities.DEX,
-          modifier: calculateAbilityModifier(formData.abilities.DEX),
-        },
-        CON: {
-          score: formData.abilities.CON,
-          modifier: calculateAbilityModifier(formData.abilities.CON),
-        },
-        INT: {
-          score: formData.abilities.INT,
-          modifier: calculateAbilityModifier(formData.abilities.INT),
-        },
-        WIS: {
-          score: formData.abilities.WIS,
-          modifier: calculateAbilityModifier(formData.abilities.WIS),
-        },
-        CHA: {
-          score: formData.abilities.CHA,
-          modifier: calculateAbilityModifier(formData.abilities.CHA),
-        },
-      },
-
+      abilities: edited.abilities,
       hitPoints: formData.hitPoints,
       maxHitPoints: formData.maxHitPoints,
-      armorClass: formData.armorClass,
-      initiative: formData.initiative,
+      armorClass: edited.armorClass,
+      initiative: edited.initiative,
       speed: formData.speed,
       proficiencyBonus: formData.proficiencyBonus,
-
-      hitDice: character?.hitDice || {
-        current: formData.level,
-        max: formData.level,
-        dieType: 8,
-      },
-
-      skills: character?.skills || {
-        Acrobatics: { value: 0, proficient: false },
-        AnimalHandling: { value: 0, proficient: false },
-        Arcana: { value: 0, proficient: false },
-        Athletics: { value: 0, proficient: false },
-        Deception: { value: 0, proficient: false },
-        History: { value: 0, proficient: false },
-        Insight: { value: 0, proficient: false },
-        Intimidation: { value: 0, proficient: false },
-        Investigation: { value: 0, proficient: false },
-        Medicine: { value: 0, proficient: false },
-        Nature: { value: 0, proficient: false },
-        Perception: { value: 0, proficient: false },
-        Performance: { value: 0, proficient: false },
-        Persuasion: { value: 0, proficient: false },
-        Religion: { value: 0, proficient: false },
-        SleightOfHand: { value: 0, proficient: false },
-        Stealth: { value: 0, proficient: false },
-        Survival: { value: 0, proficient: false },
-      },
-
-      inspiration: character?.inspiration || false,
-
-      // TODO: Properly populate these from form data
-      languages: character?.languages ?? [],
-      inventory: character?.inventory ?? [],
+      skills: edited.skills,
+      inspiration: character.inspiration || false,
+      languages: character.languages ?? [],
+      inventory: character.inventory ?? [],
       currency: formData.currency,
-
-      spellcasting: preservedSpellcasting,
-
+      spellcasting: edited.spellcasting,
       featuresAndTraits: formData.featuresAndTraits,
-
-      // TODO: Add other required fields
-      subclass: character?.subclass || null,
-      divineOrder: character?.divineOrder,
-      primalOrder: character?.primalOrder,
-      pactBoon: character?.pactBoon,
-      expertiseSkills: character?.expertiseSkills || [],
-      selectedFightingStyle: character?.selectedFightingStyle,
-      selectedFeats: character?.selectedFeats || [],
-      srdFeatures: character?.srdFeatures,
-      resources: character?.resources || [],
-    };
-
-    onSave(characterData);
+      subclass: character.subclass || null,
+      expertiseSkills: edited.expertiseSkills,
+      selectedFeats: character.selectedFeats || [],
+      resources: character.resources || [],
+    });
   };
 
   if (!formData) {
@@ -626,6 +453,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
         <div className="flex gap-2">
           <button
             onClick={onCancel}
+            disabled={isSaving}
             className="px-4 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg flex items-center gap-2"
           >
             <X className="w-4 h-4" />
@@ -633,11 +461,11 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
           </button>
           <button
             onClick={handleSave}
-            disabled={!isDirty}
+            disabled={!isDirty || isSaving}
             className="px-4 py-2 bg-accent-green hover:bg-accent-green-light rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4" />
-            Save Character
+            {isSaving ? 'Saving Character…' : 'Save Character'}
           </button>
         </div>
       </div>
@@ -650,7 +478,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
       )}
 
       {/* Character Sheet Form - Classic D&D Layout */}
-      <div className="grid grid-cols-12 gap-4">
+      <fieldset disabled={isSaving} className="grid grid-cols-12 gap-4">
         {/* LEFT COLUMN - Basic Info + Ability Scores */}
         <div className="col-span-4 space-y-4">
           {/* Basic Info */}
@@ -687,6 +515,8 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                     min="1"
                     max="20"
                     value={formData.level}
+                    aria-label="Level"
+                    readOnly={Boolean(character)}
                     onChange={(e) =>
                       updateFormData({ level: parseInt(e.target.value) || 1 })
                     }
@@ -699,6 +529,8 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                   </label>
                   <select
                     value={formData.edition}
+                    aria-label="Edition"
+                    disabled={Boolean(character)}
                     onChange={(e) =>
                       updateFormData({
                         edition: e.target.value as '2014' | '2024',
@@ -718,6 +550,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                 </label>
                 <select
                   value={formData.species}
+                  aria-label="Species"
                   onChange={(e) => updateFormData({ species: e.target.value })}
                   className={`w-full px-3 py-2 bg-theme-tertiary border rounded text-white ${
                     errors.species ? 'border-red-500' : 'border-theme-primary'
@@ -741,12 +574,20 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                 </label>
                 <select
                   value={formData.class}
+                  aria-label="Class"
+                  disabled={Boolean(character)}
                   onChange={(e) => updateFormData({ class: e.target.value })}
                   className={`w-full px-3 py-2 bg-theme-tertiary border rounded text-white ${
                     errors.class ? 'border-red-500' : 'border-theme-primary'
                   }`}
                 >
                   <option value="">Select Class</option>
+                  {character &&
+                    !classes.some(
+                      (entry) => entry.name === character.class,
+                    ) && (
+                      <option value={character.class}>{character.class}</option>
+                    )}
                   {classes.map((c) => (
                     <option key={c.slug} value={c.name}>
                       {c.name}
@@ -764,6 +605,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                 </label>
                 <select
                   value={formData.background}
+                  aria-label="Background"
                   onChange={(e) =>
                     updateFormData({ background: e.target.value })
                   }
@@ -827,6 +669,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                     type="number"
                     min="1"
                     max="30"
+                    aria-label={ability}
                     value={
                       formData.abilities[
                         ability as keyof typeof formData.abilities
@@ -868,42 +711,45 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
               Skills
             </h3>
             <div className="space-y-2">
-              {SKILL_NAMES.map((skill) => (
-                <div key={skill} className="flex items-center justify-between">
-                  <span className="text-sm">{skill}</span>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`w-16 px-2 py-1 bg-theme-tertiary border border-theme-primary rounded text-white text-center ${
-                        (derivedStats?.skillModifiers[skill] || 0) >= 0
-                          ? 'text-green-400'
-                          : 'text-red-400'
-                      }`}
-                    >
-                      {(() => {
-                        const modifier =
-                          derivedStats?.skillModifiers[skill] || 0;
-                        return (modifier >= 0 ? '+' : '') + modifier;
-                      })()}
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={formData.skills[skill]?.proficient || false}
-                      onChange={(e) => {
-                        updateFormData({
-                          skills: {
-                            ...formData.skills,
-                            [skill]: {
-                              ...formData.skills[skill],
-                              proficient: e.target.checked,
+              {STANDARD_SKILLS.map(({ name: skill }) => {
+                const stats = derivedStats?.skills.get(skill);
+                const modifier = stats?.modifier ?? 0;
+                return (
+                  <div
+                    key={skill}
+                    role="group"
+                    aria-label={skill}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-sm">{skill}</span>
+                    <div className="flex items-center gap-2">
+                      {stats?.expertise && (
+                        <span className="text-sm">Expertise</span>
+                      )}
+                      <span
+                        className={`w-16 px-2 py-1 bg-theme-tertiary border border-theme-primary rounded text-center ${modifier >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                      >
+                        {modifier >= 0 ? '+' : ''}
+                        {modifier}
+                      </span>
+                      <input
+                        type="checkbox"
+                        aria-label={`${skill} proficiency`}
+                        checked={stats?.proficient ?? false}
+                        onChange={(event) =>
+                          updateFormData({
+                            skillProficiencies: {
+                              ...formData.skillProficiencies,
+                              [skill]: event.target.checked,
                             },
-                          },
-                        });
-                      }}
-                      className="w-4 h-4"
-                    />
+                          })
+                        }
+                        className="w-4 h-4"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -965,29 +811,37 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                   <label className="block text-sm font-medium text-theme-muted mb-1">
                     Armor Class
                   </label>
-                  <div className="flex">
-                    <span className="flex-1 px-3 py-2 bg-theme-disabled border border-theme-primary rounded-l text-white text-center font-bold">
-                      {derivedStats?.ac || 10}
-                    </span>
-                    <span className="px-3 py-2 bg-theme-tertiary border-t border-r border-b border-theme-primary rounded-r text-theme-muted text-sm flex items-center">
-                      (10 + DEX)
+                  <div role="group" aria-label="Armor Class" className="flex">
+                    <span className="flex-1 px-3 py-2 bg-theme-disabled border border-theme-primary rounded text-white text-center font-bold">
+                      {derivedStats?.ac ?? 10}
                     </span>
                   </div>
+                  {derivedStats?.edited?.hasCustomArmorClass && (
+                    <label className="flex items-center gap-2 text-sm text-theme-muted">
+                      <input
+                        type="checkbox"
+                        checked={formData.useEquipmentArmorClass ?? false}
+                        onChange={(event) =>
+                          updateFormData({
+                            useEquipmentArmorClass: event.target.checked,
+                          })
+                        }
+                      />
+                      Recalculate AC from equipment
+                    </label>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-theme-muted mb-1">
                     Initiative
                   </label>
-                  <div className="flex">
-                    <span className="flex-1 px-3 py-2 bg-theme-disabled border border-theme-primary rounded-l text-white text-center">
+                  <div role="group" aria-label="Initiative" className="flex">
+                    <span className="flex-1 px-3 py-2 bg-theme-disabled border border-theme-primary rounded text-white text-center">
                       {(() => {
                         const initiative = derivedStats?.initiative || 0;
                         return (initiative >= 0 ? '+' : '') + initiative;
                       })()}
-                    </span>
-                    <span className="px-3 py-2 bg-theme-tertiary border-t border-r border-b border-theme-primary rounded-r text-theme-muted text-sm flex items-center">
-                      (DEX)
                     </span>
                   </div>
                 </div>
@@ -1010,17 +864,14 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                   <label className="block text-sm font-medium text-theme-muted mb-1">
                     Passive Perception
                   </label>
-                  <div className="flex">
+                  <div
+                    role="group"
+                    aria-label="Passive Perception"
+                    className="flex"
+                  >
                     <span className="flex-1 px-3 py-2 bg-theme-disabled border border-theme-primary rounded text-white text-center font-bold">
-                      {(() => {
-                        const wisMod = derivedStats?.abilityModifiers.WIS || 0;
-                        const perceptionProf =
-                          formData.skills['Perception']?.proficient || false;
-                        const profBonus = derivedStats?.proficiencyBonus || 2;
-                        const passive =
-                          10 + wisMod + (perceptionProf ? profBonus : 0);
-                        return passive;
-                      })()}
+                      {10 +
+                        (derivedStats?.skills.get('Perception')?.modifier ?? 0)}
                     </span>
                   </div>
                 </div>
@@ -1034,50 +885,39 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
               Saving Throws
             </h3>
             <div className="grid grid-cols-2 gap-3">
-              {ABILITY_NAMES.map((ability) => (
-                <div
-                  key={ability}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-sm">{ability}</span>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`w-16 px-2 py-1 bg-theme-tertiary border border-theme-primary rounded text-white text-center ${
-                        (derivedStats?.savingThrows[
-                          ability as keyof typeof derivedStats.savingThrows
-                        ] || 0) >= 0
-                          ? 'text-green-400'
-                          : 'text-red-400'
-                      }`}
-                    >
-                      {(() => {
-                        const save =
-                          derivedStats?.savingThrows[
-                            ability as keyof typeof derivedStats.savingThrows
-                          ] || 0;
-                        return (save >= 0 ? '+' : '') + save;
-                      })()}
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={
-                        formData.savingThrows[
-                          ability as keyof typeof formData.savingThrows
-                        ] || false
-                      }
-                      onChange={(e) => {
-                        updateFormData({
-                          savingThrows: {
-                            ...formData.savingThrows,
-                            [ability]: e.target.checked,
-                          },
-                        });
-                      }}
-                      className="w-4 h-4"
-                    />
+              {ABILITY_NAMES.map((ability) => {
+                const proficient =
+                  derivedStats?.proficientSaves.includes(ability) ?? false;
+                const base = derivedStats?.abilityModifiers[ability] ?? 0;
+                const modifier =
+                  base +
+                  (proficient ? (derivedStats?.proficiencyBonus ?? 0) : 0);
+                return (
+                  <div
+                    key={ability}
+                    role="group"
+                    aria-label={`${ability} saving throw`}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-sm">{ability}</span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-16 px-2 py-1 bg-theme-tertiary border border-theme-primary rounded text-center ${modifier >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                      >
+                        {modifier >= 0 ? '+' : ''}
+                        {modifier}
+                      </span>
+                      <input
+                        type="checkbox"
+                        aria-label={`${ability} saving throw proficiency`}
+                        checked={proficient}
+                        disabled
+                        className="w-4 h-4"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -1278,6 +1118,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                 <div key={index} className="flex items-center gap-2">
                   <select
                     value={formData.languages?.[index] || ''}
+                    aria-label={`Language ${index + 1}`}
                     onChange={(e) => {
                       const newLanguages = [...(formData.languages || [])];
                       newLanguages[index] = e.target.value;
@@ -1360,6 +1201,7 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                       type="number"
                       min="0"
                       value={formData.currency[currency]}
+                      aria-label={`${currency.toUpperCase()} currency`}
                       onChange={(e) =>
                         updateFormData({
                           currency: {
@@ -1381,12 +1223,12 @@ export const CharacterEditForm: React.FC<CharacterEditFormProps> = ({
                 Equipment
               </h4>
               <div className="text-sm text-theme-muted">
-                Equipment management will be implemented in the next phase
+                Add or change equipment on the saved character sheet.
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 };

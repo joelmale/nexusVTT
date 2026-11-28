@@ -88,7 +88,7 @@ const NewCharacterModal: React.FC<NewCharacterModalProps> = ({
                 <h3 className="text-lg font-semibold text-blue-300">Manual Entry</h3>
               </div>
                <p className="text-sm text-theme-tertiary leading-relaxed">
-                 Transfer a pen & paper character or fill out a complete character sheet manually.
+                 Enter a character’s core stats, skill proficiencies, languages, and coins.
                </p>
             </button>
 
